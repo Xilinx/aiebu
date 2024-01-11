@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
+
+cmake_minimum_required(VERSION 3.18.0)
+
+project(AIEBU HOMEPAGE_URL https://gitenterprise.xilinx.com/XRT/aiebu)
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(CMAKE_INSTALL_PREFIX "/opt/xilinx/cert")
+else()
+  message(FATAL_ERROR "Unsupported platform")
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+message("-- CMAKE_SYSTEM=${CMAKE_SYSTEM}")
+message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(PkgConfig REQUIRED)
+find_package(Boost REQUIRED)
+
+pkg_check_modules(LIBELF REQUIRED libelf)
+message("-- Libelf version: ${LIBELF_VERSION}")
+
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+message("-- Python version: ${Python3_VERSION}")
+
+find_program (PYLINT pylint REQUIRED)
+message("-- Pylint path: ${PYLINT}")
+
+find_program (READELF eu-readelf REQUIRED)
+message("-- Readelf path: ${READELF}")
+
+enable_testing()
