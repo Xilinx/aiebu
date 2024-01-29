@@ -1,0 +1,6 @@
+*.o
+*~
+*.log
+build/Debug*
+build/Release*
+__pycache__

@@ -1,0 +1,282 @@
+---
+platform:
+  architecture: aie2
+  system:
+    - ryzen-ai
+
+types:
+  - name: opcode
+    description: |
+      8-bit unsigned integer containing a unique identifier for the operation.
+  - name: const
+    description: |
+      Constant number. The width is specified per-operand and should be 8, 16 or 32 bit.
+  - name: pad
+    description: |
+      Used for padding / alignment purposes. The value is always set to zero.
+      In human-readable representations (asm file), padding operands are omitted from the operand list.
+
+operations:
+  - mnemonic: OP_NOOP
+    opcode: 0x00
+    regular: True
+    arguments:
+      - type: pad
+        width: 24
+    brief:
+    description: |
+      Do nothing but return imediately.
+  - mnemonic: OP_WRITEBD
+    opcode: 0x01
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - name: ddr_type
+        type: const
+        width: 3
+      - name: bd_id
+        type: const
+        width: 5
+    brief: write BdContent to tile(Col, Row) BdId  BD registers
+    description: |
+      Write 8 DWORDs to a single shim/memtile BD. Patch BD address if not yet.
+  - mnemonic: OP_WRITE32
+    opcode: 0x02
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - type: pad
+        width: 8
+    brief: write 32bits RegVal to tile(Col, Row):RegAddr
+    description: |
+      Write 32-bits data to a single register.
+  - mnemonic: OP_SYNC
+    opcode: 0x03
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - name: dma_direction
+        type: const
+        width: 8
+    brief:
+    description: |
+      Wait until the number of BDs in the same channel of all tiles equal to 0.
+  - mnemonic: OP_WRITEBD_EXTEND_AIETILE
+    opcode: 0x04
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - name: bd_id
+        type: const
+        width: 8
+    brief: write BdContent to tile(Col:+ColNum, Row:+RowNum) BdId  BD registers
+    description: |
+      Same as OP_WRITEBD,  write same content to multi-tiles.
+  - mnemonic: OP_WRITE32_EXTEND_GENERAL
+    opcode: 0x05
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - name: col_num
+        type: const
+        width: 3
+      - name: row_num
+        type: const
+        width: 5
+    brief: write 32bits RegVal to tile(Col:+ColNum, Row:+RowNum):RegAddr
+    description: |
+      Same ad OP_WRITE32, write same 32-bits to multi-tiles.
+  - mnemonic: OP_WRITEBD_EXTEND_SHIMTILE
+    opcode: 0x06
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - name: ddr_type
+        type: const
+        width: 3
+      - name: bd_id
+        type: const
+        width: 5
+    brief: write BdContent to tile(Col:+ColNum, 0) BdId  BD registers
+    description: |
+      Same as OP_WRITEBD,  write different content to same BdId of tiles at row-0,  each tile BD has different address field.
+  - mnemonic: OP_WRITEBD_EXTEND_MEMTILE
+    opcode: 0x07
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - name: col_num
+        type: const
+        width: 8
+    brief: write BdContent to tile(Col:+ColNum, Row) BdId  BD registers, Each col has different BdId and NextBdId
+    description: |
+      Same as OP_WRITEBD,  write different content to different BdId of tiles at one row,  each tile BD has different NextBd field.
+  - mnemonic: OP_WRITE32_EXTEND_DIFFBD
+    opcode: 0x08
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - name: col_num
+        type: const
+        width: 3
+      - name: row_num
+        type: const
+        width: 5
+    brief: write 32bits RegVal to tile(Col:+ColNum, Row:+RowNum):RegAddr
+    description: |
+      same as OP_WRITE32_EXTEND_GENERAL,  each tile has different register value..
+  - mnemonic: OP_WRITEBD_EXTEND_SAMEBD_MEMTILE
+    opcode: 0x09
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - name: bd_id
+        type: const
+        width: 8
+    brief: write BdContent to tile(Col:+ColNum) BdId. Each col has same BD content
+    description: |
+      same as OP_WRITEBD, write same content to same BDId to different columns.
+  - mnemonic: OP_DUMPDDR
+    opcode: 0x0a
+    regular: True
+    arguments:
+      - type: pad
+        width: 24
+    brief: Simulation only
+    description: |
+      Not used on AIE IPU.
+  - mnemonic: OP_WRITESHIMBD
+    opcode: 0x0b
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - name: ddr_type
+        type: const
+        width: 3
+      - name: bd_id
+        type: const
+        width: 5
+    brief: write BdContent to tile(Col, Row) BdId  to shim BD registers
+    description: |
+      Write 8 DWORDs to a single shim BD. Patch BD address if not yet.
+  - mnemonic: OP_WRITEMEMBD
+    opcode: 0x0c
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - name: bd_id
+        type: const
+        width: 8
+    brief: write BdContent to tile(Col, Row) BdId  to memtile BD registers
+    description: |
+      Write 8 DWORDs to a single memtile BD..
+  - mnemonic: OP_WRITE32_RTP
+    opcode: 0x0d
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - type: pad
+        width: 8
+    brief: write content in RTPOffset at instruction buffer to RTPAddr
+    description: |
+      Write 32-bits data at given offset in instruction buffer to a single register.
+  - mnemonic: OP_READ32
+    opcode: 0x0e
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - type: pad
+        width: 8
+    brief: read RegAddr to MPIPU debug register
+    description: |
+      Under debug mode, read a given register value and write to debug register.
+  - mnemonic: OP_READ32_POLL
+    opcode: 0x0f
+    regular: True
+    arguments:
+      - name: column
+        type: const
+        width: 8
+      - name: row
+        type: const
+        width: 8
+      - type: pad
+        width: 8
+    brief: read value at RegAddr and compare to RegVal. Exit on equal or LoopCount is reached.
+    description: |
+      Poll a register unit it equals to a given value or timeouts.
+  - mnemonic: OP_RECORD_TIMESTAMP
+    opcode: 0x10
+    regular: True
+    arguments:
+      - name: operation_id
+        type: const
+        width: 24
+    brief: write Operation ID and the current value of AIE TILE TIMER Register into a dedicated write buffer
+    description: |
+      Profile AIE cycle count between DPU opcodes.

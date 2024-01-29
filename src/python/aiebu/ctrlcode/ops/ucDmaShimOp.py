@@ -1,0 +1,15 @@
+from ctrlcode.ops.serializer.ucDmaShimOp_serializer import UcDmaShimOpSerializer
+from ctrlcode.ops.deserializer.ucDmaShimOp_deserializer import UcDmaShimOpDeSerializer
+from ctrlcode.common.symbol import Symbol
+from ctrlcode.common.util import parse_num_arg
+
+class UcDmaShimOp:
+    def serializer(self, args, state):
+        return UcDmaShimOpSerializer(self, args, state)
+
+    def handle_symbol(self, args, state, col_num, page_num):
+        local_ptr_absolute = parse_num_arg(args[2], state)
+        return Symbol(args[6], local_ptr_absolute, col_num, page_num, Symbol.SymbolKind.SHIM_DMA_BASE_ADDR_SYMBOL_KIND)
+
+    def deserializer(self, state):
+        return UcDmaShimOpDeSerializer(self, state)

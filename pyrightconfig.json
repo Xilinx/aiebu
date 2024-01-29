@@ -1,5 +1,6 @@
 {
   "extraPaths": [
-    "src/python"
+    "src/python/aiebu",
+    "."
   ]
 }

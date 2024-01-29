@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
+
+
+ROOTDIR=$(readlink -f $(dirname ${BASH_SOURCE[0]}))
+ROOTDIR=`dirname $ROOTDIR`
+
+export PYTHONPATH=${ROOTDIR}/lib/python3:${ROOTDIR}/share:${PYTHONPATH}
+
+exec ${ROOTDIR}/lib/python3/control_asm_disasm.py $@

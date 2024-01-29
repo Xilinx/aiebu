@@ -6,12 +6,14 @@ cmake_minimum_required(VERSION 3.18.0)
 project(AIEBU HOMEPAGE_URL https://gitenterprise.xilinx.com/XRT/aiebu)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(CMAKE_INSTALL_PREFIX "/opt/xilinx/cert")
+  set(CMAKE_INSTALL_PREFIX "/opt/xilinx")
 else()
   message(FATAL_ERROR "Unsupported platform")
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(AIEBU_INSTALL_DIR "aiebu")
 
 message("-- CMAKE_SYSTEM=${CMAKE_SYSTEM}")
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
@@ -35,3 +37,9 @@ find_program (READELF eu-readelf REQUIRED)
 message("-- Readelf path: ${READELF}")
 
 enable_testing()
+
+add_subdirectory(src/python)
+add_subdirectory(specification)
+add_subdirectory(scripts)
+
+add_subdirectory(test)

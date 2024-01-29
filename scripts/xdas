@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
+
+
+ROOTDIR=$(readlink -f $(dirname ${BASH_SOURCE[0]}))
+ROOTDIR=`dirname $ROOTDIR`
+
+export PYTHONPATH=${ROOTDIR}/lib/python3:${ROOTDIR}/share:${PYTHONPATH}
+
+switches="-d "
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+	-o|--output)
+	    switches="${switches} -o "
+	    shift
+	    switches="${switches} $1 "
+	    shift
+	    ;;
+	*)
+	    switches="${switches} $1 "
+	    shift
+	    ;;
+    esac
+done
+
+exec ${ROOTDIR}/lib/python3/control_asm_disasm.py ${switches}

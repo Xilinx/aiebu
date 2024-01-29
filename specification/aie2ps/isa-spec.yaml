@@ -1,0 +1,680 @@
+---
+platform:
+  architecture: aie2ps
+  system:
+    - telluride
+    - turin-ai
+
+types:
+  - name: opcode
+    description: |
+      8-bit unsigned integer containing a unique identifier for the operation.
+  - name: register
+    description: |
+      8-bit unsigned integer 0..23 used to reference _job-runner_ registers `r0..r23`.
+
+      Register `r0..r7` are local registers which are private to each job.
+      Register `r8..r23` are global registers which are shared among all the jobs.
+      Global registers `r8..r23` also have alias name `g0..g15`
+  - name: barrier
+    description: |
+      8-bit unsigned integer used to reference barriers provided by _job-runner_.
+
+      There are 2 types of barrier provided, local_barrier and remote_barrier.
+      Barrier `lb0..lb15`, which essentially are integer 0..15, are local barriers
+      which are used for synchronization across jobs running in same _job-runner_.
+      Barrier `rb0..rb63`, which essentially are integer 1..64, are remote barriers
+      which are used for synchronization across jobs running on different _job-runner_.
+  - name: const
+    description: |
+      Constant number. The width is specified per-operand and should be 8, 16 or 32 bit.
+  - name: pad
+    description: |
+      Used for padding / alignment purposes. The value is always set to zero.
+
+      In human-readable representations (asm file), padding operands are omitted from the operand list.
+  - name: jobsize
+    description: |
+      16-bit unsigned integer containing the size of the job (`START_JOB` until `END_JOB`), automatically
+      calculated and filled by the assembler.
+
+      In human-readable representations (asm file), this operand is omitted from the operand list.
+
+# Note: An operation is considered 'regular' in case it is an actual operation used within a job 'body'.
+#       For example, UC_DMA_WRITE_DES is regular while START_JOB, END_JOB and EOF are not.
+operations:
+  - mnemonic: START_JOB
+    opcode: 0x00
+    regular: False
+    arguments:
+      - name: job_id
+        type: const
+        width: 16
+      - name: size
+        type: jobsize
+        width: 16
+      - type: pad
+        width: 16
+    brief: Indicates the start of a new job.
+    description: |
+      Indicates the start of a new job and creates a new entry in the job table,
+      if not done yet.
+
+      The job size is auto-calculated and inserted by the assembler and not supplied
+      explicitly by the user.
+  - mnemonic: START_JOB_DEFERRED
+    opcode: 0x17
+    regular: False
+    arguments:
+      - name: job_id
+        type: const
+        width: 16
+      - name: size
+        type: jobsize
+        width: 16
+      - type: pad
+        width: 16
+    brief: Indicates the start of a new deferred job.
+    description: |
+      Same as START_JOB, but does not schedule the job yet. The new job can be
+      launched manually via LAUNCH_JOB.
+  - mnemonic: LAUNCH_JOB
+    opcode: 0x18
+    regular: True
+    arguments:
+      - name: job_id
+        type: const
+        width: 16
+    brief: Launches a deferred job.
+    description: |
+      Launch / schedule a job created with START_JOB_DEFERRED.
+
+      This operation might only be called once per job. Launching the same job multiple
+      times is undefined behavior.
+
+      The newly launched job will be first scheduled for the next scheduling cycle and
+      the current job will continue to run until encountering a blocking operation.
+  - mnemonic: UC_DMA_WRITE_DES
+    opcode: 0x01
+    regular: True
+    arguments:
+      - name: wait_handle
+        type: register
+      - type: pad
+        width: 8
+      - name: descriptor_ptr
+        type: const
+        width: 16
+      - type: pad
+        width: 16
+    brief: Enqueues a DM2MM uC-DMA transfer and returns a wait handle for it.
+    description: |
+      Enqueues a DM2MM uC-DMA transfer with the given pointer used as the start
+      BD. The pointer is relative to the data section of the control page.
+
+      In case the DM2MM queue is full, the job will pre-empt and retried in the
+      next scheduling cycle, i.e. the job will be blocked until there is space available
+      in the queue.
+
+      In case enqueueing is successful, the operation returns immediately without
+      waiting for the DMA transfer to finish. A wait handle is returned in the
+      register specified in `wait_handle`. This handle can be used to wait for the
+      DMA transfer to finish via the `WAIT_UC_DMA` operation.
+  - mnemonic: WAIT_UC_DMA
+    opcode: 0x02
+    regular: True
+    arguments:
+      - name: wait_handle
+        type: register
+      - type: pad
+        width: 8
+    brief: Waits for the specified uC-DMA wait handle to finish.
+    description: |
+      Waits for the wait handle stored in the register specified in `wait_handle` to
+      finish.
+
+      If the associated uC-DMA transfer is already finished when this operation is
+      called, the operation returns immediately. Otherwise, the operation will yield
+      control to a different job and the job will not be re-scheduled until the transfer
+      has finished.
+  - mnemonic: MASK_WRITE_32
+    opcode: 0x03
+    regular: True
+    arguments:
+      - type: pad
+        width: 16
+      - name: address
+        type: const
+        width: 32
+      - name: mask
+        type: const
+        width: 32
+      - name: value
+        type: const
+        width: 32
+    brief: Writes a constant value with masked bits to a constant AXI-MM address.
+    description: |
+      This operation is RMW. Those unmasked bits at the address are unchanged before
+      and after the operation. The RMW itself is not atomic, so there would be potential
+      race condition if multiple uC run this opcode towards same address.
+  - mnemonic: WRITE_32
+    opcode: 0x05
+    regular: True
+    arguments:
+      - type: pad
+        width: 16
+      - name: address
+        type: const
+        width: 32
+      - name: value
+        type: const
+        width: 32
+    brief: Writes a constant value to a constant AXI-MM address.
+    description: |
+      The constant value is written to a constant AXI-MM address. The write is performed
+      via the uC's AXI-MM store port and does not involve the uC-DMA.
+
+      This operation is synchronous, i.e. it is guaranteed that the write has been executed
+      completely when this operation finishes.
+  - mnemonic: WAIT_TCTS
+    opcode: 0x06
+    regular: True
+    arguments:
+      - name: tile_id
+        type: const
+        width: 16
+      - name: actor_id
+        type: const
+        width: 8
+      - type: pad
+        width: 8
+      - name: target_tcts
+        type: const
+        width: 8
+      - type: pad
+        width: 8
+    brief: Wait for tcts for the shim/mem DMA tasks.
+    description: |
+      Wait for `target_tcts` number of tcts for tasks enqueued on a shim or mem DMA channel.
+      Tasks can be enqueued through `WRITE_32` and/or `UC_DMA_WRITE_DES/UC_DMA_WRITE_DES_SYNC`
+
+      In case the number of TCTs haven't all been arrived yet when this operation is executed,
+      the current job will be blocked until all the TCT arrive. The runtime will proceed with
+      execution of other (non-blocked) jobs during that time.
+
+      Use this operation only for tasks which have TCTs enabled and where the TCTs are
+      routed to arrive at the uC executing this operation.
+
+      Note that tasks can be enqueued from any jobs, but only one job can call WAIT_TCTS. And
+      waiting for more tcts than enqueued will hang the job forever
+  - mnemonic: END_JOB
+    opcode: 0x07
+    regular: False
+    arguments:
+      - type: pad
+        width: 16
+    brief: Indicates the end of the current job.
+    description: |
+      Indicates the end of a job started with `START_JOB`. After `END_JOB`, the only
+      valid operations are `START_JOB` and `EOF`.
+  - mnemonic: YIELD
+    opcode: 0x08
+    regular: True
+    arguments:
+      - type: pad
+        width: 16
+    brief: Yields to another job.
+    description: |
+      Tells the scheduler to perform a context switch to the next available job. The
+      current job will be re-scheduled in the next scheduling cycle.
+  - mnemonic: UC_DMA_WRITE_DES_SYNC
+    opcode: 0x09
+    regular: True
+    arguments:
+      - name: descriptor_ptr
+        type: const
+        width: 16
+    brief: Enqueues a DM2MM uC-DMA transfer and waits for it to finish.
+    description: |
+      Convenience operation which combines `UC_DMA_WRITE_DES` and `WAIT_UC_DMA`, i.e. enqueues the uC-DMA BD
+      at `descriptor_ptr` and waits until the uC-DMA finishes processing that BD.
+  - mnemonic: WRITE_32_D
+    opcode: 0x0b
+    regular: True
+    arguments:
+      - name: flags
+        type: const
+        width: 8
+      - type: pad
+        width: 8
+      - name: address
+        type: const
+        width: 32
+      - name: value
+        type: const
+        width: 32
+    brief: Writes a constant value or a value from a register to an AXI-MM address which is constant or comes from a register.
+    description: |
+      Dynamic version of `WRITE_32`. The flags arg is used to tell whether address/value are immediate
+      or a register number.
+
+      | bit 0 | bit 1 |
+      | ---  | --- |
+      | 1 : address is immediate | 1 : value is immediate |
+      | 0 : address is register number. The write address is in this register | 0 : value is register number. The write value is in this register |
+  - mnemonic: READ_32
+    opcode: 0x0c
+    regular: True
+    arguments:
+      - name: value
+        type: register
+      - type: pad
+        width: 8
+      - name: address
+        type: const
+        width: 32
+    brief: Reads the value of a constant AXI-MM address and stores it in a register.
+    description: |
+      The value of the constant AXI-MM address in `address` is read and put into
+      destination register `value`. The read is performed via the uC's AXI-MM store port and
+      does not involve the uC-DMA.
+
+      This operation is synchronous, i.e. it is guaranteed that the read has been executed
+      completely when this operation finishes.
+  - mnemonic: READ_32_D
+    opcode: 0x0d
+    regular: True
+    arguments:
+      - name: address
+        type: register
+      - name: value
+        type: register
+    brief: Reads the value of an AXI-MM address stored in a register and stores it in a register.
+    description: |
+      The value of the AXI-MM address loaded from register `address` is read and put into
+      destination register `value`. The read is performed via the uC's AXI-MM store port and
+      does not involve the uC-DMA.
+
+      This operation is synchronous, i.e. it is guaranteed that the read has been executed
+      completely when this operation finishes.
+  - mnemonic: APPLY_OFFSET_57
+    opcode: 0x0e
+    regular: True
+    arguments:
+      - name: table_ptr
+        type: const
+        width: 16
+      - name: num_entries
+        type: const
+        width: 16
+      - name: offset_high
+        type: register
+      - name: offset_low
+        type: register
+    brief: Applies an offset to one or more shim DMA BD base address fields. (Version for 57-bit base addresses.)
+    description: |
+      Patches the base address of `num_entries` Shim DMA buffer descriptors by adding the offset
+      loaded from the registers passed in `offset_high` and `offset_low`.
+
+      The location of the `num_entries` buffer descriptors should be given in a table stored
+      at `table_ptr`. That table is basically a list of 16-bit points to the *first* word of the
+      BD.
+
+      Example:
+      ```
+        APPLY_OFFSET_57     @offset_table, 2, $g0, $g1
+        # ...
+
+        ALIGN             4
+      mem21_bd0:
+        WORD              0x00000080
+        WORD              0x00020000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x80000000
+        WORD              0x00000000
+
+        ALIGN             4
+      mem31_bd0:
+        WORD              0x00000080
+        WORD              0x00020000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x80000000
+        WORD              0x00000000
+
+      offset_table:
+        HALFWORD          @mem21_bd0
+        HALFWORD          @mem31_bd0
+      ```
+
+      The patching using this operation needs be done *before* programming the Shim DMA buffer
+      descriptors via the uC-DMA.
+  - mnemonic: ADD
+    opcode: 0x0f
+    regular: True
+    arguments:
+      - name: dest
+        type: register
+      - type: pad
+        width: 8
+      - name: value
+        type: const
+        width: 32
+    brief: Adds `value` to the content of register `dest`.
+    description: |
+      The value stored in register `dest` is loaded, then `value` is added to it and the result is
+      stored in the `dest` register.
+  - mnemonic: MOV
+    opcode: 0x10
+    regular: True
+    arguments:
+      - name: dest
+        type: register
+      - type: pad
+        width: 8
+      - name: value
+        type: const
+        width: 32
+    brief: Moves `value` to register `dest`.
+    description: |
+      Stores the constant `value` in the register `dest`.
+  - mnemonic: LOCAL_BARRIER
+    opcode: 0x11
+    regular: True
+    arguments:
+      - name: local_barrier_id
+        type: barrier
+      - name: num_participants
+        type: const
+        width: 8
+    brief: Local barrier used to synchronize multiple jobs.
+    description: |
+      `local_barrier_id` indicates a barrier resource that is used to synchronize `num_participants`
+      number of jobs. *All* participating jobs must reach this barrier before any participating job
+      can move forward. A job which executes this instruction is blocked till the barrier matures.
+  - mnemonic: REMOTE_BARRIER
+    opcode: 0x12
+    regular: True
+    arguments:
+      - name: remote_barrier_id
+        type: barrier
+      - type: pad
+        width: 8
+      - name: party_mask
+        type: const
+        width: 32
+    brief: Remote barrier used to synchronize multiple columns.
+    description: |
+      `remote_barrier_id` indicates a barrier resource that is used to synchronize jobs in different
+      columns. *All* participating jobs must reach this barrier before any participating job can move forward.
+      A job which executes this instruction is blocked till the barrier matures. `party_mask` is the bit map of
+      participant columns, where each column takes the bit corresponding to its column index. For any specific
+      remote barrier, only one job in a column can participate in.
+  - mnemonic: EOF
+    opcode: 0xff
+    regular: False
+    arguments:
+      - type: pad
+        width: 16
+    brief: Indicates the end of the operation sequence.
+    description: |
+      `EOF` must follow the last `END_JOB` instruction in a page and tells the
+      runtime _job-runner_ to stop parsing the code any further.
+  - mnemonic: POLL_32
+    opcode: 0x13
+    regular: True
+    arguments:
+      - type: pad
+        width: 16
+      - name: address
+        type: const
+        width: 32
+      - name: value
+        type: const
+        width: 32
+    brief: Poll read address until the response equals value.
+    description: |
+      This poll is a busy poll. When it is used to check the occur of an event,
+      e.g. DMA completion, it is way more expensive compared to the event trigger
+      implementation, aka TCT.
+
+      Note that the poll will block the current job, but other jobs will continue
+      to execute.
+  - mnemonic: MASK_POLL_32
+    opcode: 0x14
+    regular: True
+    arguments:
+      - type: pad
+        width: 16
+      - name: address
+        type: const
+        width: 32
+      - name: mask
+        type: const
+        width: 32
+      - name: value
+        type: const
+        width: 32
+    brief: Poll read address until the response equals value after mask applied.
+    description: |
+      This poll is busy poll. When it is used to check the occur of an event,
+      e.g. DMA completion, it is way more expensive compared to the event trigger
+      implementation, aka, TCT
+  - mnemonic: TRACE
+    opcode: 0x15
+    regular: True
+    arguments:
+      - name: info
+        type: const
+        width: 16
+    brief: Collect trace info at opcode boundary
+    description: |
+      This opcode is used for dynamic tracing purpose. Dynamic means, without
+      control code change, trace probe can be placed at any place dynamically
+      in control code to collect the trace info when the job runs there.
+
+      This opcode should not be used in user control code.
+
+      Operand `info` is encoded as following,
+
+      | bit 0-10 | bit 11-15 |
+      | ---  | --- |
+      | `address` | `type` |
+
+      In order to use this, for each trace probe that is inserted at a target opcode,
+      user needs to create a control body, and replace the first 4 bytes of the target
+      opcode binary with the binary of this opcode before the control code is loaded
+      to CERT. Control body of all trace probes should be loaded to CERT first as well.
+
+      In each of the control body, the first word is the replaced binary, following
+      words are `type` dependent, eg. room for trace data that will be collected.
+
+      The trace probe control body locates in sDM. Once collected,
+      those data will be moved out to host ddr.
+
+      There are amount of sDM preserved for dynamic tracing purpose. The operand `address`
+      is the offset in word of address of trace probe control body within the preserved SDM
+
+      Operand `type` defines the trace probe types.
+
+      | type name | value |
+      | ---  | --- |
+      | timestamp | 0 |
+      | count | 1 |
+      | ... | ... |
+
+      So far only timestamp is supported.
+      For timestamp, There are 3 word fields in control body,
+
+      | word 0 | word 1 | word 2 |
+      | ---  | --- | --- |
+      | original replaced assembly | high 32 bit timestamp | low 32 bit timestamp |
+
+  - mnemonic: NOP
+    opcode: 0x16
+    regular: True
+    arguments:
+      - type: pad
+        width: 16
+    brief: No-op (no operation) instruction.
+    description: |
+      NOP instruction is ignored by the _job-runner_. NOP instructions may be used for benchmarking
+      the _job-runner_ performance and for inserting small delays. Calling this operation may yield
+      control to another job.
+
+directives:
+  - mnemonic: .long
+    brief: Specifies a 4 byte integer value.
+    arguments:
+      - name: value
+        type: integer
+    description: |
+      Specifies 4 byte integer value often used for BDs in ctrldata.
+
+      Example:
+      ```
+      mem21_bd0:
+        .long              0x00000080
+        .long              0x00020000
+        ...
+      ```
+  - mnemonic: .align
+    brief: Specifies a specific aligment for the next ctrlcode fragment.
+    arguments:
+      - name: value
+        type: integer
+    description: |
+      Specifies a specific alignment defined by the `value` parameter for the following `ctrltext` or `ctrldata`.
+
+      Example:
+      ```
+        .align           16
+        INPUT_row1_actor11_taskleadin_ucbds:
+          UC_DMA_BD       0, 0x021A05C0, @INPUT_row1_actor11_taskleadin_data0, 8, 0, 1
+          UC_DMA_BD       0, 0x021A065C, @INPUT_row1_actor11_enqueue_0_0, 1, 0, 1
+          UC_DMA_BD       0, 0x021A0000, @INPUT_row1_actor6_taskleadin_data0, 56, 0, 1
+          ...
+      ```
+  - mnemonic: .section
+    brief: Specifies a name for the section with optional flags.
+    arguments:
+      - name: name
+        type: string
+      - name: flags
+        type: string
+    description: |
+      Describes the name of a ctrlcode section and optional flags (A,W,X) for mapping at runtime.
+      `.ctrltext` is used for text sections and `.ctrldata` is used for data sections. Suffix in the
+      form of `.<columnnumber>` may be used with section names.
+
+      Example:
+      ```
+      .section .ctrltext.2,"ax"
+      .align 16
+      START_JOB   0x15
+      UC_DMA_WRITE_DES_SYNC   @label1
+      LOCAL_BARRIER   $lb0, 0xB
+      END_JOB
+      START_JOB   0x16
+      ...
+      ```
+  - mnemonic: .include
+    brief: Specifies the name of file that should be included at the point.
+    arguments:
+      - name: file
+        type: string
+    description: |
+      Provides a method to organize miltiple asm files which can be combined together to produce a single logical asm file.
+
+      Example:
+      ```
+      ...
+      .include "resetcode.0.asm"
+      .include "corecode.1.asm"
+      START_JOB   0x15
+      UC_DMA_WRITE_DES_SYNC   @label1
+      LOCAL_BARRIER   $lb0, 0xB
+      END_JOB
+      START_JOB   0x16
+      ...
+      ```
+  - mnemonic: .eop
+    brief: Specifies end of page.
+    description: |
+      Provides a method to specify end of page.
+
+      Example:
+      ```
+      ...
+      START_JOB   0x15
+      UC_DMA_WRITE_DES_SYNC   @label1
+      LOCAL_BARRIER   $lb0, 0xB
+      END_JOB
+      .eop
+      START_JOB   0x16
+      ...
+      ```
+  - mnemonic: .attach_to_group
+    brief: Specifies the column number for the following sections.
+    arguments:
+      - name: column number
+        type: integer
+    description: |
+      Provides a method to bind the following sections to a specific column. Multiple
+      such directives may be used in a file each with a different column number. The
+      assembler uses this directive to generate sections names like `.ctrltext.<columnnumber>`
+      and `.ctrldata.<columnnumber>`
+
+      Example:
+      ```
+      ...
+      .attach_to_group 0
+
+      START_JOB 0
+      READ_32             $r0, 0x2100000
+      WRITE_32_D          2, 0x4100000, 0
+      REMOTE_BARRIER      $rb0, 0x6
+      END_JOB
+
+      EOF
+
+      .attach_to_group 1
+
+      START_JOB 0
+      uC_DMA_WRITE_DES    $r0, @uc_dma_bd0
+      WAIT_uC_DMA         $r0
+      LOCAL_BARRIER       $lb0, 2
+      END_JOB
+
+      START_JOB 1
+      LOCAL_BARRIER       $lb0, 2
+      WRITE_32            0x01A0634, 0x80000000
+      WAIT_TCTS           TILE_0_1, MM2S_0, 1
+      END_JOB
+
+      EOF
+      ...
+      ```
+macro_defines:
+  - mnemonic: UC_DMA_BD_SIZE
+    value: 16
+    brief: UC DMA BD length
+  - mnemonic: TASK_PAGE_SIZE
+    value: 8192
+    brief: task page size
+  - mnemonic: PAGE_HEADER_SIZE
+    value: 16
+    brief: task page header length
+  - mnemonic: DATA_SECTION_ALIGNMENT
+    value: 16
+    brief: alignment of data section in a page
+  - mnemonic: UC_DMA_WORD_LEN
+    value: 4
+    brief: minimum length of an ucdma
