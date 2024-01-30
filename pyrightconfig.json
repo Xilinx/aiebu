@@ -1,6 +1,7 @@
 {
   "extraPaths": [
     "src/python/aiebu",
+    "build/Debug/src/python",
     "."
   ]
 }

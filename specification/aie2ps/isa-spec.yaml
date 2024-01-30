@@ -1,9 +1,12 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
 ---
 platform:
   architecture: aie2ps
   system:
     - telluride
     - turin-ai
+  opsize: 16
 
 types:
   - name: opcode

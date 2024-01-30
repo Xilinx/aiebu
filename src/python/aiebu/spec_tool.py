@@ -19,9 +19,8 @@ import markdown_graphviz_svg
 from jinja2 import Environment, FileSystemLoader
 
 
-environment = Environment(loader=FileSystemLoader('./templates/'))
-
-
+_environment = Environment()
+_opsize = 0
 
 def get_arg_name(arg):
   return arg['name'] if 'name' in arg else '-'
@@ -40,7 +39,8 @@ def get_arg_c_type(arg):
 
 
 def get_operation_size(op):
-  size = 16
+  global _opsize
+  size = _opsize
   for arg in op['arguments']:
     size += get_arg_width(arg)
   assert size % 8 == 0
@@ -56,18 +56,18 @@ jinja_functions = {
 
 
 def generate_docs(spec):
-  template = environment.get_template('docs.md')
+  template = _environment.get_template('docs.md')
   template.globals.update(jinja_functions)
   print(template.render(spec))
 
 
 def generate_html_docs(spec):
-  template = environment.get_template('docs.md')
+  template = _environment.get_template('docs.md')
   template.globals.update(jinja_functions)
   md = markdown.Markdown(extensions=[markdown_graphviz_svg.GraphvizBlocksExtension(), 'tables', 'fenced_code', 'toc'])
   html = md.convert(template.render(spec))
 
-  html_template = environment.get_template('docs.html')
+  html_template = _environment.get_template('docs.html')
   print(html_template.render({
     'html': html,
     'toc': md.toc
@@ -75,27 +75,35 @@ def generate_html_docs(spec):
 
 
 def generate_c_stubs(spec):
-  template = environment.get_template('stubs.h')
+  template = _environment.get_template('stubs.h')
   template.globals.update(jinja_functions)
   print(template.render(spec))
 
 
 def generate_py(spec):
-  template = environment.get_template('stubs.py')
+  template = _environment.get_template('stubs.py')
   template.globals.update(jinja_functions)
   print(template.render(spec))
 
 
 def postprocess_spec(spec):
+  global _opsize
+  platform = spec['platform']
+  _opsize = platform['opsize']
+
   for op in spec['operations']:
-    offset = 16
+    offset = _opsize
     for arg in op['arguments']:
       arg['_offset'] = offset // 8
       offset += get_arg_width(arg)
 
 
-def run(spec_filename, command):
+def run(spec_filename, template_dir, command):
   spec = None
+
+  global _environment
+  _environment = Environment(loader=FileSystemLoader(template_dir))
+
   with open(spec_filename, 'r') as f:
     spec = yaml.load(f, Loader=yaml.Loader)
   postprocess_spec(spec)
@@ -114,10 +122,10 @@ def run(spec_filename, command):
 
 
 if __name__ == '__main__':
-  if len(sys.argv) != 3:
-    sys.stderr.write("Usage: {} <spec-filename> <command>\n".format(
+  if len(sys.argv) != 4:
+    sys.stderr.write("Usage: {} <spec-filename> <template-dir> <command>\n".format(
       sys.argv[0]
     ))
     sys.exit(1)
 
-  run(sys.argv[1], sys.argv[2])
+  run(sys.argv[1], sys.argv[2], sys.argv[3])

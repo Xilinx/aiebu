@@ -21,4 +21,6 @@ make VERBOSE=1 DESTDIR=$PWD
 
 make VERBOSE=1 DESTDIR=$PWD test
 
+make VERBOSE=1 DESTDIR=$PWD isa-spec
+
 make VERBOSE=1 DESTDIR=$PWD install

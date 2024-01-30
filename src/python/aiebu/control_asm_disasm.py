@@ -17,10 +17,6 @@ def parse_command_line(args):
   msg = "Assemble ctrlcode ASM file and write hex and or ELF"
   parser = argparse.ArgumentParser(description = msg)
 
-#  group = parser.add_mutually_exclusive_group(required=False)
-#  group.add_argument('-a','--assembler', default=True, dest='assembler', action='store_true',  help='Assembler')
-#  group.add_argument('-d','--disassembler', default=False, dest='disassembler', action='store_true',  help='DisAssembler')
-
   parser.add_argument('-d','--disassembler', default=False, dest='disassembler', action='store_true',  help='DisAssembler')
 
   parser.add_argument("-m", "--map", dest ='mapfilename', nargs = '?', default = 'debug_map.json',

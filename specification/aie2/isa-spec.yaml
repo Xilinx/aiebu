@@ -1,8 +1,11 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2024 Advanced Micro Devices, Inc.
 ---
 platform:
   architecture: aie2
   system:
     - ryzen-ai
+  opsize: 8
 
 types:
   - name: opcode

@@ -21,6 +21,8 @@ message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(AIEBU_SPECIFICATION_INSTALL_DIR "aiebu/share/specification")
+
 find_package(PkgConfig REQUIRED)
 find_package(Boost REQUIRED)
 
