@@ -17,6 +17,8 @@ def parse_command_line(args):
   msg = "Assemble ctrlcode ASM file and write hex and or ELF"
   parser = argparse.ArgumentParser(description = msg)
 
+  parser.add_argument('-t','--target', default='aie2ps', dest='target', help='DisAssembler')
+
   parser.add_argument('-d','--disassembler', default=False, dest='disassembler', action='store_true',  help='DisAssembler')
 
   parser.add_argument("-m", "--map", dest ='mapfilename', nargs = '?', default = 'debug_map.json',
@@ -44,7 +46,11 @@ if __name__ == '__main__':
   if argtab.includedir:
       includedir = includedir + argtab.includedir
 
-  yamlres = importlib.resources.files("specification.aie2ps").joinpath("isa-spec.yaml")
+  specdir = "specification.aie2ps"
+  if argtab.target == "aie2":
+    specdir = "specification.aie2"
+
+  yamlres = importlib.resources.files(specdir).joinpath("isa-spec.yaml")
   yamlfile = str(yamlres)
 
   isa = ISA(yamlfile)

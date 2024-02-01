@@ -45,3 +45,14 @@ add_subdirectory(specification)
 add_subdirectory(scripts)
 
 add_subdirectory(test)
+
+SET(PACKAGE_KIND "TGZ")
+SET(CPACK_GENERATOR "TGZ")
+message("-- ${CMAKE_BUILD_TYPE} ${PACKAGE_KIND} package")
+
+SET(CPACK_PACKAGE_VENDOR "Advanced Micro Devices Inc.")
+SET(CPACK_PACKAGE_CONTACT "runtimeca39d@amd.com")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AMD XDNA binutils package")
+SET(CPACK_RESOURCE_FILE_LICENSE "${AIEBU_SOURCE_DIR}/LICENSE")
+
+INCLUDE(CPack)

@@ -39,7 +39,6 @@ def get_arg_c_type(arg):
 
 
 def get_operation_size(op):
-  global _opsize
   size = _opsize
   for arg in op['arguments']:
     size += get_arg_width(arg)

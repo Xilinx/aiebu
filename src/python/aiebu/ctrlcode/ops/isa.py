@@ -1,15 +1,13 @@
-#import sys
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
+
 import yaml
-from jinja2 import Environment, FileSystemLoader
 from ctrlcode.common.op_arg import OpArg
 from ctrlcode.ops.isaOp import IsaOp
 from ctrlcode.ops.wordOp import WordOp
 from ctrlcode.ops.alignOp import AlignOp
 from ctrlcode.ops.ucDmaOp import UcDmaOp
 from ctrlcode.ops.ucDmaShimOp import UcDmaShimOp
-
-
-environment = Environment(loader=FileSystemLoader('./templates/'))
 
 class ISA:
     def __init__(self, yfile):

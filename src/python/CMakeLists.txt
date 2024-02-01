@@ -106,22 +106,22 @@ set(AIEBU_PYTHON_INSTALL_DIR  "${AIEBU_INSTALL_DIR}/lib/python3")
 
 message("-- AIEBU_PYTHON_INSTALL_DIR=${AIEBU_PYTHON_INSTALL_DIR}")
 
-install(DIRECTORY aiebu/ctrlcode aiebu/pylibelf DESTINATION ${AIEBU_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug COMPONENT Runtime PATTERN __pycache__ EXCLUDE )
+install(DIRECTORY aiebu/ctrlcode aiebu/pylibelf DESTINATION ${AIEBU_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug Release COMPONENT Runtime PATTERN __pycache__ EXCLUDE )
 
-install(PROGRAMS aiebu/control_asm_disasm.py DESTINATION ${AIEBU_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug COMPONENT Runtime)
+install(PROGRAMS aiebu/control_asm_disasm.py DESTINATION ${AIEBU_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug Release COMPONENT Runtime)
 
-install(FILES aiebu/__init__.py DESTINATION ${AIEBU_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug COMPONENT Runtime)
+install(FILES aiebu/__init__.py DESTINATION ${AIEBU_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug Release COMPONENT Runtime)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.py
               ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa-spec.html
               ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa-spec.md
               ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa_stubs.h
        DESTINATION ${AIEBU_SPECIFICATION_INSTALL_DIR}/aie2ps
-       CONFIGURATIONS Debug COMPONENT Runtime
+       CONFIGURATIONS Debug Release COMPONENT Runtime
 )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/aie2/isa-spec.html
               ${CMAKE_CURRENT_BINARY_DIR}/aie2/isa-spec.md
        DESTINATION ${AIEBU_SPECIFICATION_INSTALL_DIR}/aie2
-       CONFIGURATIONS Debug COMPONENT Runtime
+       CONFIGURATIONS Debug Release COMPONENT Runtime
 )
