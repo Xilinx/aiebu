@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+
+set(AIEBU_INSTALL_LIB_DIR       "${AIEBU_INSTALL_DIR}/lib")
+set(AIEBU_INSTALL_INCLUDE_DIR       "${AIEBU_INSTALL_DIR}/include")
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+file(GLOB_RECURSE AIEBU_CPP_FILES "*.cpp")
+
+message("-- AIEBU_CPP_FILES: ${AIEBU_CPP_FILES}")
+
+add_library(aiebu SHARED ${AIEBU_CPP_FILES}
+  )
+
+add_dependencies(aiebu cpp-assembler-stubs)
+
+target_compile_options(aiebu PRIVATE
+  "-fPIC"
+  )
+
+target_include_directories(aiebu PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor
+  ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2
+  ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2ps
+  ${CMAKE_CURRENT_SOURCE_DIR}/encoder
+  ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2
+  ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
+  ${CMAKE_CURRENT_SOURCE_DIR}/common
+  ${CMAKE_CURRENT_SOURCE_DIR}/ops
+  ${CMAKE_CURRENT_SOURCE_DIR}/assembler
+  ${CMAKE_CURRENT_SOURCE_DIR}/elf
+  ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2
+  ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
+  ${CMAKE_CURRENT_SOURCE_DIR}/../ELFIO/
+  ${CMAKE_CURRENT_BINARY_DIR}/../../python/
+  )
+
+target_link_libraries(aiebu
+  PRIVATE
+  )
+
+install (TARGETS aiebu 
+  LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}
+  CONFIGURATIONS Debug Release COMPONENT Runtime
+)
+
+install(FILES include/aiebu.h include/aiebu_assembler.h include/aiebu_error.h DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR} CONFIGURATIONS Debug Release COMPONENT Runtime)
+

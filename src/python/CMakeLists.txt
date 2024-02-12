@@ -99,8 +99,19 @@ add_custom_target(html-docs-aie2
           ${CMAKE_SOURCE_DIR}/specification/aie2/isa-spec.yaml
 )
 
+add_custom_target(cpp-assembler-stubs
+  COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH="${CMAKE_CURRENT_BINARY_DIR}"
+          ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
+          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${CMAKE_SOURCE_DIR}/templates/aie2ps generate_cpp_assembler_stubs > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.h
+  BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.h
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  SOURCES ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
+          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+)
+
 add_custom_target(isa-spec ALL)
-add_dependencies(isa-spec docs html-docs c-stubs py-stubs docs-aie2 html-docs-aie2)
+add_dependencies(isa-spec docs html-docs c-stubs py-stubs docs-aie2 html-docs-aie2 cpp-assembler-stubs)
 
 set(AIEBU_PYTHON_INSTALL_DIR  "${AIEBU_INSTALL_DIR}/lib/python3")
 
@@ -116,6 +127,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.py
               ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa-spec.html
               ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa-spec.md
               ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa_stubs.h
+              ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.h
        DESTINATION ${AIEBU_SPECIFICATION_INSTALL_DIR}/aie2ps
        CONFIGURATIONS Debug Release COMPONENT Runtime
 )

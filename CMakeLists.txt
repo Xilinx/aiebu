@@ -41,9 +41,12 @@ message("-- Readelf path: ${READELF}")
 enable_testing()
 
 add_subdirectory(src/python)
+add_subdirectory(src/cpp/src)
 add_subdirectory(specification)
 add_subdirectory(scripts)
 
+
+add_subdirectory(test/cpp_test)
 add_subdirectory(test)
 
 SET(PACKAGE_KIND "TGZ")

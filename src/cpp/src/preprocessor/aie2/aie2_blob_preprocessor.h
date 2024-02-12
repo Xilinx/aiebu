@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+
+#ifndef _AIEBU_PREPROCESSOR_AIE2_BLOB_PREPROCESSOR_H_
+#define _AIEBU_PREPROCESSOR_AIE2_BLOB_PREPROCESSOR_H_
+
+#include "preprocessor.h"
+#include "aie2_blob_preprocessor_input.h"
+#include "aie2_blob_preprocessed_output.h"
+
+namespace aiebu {
+
+class aie2_blob_preprocessor: public preprocessor
+{  
+
+public:
+  aie2_blob_preprocessor() {}
+
+  std::vector<uint8_t> transform(const std::vector<char>& in)
+  {
+    // transform vector<char> to vector<uint8_t>
+    std::vector<uint8_t> out;
+    out.resize(in.size());
+    std::transform(in.begin(), in.end(), out.begin(), [](char c) {return static_cast<uint8_t>(c);});
+    return std::move(out);
+  }
+
+  virtual std::shared_ptr<preprocessed_output>
+  process(std::shared_ptr<preprocessor_input> input) override
+  {
+    // preporcess : nothing to be done.
+    auto rinput = std::static_pointer_cast<aie2_blob_preprocessor_input>(input);
+    auto routput = std::make_shared<aie2_blob_preprocessed_output>();
+
+    routput->set_instruction_buffer(transform(rinput->get_instruction_buffer()));
+    routput->set_controlcode_buffer(transform(rinput->get_controlcode_buffer()));
+
+    for (auto s: rinput->get_symbols())
+      routput->add_symbol(s);
+    return routput;
+  }
+};
+
+}
+#endif //_AIEBU_PREPROCESSOR_AIE2_BLOB_PREPROCESSOR_H_
