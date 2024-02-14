@@ -38,6 +38,16 @@ message("-- Pylint path: ${PYLINT}")
 find_program (READELF eu-readelf REQUIRED)
 message("-- Readelf path: ${READELF}")
 
+if (XRT_CLANG_TIDY STREQUAL "ON")
+  find_program(CLANG_TIDY "clang-tidy")
+  if(NOT CLANG_TIDY)
+    message(FATAL_ERROR "clang-tidy not found, cannot enable static analysis")
+  else()
+    message("-- Enabling clang-tidy")
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
+  endif()
+endif()
+
 enable_testing()
 
 add_subdirectory(src/python)

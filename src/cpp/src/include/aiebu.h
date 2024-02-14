@@ -7,7 +7,7 @@
 #ifdef __cplusplus
 extern "C" {
 #include <stddef.h>
-#endif 
+#endif
 
 #define DRIVER_DLLESPEC __attribute__((visibility("default")))
 enum aiebu_error_code {
@@ -26,12 +26,12 @@ enum aiebu_assembler_buffer_type {
   aiebu_assembler_buffer_type_blob_control_packet,
   aiebu_assembler_buffer_type_asm_aie2ps
 };
- 
+
 enum aiebu_patch_buffer_type {
   aiebu_patch_buffer_type_instruct,
   aiebu_patch_buffer_type_control_packet
 };
- 
+
 enum aiebu_patch_schema {
   aiebu_patch_schema_scaler_32,
   aiebu_patch_schema_shim_dma_48,
@@ -46,9 +46,9 @@ struct aiebu_patch_info {
   unsigned int* offsets;
   unsigned int offsets_size;
 };
- 
+
 /*
- * This API takes buffer type, 2 buffers, their sizes and a array of symbols with their 
+ * This API takes buffer type, 2 buffers, their sizes and a array of symbols with their
  * patching information as input. it als allocate elf_buf and It fill elf content in it.
  * return, on success return return elf size, else posix error(negative).
  * User may pass any combination like
@@ -72,12 +72,12 @@ struct aiebu_patch_info {
 DRIVER_DLLESPEC
 int
 aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
-                        char* buffer1,
+                        const char* buffer1,
                         size_t buffer1_size,
-                        char* buffer2,
+                        const char* buffer2,
                         size_t buffer2_size,
                         void** elf_buf,
-                        struct aiebu_patch_info* patch_data,
+                        const struct aiebu_patch_info* patch_data,
                         size_t patch_data_size);
 /*
  * This API is used to free the elf buffer.

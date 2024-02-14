@@ -44,18 +44,19 @@ aiebu_assembler(buffer_type type,
   // in aie2ps patch data is not used, its extracted from asm
   if (type != buffer_type::asm_aie2ps)
   {
-    for (auto s : patch_data)
+    for (auto s : patch_data) {
       for (auto p : s.offsets)
-        symbols.emplace_back(symbol(s.symbol, p, 0, 0,
-                                 s.buf_type == aiebu::patch_buffer_type::instruct ? 0: 1,
-                                 symbol_schema_transform(s.schema)));
+        symbols.emplace_back(s.symbol, p, 0, 0,
+                             s.buf_type == aiebu::patch_buffer_type::instruct ? 0: 1,
+                             symbol_schema_transform(s.schema));
+    }
   }
 
   if (type == buffer_type::blob_instr_dpu)
   {
     aiebu::assembler a(assembler::elf_type::aie2_dpu_blob);
     elf_data = a.process(buffer1, symbols, buffer2);
-  } 
+  }
   else if (type == buffer_type::asm_aie2ps)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_asm);
@@ -120,12 +121,12 @@ convert_patchdata(const struct aiebu_patch_info* patch_data,
 DRIVER_DLLESPEC
 int
 aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
-                        char* buffer1,
+                        const char* buffer1,
                         size_t buffer1_size,
-                        char* buffer2,
+                        const char* buffer2,
                         size_t buffer2_size,
                         void** elf_buf,
-                        struct aiebu_patch_info* patch_data,
+                        const struct aiebu_patch_info* patch_data,
                         size_t patch_data_size)
 {
   int ret = 0;
@@ -163,4 +164,3 @@ aiebu_assembler_free_elf(void* mem)
 {
   std::free(mem);
 }
-

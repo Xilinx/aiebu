@@ -17,11 +17,16 @@ CPU=`uname -m`
 here=$PWD
 
 function compile {
-    config=$1
+    local config=$1
+    local cmakeflags="-DCMAKE_BUILD_TYPE=$config"
 
     mkdir -p $config
     cd $config
-    cmake -DCMAKE_BUILD_TYPE=$config ../../
+    if [[ $config == "Debug" ]]; then
+	cmakeflags="$cmakeflags -DXRT_CLANG_TIDY=ON"
+    fi
+
+    cmake $cmakeflags ../../
 
     make VERBOSE=1 DESTDIR=$PWD
     make VERBOSE=1 DESTDIR=$PWD test
