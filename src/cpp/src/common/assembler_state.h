@@ -17,7 +17,7 @@ namespace aiebu {
 
 class isa_op;
 
-class symbol_exception
+class symbol_exception : public std::exception
 {
 
 };

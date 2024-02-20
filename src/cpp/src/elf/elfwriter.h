@@ -105,6 +105,8 @@ public:
 
   std::vector<char> process(std::shared_ptr<writer> mwriter);
 
+  virtual ~elf_writer() {}
+
 };
 
 }

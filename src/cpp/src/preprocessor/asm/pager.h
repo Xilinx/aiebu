@@ -17,7 +17,10 @@ class pager
   constexpr static offset_type PAGE_HEADER_SIZE = 16;
   constexpr static offset_type EOF_SIZE = 4;
   constexpr static offset_type DATA_SECTION_ALIGNMENT = 16;
-  std::map<std::string , offset_type> ALIGNMAP = {{"uc_dma_bd", 16}, {"uc_dma_bd_shim", 16}, {".long", 4}};
+  constexpr static offset_type ALIGNMENT_16 = 16;
+  constexpr static offset_type ALIGNMENT_4 = 4;
+
+  std::map<std::string , offset_type> ALIGNMAP = {{"uc_dma_bd", ALIGNMENT_16}, {"uc_dma_bd_shim", ALIGNMENT_16}, {".long", ALIGNMENT_4}};
 
   template <typename T>
   std::vector<T> union_of_lists_inorder(std::vector<T> &vec1, std::vector<T>& vec2);

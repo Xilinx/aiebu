@@ -3,6 +3,7 @@
 
 #include "assembler_state.h"
 #include "aiebu_error.h"
+#include "utils.h"
 
 namespace aiebu {
 
@@ -10,7 +11,7 @@ assembler_state::
 assembler_state(std::shared_ptr<std::map<std::string,
                 std::shared_ptr<isa_op>>> isa,
                 std::vector<std::shared_ptr<asm_data>>& data)
-                : m_isa(isa), m_data(data)
+                : m_isa(std::move(isa)), m_data(data)
 {
   process();
   //printstate();
@@ -124,21 +125,30 @@ parse_num_arg(const std::string& str)
     return m_labelmap[str.substr(1)]->get_pos();
   } else if (str.rfind("tile_") == 0)
   {
-    uint32_t col = std::stoi(str.substr(5));
-    uint32_t row = std::stoi(str.substr(6 + str.substr(5).rfind("_")));
-    return ((col & 0x7F) << 5 | (row & 0x1F));
+    constexpr static size_t col_start = 5;
+    constexpr static size_t len_of_underscore = 1;
+    constexpr static size_t row_mask = 0x1F;
+    constexpr static size_t col_mask = 0x7F;
+    constexpr static size_t col_shift = 5;
+    size_t row_start = col_start + len_of_underscore + str.substr(col_start).rfind("_");
+    uint32_t col = std::stoi(str.substr(col_start));
+    uint32_t row = std::stoi(str.substr(row_start));
+    return (((col & col_mask) << col_shift) | (row & row_mask));
   } else if (str.rfind("s2mm_") == 0)
   {
-    uint32_t index = std::stoi(str.substr(5));
+    constexpr static size_t actor_start = 5;
+    uint32_t actor = std::stoi(str.substr(actor_start));
     // TODO assert
-    return index;
+    return actor;
   } else if (str.rfind("mm2s_") == 0)
   {
-    uint32_t index = std::stoi(str.substr(5));
+    constexpr static size_t actor_start = 5;
+    constexpr static size_t mm2s_actor_offset = 6;
+    uint32_t actor = std::stoi(str.substr(actor_start));
     // TODO assert
-    return 6 + index;
+    return mm2s_actor_offset + actor;
   } else if (str.rfind("0x") == 0)
-    return std::stol(str.substr(2), 0 , 16);
+    return std::stol(str.substr(2), nullptr , HEX_BASE);
   else if (is_number(str))
     return std::stoi(str);
   else
@@ -151,29 +161,34 @@ printstate() const
 {
   //print state object
   //JOBS
-  for (auto it=m_jobmap.begin(); it!=m_jobmap.end(); ++it)
-    std::cout << "JOB[" << it->first << "] =>\tm_jobid:" << it->second->get_jobid()
-              << "  m_start:" << it->second->get_start() << "  m_end:"
-              << it->second->get_end() << "  m_start_index:" << it->second->get_start_index()
-              << "  m_end_index:" << it->second->get_end_index() << "  m_eopnum:"
-              << it->second->get_eopnum() << '\n';
+  for (auto &it : m_jobmap)
+  {
+    std::cout << "JOB[" << it.first << "] =>\tm_jobid:" << it.second->get_jobid()
+              << "  m_start:" << it.second->get_start() << "  m_end:"
+              << it.second->get_end() << "  m_start_index:" << it.second->get_start_index()
+              << "  m_end_index:" << it.second->get_end_index() << "  m_eopnum:"
+              << it.second->get_eopnum() << '\n';
+  }
   std::cout<<"\n";
 
   //LOCAL BARRIERS
-  for (auto it=m_localbarriermap.begin(); it!=m_localbarriermap.end(); ++it) {
-    std::cout << "LBMAP[" << it->first << "] =>\t";
-    for( auto v : it->second)
+  for (auto it : m_localbarriermap)
+  {
+    std::cout << "LBMAP[" << it.first << "] =>\t";
+    for( auto v : it.second)
       std::cout << v << ", ";
     std::cout<<"\n";
   }
   std::cout<<"\n";
 
   //LABELS
-  for (auto it=m_labelmap.begin(); it!=m_labelmap.end(); ++it)
-    std::cout << "LABELS[" << it->first << "] =>\tm_name:" << it->second->get_name()
-              << "  m_pos:" << it->second->get_pos() << "  m_index:"
-              << it->second->get_index() << "  m_count:" << it->second->get_count()
-              << "  m_size:" << it->second->get_size() << '\n';
+  for (auto it : m_labelmap)
+  {
+    std::cout << "LABELS[" << it.first << "] =>\tm_name:" << it.second->get_name()
+              << "  m_pos:" << it.second->get_pos() << "  m_index:"
+              << it.second->get_index() << "  m_count:" << it.second->get_count()
+              << "  m_size:" << it.second->get_size() << '\n';
+  }
   std::cout<<"\n";
 }
 

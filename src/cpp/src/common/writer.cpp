@@ -3,6 +3,7 @@
 
 #include "writer.h"
 #include "aiebu_error.h"
+#include "utils.h"
 
 namespace aiebu {
 
@@ -26,10 +27,10 @@ void
 writer::
 write_word(uint32_t word, code_section sec, uint32_t colnum, uint32_t pagenum)
 {
-  write_byte(word & 0xFF, sec, colnum, pagenum);
-  write_byte((word >> 8) & 0xFF, sec, colnum, pagenum);
-  write_byte((word >> 16) & 0xFF, sec, colnum, pagenum);
-  write_byte((word >> 24) & 0xFF, sec, colnum, pagenum);
+  write_byte((word >> FIRST_BYTE_SHIFT) & BYTE_MASK, sec, colnum, pagenum);
+  write_byte((word >> SECOND_BYTE_SHIFT) & BYTE_MASK, sec, colnum, pagenum);
+  write_byte((word >> THIRD_BYTE_SHIFT) & BYTE_MASK, sec, colnum, pagenum);
+  write_byte((word >> FORTH_BYTE_SHIFT) & BYTE_MASK, sec, colnum, pagenum);
 }
 
 offset_type

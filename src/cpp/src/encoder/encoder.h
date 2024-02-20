@@ -18,6 +18,7 @@ public:
 
   virtual std::shared_ptr<writer>
   process(std::shared_ptr<preprocessed_output> input) = 0;
+  virtual ~encoder() {}
 };
 
 }

@@ -10,7 +10,7 @@ isa_op_serializer::size(assembler_state& state)
 {
   offset_type result = 2; // 2 bytes for opcode
   for (auto &arg : m_opcode->get_args())
-    result += arg.m_width/8;
+    result += arg.m_width/width_8;
   return result; 
 }
 
@@ -31,13 +31,12 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
   //encode isa_op
   std::vector<uint8_t> ret;
   ret.push_back(m_opcode->get_code());
-  ret.push_back(0x00);
+  ret.push_back(pad);
 
   int arg_index = 0;
   opArg::optype atype;
   uint32_t val = 0;
   std::string sval;
-  jobid_type jobid;
   for (auto arg : m_opcode->get_args())
   {
     if (arg.m_type == opArg::optype::PAD)
@@ -46,7 +45,7 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
       atype = opArg::optype::CONST;
     } else if (arg.m_type == opArg::optype::JOBSIZE)
     {
-      jobid = state.parse_num_arg(m_args[0]);
+      jobid_type jobid = state.parse_num_arg(m_args[0]);
       sval = std::to_string(state.m_jobmap[jobid]->get_size());
       atype = opArg::optype::CONST;
     } else
@@ -57,37 +56,37 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
     }
 
     if (atype == opArg::optype::REG)
-      ret.push_back(parse_register(sval) & 0xFF);
+      ret.push_back(parse_register(sval) & BYTE_MASK);
     else if (atype == opArg::optype::BARRIER)
-      ret.push_back(parse_barrier(sval) & 0xFF);
+      ret.push_back(parse_barrier(sval) & BYTE_MASK);
     else if (atype == opArg::optype::CONST)
     {
       try {
         val = state.parse_num_arg(sval);
-      } catch (symbol_exception s) {
+      } catch (symbol_exception &s) {
         //TODO : assert
-        symbols.emplace_back(symbol(sval, state.get_pos()+ret.size(), colnum, pagenum, 0, symbol::patch_schema::scaler_32  ));
+        symbols.emplace_back(sval, state.get_pos()+ret.size(), colnum, pagenum, 0, symbol::patch_schema::scaler_32);
       }
 
-      if (arg.m_width == 8)
+      if (arg.m_width == width_8)
       {
         if (val == -1)
           val = 0;
-        ret.push_back(val & 0xFF);
-      } else if (arg.m_width == 16)
+        ret.push_back(val & BYTE_MASK);
+      } else if (arg.m_width == width_16)
       {
         if (val == -1)
           val = 0;
-        ret.push_back(val & 0xFF);
-        ret.push_back((val >> 8) & 0xFF);
-      } else if (arg.m_width == 32)
+        ret.push_back(val & BYTE_MASK);
+        ret.push_back((val >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+      } else if (arg.m_width == width_32)
       {
         if (val == -1)
           val = 0;
-        ret.push_back(val & 0xFF);
-        ret.push_back((val >> 8) & 0xFF);
-        ret.push_back((val >> 16) & 0xFF);
-        ret.push_back((val >> 24) & 0xFF);
+        ret.push_back((val >> FIRST_BYTE_SHIFT)& BYTE_MASK);
+        ret.push_back((val >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+        ret.push_back((val >> THIRD_BYTE_SHIFT) & BYTE_MASK);
+        ret.push_back((val >> FORTH_BYTE_SHIFT) & BYTE_MASK);
       } else
         throw error(error::error_code::internal_error, "Unsupported arg width!!!");
     } else
@@ -114,29 +113,29 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
   uint32_t local_ptr = local_ptr_absolute - state.get_pos();
 
   //TODO assert
-  ret.push_back(size & 0xFF);
-  ret.push_back((size >> 8) & 0x7F);
+  ret.push_back(size & BYTE_MASK);
+  ret.push_back((size >> SECOND_BYTE_SHIFT) & 0x7F);
   uint8_t val = 0;
   val = val | (ctrl_next_BD ? 0x1 : 0x0);
   val = val | (ctrl_external  ? 0x2 : 0x0);
   val = val | (ctrl_local_relative  ? 0x4 : 0x0);
   ret.push_back(val);
-  ret.push_back(0x00);
+  ret.push_back(pad);
 
-  ret.push_back(local_ptr & 0xFF);
-  ret.push_back((local_ptr >> 8) & 0xFF);
-  ret.push_back((local_ptr >> 16) & 0xFF);
-  ret.push_back((local_ptr >> 24) & 0xFF);
+  ret.push_back((local_ptr >> FIRST_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((local_ptr >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((local_ptr >> THIRD_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((local_ptr >> FORTH_BYTE_SHIFT) & BYTE_MASK);
 
-  ret.push_back(remote_ptr_low & 0xFF);
-  ret.push_back((remote_ptr_low >> 8) & 0xFF);
-  ret.push_back((remote_ptr_low >> 16) & 0xFF);
-  ret.push_back((remote_ptr_low >> 24) & 0xFF);
+  ret.push_back((remote_ptr_low >> FIRST_BYTE_SHIFT)& BYTE_MASK);
+  ret.push_back((remote_ptr_low >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_low >> THIRD_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_low >> FORTH_BYTE_SHIFT) & BYTE_MASK);
 
-  ret.push_back(remote_ptr_high & 0xFF);
-  ret.push_back((remote_ptr_high >> 8) & 0xFF);
-  ret.push_back((remote_ptr_high >> 16) & 0xFF);
-  ret.push_back((remote_ptr_high >> 24) & 0x1F);
+  ret.push_back((remote_ptr_high >> FIRST_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_high >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_high >> THIRD_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_high >> FORTH_BYTE_SHIFT) & 0x1F);
 
   return ret;
 }
@@ -161,29 +160,29 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
   symbols.emplace_back(symbol(m_args[6],local_ptr_absolute, colnum, pagenum, 0, symbol::patch_schema::shim_dma_57  ));
   //TODO assert
 
-  ret.push_back(size & 0xFF);
-  ret.push_back((size >> 8) & 0x7F);
+  ret.push_back(size & BYTE_MASK);
+  ret.push_back((size >> SECOND_BYTE_SHIFT) & 0x7F);
   uint8_t val = 0;
   val = val | (ctrl_next_BD ? 0x1 : 0x0);
   val = val | (ctrl_external  ? 0x2 : 0x0);
   val = val | (ctrl_local_relative  ? 0x4 : 0x0);
   ret.push_back(val);
-  ret.push_back(0x00);
+  ret.push_back(pad);
 
-  ret.push_back(local_ptr & 0xFF);
-  ret.push_back((local_ptr >> 8) & 0xFF);
-  ret.push_back((local_ptr >> 16) & 0xFF);
-  ret.push_back((local_ptr >> 24) & 0xFF);
+  ret.push_back((local_ptr >> FIRST_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((local_ptr >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((local_ptr >> THIRD_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((local_ptr >> FORTH_BYTE_SHIFT) & BYTE_MASK);
 
-  ret.push_back(remote_ptr_low & 0xFF);
-  ret.push_back((remote_ptr_low >> 8) & 0xFF);
-  ret.push_back((remote_ptr_low >> 16) & 0xFF);
-  ret.push_back((remote_ptr_low >> 24) & 0xFF);
+  ret.push_back((remote_ptr_low >> FIRST_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_low >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_low >> THIRD_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_low >> FORTH_BYTE_SHIFT) & BYTE_MASK);
 
-  ret.push_back(remote_ptr_high & 0xFF);
-  ret.push_back((remote_ptr_high >> 8) & 0xFF);
-  ret.push_back((remote_ptr_high >> 16) & 0xFF);
-  ret.push_back((remote_ptr_high >> 24) & 0x1F);
+  ret.push_back((remote_ptr_high >> FIRST_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_high >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_high >> THIRD_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((remote_ptr_high >> FORTH_BYTE_SHIFT) & 0x1F);
 
   return ret;
 }
@@ -195,10 +194,10 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
   //encode long
   std::vector<uint8_t> ret;
   uint32_t val = state.parse_num_arg(m_args[0]);
-  ret.push_back(val & 0xFF);
-  ret.push_back((val >> 8) & 0xFF);
-  ret.push_back((val >> 16) & 0xFF);
-  ret.push_back((val >> 24) & 0xFF);
+  ret.push_back((val >> FIRST_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((val >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((val >> THIRD_BYTE_SHIFT) & BYTE_MASK);
+  ret.push_back((val >> FORTH_BYTE_SHIFT) & BYTE_MASK);
 
   return ret;
 }

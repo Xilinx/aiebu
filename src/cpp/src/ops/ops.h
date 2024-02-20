@@ -18,6 +18,10 @@ class assembler_state;
 class op_serializer
 {
 protected:
+  constexpr static uint8_t pad = 0x00;
+  constexpr static uint8_t width_8 = 8;
+  constexpr static uint8_t width_16 = 16;
+  constexpr static uint8_t width_32 = 32;
   std::shared_ptr<isa_op> m_opcode;
   std::vector<std::string> m_args;
 

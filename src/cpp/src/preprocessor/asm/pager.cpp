@@ -41,12 +41,14 @@ getdatasectionsize(assembler_state& state, std::vector<std::string>& labels_list
     auto token = state.m_data[state.m_labelmap[lb]->get_index() + 1];
     auto &name = token->get_operation()->get_name();
     if (ALIGNMAP.count(name) > 0)
-      if (16 == ALIGNMAP.at(name))
+    {
+      if (ALIGNMENT_16 == ALIGNMAP.at(name))
         dsize16 += state.m_labelmap[lb]->get_size();
-      else if (4 == ALIGNMAP.at(name))
-        dsize16 += state.m_labelmap[lb]->get_size();
+      else if (ALIGNMENT_4 == ALIGNMAP.at(name))
+        dsize4 += state.m_labelmap[lb]->get_size();
       else
         throw error(error::error_code::internal_error, name +" found in ALIGNMAP with allignment " + std::to_string(ALIGNMAP.at(name)));
+    }
     else
       throw error(error::error_code::internal_error, lb +" not found in ALIGNMAP!!!");
   }
@@ -150,7 +152,7 @@ labelalignmentsorter(assembler_state& state, std::vector<std::string>& clist)
   {
     auto index = state.m_labelmap[lb]->get_index();
     auto token = state.m_data[index+1];
-    if (16 == ALIGNMAP.at(token->get_operation()->get_name()))
+    if (ALIGNMENT_16 == ALIGNMAP.at(token->get_operation()->get_name()))
       labels.emplace_back(lb);
   }
 
@@ -158,7 +160,7 @@ labelalignmentsorter(assembler_state& state, std::vector<std::string>& clist)
   {
     auto index = state.m_labelmap[lb]->get_index();
     auto token = state.m_data[index+1];
-    if (4 == ALIGNMAP.at(token->get_operation()->get_name()))
+    if (ALIGNMENT_4 == ALIGNMAP.at(token->get_operation()->get_name()))
       labels.emplace_back(lb);
   }
 

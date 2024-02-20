@@ -17,7 +17,7 @@ add_section(elf_section data)
   std::vector<uint8_t> buf = data.get_buffer();
   
   if(buf.size())
-    sec->set_data((char*)buf.data(), buf.size());
+    sec->set_data(reinterpret_cast<char*>(buf.data()), buf.size());
   //sec->set_info( data.get_info() );
   if (!data.get_link().empty())
   {
@@ -66,7 +66,7 @@ add_dynsym_section(string_section_accessor* stra, std::shared_ptr<writer> mwrite
   section* dsym_sec = m_elfio.sections.add(".dynsym");
   dsym_sec->set_type( SHT_DYNSYM );
   dsym_sec->set_flags(SHF_ALLOC);
-  dsym_sec->set_addr_align( 0x8 );
+  dsym_sec->set_addr_align( phdr_align );
   dsym_sec->set_entry_size( m_elfio.get_default_entry_size(SHT_DYNSYM));
   section* dstr_sec = m_elfio.sections[".dynstr"];
   dsym_sec->set_link( dstr_sec->get_index() );
@@ -166,7 +166,6 @@ add_text_data_section(std::shared_ptr<writer> mwriter)
   for(auto entry : buffermap)
   {
     uint32_t pagenum = 0;
-    uint32_t col = entry.first;
     for(auto buffer : entry.second)
     {
       std::vector<uint8_t> &textbuffer = buffer.first;

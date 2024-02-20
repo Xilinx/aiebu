@@ -11,6 +11,12 @@
 #include <string>
 #include "aiebu_error.h"
 
+#define BYTE_MASK 0xFF
+#define FIRST_BYTE_SHIFT 0
+#define SECOND_BYTE_SHIFT 8
+#define THIRD_BYTE_SHIFT 16
+#define FORTH_BYTE_SHIFT 24
+
 using jobid_type = int32_t;
 using barrierid_type = uint32_t;
 using offset_type = uint64_t;
@@ -19,6 +25,8 @@ constexpr pageid_type NO_PAGE = -1;
 constexpr jobid_type EOF_ID = -2;
 constexpr  jobid_type EOP_ID = -3;
 constexpr offset_type PAGE_SIZE = 8192;
+constexpr int HEX_BASE = 16;
+
 
 namespace aiebu {
 

@@ -18,6 +18,7 @@ public:
 
   virtual std::shared_ptr<preprocessed_output>
   process(std::shared_ptr<preprocessor_input> input) = 0;
+  virtual ~preprocessor() {}
 };
 
 }
