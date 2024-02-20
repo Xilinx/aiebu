@@ -11,16 +11,12 @@ file(GLOB_RECURSE AIEBU_CPP_FILES "*.cpp")
 
 message("-- AIEBU_CPP_FILES: ${AIEBU_CPP_FILES}")
 
-add_library(aiebu SHARED ${AIEBU_CPP_FILES}
+
+add_library(aiebu_library_objects OBJECT
+  ${AIEBU_CPP_FILES}
   )
 
-add_dependencies(aiebu cpp-assembler-stubs)
-
-target_compile_options(aiebu PRIVATE
-  "-fPIC"
-  )
-
-target_include_directories(aiebu PRIVATE
+target_include_directories(aiebu_library_objects PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2
@@ -38,14 +34,32 @@ target_include_directories(aiebu PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}/../../python/
   )
 
-target_link_libraries(aiebu
-  PRIVATE
+target_compile_options(aiebu_library_objects PRIVATE
+  "-fPIC"
   )
 
-install (TARGETS aiebu 
+add_library(aiebu SHARED
+  $<TARGET_OBJECTS:aiebu_library_objects>
+  )
+
+add_library(aiebu_static STATIC
+  $<TARGET_OBJECTS:aiebu_library_objects>
+  )
+
+add_dependencies(aiebu cpp-assembler-stubs)
+add_dependencies(aiebu_static cpp-assembler-stubs)
+
+install (TARGETS aiebu
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )
 
-install(FILES include/aiebu.h include/aiebu_assembler.h include/aiebu_error.h DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR} CONFIGURATIONS Debug Release COMPONENT Runtime)
+install (TARGETS aiebu_static
+  ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR}
+  CONFIGURATIONS Debug Release COMPONENT Runtime
+)
 
+install(FILES include/aiebu.h include/aiebu_assembler.h include/aiebu_error.h
+  DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}
+  CONFIGURATIONS Debug Release COMPONENT Runtime
+)
