@@ -8,7 +8,11 @@
 #include <cstdint>
 #include <vector>
 
+#if defined(_WIN32)
+#define DRIVER_DLLESPEC __declspec(dllexport)
+#else
 #define DRIVER_DLLESPEC __attribute__((visibility("default")))
+#endif
 
 namespace aiebu {
 

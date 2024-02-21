@@ -19,7 +19,7 @@
 
 using jobid_type = uint32_t;
 using barrierid_type = uint32_t;
-using offset_type = uint64_t;
+using offset_type = uint32_t;
 using pageid_type = uint32_t;
 constexpr pageid_type NO_PAGE = -1;
 constexpr jobid_type EOF_ID = -2;

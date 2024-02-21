@@ -12,6 +12,7 @@ file(GLOB_RECURSE AIEBU_CPP_FILES "*.cpp")
 message("-- AIEBU_CPP_FILES: ${AIEBU_CPP_FILES}")
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_library(aiebu_library_objects OBJECT
   ${AIEBU_CPP_FILES}
@@ -35,10 +36,6 @@ target_include_directories(aiebu_library_objects PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}/../../python/
   )
 
-target_compile_options(aiebu_library_objects PRIVATE
-  "-fPIC"
-  )
-
 add_library(aiebu SHARED
   $<TARGET_OBJECTS:aiebu_library_objects>
   )
@@ -55,7 +52,7 @@ install (TARGETS aiebu
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )
 
-install (TARGETS aiebu_static
+install (TARGETS aiebu aiebu_static
   ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR}
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )

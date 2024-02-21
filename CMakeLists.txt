@@ -8,7 +8,7 @@ project(AIEBU HOMEPAGE_URL https://gitenterprise.xilinx.com/XRT/aiebu)
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(CMAKE_INSTALL_PREFIX "/opt/xilinx")
 else()
-  message(FATAL_ERROR "Unsupported platform")
+  set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/xilinx" CACHE PATH "..." FORCE)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -24,19 +24,23 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(AIEBU_SPECIFICATION_INSTALL_DIR "aiebu/share/specification")
 
 find_package(PkgConfig REQUIRED)
-find_package(Boost REQUIRED)
 
-pkg_check_modules(LIBELF REQUIRED libelf)
-message("-- Libelf version: ${LIBELF_VERSION}")
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  find_package(Boost REQUIRED)
+
+  pkg_check_modules(LIBELF REQUIRED libelf)
+  message("-- Libelf version: ${LIBELF_VERSION}")
+
+  find_program (PYLINT pylint REQUIRED)
+  message("-- Pylint path: ${PYLINT}")
+
+  find_program (READELF eu-readelf REQUIRED)
+  message("-- Readelf path: ${READELF}")
+
+endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 message("-- Python version: ${Python3_VERSION}")
-
-find_program (PYLINT pylint REQUIRED)
-message("-- Pylint path: ${PYLINT}")
-
-find_program (READELF eu-readelf REQUIRED)
-message("-- Readelf path: ${READELF}")
 
 if (XRT_CLANG_TIDY STREQUAL "ON")
   find_program(CLANG_TIDY "clang-tidy")

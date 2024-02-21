@@ -65,7 +65,7 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
         val = state.parse_num_arg(sval);
       } catch (symbol_exception &s) {
         //TODO : assert
-        symbols.emplace_back(sval, state.get_pos()+ret.size(), colnum, pagenum, 0, symbol::patch_schema::scaler_32);
+        symbols.emplace_back(sval, state.get_pos()+(uint32_t)ret.size(), colnum, pagenum, 0, symbol::patch_schema::scaler_32);
       }
 
       if (arg.m_width == width_8)
