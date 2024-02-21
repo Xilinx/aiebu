@@ -7,9 +7,11 @@
 #include <system_error>
 #include "aiebu.h"
 
+#define DRIVER_DLLESPEC __attribute__((visibility("default")))
+
 namespace aiebu {
 
-class error : public std::system_error
+class DRIVER_DLLESPEC error : public std::system_error
 {
 public:
 

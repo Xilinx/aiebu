@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "aiebu.h"
 
-char* ReadFile(char *name, int *s)
+char* ReadFile(char *name, long *s)
 {
   FILE *file;
   char *buffer;
@@ -44,10 +44,11 @@ int main(int argc, char ** argv)
   char* v3;
   size_t vs1 = 0, vs2 = 0, ps = 0, vs3 = 0;
   struct aiebu_patch_info* patch_data;
-  v1 = ReadFile(argv[1], &vs1);
+  v1 = ReadFile(argv[1], (long *)&vs1);
 
-  vs3 = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_asm_aie2ps, v1, vs1, v2, vs2, (void**)&v3, patch_data, ps);
+  vs3 = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_asm_aie2ps, v1, vs1, v2,
+                                vs2, (void**)&v3, patch_data, ps);
   aiebu_assembler_free_elf(v3);
-  printf("Size returned :%d\n", vs3);
+  printf("Size returned :%zd\n", vs3);
   return 0;
 }

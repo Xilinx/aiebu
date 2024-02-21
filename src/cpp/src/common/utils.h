@@ -17,7 +17,7 @@
 #define THIRD_BYTE_SHIFT 16
 #define FORTH_BYTE_SHIFT 24
 
-using jobid_type = int32_t;
+using jobid_type = uint32_t;
 using barrierid_type = uint32_t;
 using offset_type = uint64_t;
 using pageid_type = uint32_t;
@@ -77,7 +77,7 @@ inline uint32_t parse_barrier(const std::string& str)
 
     if ((val <= 0 || val > 65))
       throw error(error::error_code::internal_error, "REMOTE BARRIER  " + str + " number out of range: " + std::to_string(val));
-  } 
+  }
   else //$lb
     if (val >= 16)
       throw error(error::error_code::internal_error, "LOCAL BARRIER  " + str + " number out of range: " + std::to_string(val));

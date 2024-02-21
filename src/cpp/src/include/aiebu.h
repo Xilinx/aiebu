@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 #define DRIVER_DLLESPEC __attribute__((visibility("default")))
+
 enum aiebu_error_code {
   aiebu_invalid_asm = 1,
   aiebu_invalid_patch_schema,

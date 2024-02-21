@@ -27,13 +27,14 @@ function compile {
     fi
 
     cmake $cmakeflags ../../
+    CORE=1
 
-    make VERBOSE=1 DESTDIR=$PWD
-    make VERBOSE=1 DESTDIR=$PWD test
-    make VERBOSE=1 DESTDIR=$PWD isa-spec
-    make VERBOSE=1 DESTDIR=$PWD install
+    make -j $CORE VERBOSE=1 DESTDIR=$PWD
+    make -j $CORE VERBOSE=1 DESTDIR=$PWD test
+    make -j $CORE VERBOSE=1 DESTDIR=$PWD isa-spec
+    make -j $CORE VERBOSE=1 DESTDIR=$PWD install
     if [[ $config == "Release" ]]; then
-	make VERBOSE=1 DESTDIR=$PWD package
+	make -j $CORE VERBOSE=1 DESTDIR=$PWD package
     fi
 }
 

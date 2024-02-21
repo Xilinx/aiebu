@@ -8,8 +8,10 @@
 #include <cstdint>
 #include <vector>
 
+#define DRIVER_DLLESPEC __attribute__((visibility("default")))
+
 namespace aiebu {
- 
+
 enum class patch_buffer_type {
   instruct,
   control_packet,
@@ -44,7 +46,7 @@ enum class patch_schema {
   control_packet_48,
   unknown
 };
-  
+
 /*
  * Define the patch information for a given symbol.
  * @symbol     the symobl name
@@ -60,10 +62,11 @@ struct patch_info {
 };
 
 // Assembler Class
-class aiebu_assembler {
+
+class DRIVER_DLLESPEC aiebu_assembler {
   std::vector<char> elf_data;
   public:
- 
+
     enum class buffer_type {
       blob_instr_dpu,
       blob_instr_prepost,
@@ -72,7 +75,7 @@ class aiebu_assembler {
       asm_aie2ps,
       asm_aie2
     };
- 
+
     /*
      * Constructor takes buffer type , 2 buffer and a vector of symbols with
      * their patching information as argument.
@@ -95,7 +98,7 @@ class aiebu_assembler {
                const std::vector<char>& buffer1,
                const std::vector<char>& buffer2,
                const std::vector<patch_info>& patch_data);
- 
+
     /*
      * Constructor takes buffer type, buffer,
      * and a vector of symbols with their patching information as argument.
@@ -122,7 +125,7 @@ class aiebu_assembler {
      */
     std::vector<char> get_elf() const;
 };
- 
+
 } //namespace aiebu
 
 #endif // _AIEBU_ASSEMBLER_H_

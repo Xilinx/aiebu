@@ -11,6 +11,7 @@ file(GLOB_RECURSE AIEBU_CPP_FILES "*.cpp")
 
 message("-- AIEBU_CPP_FILES: ${AIEBU_CPP_FILES}")
 
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 add_library(aiebu_library_objects OBJECT
   ${AIEBU_CPP_FILES}
