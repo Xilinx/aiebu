@@ -1,43 +1,12 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved. */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "aiebu.h"
+#include "aie_test_common.h"
 
-char* ReadFile(char *name, int *s)
-{
-  FILE *file;
-  char *buffer;
-  unsigned long fileLen;
-
-  //Open file
-  file = fopen(name, "rb");
-  if (!file)
-  {
-    fprintf(stderr, "Unable to open file %s", name);
-    return NULL;
-  }
-
-  //Get file length
-  fseek(file, 0, SEEK_END);
-  fileLen=ftell(file);
-  fseek(file, 0, SEEK_SET);
-
-  //Allocate memory
-  buffer=(char *)malloc(fileLen);
-  *s = fileLen;
-  if (!buffer)
-  {
-    fprintf(stderr, "Memory error!");
-    fclose(file);
-    return NULL;
-  }
-
-  //Read file contents into buffer
-  fread(buffer, fileLen, 1, file);
-  fclose(file);
-  return buffer;
-}
-
-int main(int argc, char ** argv)
+int main(int argc, char **argv)
 {
   char* v1;
   char* v2;
@@ -81,12 +50,12 @@ int main(int argc, char ** argv)
   patch_data[2].offsets[3] = 0x3400;
   patch_data[2].offsets_size = 4;
   ps = 3;
-  v1 = ReadFile(argv[1], &vs1);
+  v1 = ReadFile(argv[1], (long *)&vs1);
   if ( argc > 2)
-    v2 = ReadFile(argv[2], &vs2);
+      v2 = ReadFile(argv[2], (long *)&vs2);
 
   vs3 = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_blob_instr_dpu, v1, vs1, v2, vs2, (void**)&v3, patch_data, ps);
   aiebu_assembler_free_elf(v3);
-  printf("Size returned :%d\n", vs3);
+  printf("Size returned :%zd\n", vs3);
   return 0;
 }

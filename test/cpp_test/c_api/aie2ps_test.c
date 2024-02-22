@@ -1,41 +1,10 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved. */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "aiebu.h"
-
-char* ReadFile(char *name, long *s)
-{
-  FILE *file;
-  char *buffer;
-  unsigned long fileLen;
-
-  //Open file
-  file = fopen(name, "rb");
-  if (!file)
-  {
-    fprintf(stderr, "Unable to open file %s", name);
-    return NULL;
-  }
-
-  //Get file length
-  fseek(file, 0, SEEK_END);
-  fileLen=ftell(file);
-  fseek(file, 0, SEEK_SET);
-
-  //Allocate memory
-  buffer=(char *)malloc(fileLen);
-  *s = fileLen;
-  if (!buffer)
-  {
-    fprintf(stderr, "Memory error!");
-    fclose(file);
-    return NULL;
-  }
-
-  //Read file contents into buffer
-  fread(buffer, fileLen, 1, file);
-  fclose(file);
-  return buffer;
-}
+#include "aie_test_common.h"
 
 int main(int argc, char ** argv)
 {

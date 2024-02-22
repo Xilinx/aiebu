@@ -44,8 +44,7 @@ add_library(aiebu_static STATIC
   $<TARGET_OBJECTS:aiebu_library_objects>
   )
 
-add_dependencies(aiebu cpp-assembler-stubs)
-add_dependencies(aiebu_static cpp-assembler-stubs)
+add_dependencies(aiebu_library_objects cpp-assembler-stubs)
 
 install (TARGETS aiebu
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}

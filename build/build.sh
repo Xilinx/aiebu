@@ -27,7 +27,6 @@ function compile {
     fi
 
     cmake $cmakeflags ../../
-    CORE=1
 
     make -j $CORE VERBOSE=1 DESTDIR=$PWD
     make -j $CORE VERBOSE=1 DESTDIR=$PWD test
