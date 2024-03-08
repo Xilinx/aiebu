@@ -1,0 +1,81 @@
+name: XRT_aiebu-win_build
+
+# Configures trigger:
+# This workflow will be triggered on a pull request created for main branch
+on:
+  push:
+    branches: [ main, ci_pipeline ]
+
+  pull_request:
+    branches: [ main, ci_pipeline ]
+
+  # Allow triggering this Action/Workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Run workflows in concurrency.group sequentially
+concurrency:
+  group: xrt_aiebu_win_pipelines
+  cancel-in-progress: true
+
+jobs:
+  Windows_Build_and_Test:
+    runs-on: [xcoemgvm224003-XRT_aiebu]
+
+    steps:
+      - name: Env Vars
+        run: |
+          echo "-- Env Vars: "
+          echo "   GITHUB_REPOSITORY=${{ github.REPOSITORY }}"
+          echo "   GITHUB_EVENT_NAME=${{ github.EVENT_NAME }}"
+          echo "   GITHUB_RUN_NUMBER=${{ github.RUN_NUMBER }}"
+          echo "   GITHUB_WORKSPACE=${{ github.WORKSPACE }}"
+          echo "   RUNNER_WORKSPACE=${{ runner.WORKSPACE }}"
+          echo "   GITHUB_SHA=${{ github.SHA }}"
+          echo "   GITHUB_REF=${{ github.REF }}"
+
+      - name: Code Checkout
+        run: |
+          echo "-- Checking for existing content in the workspace"
+          cd ${{ github.WORKSPACE }}
+          dir
+          if (Test-Path .\aiebu) {
+            echo "   - Deleting existing .\aiebu directory"
+            rm .\aiebu -r -Force
+            echo "   - Done"
+          }
+          
+          echo "-- Cloning repo"
+          git clone https://gitenterprise.xilinx.com/XRT/aiebu.git --recursive
+          echo "   - Done"
+      
+      - name: Build Target
+        run: |
+          echo "-- Building win target"
+          cd ${{ github.WORKSPACE }}\aiebu\build
+          .\build22.bat
+          echo "   - Done"
+        # artifact (target: C:\scratch\XRT_aiebu\actions-runner\_work\aiebu\build\WRelease\AIEBU-0.1.1-win64.zip)
+      
+      - name: Upload Artifact to Artifactory
+        env:
+          REF: ${{ github.REF }}
+          ARTIFACT_SRC: ${{ github.WORKSPACE }}\aiebu\build\WRelease\AIEBU-*-win64.zip
+
+        run: |
+          $env:BRANCH="${{ env.REF }}".split("/")[-1]
+          $env:ARTIFACT_DEST="xrt-ipu-dev-local/$env:BRANCH/${{ github.RUN_NUMBER }}/win/"
+
+          echo "-- Vars used for Jfrog CLI"
+          echo "   BRANCH=$env:BRANCH"
+          echo "   ARTIFACT_SRC=${{ env.ARTIFACT_SRC }}"
+          echo "   ARTIFACT_DEST=$env:ARTIFACT_DEST"
+
+          echo "-- Uploading target to Artifactory:"
+          jf rt upload ${{ env.ARTIFACT_SRC }} $env:ARTIFACT_DEST `
+            --insecure-tls=true `
+            --flat 
+
+          echo "-- Artifact location:"
+          echo "   https://xcoartifactory/ui/native/$env:ARTIFACT_DEST"          
+          echo "   - Done"
+          echo "   - Workflow finished"

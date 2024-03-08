@@ -1,0 +1,94 @@
+name: XRT_aiebu-lnx_build
+
+# Configures trigger:
+# This workflow will be triggered on a pull request created for main branch
+on:
+  push:
+    branches: [ main, ci_pipeline ]
+
+  pull_request:
+    branches: [ main, ci_pipeline ]
+
+  # Allow triggering this Action/Workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Run workflows in concurrency.group sequentially
+concurrency:
+  group: xrt_aiebu_lnx_pipelines
+  cancel-in-progress: true
+
+jobs:
+  Linux_Build_and_Test:
+    runs-on: [xcosimnow01-XRT_aiebu]
+
+    defaults:
+      run:
+        shell: bash -l {0}
+    
+    steps:
+      - name: Env Vars
+        run: |
+          echo "-- Env Vars:"
+          echo "   GITHUB_REPOSITORY=${GITHUB_REPOSITORY}"
+          echo "   GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME}"
+          echo "   GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER}"
+          echo "   GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
+          echo "   GITHUB_SHA=${GITHUB_SHA}"
+          echo "   GITHUB_REF=${GITHUB_REF}"
+
+      - name: Code Checkout and Linux Build in Docker
+        run: |
+          echo "-- Start docker container, clone repo, build"
+          docker run --name aiebu_container -i ubuntu:xrt_aiebu_1 /bin/bash -c \
+            "cd /home && \
+            git clone https://gitenterprise.xilinx.com/XRT/aiebu.git --recursive && \
+            cd aiebu/build && \
+            ./build.sh && \
+            mkdir artifacts && \
+            cp Release/AIEBU-*-Linux.tar.gz artifacts/"
+          echo "   - Done"
+
+      - name: Copy Build Artifact from Container to Host
+        run: |
+          echo "-- Cleaning up artifacts directory"
+          rm -rf ${GITHUB_WORKSPACE}/artifacts/
+          mkdir ${GITHUB_WORKSPACE}/artifacts/
+          echo "  - Done"
+          echo "-- Copy target artifact from container to host"
+          docker cp aiebu_container:/home/aiebu/build/artifacts/. ${GITHUB_WORKSPACE}/artifacts/
+          echo "   - Done"
+        # artifact (target: /scratch/XRT_aiebu/github/actions-runner/_work/aiebu/aiebu/artifacts/AIEBU-1.0.0-Linux.tar.gz)
+        # /scratch/XRT_aiebu/github/actions-runner/_work/aiebu/aiebu/artifacts/
+      
+      - name: Upload Target to Artifactory
+        env:
+          JFROG_CLI: /tools/batonroot/rodin/devkits/lnx64/jfrog/jfrog-cli
+        run: |
+          BRANCH=${GITHUB_REF##*/}
+          ARTIFACT_SRC="./artifacts/AIEBU-*-Linux.tar.gz"
+          ARTIFACT_DEST="/xrt-ipu-dev-local/$BRANCH/${GITHUB_RUN_NUMBER}/lnx/"
+
+          echo "-- Vars used for Jfrog CLI"
+          echo "   JFROG_CLI=$JFROG_CLI"
+          echo "   BRANCH=$BRANCH"
+          echo "   ARTIFACT_SRC=$ARTIFACT_SRC"
+          echo "   ARTIFACT_DEST=$ARTIFACT_DEST"
+
+          echo "-- Uploading target to Artifactory:"
+          ${JFROG_CLI} rt upload $ARTIFACT_SRC $ARTIFACT_DEST \
+            --insecure-tls=true \
+            --flat \
+            --props "REPO=${GITHUB_REPOSITORY};BRANCH=${GITHUB_REF##*/};COMMIT_SHA=${GITHUB_SHA};GH_WS=${GITHUB_WORKSPACE};RUNNER=${RUNNER_NAME}"
+          
+          echo "-- Artifact location:"
+          echo "   https://xcoartifactory/ui/native$ARTIFACT_DEST"      
+          echo "   - Done"
+
+      - name: Clean Up and Delete Docker Container
+        if: always()
+        run: |
+          echo "-- Docker container cleanup"
+          docker stop aiebu_container
+          docker rm aiebu_container
+          docker ps -a
+          echo "   - Workflow finished"
