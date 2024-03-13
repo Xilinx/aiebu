@@ -25,10 +25,21 @@ Compiling requires having installed:
 
 Build Instruction
 =================
-works for centos and ubuntu
+Require python packages
+ * pylint
+ * markdown
+ * pyyaml
+ * Jinja2
+For centos and ubuntu
 
  * cd build
  * ./build.sh
+
+For Windows
+
+ * cd build
+ * ./build22.bat
+
 
 Test
 ----

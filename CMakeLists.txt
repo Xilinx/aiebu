@@ -23,9 +23,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(AIEBU_SPECIFICATION_INSTALL_DIR "aiebu/share/specification")
 
-find_package(PkgConfig REQUIRED)
-
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  find_package(PkgConfig REQUIRED)
   find_package(Boost REQUIRED)
 
   pkg_check_modules(LIBELF REQUIRED libelf)
