@@ -9,7 +9,7 @@ class UcDmaShimOp:
 
     def handle_symbol(self, args, state, col_num, page_num):
         local_ptr_absolute = parse_num_arg(args[2], state)
-        return Symbol(args[6], local_ptr_absolute, col_num, page_num, Symbol.SymbolKind.SHIM_DMA_BASE_ADDR_SYMBOL_KIND)
+        return Symbol(args[6], local_ptr_absolute, col_num, page_num, Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57)
 
     def deserializer(self, state):
         return UcDmaShimOpDeSerializer(self, state)

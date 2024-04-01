@@ -3,7 +3,6 @@
 
 import ctypes
 import pylibelf
-from ctrlcode.common.symbol import Symbol
 
 def parse_register(arg):
     assert arg.startswith('$r') or arg.startswith('$g'), f"REG val not a register: {arg}"
