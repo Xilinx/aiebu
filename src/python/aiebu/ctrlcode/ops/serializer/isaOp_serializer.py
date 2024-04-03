@@ -48,7 +48,7 @@ class IsaOpSerializer(OpSerializer):
                     val.setcol(col)
                     # We need to subtract 16 bytes control code header
                     val.setpos(writer.tell(Section.TEXT, page, col)+len(result)-16)
-                    val.setkind(Symbol.SymbolKind.SCALAR_32BIT_KIND)
+                    val.setkind(Symbol.XrtPatchSchema.xrt_patch_schema_scaler_32)
                     val.setpagenum(page)
                     symbols.append(val)
                     val = 0

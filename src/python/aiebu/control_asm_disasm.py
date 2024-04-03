@@ -6,10 +6,12 @@
 import sys
 import argparse
 import os.path
+import json
 import importlib.resources
 
 from ctrlcode.assembler.assembler import Assembler
 from ctrlcode.disassembler.disassembler import ELFDisassembler
+from ctrlcode.assembler.assembler_blob import Assembler_blob
 from ctrlcode.ops.isa import ISA
 
 def parse_command_line(args):
@@ -17,7 +19,7 @@ def parse_command_line(args):
   msg = "Assemble ctrlcode ASM file and write hex and or ELF"
   parser = argparse.ArgumentParser(description = msg)
 
-  parser.add_argument('-t','--target', default='aie2ps', dest='target', help='DisAssembler')
+  parser.add_argument('-t','--target', default='aie2ps', dest='target', help='supported targets aie2ps/aie2/aie2_blob')
 
   parser.add_argument('-d','--disassembler', default=False, dest='disassembler', action='store_true',  help='DisAssembler')
 
@@ -27,6 +29,10 @@ def parse_command_line(args):
                       help = "ELF/ASM output file name")
   parser.add_argument("-I", "--include", dest ='includedir', nargs = '*',
                       help = "Include directories")
+  parser.add_argument("-c", "--control_packet", dest ='ccfile', nargs = 1,
+                      help = "control packet file")
+  parser.add_argument("-p", "--patch_info_file", dest ='patch_info', nargs = 1,
+                      help = "patch info json file")
   parser.add_argument("ifilename", metavar="infile", nargs = 1)
 
   # strip out the argv[0]
@@ -44,11 +50,35 @@ if __name__ == '__main__':
 
   includedir = []
   if argtab.includedir:
-      includedir = includedir + argtab.includedir
+    includedir = includedir + argtab.includedir
 
   specdir = "specification.aie2ps"
   if argtab.target == "aie2":
     specdir = "specification.aie2"
+  elif argtab.target == "aie2_blob":
+    specdir = ""
+
+  if argtab.target == "aie2_blob" :
+    if argtab.disassembler:
+      raise RuntimeError(f"Disassembler not supported with {argtab.target}")
+
+    if argtab.patch_info:
+      with open(argtab.patch_info[0]) as f:
+        patch_info = json.load(f)
+
+    ccfile = None
+    if argtab.ccfile:
+      ccfile = argtab.ccfile[0]
+
+    operation = Assembler_blob(argtab.ifilename[0], ccfile, patch_info, argtab.efilename[0])
+    operation.run()
+    sys.exit(0)
+  else:
+    if argtab.ccfile:
+      raise RuntimeError(f"Invalid option -c with target {argtab.target}")
+
+    if argtab.patch_info:
+      raise RuntimeError(f"Invalid option -p with target {argtab.target}")
 
   yamlres = importlib.resources.files(specdir).joinpath("isa-spec.yaml")
   yamlfile = str(yamlres)

@@ -33,7 +33,7 @@ class UcDmaShimOpSerializer(OpSerializer):
 
         assert (self.state.section == Section.DATA), "UC_DMA_BD can only be used in DATA section"
         symbols.append(Symbol(ursymbo, local_ptr_absolute, col, page,
-                              Symbol.SymbolKind.SHIM_DMA_BASE_ADDR_SYMBOL_KIND))
+                              Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57))
         writer.write_words([
             (size & 0x7FFF)
             | ((1 << 16) if ctrl_next_BD else 0)

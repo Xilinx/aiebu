@@ -8,13 +8,17 @@ class Symbol:
     """
     Represents a user symbol (a variable reference) encountered in assembly code.
     """
-    class SymbolKind(IntEnum):
-        UC_DMA_REMOTE_PTR_SYMBOL_KIND = 1
-        SHIM_DMA_BASE_ADDR_SYMBOL_KIND = 2
-        SCALAR_32BIT_KIND = 3
-        UNKNOWN_SYMBOL_KIND = 4
+    class XrtPatchSchema(IntEnum):
+        xrt_patch_schema_uc_dma_remote_ptr_symbol = 1
+        xrt_patch_schema_shim_dma_57 = 2
+        xrt_patch_schema_scaler_32 = 3
+        xrt_patch_schema_control_packet_48 = 4
+        xrt_patch_schema_shim_dma_48 = 5
+        xrt_patch_schema_tansaction_ctrlpkt_48 = 6
+        xrt_patch_schema_tansaction_48 = 7
+        xrt_patch_schema_unknown = 8
 
-    def __init__(self, name, pos, col, page_num, kind=SymbolKind.UNKNOWN_SYMBOL_KIND):
+    def __init__(self, name, pos, col, page_num, kind=XrtPatchSchema.xrt_patch_schema_unknown):
         self.name = name
         self.pos = pos
         self.kind = kind
@@ -32,3 +36,32 @@ class Symbol:
 
     def setpagenum(self, page_num):
         self.page_num = page_num
+
+class AIE2_BLOB_Symbol:
+    """
+    Represents a user symbol (a variable reference) encountered in aie2 blob.
+    """
+
+    class XrtPatchBufferType(IntEnum):
+        xrt_patch_buffer_type_instruct = 0
+        xrt_patch_buffer_type_control_packet = 1
+        xrt_patch_buffer_type_unkown = 2
+
+    class XrtPatchSchema(IntEnum):
+        xrt_patch_schema_uc_dma_remote_ptr_symbol = 1
+        xrt_patch_schema_shim_dma_57 = 2
+        xrt_patch_schema_scaler_32 = 3
+        xrt_patch_schema_control_packet_48 = 4
+        xrt_patch_schema_shim_dma_48 = 5
+        xrt_patch_schema_tansaction_ctrlpkt_48 = 6
+        xrt_patch_schema_tansaction_48 = 7
+        xrt_patch_schema_unknown = 8
+
+    def __init__(self, name, buf_type, pos, schema=XrtPatchSchema.xrt_patch_schema_unknown):
+        self.name = name
+        self.buf_type = buf_type
+        self.offsets = [pos]
+        self.schema = schema
+
+    def addoffset(self, offset):
+        self.offsets.append(offset)
