@@ -4,15 +4,10 @@
 
 class ELF_Section:
   """ ELF_Section class to hold section data of elf """
-  def __init__(self, name, section, paired_elf_section=None):
+  def __init__(self, name, section):
     self.name = name
-    self.section_index = -1
     self.section = section
     self.bytearray = bytearray()
-    self.paired_elf_section = paired_elf_section
-
-  def set_section_index(self, index):
-    self.section_index = index
 
   def write_bytes(self, buf):
     self.bytearray = self.bytearray + buf

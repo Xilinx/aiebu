@@ -8,37 +8,10 @@ import argparse
 import os.path
 import json
 from typing import List
+from symbol import Symbol
+from decoder import Decoder
 
-from enum import IntEnum
-
-class Symbol:
-    """
-    Represents a user symbol (a variable reference) encountered in assembly code.
-    """
-
-    class XrtPatchBufferType(IntEnum):
-        xrt_patch_buffer_type_instruct = 0
-        xrt_patch_buffer_type_control_packet = 1
-        xrt_patch_buffer_type_unkown = 2
-
-    class XrtPatchSchema(IntEnum):
-        xrt_patch_schema_uc_dma_remote_ptr_symbol = 1
-        xrt_patch_schema_shim_dma_57 = 2
-        xrt_patch_schema_scaler_32 = 3
-        xrt_patch_schema_control_packet_48 = 4
-        xrt_patch_schema_shim_dma_48 = 5
-        xrt_patch_schema_unknown = 6
-
-    def __init__(self, name, buf_type, pos, schema=XrtPatchSchema.xrt_patch_schema_unknown):
-        self.name = name
-        self.buf_type = buf_type
-        self.offsets = [pos]
-        self.schema = schema
-
-    def addoffset(self, offset):
-        self.offsets.append(offset)
-
-class IpuCodeDecoder:
+class IpuCodeDecoder(Decoder):
     DMA_BD0_2 = 0x0001D008
     DMA_BD_NUM = 16
     DMA_BD_SIZE = 0x20 # 8*4bytes
@@ -97,8 +70,7 @@ class IpuCodeDecoder:
     def __init__(self, symbols):
         # list all shim tile BD registers DDR address need to be processed
         self.DMABDx2RegAddr = [IpuCodeDecoder.DMA_BD0_2 + IpuCodeDecoder.DMA_BD_SIZE *i for i in range(IpuCodeDecoder.DMA_BD_NUM)]
-        self.symbols = symbols
-        self.symbolmap = {}
+        super().__init__(symbols)
 
     def decode_control_packet(self, data, pad_control_packet):
         mc_code_ddr = [int.from_bytes([data[x], data[x+1], data[x+2], data[x+3]] , byteorder='little', signed = False)
