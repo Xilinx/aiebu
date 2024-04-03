@@ -3,7 +3,7 @@
 
 
 class ELF_Section:
-
+  """ ELF_Section class to hold section data of elf """
   def __init__(self, name, section, paired_elf_section=None):
     self.name = name
     self.section_index = -1

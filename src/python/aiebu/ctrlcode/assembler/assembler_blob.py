@@ -13,25 +13,19 @@ def section_index_callback(buf_type, elf_sections):
     return elf_sections[".ctrldata"].section_index
 
 class Assembler_blob:
-    """ Assembler class """
+    """ Assembler class for aie2 which takes blobs as input """
     INSTR_BUF = 0
     CONTROL_CODE = 1
     def __init__(self, ifile, ccfile, patch_info, elffile):
-        self.ifile = open(ifile, 'rb')
-        self.idata = self.ifile.read()
-        self.ccfile = None
+        with open(ifile, 'rb') as f:
+            self.idata = f.read()
         self.ccdata = bytes()
         if ccfile:
-            self.ccfile = open(ccfile, 'rb')
-            self.ccdata = self.ccfile.read()
+            with open(ccfile, 'rb') as f:
+                self.ccdata = f.read()
         self.symbols = patch_info
         self.elf_sections = {}
         self.ewriter = AIE2_BLOB_ELFWriter(elffile, self.symbols, self.elf_sections, section_index_callback)
-
-    def __del__(self):
-        self.ifile.close()
-        if self.ccfile:
-            self.ccfile.close()
 
     def run(self):
         """ perform assembling """
