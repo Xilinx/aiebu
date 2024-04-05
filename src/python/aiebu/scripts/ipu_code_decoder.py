@@ -29,7 +29,7 @@ class IpuCodeDecoder(Decoder):
         OFM_TYPE: "ofm",
         INTER_TYPE: "inter",
         OUT2_TYPE: "out2",
-        MC_CODE_TYPE: "mc_code"
+        MC_CODE_TYPE: "control-packet"
     }
 
     OP_NOOP = 0

@@ -7,10 +7,40 @@ import os
 import sys
 import argparse
 import json
-from symbol import Symbol
-from decoder import Decoder
 
-class IpuTransactionBoDecoder(Decoder):
+from enum import IntEnum
+
+class Symbol:
+    """
+    Represents a user symbol (a variable reference) encountered in assembly code.
+    """
+
+    class XrtPatchBufferType(IntEnum):
+        xrt_patch_buffer_type_instruct = 0
+        xrt_patch_buffer_type_control_packet = 1
+        xrt_patch_buffer_type_transaction = 2
+        xrt_patch_buffer_type_unkown = 3
+
+    class XrtPatchSchema(IntEnum):
+        xrt_patch_schema_uc_dma_remote_ptr_symbol = 1
+        xrt_patch_schema_shim_dma_57 = 2
+        xrt_patch_schema_scaler_32 = 3
+        xrt_patch_schema_control_packet_48 = 4
+        xrt_patch_schema_shim_dma_48 = 5
+        xrt_patch_schema_tansaction_ctrlpkt_48 = 6
+        xrt_patch_schema_tansaction_48 = 7
+        xrt_patch_schema_unknown = 8
+
+    def __init__(self, name, buf_type, pos, schema=XrtPatchSchema.xrt_patch_schema_unknown):
+        self.name = name
+        self.buf_type = buf_type
+        self.offsets = [pos]
+        self.schema = schema
+
+    def addoffset(self, offset):
+        self.offsets.append(offset)
+
+class IpuTransactionBoDecoder:
 
     XAIE_IO_WRITE = 0
     XAIE_IO_BLOCKWRITE = 1
@@ -47,8 +77,9 @@ class IpuTransactionBoDecoder(Decoder):
     }
 
     def __init__(self, symbols):
+        self.symbols = symbols
+        self.symbolmap = {}
         self.ext_buffer_map = {}
-        super().__init__(symbols)
 
     def read_ext_buffers_json(self, extjson):
         keys = ["inputs", "outputs", "weights"];
@@ -112,19 +143,18 @@ class IpuTransactionBoDecoder(Decoder):
                 ofile.write(ins_buffer)
 
         else:
-            offset = 24
-        pc = 24
+            offset = 16
+        pc = 16
         while pc < ins_buffer_size_bytes:
             op = ins_buffer[pc]
             sb = IpuTransactionBoDecoder.OPERATION_size_index_MAP[op]
-            print(IpuTransactionBoDecoder.OPERATION_to_name_MAP[op], ":" , pc)
             size = int.from_bytes([ins_buffer[pc+sb], ins_buffer[pc+sb+1], ins_buffer[pc+sb+2], ins_buffer[pc+sb+3]] , byteorder='little', signed = False)
             if (op == IpuTransactionBoDecoder.XAIE_IO_CUSTOM_OP_BEGIN_1):
                 argidx = int.from_bytes([ins_buffer[pc+32], ins_buffer[pc+32+1], ins_buffer[pc+32+2], ins_buffer[pc+32+3], ins_buffer[pc+32+4], ins_buffer[pc+32+5], ins_buffer[pc+32+6], ins_buffer[pc+32+7]] , byteorder='little', signed = False)
                 if argidx in self.symbolmap.keys():
                     self.symbolmap[argidx].addoffset(offset)
                 else:
-                    self.symbolmap[argidx] = Symbol(str(argidx), Symbol.XrtPatchBufferType.xrt_patch_buffer_type_instruct, offset,
+                    self.symbolmap[argidx] = Symbol("control-packet", Symbol.XrtPatchBufferType.xrt_patch_buffer_type_instruct, offset,
                                            Symbol.XrtPatchSchema.xrt_patch_schema_tansaction_48)
                     self.symbols.append(self.symbolmap[argidx])
             pc = pc + size
