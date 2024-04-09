@@ -112,12 +112,11 @@ class IpuTransactionBoDecoder(Decoder):
                 ofile.write(ins_buffer)
 
         else:
-            offset = 24
-        pc = 24
+            offset = 16
+        pc = 16
         while pc < ins_buffer_size_bytes:
             op = ins_buffer[pc]
             sb = IpuTransactionBoDecoder.OPERATION_size_index_MAP[op]
-            print(IpuTransactionBoDecoder.OPERATION_to_name_MAP[op], ":" , pc)
             size = int.from_bytes([ins_buffer[pc+sb], ins_buffer[pc+sb+1], ins_buffer[pc+sb+2], ins_buffer[pc+sb+3]] , byteorder='little', signed = False)
             if (op == IpuTransactionBoDecoder.XAIE_IO_CUSTOM_OP_BEGIN_1):
                 argidx = int.from_bytes([ins_buffer[pc+32], ins_buffer[pc+32+1], ins_buffer[pc+32+2], ins_buffer[pc+32+3], ins_buffer[pc+32+4], ins_buffer[pc+32+5], ins_buffer[pc+32+6], ins_buffer[pc+32+7]] , byteorder='little', signed = False)
