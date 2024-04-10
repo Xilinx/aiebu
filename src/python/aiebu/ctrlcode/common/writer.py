@@ -626,7 +626,6 @@ class AIE2_BLOB_ELFWriter:
         index = 0
         relasize = 0
         for symbol in self.symbols:
-            print(symbol)
             if (len(symbol["name"]) == 0):
                 index += 1
                 continue
