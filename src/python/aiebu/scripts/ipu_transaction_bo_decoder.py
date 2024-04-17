@@ -123,7 +123,7 @@ class IpuTransactionBoDecoder(Decoder):
                 if argidx in self.symbolmap.keys():
                     self.symbolmap[argidx].addoffset(offset)
                 else:
-                    self.symbolmap[argidx] = Symbol(str(argidx), Symbol.XrtPatchBufferType.xrt_patch_buffer_type_instruct, offset,
+                    self.symbolmap[argidx] = Symbol("control-packet", Symbol.XrtPatchBufferType.xrt_patch_buffer_type_instruct, offset,
                                            Symbol.XrtPatchSchema.xrt_patch_schema_tansaction_48)
                     self.symbols.append(self.symbolmap[argidx])
             pc = pc + size
