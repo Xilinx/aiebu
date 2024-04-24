@@ -1,14 +1,12 @@
-name: XRT_aiebu-lnx_build
+name: XRT_aiebu-lnx_nightly
 
 # Configures trigger:
 # This workflow will be triggered on a pull request created for main branch
 on:
-  push:
-    branches: [ main, ci_pipeline, ci_nightly ]
-
-  pull_request:
-    branches: [ main, ci_pipeline, ci_nightly ]
-
+  schedule:
+    # Run workflow nightly at 5 AM UTC = 10 PM PST (DST)
+    - cron: "0 5 * * *" 
+    
   # Allow triggering this Action/Workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -59,7 +57,7 @@ jobs:
             cd /home/aiebu/ && \
             build/build.sh && \
             chown -R 95777:10115 /home/aiebu"
-
+          
       - name: Upload Artifact to Artifactory
         run: |
           cd ${GITHUB_WORKSPACE}/build/Release/
@@ -67,7 +65,7 @@ jobs:
 
           ARTIFACT_VERSION=`ls AIEBU-*.tar.gz | cut -d'-' -f2`
           ARTIFACT="AIEBU-${ARTIFACT_VERSION}-Linux-${DATE}-${GITHUB_RUN_NUMBER}.tar.gz"
-          ARTIFACT_DEST="xrt-ipu-dev-local/${BRANCH}/lnx/${DATE}-${GITHUB_RUN_NUMBER}/${ARTIFACT}"
+          ARTIFACT_DEST="xrt-ipu-dev-local/${BRANCH}/nightly/lnx/${DATE}-${GITHUB_RUN_NUMBER}/${ARTIFACT}"
 
           echo "--> Vars:"
           echo "    JFROG_CLI=$JFROG_CLI"

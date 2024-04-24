@@ -1,13 +1,11 @@
-name: XRT_aiebu-win_build
+name: XRT_aiebu-win_nightly
 
 # Configures trigger:
 # This workflow will be triggered on a pull request created for main branch
 on:
-  push:
-    branches: [ main, ci_pipeline ]
-
-  pull_request:
-    branches: [ main, ci_pipeline ]
+  schedule:
+    # Run workflow nightly at 5 AM UTC = 10 PM PST (DST)
+    - cron: "0 5 * * *" 
 
   # Allow triggering this Action/Workflow manually from the Actions tab
   workflow_dispatch:
@@ -55,7 +53,7 @@ jobs:
           $ARTIFACT_FILE=Get-ChildItem -Filter "AIEBU-*-win64.zip"
           $ARTIFACT_VERSION=($ARTIFACT_FILE[0].Name -split '-')[1]
           $ARTIFACT_SRC="AIEBU-$ARTIFACT_VERSION-win64-$DATE-${{ github.RUN_NUMBER }}.zip"
-          $ARTIFACT_DEST="xrt-ipu-dev-local/$BRANCH/win/$DATE-${{ github.RUN_NUMBER }}/$ARTIFACT_SRC"
+          $ARTIFACT_DEST="xrt-ipu-dev-local/$BRANCH/nightly/win/$DATE-${{ github.RUN_NUMBER }}/$ARTIFACT_SRC"
 
           Copy-Item .\$ARTIFACT_FILE .\$ARTIFACT_SRC
           dir AIEBU-*.zip
@@ -79,4 +77,4 @@ jobs:
             --insecure-tls=true `
             --flat 
           echo "    LATEST artifact location:"
-          echo "    https://xcoartifactory/ui/native/$ARTIFACT_LATEST"         
+          echo "    https://xcoartifactory/ui/native/$ARTIFACT_LATEST"      
