@@ -58,6 +58,7 @@ add_subdirectory(src/cpp/src)
 add_subdirectory(specification)
 add_subdirectory(scripts)
 
+add_subdirectory(lib)
 
 add_subdirectory(test/cpp_test)
 add_subdirectory(test)
