@@ -4,7 +4,7 @@
 
 // AIE Driver headers
 #include "xaiengine.h"
-#include "xaiengine/xaiemlgbl_params.h"
+#include "xaiengine/xaiegbl_params.h"
 
 #include "op_types.h"
 #include "op_buf.hpp"
@@ -52,7 +52,7 @@ int MEM_Tile_Save_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col) {
 	patch_op_t patch_instr = {};
 	uint64_t tile_offset = _XAie_GetTileAddr(dev, 0, col);
 
-	patch_instr.regaddr = XAIEMLGBL_NOC_MODULE_DMA_BD0_1 + tile_offset;
+	patch_instr.regaddr = XAIEGBL_MEM_DMABD0ADDB + tile_offset;
 	patch_instr.argidx = OUT_BUFFER_KERNARG_IDX;//argidx points to out_bo
 	patch_instr.argplus = size_per_column * col; //argplus
 
@@ -117,7 +117,7 @@ int MEM_Tile_Restore_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col
 	patch_op_t patch_instr = {};
 	uint64_t tile_offset = _XAie_GetTileAddr(dev, 0, col);
 
-	patch_instr.regaddr = XAIEMLGBL_NOC_MODULE_DMA_BD0_1 + tile_offset;
+	patch_instr.regaddr = XAIEGBL_MEM_DMABD0ADDB + tile_offset;
 	patch_instr.argidx = IN_BUFFER_KERNARG_IDX;//argidx points to out_bo
 	patch_instr.argplus = size_per_column * col; //argplus
 
@@ -181,7 +181,7 @@ int MEM_Tile_Save_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uint32
 	patch_op_t patch_instr = {};
 	uint64_t tile_offset = _XAie_GetTileAddr(dev, 0, col + 1); // SHIM in col 1 is doing the DMA
 
-	patch_instr.regaddr = XAIEMLGBL_NOC_MODULE_DMA_BD1_1 + tile_offset; // taking BD 1 again
+	patch_instr.regaddr = XAIEGBL_MEM_DMABD1ADDB + tile_offset; // taking BD 1 again
 	patch_instr.argidx = OUT_BUFFER_KERNARG_IDX; //argidx points to out_bo
 	patch_instr.argplus = size_per_column * col; //argplus
 
@@ -245,7 +245,7 @@ int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uin
 	patch_op_t patch_instr = {};
 	uint64_t tile_offset = _XAie_GetTileAddr(dev, 0, col + 1); // SHIM tile in col 1 is doing the DMA
 
-	patch_instr.regaddr = XAIEMLGBL_NOC_MODULE_DMA_BD1_1 + tile_offset; // taking BD 1 again
+	patch_instr.regaddr = XAIEGBL_MEM_DMABD1ADDB + tile_offset; // taking BD 1 again
 	patch_instr.argidx = IN_BUFFER_KERNARG_IDX; //argidx points to inp_bo
 	patch_instr.argplus = size_per_column * col; //argplus
 

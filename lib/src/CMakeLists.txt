@@ -6,6 +6,7 @@
 set(GENERATOR_EXE "preemption")
 set(GENERATOR_OUT_DIR "${AIEBU_BINARY_DIR}/lib/gen")
 set(AIEBU_INSTALL_AIE_LIB_DIR "${AIEBU_INSTALL_DIR}/lib/aie")
+set(CHECKSUMS_FILE "${GENERATOR_OUT_DIR}/checksums.txt")
 
 file(MAKE_DIRECTORY ${GENERATOR_OUT_DIR})
 
@@ -35,6 +36,19 @@ add_custom_target(
   DEPENDS
   ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin
   ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
+)
+
+add_custom_command(
+  OUTPUT "${CHECKSUMS_FILE}"
+  COMMAND
+    "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/md5sum.cmake" "${GENERATOR_OUT_DIR}" "${CHECKSUMS_FILE}"
+  DEPENDS ctrlcodelib
+)
+
+add_custom_target(
+  ctrlcodemd5sum ALL
+  DEPENDS
+  ${CHECKSUMS_FILE}
 )
 
 install(FILES ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
