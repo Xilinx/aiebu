@@ -22,33 +22,38 @@ target_include_directories(
 
 target_link_libraries(${GENERATOR_EXE} xaiengine)
 
+# Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
+# when it runs.
+# The copy is not required for Linux but I am copying nevertheless as it does not harm
+# When aie-rt is available as static library, we will switch to using static linking
 add_custom_command(
   OUTPUT ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
+  COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:xaiengine> to ${GENERATOR_OUT_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:xaiengine>" "${GENERATOR_OUT_DIR}"
   COMMAND ${GENERATOR_EXE}
   DEPENDS ${GENERATOR_EXE}
-  COMMENT "Generating save/restore ctrlcode stubs in ${GENERATOR_OUT_DIR}"
+  COMMENT "Generating save/restore ctrlcode stubs in directory ${GENERATOR_OUT_DIR}"
   VERBATIM
   WORKING_DIRECTORY ${GENERATOR_OUT_DIR}
 )
 
 add_custom_target(
   ctrlcodelib ALL
-  DEPENDS
-  ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin
-  ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
+  DEPENDS ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
 )
 
 add_custom_command(
   OUTPUT "${CHECKSUMS_FILE}"
-  COMMAND
-    "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/md5sum.cmake" "${GENERATOR_OUT_DIR}" "${CHECKSUMS_FILE}"
-  DEPENDS ctrlcodelib
+  COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/md5sum.cmake" "${GENERATOR_OUT_DIR}" "${CHECKSUMS_FILE}"
+  DEPENDS ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
+          ctrlcodelib
 )
 
 add_custom_target(
   ctrlcodemd5sum ALL
-  DEPENDS
-  ${CHECKSUMS_FILE}
+  DEPENDS ${CHECKSUMS_FILE}
 )
 
 install(FILES ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
