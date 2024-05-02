@@ -55,7 +55,8 @@ jobs:
           RUNNER_HOSTNAME=`hostname`
           echo "--> Build inside docker container on $RUNNER_HOSTNAME"
           docker run --name aiebu_container --rm --volume ${GITHUB_WORKSPACE}:/home/aiebu -i ubuntu:xrt_aiebu_1 /bin/bash -c \
-            "git config --global --add safe.directory /home/aiebu && \
+            "apt install rapidjson-dev && \  
+            git config --global --add safe.directory /home/aiebu && \
             cd /home/aiebu/ && \
             build/build.sh && \
             chown -R 95777:10115 /home/aiebu"
