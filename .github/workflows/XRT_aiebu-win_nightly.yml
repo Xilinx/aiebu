@@ -39,7 +39,7 @@ jobs:
           $RUNNER_HOSTNAME=hostname
           echo "--> Building win target on $RUNNER_HOSTNAME"
           cd ${{ github.WORKSPACE }}\build
-          .\build22.bat
+          .\build22.bat -boost C:\boost\boost_1_85_0
         # artifact (target: C:\scratch\XRT_aiebu\actions-runner\_work\aiebu\build\WRelease\AIEBU-0.1.1-win64.zip)
       
       - name: Upload Artifact to Artifactory
