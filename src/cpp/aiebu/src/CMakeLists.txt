@@ -32,8 +32,8 @@ target_include_directories(aiebu_library_objects PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/elf
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
-  ${CMAKE_CURRENT_SOURCE_DIR}/../ELFIO/
-  ${CMAKE_CURRENT_BINARY_DIR}/../../python/
+  ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO/
+  ${CMAKE_CURRENT_BINARY_DIR}/../../../python/
   )
 
 add_library(aiebu SHARED

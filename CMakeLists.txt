@@ -54,7 +54,7 @@ endif()
 enable_testing()
 
 add_subdirectory(src/python)
-add_subdirectory(src/cpp/src)
+add_subdirectory(src/cpp/aiebu/src)
 add_subdirectory(specification)
 add_subdirectory(scripts)
 

@@ -20,5 +20,5 @@ target_link_libraries(${AIE2PS_TESTNAME}
   aiebu
   )
 
-target_include_directories(${AIE2_TESTNAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/cpp/src/include)
-target_include_directories(${AIE2PS_TESTNAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/cpp/src/include)
+target_include_directories(${AIE2_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include)
+target_include_directories(${AIE2PS_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include)
