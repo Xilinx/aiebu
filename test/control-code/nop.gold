@@ -1,9 +1,9 @@
 ELF Header:
-  Magic:   7f 45 4c 46 01 01 01 40 01 00 00 00 00 00 00 00
+  Magic:   7f 45 4c 46 01 01 01 45 01 00 00 00 00 00 00 00
   Class:                             ELF32
   Data:                              2's complement, little endian
   Ident Version:                     1 (current)
-  OS/ABI:                            <unknown>: 64
+  OS/ABI:                            <unknown>: 69
   ABI Version:                       1
   Type:                              EXEC (Executable file)
   Machine:                           WE32100
@@ -28,7 +28,7 @@ Section Headers:
 
 Program Headers:
   Type           Offset   VirtAddr   PhysAddr   FileSiz  MemSiz   Flg Align
-  PHDR           0x000034 0x00000034 0x00000034 0x0000a0 0x0000a0 R   0x8
+  PHDR           0x000034 0x00000034 0x00000034 0x000080 0x000080 R   0x8
   LOAD           0x000000 0x00000000 0x00000000 0x0000c0 0x0000c0 R   0x8
   LOAD           0x0000c0 0x000000c0 0x000000c0 0x000050 0x000050 R E 0x10
   LOAD           0x000110 0x00000110 0x00000110 0x001fbc 0x001fbc RW  0x10

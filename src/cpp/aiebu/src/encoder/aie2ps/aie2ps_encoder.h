@@ -17,17 +17,18 @@ namespace aiebu {
 class aie2ps_encoder : public encoder
 {
   std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> m_isa;
-  std::shared_ptr<writer> twriter = std::make_shared<writer>();
+  std::vector<writer> twriter;
 public:
   aie2ps_encoder() {     
     isa i;
     m_isa = i.get_isamap();
   }
 
-  virtual std::shared_ptr<writer>
+  virtual std::vector<writer>
   process(std::shared_ptr<preprocessed_output> input) override;
-  
-  void page_writer(page& lpage, std::vector<symbol>& sym);
+  std::string get_TextSectionName(uint32_t colnum, pageid_type pagenum) {return ".ctrltext_" + std::to_string(colnum) + "_" + std::to_string(pagenum); }
+  std::string get_DataSectionName(uint32_t colnum, pageid_type pagenum) {return ".ctrldata_" + std::to_string(colnum) + "_" + std::to_string(pagenum); }
+  void page_writer(page& lpage);
 
 };
 

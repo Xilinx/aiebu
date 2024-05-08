@@ -6,6 +6,7 @@
 #include "aiebu_assembler.h"
 #include "aiebu.h"
 #include "aiebu_error.h"
+#include "symbol.h"
 
 namespace aiebu {
 
@@ -44,17 +45,20 @@ aiebu_assembler(buffer_type type,
   // in aie2ps patch data is not used, its extracted from asm
   if (type != buffer_type::asm_aie2ps)
   {
-    for (auto s : patch_data) {
-      for (auto p : s.offsets)
-        symbols.emplace_back(s.symbol, p, 0, 0,
-                             s.buf_type == aiebu::patch_buffer_type::instruct ? 0: 1,
-                             symbol_schema_transform(s.schema));
-    }
+    for (auto s : patch_data)
+      symbols.emplace_back(s.symbol, s.offset, 0, 0, s.addend,
+                           s.buf_type == aiebu::patch_buffer_type::instruct ? ".ctrltext" : ".ctrldata",
+                           symbol_schema_transform(s.schema));
   }
 
   if (type == buffer_type::blob_instr_dpu)
   {
     aiebu::assembler a(assembler::elf_type::aie2_dpu_blob);
+    elf_data = a.process(buffer1, symbols, buffer2);
+  }
+  else if (type == buffer_type::blob_instr_transaction)
+  {
+    aiebu::assembler a(assembler::elf_type::aie2_transaction_blob);
     elf_data = a.process(buffer1, symbols, buffer2);
   }
   else if (type == buffer_type::asm_aie2ps)
@@ -107,9 +111,8 @@ convert_patchdata(const struct aiebu_patch_info* patch_data,
       throw error(error::error_code::invalid_patch_schema, "Patch Schema not supported !!!");
 
     p.schema = convert_schema[patch_data[i].schema];
-
-    for ( int j = 0; j< patch_data[i].offsets_size; ++j)
-      p.offsets.push_back(patch_data[i].offsets[j]);
+    p.offset = patch_data[i].offset;
+    p.addend = patch_data[i].addend;
 
     vpatch.emplace_back(p);
   }
@@ -156,11 +159,4 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
     ret = -(static_cast<int>(aiebu::error::error_code::internal_error));
   }
   return ret;
-}
-
-DRIVER_DLLESPEC
-void
-aiebu_assembler_free_elf(void* mem)
-{
-  std::free(mem);
 }

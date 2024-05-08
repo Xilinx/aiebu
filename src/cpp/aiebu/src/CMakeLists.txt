@@ -19,6 +19,9 @@ add_library(aiebu_library_objects OBJECT
   )
 
 target_include_directories(aiebu_library_objects PRIVATE
+  ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
+  ${AIEBU_SOURCE_DIR}/lib/aie_controller/include/
+  ${AIEBU_SOURCE_DIR}/lib/aie_controller/include/ps
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2

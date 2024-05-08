@@ -10,15 +10,11 @@ namespace aiebu {
 
 class aie2_blob_elf_writer: public elf_writer
 {
-  constexpr static int ob_abi = 0x40;
+  constexpr static int ob_abi = 0x45;
   constexpr static int version = 0x01;
 public:
   aie2_blob_elf_writer(): elf_writer(ob_abi, version)
   { }
-
-protected:
-  std::string get_dataname(uint32_t colnum, uint32_t pagenum) { return ".data"; }
-  std::string get_textname(uint32_t colnum, uint32_t pagenum) { return ".text"; }
 };
 
 }

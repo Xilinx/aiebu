@@ -16,7 +16,7 @@ class encoder
 public:
   encoder() {}
 
-  virtual std::shared_ptr<writer>
+  virtual std::vector<writer>
   process(std::shared_ptr<preprocessed_output> input) = 0;
   virtual ~encoder() {}
 };

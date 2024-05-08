@@ -3,6 +3,7 @@
 
 #include "ops.h"
 #include "aiebu_error.h"
+#include <string>
 namespace aiebu {
 
 offset_type
@@ -26,7 +27,8 @@ align_op_serializer::size(assembler_state& state)
 
 std::vector<uint8_t>
 isa_op_serializer::
-serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum)
+serialize(assembler_state& state, std::vector<symbol>& symbols,
+          uint32_t colnum, pageid_type pagenum)
 {
   //encode isa_op
   std::vector<uint8_t> ret;
@@ -65,7 +67,10 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
         val = state.parse_num_arg(sval);
       } catch (symbol_exception &s) {
         //TODO : assert
-        symbols.emplace_back(sval, state.get_pos()+(uint32_t)ret.size(), colnum, pagenum, 0, symbol::patch_schema::scaler_32);
+        symbols.emplace_back(sval, state.get_pos()+(uint32_t)ret.size(),
+                             colnum, pagenum, 0, ".ctrltext_" + std::to_string(colnum)
+                             + "_" + std::to_string(pagenum),
+                             symbol::patch_schema::scaler_32);
       }
 
       if (arg.m_width == width_8)
@@ -97,7 +102,9 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
 
 std::vector<uint8_t>
 ucDmaBd_op_serializer::
-serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum)
+serialize(assembler_state& state,
+          std::vector<symbol>& symbols,
+          uint32_t colnum, pageid_type pagenum)
 {
   //encode ucDmaBd
   std::vector<uint8_t> ret;
@@ -142,7 +149,9 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
 
 std::vector<uint8_t>
 ucDmaShimBd_op_serializer::
-serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum)
+serialize(assembler_state& state,
+          std::vector<symbol>& symbols,
+          uint32_t colnum, pageid_type pagenum)
 {
   //encode ucDmaShimBd
   std::vector<uint8_t> ret;
@@ -157,7 +166,10 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
   // TODO assert
   uint32_t local_ptr = local_ptr_absolute - state.get_pos();
   //TODO ADD symbol
-  symbols.emplace_back(symbol(m_args[6],local_ptr_absolute, colnum, pagenum, 0, symbol::patch_schema::shim_dma_57  ));
+  symbols.emplace_back(symbol(m_args[6],local_ptr_absolute, colnum, pagenum, 0,
+                              ".ctrldata_" + std::to_string(colnum) + "_"
+                              + std::to_string(pagenum),
+                              symbol::patch_schema::shim_dma_57  ));
   //TODO assert
 
   ret.push_back(size & BYTE_MASK);
@@ -189,7 +201,10 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
 
 std::vector<uint8_t>
 long_op_serializer::
-serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum)
+serialize(assembler_state& state,
+          std::vector<symbol>& symbols,
+          uint32_t colnum,
+          pageid_type pagenum)
 {
   //encode long
   std::vector<uint8_t> ret;
@@ -204,7 +219,9 @@ serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum,
 
 std::vector<uint8_t>
 align_op_serializer::
-serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum)
+serialize(assembler_state& state,
+          std::vector<symbol>& symbols,
+          uint32_t colnum, pageid_type pagenum)
 {
   //encode align
   std::vector<uint8_t> ret;

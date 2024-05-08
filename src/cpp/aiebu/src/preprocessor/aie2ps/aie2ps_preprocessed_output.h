@@ -5,6 +5,7 @@
 #define _AIEBU_PREPROCESSOR_AIE2PS_PREPROCESSED_OUTPUT_H_
 
 #include "asm/page.h"
+#include "preprocessed_output.h"
 
 namespace aiebu {
 

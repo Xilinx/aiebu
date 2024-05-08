@@ -15,19 +15,6 @@ class aie2ps_elf_writer: public elf_writer
 public:
   aie2ps_elf_writer(): elf_writer(ob_abi, version)
   { }
-
-protected:
-  std::string get_dataname(uint32_t colnum, uint32_t pagenum)
-  {
-    //get data section name for col and page
-    return ".ctrldata_" + std::to_string(colnum) + "_" + std::to_string(pagenum);
-  }
-
-  std::string get_textname(uint32_t colnum, uint32_t pagenum)
-  {
-    //get text section name for col and page
-    return ".ctrltext_" + std::to_string(colnum) + "_" + std::to_string(pagenum);
-  }
 };
 
 }

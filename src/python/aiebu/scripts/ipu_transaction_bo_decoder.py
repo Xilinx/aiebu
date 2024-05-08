@@ -12,40 +12,6 @@ from decoder import Decoder
 
 class IpuTransactionBoDecoder(Decoder):
 
-    XAIE_IO_WRITE = 0
-    XAIE_IO_BLOCKWRITE = 1
-    XAIE_IO_BLOCKSET = 2
-    XAIE_IO_MASKWRITE = 3
-    XAIE_IO_MASKPOLL = 4
-    XAIE_IO_CUSTOM_OP_BEGIN = 0x80
-    XAIE_IO_CUSTOM_OP_BEGIN_1 = 0x81
-    XAIE_IO_CUSTOM_OP_BEGIN_2 = 0x82
-    XAIE_IO_CUSTOM_OP_BEGIN_3 = 0x83
-
-    OPERATION_size_index_MAP = {
-        XAIE_IO_WRITE: 20,
-        XAIE_IO_BLOCKWRITE: 12,
-        XAIE_IO_BLOCKSET: 12,
-        XAIE_IO_MASKWRITE: 24,
-        XAIE_IO_MASKPOLL: 24,
-        XAIE_IO_CUSTOM_OP_BEGIN: 4,
-        XAIE_IO_CUSTOM_OP_BEGIN_1: 4,
-        XAIE_IO_CUSTOM_OP_BEGIN_2: 4,
-        XAIE_IO_CUSTOM_OP_BEGIN_3: 4,
-    }
-
-    OPERATION_to_name_MAP = {
-        XAIE_IO_WRITE: "XAIE_IO_WRITE",
-        XAIE_IO_BLOCKWRITE: "XAIE_IO_BLOCKWRITE",
-        XAIE_IO_BLOCKSET: "XAIE_IO_BLOCKSET",
-        XAIE_IO_MASKWRITE: "XAIE_IO_MASKWRITE",
-        XAIE_IO_MASKPOLL: "XAIE_IO_MASKPOLL",
-        XAIE_IO_CUSTOM_OP_BEGIN: "XAIE_IO_CUSTOM_OP_BEGIN",
-        XAIE_IO_CUSTOM_OP_BEGIN_1: "XAIE_IO_CUSTOM_OP_BEGIN_1",
-        XAIE_IO_CUSTOM_OP_BEGIN_2: "XAIE_IO_CUSTOM_OP_BEGIN_2",
-        XAIE_IO_CUSTOM_OP_BEGIN_3: "XAIE_IO_CUSTOM_OP_BEGIN_3"
-    }
-
     def __init__(self, symbols):
         self.ext_buffer_map = {}
         super().__init__(symbols)
@@ -78,14 +44,11 @@ class IpuTransactionBoDecoder(Decoder):
             patch = ccjson["control_packet_patch"][patchid]
             split = patch["name"].split(".")
             name = split[len(split)-1]
-            if name in self.symbolmap.keys():
-                self.symbolmap[name].addoffset(patch["offset"])
-            else:
-                self.symbolmap[name] = Symbol(name,
-                                              Symbol.XrtPatchBufferType.xrt_patch_buffer_type_control_packet,
-                                              patch["offset"],
-                                              Symbol.XrtPatchSchema.xrt_patch_schema_tansaction_ctrlpkt_48)
-                self.symbols.append(self.symbolmap[name])
+            self.symbols.append(Symbol(name,
+                                          Symbol.XrtPatchBufferType.xrt_patch_buffer_type_control_packet,
+                                          patch["offset"], self.ext_buffer_map[patch["name"]]["offset"],
+                                          Symbol.XrtPatchSchema.xrt_patch_schema_control_packet_48))
+
             # taking only 6 bytes as we need only 48bit
             val = int.from_bytes([ctrldata[patch["offset"]], ctrldata[patch["offset"]+1], ctrldata[patch["offset"]+2], ctrldata[patch["offset"]+3], ctrldata[patch["offset"]+4], ctrldata[patch["offset"]+5]], byteorder='little', signed = False)
             val = val + self.ext_buffer_map[patch["name"]]["offset"];
@@ -110,24 +73,6 @@ class IpuTransactionBoDecoder(Decoder):
             with open("patched_"+os.path.basename(ifile), "wb") as ofile:
                 ofile.write(patch_ml_txn)
                 ofile.write(ins_buffer)
-
-        else:
-            offset = 16
-        pc = 16
-        while pc < ins_buffer_size_bytes:
-            op = ins_buffer[pc]
-            sb = IpuTransactionBoDecoder.OPERATION_size_index_MAP[op]
-            size = int.from_bytes([ins_buffer[pc+sb], ins_buffer[pc+sb+1], ins_buffer[pc+sb+2], ins_buffer[pc+sb+3]] , byteorder='little', signed = False)
-            if (op == IpuTransactionBoDecoder.XAIE_IO_CUSTOM_OP_BEGIN_1):
-                argidx = int.from_bytes([ins_buffer[pc+32], ins_buffer[pc+32+1], ins_buffer[pc+32+2], ins_buffer[pc+32+3], ins_buffer[pc+32+4], ins_buffer[pc+32+5], ins_buffer[pc+32+6], ins_buffer[pc+32+7]] , byteorder='little', signed = False)
-                if argidx in self.symbolmap.keys():
-                    self.symbolmap[argidx].addoffset(offset)
-                else:
-                    self.symbolmap[argidx] = Symbol("control-packet", Symbol.XrtPatchBufferType.xrt_patch_buffer_type_instruct, offset,
-                                           Symbol.XrtPatchSchema.xrt_patch_schema_tansaction_48)
-                    self.symbols.append(self.symbolmap[argidx])
-            pc = pc + size
-            offset = offset + size
 
 
 def parse_command_line(args):
@@ -155,7 +100,8 @@ def parse_command_line(args):
 if __name__ == '__main__':
     argtab = parse_command_line(sys.argv)
 
-    symbols = [Symbol("", 0, 0, 0)]
+    symbols = []
+    dist = {}
     ipudecoder = IpuTransactionBoDecoder(symbols)
     if argtab.ifile:
         with open(argtab.ifile[0], 'rb') as f:
@@ -173,12 +119,16 @@ if __name__ == '__main__':
             with open(argtab.ccfile[0], 'rb') as f:
                 ccjson = json.load(f)
             ipudecoder.decode_control_packet_json(ccjson, extjson, ctrldata, Symbol.XrtPatchBufferType.xrt_patch_buffer_type_control_packet)
+            dist = {"control-packet": { "name": "control-packet-0", "path": argtab.ctrlfile[0] } }
             with open("patched_"+os.path.basename(argtab.ctrlfile[0]), "wb") as ofile:
                 ofile.write(ctrldata)
+            dist = {"control-packet": { "name": "control-packet-0", "path": argtab.ctrlfile[0] } }
 
         else:
             sys.stderr.write(f"File {argtab.extfile[0]} or {argtab.ctrlfile[0]} not exist\n")
             sys.exit(0)
 
+    dist["symbols"] = [ {"name":"sym", "patching":[ob.__dict__ for ob in symbols ] } ]
+    #print(dist)
     with open(argtab.patch_info[0], "w") as outfile:
-        json.dump([ob.__dict__ for ob in symbols], outfile)
+        json.dump(dist, outfile, indent=4)

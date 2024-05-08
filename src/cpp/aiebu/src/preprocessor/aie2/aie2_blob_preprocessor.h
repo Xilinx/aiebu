@@ -32,11 +32,10 @@ public:
     auto rinput = std::static_pointer_cast<aie2_blob_preprocessor_input>(input);
     auto routput = std::make_shared<aie2_blob_preprocessed_output>();
 
-    routput->set_instruction_buffer(transform(rinput->get_instruction_buffer()));
-    routput->set_controlcode_buffer(transform(rinput->get_controlcode_buffer()));
+    for(auto key : rinput->get_keys())
+      routput->add_data(key, transform(rinput->get_data(key)));
 
-    for (auto s: rinput->get_symbols())
-      routput->add_symbol(s);
+    routput->add_symbols(rinput->get_symbols());
     return routput;
   }
 };

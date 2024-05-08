@@ -6,7 +6,7 @@
 
 namespace aiebu {
 
-std::shared_ptr<writer>
+std::vector<writer>
 aie2ps_encoder::
 process(std::shared_ptr<preprocessed_output> input)
 {
@@ -17,15 +17,7 @@ process(std::shared_ptr<preprocessed_output> input)
   // for each colnum encode each page
   for (auto coldata: totalcoldata) {
     for (auto lpage : coldata.second)
-    {
-      std::vector<symbol> sym;
-      page_writer(lpage, sym);
-      twriter->add_symbols(sym);
-/*
-      for (auto s : sym)
-        twriter->add_symbol(s);
-*/
-    }
+      page_writer(lpage);
   }
 
   return twriter;
@@ -33,7 +25,7 @@ process(std::shared_ptr<preprocessed_output> input)
 
 void
 aie2ps_encoder::
-page_writer(page& lpage, std::vector<symbol>& sym)
+page_writer(page& lpage)
 {
   // encode page
   std::vector<uint8_t> page_header = { 0xFF, 0xFF, 0x00, 0x00,
@@ -51,50 +43,58 @@ page_writer(page& lpage, std::vector<symbol>& sym)
   all.insert(all.end(), lpage.m_data.begin(), lpage.m_data.end());
   assembler_state page_state = assembler_state(m_isa, all);
 
+  writer textwriter(get_TextSectionName(colnum, pagenum), code_section::text);
+  writer datawriter(get_DataSectionName(colnum, pagenum), code_section::data);
+
   for (auto byte : page_header)
-    twriter->write_byte(byte, code_section::text, colnum, pagenum);
+    textwriter.write_byte(byte);
 
   // encode text section
-  code_section csection = code_section::text;
-  offset_type offset = twriter->tell(csection, colnum, pagenum);
+  offset_type offset = textwriter.tell();
+  std::vector<symbol> tsym;
   for (auto text : lpage.m_text)
   {
     //TODO add debug info
     std::string name = text->get_operation()->get_name();
     if (text->isOpcode())
     {
-      page_state.set_pos(twriter->tell(csection, colnum, pagenum) - offset);
+      page_state.set_pos(textwriter.tell() - offset);
       std::vector<uint8_t> ret = (*m_isa)[name]->serializer(text->get_operation()->get_args())
-                                               ->serialize(page_state, sym, colnum, pagenum);
+                                               ->serialize(page_state, tsym, colnum, pagenum);
       for (uint8_t byte : ret) {
-        twriter->write_byte(byte, code_section::text, colnum, pagenum);
+        textwriter.write_byte(byte);
       }
     } else 
       throw error(error::error_code::internal_error, "Invalid operation: " + name + " in TEXT section !!!");
   }
 
-  // encode text section
+  std::vector<symbol> dsym;
+  // encode data section
   for (auto data : lpage.m_data)
   {
-    page_state.set_pos(twriter->tell(csection, colnum, pagenum) - offset);
+    page_state.set_pos(datawriter.tell() + textwriter.tell() - offset);
     std::string name = data->get_operation()->get_name();
     if (data->isLabel())
     {
-      csection = code_section::data;
       // TODO assert
     } else if (data->isOpcode())
     {
       //TODO add debug info
       std::vector<uint8_t> ret = (*m_isa)[name]->serializer(data->get_operation()->get_args())
-                                               ->serialize(page_state, sym, colnum, pagenum);
+                                               ->serialize(page_state, dsym, colnum, pagenum);
       for (auto byte : ret) {
-        twriter->write_byte(byte, code_section::data, colnum, pagenum);
+        datawriter.write_byte(byte);
       }
     } else 
       throw error(error::error_code::internal_error, "Invalid operation: " + name + " in DATA section !!!");
   }
 
-  twriter->padding(colnum, pagenum, PAGE_SIZE);
+  datawriter.padding(PAGE_SIZE-textwriter.tell());
+
+  textwriter.add_symbols(tsym);
+  datawriter.add_symbols(dsym);
+  twriter.push_back(textwriter);
+  twriter.push_back(datawriter);
 
   // TODO add size and generate report
 }

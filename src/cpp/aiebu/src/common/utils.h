@@ -17,7 +17,7 @@
 #define THIRD_BYTE_SHIFT 16
 #define FORTH_BYTE_SHIFT 24
 
-using jobid_type = uint32_t;
+using jobid_type = int32_t;
 using barrierid_type = uint32_t;
 using offset_type = uint32_t;
 using pageid_type = uint32_t;
@@ -38,6 +38,12 @@ namespace aiebu {
     void set_##FNAME( TYPE val )              \
     {                                         \
         m_##FNAME = val;                      \
+    }
+
+#define HEADER_ACCESS_GET( TYPE, FNAME )      \
+    const TYPE get_##FNAME() const            \
+    {                                         \
+        return m_##FNAME;                     \
     }
 
 inline uint32_t parse_register(const std::string& str)

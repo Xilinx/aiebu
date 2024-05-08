@@ -14,6 +14,6 @@ class WordOpSerializer(OpSerializer):
     def align(self):
         return 4
 
-    def serialize(self, writer, col, page, symbols):
+    def serialize(self, text_section, data_section, col, page, symbols):
         assert (self.state.section == Section.DATA), "Words can only be used in DATA section"
-        writer.write_words([self.val], Section.DATA, col, page)
+        data_section.write_words([self.val])

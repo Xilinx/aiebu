@@ -48,8 +48,8 @@ struct aiebu_patch_info {
   char symbol[128];
   enum aiebu_patch_buffer_type  buf_type;
   enum aiebu_patch_schema  schema;
-  unsigned int* offsets;
-  unsigned int offsets_size;
+  unsigned int offset;
+  unsigned int addend;
 };
 
 /*

@@ -5,40 +5,56 @@
 #define _AIEBU_COMMON_WRITER_H_
 
 #include <map>
+#include <string>
 #include <vector>
 #include "symbol.h"
 #include "code_section.h"
 
 namespace aiebu {
 
+// Class to hold sections name, data, symbols, type
 class writer
 {
-  using buffermap_type = typename std::unordered_map<uint32_t, std::vector<std::pair<std::vector<uint8_t>,std::vector<uint8_t>>>>;
-  buffermap_type m_buffermap;
+  std::vector<uint8_t> m_data;
+  const std::string m_name;
   std::vector<symbol> m_symbols;
+  const code_section m_type;
 
 public:
-  writer() {}
+  writer(const std::string name, code_section type, std::vector<uint8_t>& data): m_name(name), m_type(type), m_data(std::move(data)) {}
+  writer(const std::string name, code_section type): m_name(name), m_type(type) {}
 
-  virtual void write_byte(uint8_t byte, code_section sec, uint32_t colnum=0, pageid_type pagenum=0);
+  virtual void write_byte(uint8_t byte);
 
-  virtual void write_word(uint32_t word, code_section sec, uint32_t colnum=0, pageid_type pagenum=0);
+  virtual void write_word(uint32_t word);
 
-  virtual offset_type tell(code_section sec, uint32_t colnum=0, uint32_t pagenum=0);
+  virtual offset_type tell() const;
 
-  buffermap_type&
-  get_buffermap()
+  const std::vector<uint8_t>&
+  get_data()
   {
-    return m_buffermap;
+    return m_data;
   }
 
-  void add_buffermap(uint32_t col, std::pair<std::vector<uint8_t>,
-                     std::vector<uint8_t>> p)
+  const std::string&
+  get_name() const
   {
-    m_buffermap[col].emplace_back(p);
+    return m_name;
   }
 
-  std::vector<symbol>& get_symbols()
+  code_section
+  get_type() const
+  {
+    return m_type;
+  }
+
+  void set_data(std::vector<uint8_t> &data)
+  {
+    m_data = std::move(data);
+  }
+
+  const std::vector<symbol>&
+  get_symbols() const
   {
     return m_symbols;
   }
@@ -48,18 +64,17 @@ public:
     m_symbols.emplace_back(sym);
   }
 
-  void add_symbols(const std::vector<symbol> syms)
+  void add_symbols(std::vector<symbol>& syms)
   {
     m_symbols = std::move(syms);
   }
 
-  bool hassymbols()
+  bool hassymbols() const
   {
     return m_symbols.size();
   }
 
-  void padding(uint32_t col, pageid_type pagenum, offset_type size);
+  void padding(offset_type size);
 };
-
 }
 #endif //_AIEBU_COMMON_WRITER_H_

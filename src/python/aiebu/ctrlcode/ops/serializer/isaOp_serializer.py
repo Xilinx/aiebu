@@ -17,7 +17,7 @@ class IsaOpSerializer(OpSerializer):
     def align(self):
         return 0
 
-    def serialize(self, writer, col, page, symbols):
+    def serialize(self, text_section, data_section, col, page, symbols):
         result = [
             self.op.opcode,
             0
@@ -47,8 +47,8 @@ class IsaOpSerializer(OpSerializer):
                     assert arg.width == 32, f"Symbol:{val} for width {arg.width} not supported"
                     val.setcol(col)
                     # We need to subtract 16 bytes control code header
-                    val.setpos(writer.tell(Section.TEXT, page, col)+len(result)-16)
-                    val.setkind(Symbol.XrtPatchSchema.xrt_patch_schema_scaler_32)
+                    val.setoffset(text_section.tell()+len(result)-16)
+                    val.setschema(Symbol.XrtPatchSchema.xrt_patch_schema_scaler_32)
                     val.setpagenum(page)
                     symbols.append(val)
                     val = 0
@@ -76,4 +76,4 @@ class IsaOpSerializer(OpSerializer):
 
         assert (self.state.section == Section.TEXT), "Instructions can only be used in TEXT section"
         for b in result:
-            writer.write_byte(b, Section.TEXT, col, page)
+            text_section.write_byte(b)

@@ -9,10 +9,10 @@
 #include "writer.h"
 #include "symbol.h"
 #include "elfio/elfio.hpp"
-using namespace ELFIO;
 
 namespace aiebu {
 
+constexpr int align = 16;
 constexpr int text_align = 16;
 constexpr int data_align = 16;
 constexpr int phdr_align = 8;
@@ -69,41 +69,40 @@ public:
 class elf_writer
 {
 protected:
-  elfio m_elfio;
+  ELFIO::elfio m_elfio;
 
-  section* add_section(elf_section data);
-  segment* add_segment(elf_segment data);
-  string_section_accessor add_dynstr_section();
-  void add_dynsym_section(string_section_accessor* stra, std::shared_ptr<writer> mwriter);
-  void add_reldyn_section(std::shared_ptr<writer> mwriter);
+  ELFIO::section* add_section(elf_section data);
+  ELFIO::segment* add_segment(elf_segment data);
+  ELFIO::string_section_accessor add_dynstr_section();
+  void add_dynsym_section(ELFIO::string_section_accessor* stra, std::vector<symbol>& syms);
+  void add_reldyn_section(std::vector<symbol>& syms);
   void add_dynamic_section_segment();
   std::vector<char> finalize();
-  void add_text_data_section(std::shared_ptr<writer> mwriter);
+  void add_text_data_section(std::vector<writer>& mwriter, std::vector<symbol>& syms);
 
-  virtual std::string get_dataname(uint32_t colnum, uint32_t pagenum) = 0;
-  virtual std::string get_textname(uint32_t colnum, uint32_t pagenum) = 0;
 public:
 
   elf_writer(int abi, int version)
   {
-    m_elfio.create(ELFCLASS32, ELFDATA2LSB);
+    m_elfio.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2LSB);
     m_elfio.set_os_abi(abi);
     m_elfio.set_abi_version(version);
-    m_elfio.set_type( ET_EXEC );
-    m_elfio.set_machine( EM_M32 );
+    m_elfio.set_type( ELFIO::ET_EXEC );
+    m_elfio.set_machine( ELFIO::EM_M32 );
     m_elfio.set_flags(0x0);
 
 
-    segment* seg = m_elfio.segments.add();
-    seg->set_type( PT_PHDR );
+    ELFIO::segment* seg = m_elfio.segments.add();
+    seg->set_type( ELFIO::PT_PHDR );
     seg->set_virtual_address( 0x0 );
     seg->set_physical_address( 0x0 );
-    seg->set_flags( PF_R );
+    seg->set_flags( ELFIO::PF_R );
     seg->set_file_size(0x0);
     seg->set_memory_size(0x0);
+
   }
 
-  std::vector<char> process(std::shared_ptr<writer> mwriter);
+  std::vector<char> process(std::vector<writer> mwriter);
 
   virtual ~elf_writer() {}
 

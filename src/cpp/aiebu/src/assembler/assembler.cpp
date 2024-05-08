@@ -20,14 +20,13 @@ assembler(const elf_type type)
     m_preprocessor = std::make_unique<aie2_blob_preprocessor>();
     m_enoder = std::make_unique<aie2_blob_encoder>();
     m_elfwriter = std::make_unique<aie2_blob_elf_writer>();
-    m_ppi = std::make_shared<aie2_blob_preprocessor_input>();
-
-    // copy data in input buffer
-    //ppi->set_instruction_buffer(buffer1);
-    //ppi->set_controlcode_buffer(buffer2);
-    //for (auto s: patch_data)
-    //  ppi->add_symbol(s);
-    //m_ppi = ppi;
+    m_ppi = std::make_shared<aie2_blob_dpu_preprocessor_input>();
+  }
+  else if (type == elf_type::aie2_transaction_blob)  {
+    m_preprocessor = std::make_unique<aie2_blob_preprocessor>();
+    m_enoder = std::make_unique<aie2_blob_encoder>();
+    m_elfwriter = std::make_unique<aie2_blob_elf_writer>();
+    m_ppi = std::make_shared<aie2_blob_transaction_preprocessor_input>();
   }
   else if (type == elf_type::aie2ps_asm)
   {
@@ -35,10 +34,6 @@ assembler(const elf_type type)
     m_enoder = std::make_unique<aie2ps_encoder>();
     m_elfwriter = std::make_unique<aie2ps_elf_writer>();
     m_ppi = std::make_shared<aie2ps_preprocessor_input>();
-
-    // copy data in input buffer
-    //ppi->set_data(buffer1);
-    //m_ppi = ppi;
   }
   else
     throw error(error::error_code::invalid_buffer_type ,"Invalid elf type!!!");

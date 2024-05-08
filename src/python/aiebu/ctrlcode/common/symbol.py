@@ -18,50 +18,35 @@ class Symbol:
         xrt_patch_schema_tansaction_48 = 7
         xrt_patch_schema_unknown = 8
 
-    def __init__(self, name, pos, col, page_num, kind=XrtPatchSchema.xrt_patch_schema_unknown):
-        self.name = name
-        self.pos = pos
-        self.kind = kind
-        self.page_num = page_num
-        self.col_num = col
-
-    def setpos(self, pos):
-        self.pos = pos
-
-    def setcol(self, col):
-        self.col = col
-
-    def setkind(self, kind):
-        self.kind = kind
-
-    def setpagenum(self, page_num):
-        self.page_num = page_num
-
-class AIE2_BLOB_Symbol:
-    """
-    Represents a user symbol (a variable reference) encountered in aie2 blob.
-    """
-
     class XrtPatchBufferType(IntEnum):
         xrt_patch_buffer_type_instruct = 0
         xrt_patch_buffer_type_control_packet = 1
         xrt_patch_buffer_type_unkown = 2
 
-    class XrtPatchSchema(IntEnum):
-        xrt_patch_schema_uc_dma_remote_ptr_symbol = 1
-        xrt_patch_schema_shim_dma_57 = 2
-        xrt_patch_schema_scaler_32 = 3
-        xrt_patch_schema_control_packet_48 = 4
-        xrt_patch_schema_shim_dma_48 = 5
-        xrt_patch_schema_tansaction_ctrlpkt_48 = 6
-        xrt_patch_schema_tansaction_48 = 7
-        xrt_patch_schema_unknown = 8
-
-    def __init__(self, name, buf_type, pos, schema=XrtPatchSchema.xrt_patch_schema_unknown):
+    def __init__(self, name, pos, col, page_num, schema=XrtPatchSchema.xrt_patch_schema_unknown, buf_type=None):
         self.name = name
-        self.buf_type = buf_type
-        self.offsets = [pos]
+        self.offset = pos
+        self.schema = schema
+        self.page_num = page_num
+        self.col_num = col
+        self._buf_type = buf_type
+
+    def setoffset(self, pos):
+        self.offset = pos
+
+    def setcol(self, col):
+        self.col = col
+
+    def setschema(self, schema):
         self.schema = schema
 
-    def addoffset(self, offset):
-        self.offsets.append(offset)
+    def setpagenum(self, page_num):
+        self.page_num = page_num
+
+    def getbuftype(self):
+        if self._buf_type == None:
+            return ".ctrldata." + str(self.col_num)+ "." + str(self.page_num)
+        return self._buf_type
+
+    def __str__(self):
+        return f"Name:{self.name}\toffset:{self.offset}\tschema:{self.schema}\tbuf_type:{self._buf_type}"

@@ -11,7 +11,8 @@ import importlib.resources
 
 from ctrlcode.assembler.assembler import Assembler
 from ctrlcode.disassembler.disassembler import ELFDisassembler
-from ctrlcode.assembler.assembler_blob import Assembler_blob
+from ctrlcode.assembler.assembler_blob import Assembler_blob_transaction
+from ctrlcode.assembler.assembler_blob import Assembler_blob_dpu
 from ctrlcode.ops.isa import ISA
 
 def parse_command_line(args):
@@ -19,7 +20,7 @@ def parse_command_line(args):
   msg = "Assemble ctrlcode ASM file and write hex and or ELF"
   parser = argparse.ArgumentParser(description = msg)
 
-  parser.add_argument('-t','--target', default='aie2ps', dest='target', help='supported targets aie2ps/aie2/aie2_blob')
+  parser.add_argument('-t','--target', default='aie2ps', dest='target', help='supported targets aie2ps/aie2/aie2_blob/aie2_blob_dpu')
 
   parser.add_argument('-d','--disassembler', default=False, dest='disassembler', action='store_true',  help='DisAssembler')
 
@@ -58,10 +59,11 @@ if __name__ == '__main__':
   elif argtab.target == "aie2_blob":
     specdir = ""
 
-  if argtab.target == "aie2_blob" :
+  if argtab.target == "aie2_blob" or argtab.target == "aie2_blob_dpu" :
     if argtab.disassembler:
       raise RuntimeError(f"Disassembler not supported with {argtab.target}")
 
+    patch_info = {}
     if argtab.patch_info:
       with open(argtab.patch_info[0]) as f:
         patch_info = json.load(f)
@@ -70,7 +72,10 @@ if __name__ == '__main__':
     if argtab.ccfile:
       ccfile = argtab.ccfile[0]
 
-    operation = Assembler_blob(argtab.ifilename[0], ccfile, patch_info, argtab.efilename[0])
+    if argtab.target == "aie2_blob_dpu":
+        operation = Assembler_blob_dpu(argtab.ifilename[0], ccfile, patch_info, argtab.efilename[0])
+    else:
+        operation = Assembler_blob_transaction(argtab.ifilename[0], ccfile, patch_info, argtab.efilename[0])
     operation.run()
     sys.exit(0)
   else:

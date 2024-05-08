@@ -4,7 +4,7 @@ import os
 from ctrlcode.common.parser import Parser
 from ctrlcode.common.parser import Data
 from ctrlcode.assembler.assembler_state import AssemblerState
-from ctrlcode.common.writer import ELFWriter
+from ctrlcode.common.writer import AIE2PS_ELFWriter
 from ctrlcode.common.symbol import Symbol
 from ctrlcode.common.section import Section
 from ctrlcode.common.operation import Operation
@@ -12,8 +12,12 @@ from ctrlcode.common.label import Label
 from ctrlcode.pager.pager import Pager
 from ctrlcode.common.report import Report
 from ctrlcode.common.debug import Debug
+from ctrlcode.common.elf_section import ELF_Section
 
 PAGE_SIZE = 0x2000
+
+def section_index_callback(buf_type, elf_sections):
+  return elf_sections[buf_type].section_index
 
 class Assembler:
     """ Assembler class """
@@ -34,7 +38,7 @@ class Assembler:
         self._report.setbuildid(Assembler.REPO.head.object.hexsha)
         # header[4] == 0x01 means we have more pages
         self.header = [0xFF, 0xFF, 0x00, 0x00] + [0x01] + [0x00] * 11
-
+        self.elf_sections = {}
 
     def __del__(self):
         self.ifile.close()
@@ -80,17 +84,21 @@ class Assembler:
             pages += self._pager.pagify(state, col, data)
 
         # create elfwriter
-        ewriter = ELFWriter(self.elffile, self.symbols, len(pages))
+        ewriter = AIE2PS_ELFWriter(self.elffile, self.symbols, self.elf_sections, section_index_callback)
 
         # for each page do the serialize of text and data section
         for page in pages:
-            self.page_writer(ewriter, page)
+            self.elf_sections[".ctrltext." + str(page.col_num)+ "." + str(page.page_num)] = ELF_Section(".ctrltext." + str(page.col_num)+ "." + str(page.page_num), Section.TEXT)
+            self.elf_sections[".ctrldata." + str(page.col_num)+ "." + str(page.page_num)] = ELF_Section(".ctrldata." + str(page.col_num)+ "." + str(page.page_num), Section.DATA)
+            self.page_writer(self.elf_sections[".ctrltext." + str(page.col_num)+ "." + str(page.page_num)],
+                             self.elf_sections[".ctrldata." + str(page.col_num)+ "." + str(page.page_num)],
+                             page)
 
         ewriter.finalize()
         del ewriter
         self._report.generate()
 
-    def page_writer(self, ewriter, page):
+    def page_writer(self, text_section, data_section, page):
         """ write page to ewriter """
         page_header = list(self.header)
         if page.islastpage:
@@ -103,51 +111,55 @@ class Assembler:
         pagestate = AssemblerState(self.isa_ops, page.text + page.data)
 
         for byte in page_header:
-            ewriter.write_byte(byte, Section.TEXT, page.col_num, page.page_num)
+            text_section.write_byte(byte)
 
         # serialize text in elf format
         pagestate.section = Section.TEXT
-        offset = ewriter.tell(pagestate.section, page.page_num, page.col_num)
+        offset = text_section.tell()
         for text in page.text:
             token = text.gettoken()
             if token.name in ["start_job", "start_job_deferred"]:
-                pc_low = page.page_num * PAGE_SIZE + ewriter.tell(pagestate.section, page.page_num, page.col_num)
+                pc_low = page.page_num * PAGE_SIZE + text_section.tell()
                 pc_high = pc_low + pagestate.getjob(int(token.args[0])).getsize() -1
                 fid = self._debug.addfunction(text.getfilename(), f"{token.name.upper()}_{token.args[0]}", pc_high, pc_low, page.col_num, page.page_num)
 
-            pc_low = page.page_num * PAGE_SIZE + ewriter.tell(pagestate.section, page.page_num, page.col_num)
+            pc_low = page.page_num * PAGE_SIZE + text_section.tell()
             pc_high = pc_low + self.isa_ops[token.name].serializer(token.args, self).size() -1
             self._debug.addtextline(fid, text.getlinenum(), pc_high, pc_low, text.getline())
 
-            pagestate.setpos(ewriter.tell(pagestate.section, page.page_num, page.col_num) - offset)
+            pagestate.setpos(text_section.tell() - offset)
             if isinstance(token, Operation):
                 self.isa_ops[token.name].serializer(token.args, pagestate) \
-                                        .serialize(ewriter, page.col_num, page.page_num, self.symbols)
+                                        .serialize(text_section, data_section, page.col_num, page.page_num, self.symbols)
             else:
                 raise RuntimeError('Invalid operation: {}'.format(token.name))
 
         # serialize data in elf format
         for data in page.data:
             token = data.gettoken()
-            pagestate.setpos(ewriter.tell(pagestate.section, page.page_num, page.col_num) - offset)
+            pagestate.setpos(text_section.tell() + data_section.tell() - offset)
             if isinstance(token, Label):
                 pagestate.section = Section.DATA
                 assert pagestate.getpos() == pagestate.getlabelpos(token.name), \
                     f"Label {token.name} pagestate.pos {pagestate.getpos()} != \
                       pagestate.getlabelpos(token.name) {pagestate.getlabelpos(token.name)}"
             elif isinstance(token, Operation):
-                pc_low = page.page_num * PAGE_SIZE + ewriter.tell(pagestate.section, page.page_num, page.col_num)
+                pc_low = page.page_num * PAGE_SIZE + text_section.tell() + data_section.tell()
                 pc_high = pc_low + self.isa_ops[token.name].serializer(token.args, pagestate).size() -1
                 self._debug.adddataline(fid, data.getlinenum(), pc_high, pc_low, data.getline())
 
                 # operation can be uc_dma_bd_shim, uc_dma_bd, align, .long
                 self.isa_ops[token.name].serializer(token.args, pagestate) \
-                                        .serialize(ewriter, page.col_num, page.page_num, self.symbols)
+                                        .serialize(text_section, data_section, page.col_num, page.page_num, self.symbols)
             else:
                 raise RuntimeError('Invalid operation: {}'.format(token.name))
 
-        pagestate.settextsize(ewriter.tell(Section.TEXT, page.page_num, page.col_num));
-        pagestate.setdatasize(ewriter.tell(Section.DATA, page.page_num, page.col_num) -
-                              ewriter.tell(Section.TEXT, page.page_num, page.col_num));
+        # Padding
+        count = PAGE_SIZE - (text_section.tell() + data_section.tell())
+        for c in range(count):
+          data_section.write_byte(0x00)
+
+        pagestate.settextsize(text_section.tell());
+        pagestate.setdatasize(data_section.tell());
 
         self._report.addpage(page, pagestate)

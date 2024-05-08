@@ -32,41 +32,6 @@ class IpuCodeDecoder(Decoder):
         MC_CODE_TYPE: "control-packet"
     }
 
-    OP_NOOP = 0
-    OP_WRITEBD = 1
-    OP_WRITE32 = 2
-    OP_SYNC = 3
-    OP_WRITEBD_EXTEND_AIETILE = 4
-    OP_WRITE32_EXTEND_GENERAL = 5
-    OP_WRITEBD_EXTEND_SHIMTILE = 6
-    OP_WRITEBD_EXTEND_MEMTILE = 7
-    OP_WRITE32_EXTEND_DIFFBD = 8
-    OP_WRITEBD_EXTEND_SAMEBD_MEMTILE = 9
-    OP_DUMPDDR = 10
-    OP_WRITESHIMBD = 11
-    OP_WRITEMEMBD = 12
-    OP_WRITE32_RTP = 13
-    OP_READ32 = 14
-    OP_READ32_POLL = 15
-
-    # Map of fixed length packet
-    # OP_WRITEBD, OP_SYNC not included in this
-    OPERATION_MAP = {
-        OP_NOOP: 1,
-        OP_WRITE32: 3,
-        OP_WRITEBD_EXTEND_AIETILE: 8,
-        OP_WRITE32_EXTEND_GENERAL: 3,
-        OP_WRITEBD_EXTEND_SHIMTILE: 10,
-        OP_WRITEBD_EXTEND_MEMTILE: 11,
-        OP_WRITE32_EXTEND_DIFFBD: 4,
-        OP_WRITEBD_EXTEND_SAMEBD_MEMTILE: 9,
-        OP_DUMPDDR: 44,
-        OP_WRITESHIMBD: 9,
-        OP_WRITEMEMBD: 9,
-        OP_WRITE32_RTP: 3,
-        OP_READ32: 2,
-        OP_READ32_POLL: 4
-    }
     def __init__(self, symbols):
         # list all shim tile BD registers DDR address need to be processed
         self.DMABDx2RegAddr = [IpuCodeDecoder.DMA_BD0_2 + IpuCodeDecoder.DMA_BD_SIZE *i for i in range(IpuCodeDecoder.DMA_BD_NUM)]
@@ -108,14 +73,8 @@ class IpuCodeDecoder(Decoder):
                 regID = ((BDData[pc+i] >> 12) & 0xf)
                 assert(regID in IpuCodeDecoder.ARGTYPE_TO_STRING.keys()), f"Invalid arg type {regID} found"
                 # cpntrol packet pos(pc-1) multiply by 4 is because of 32bit to 8bit
-                if regID in self.symbolmap.keys():
-                    self.symbolmap[regID].addoffset((pc-1)*4)
-                else:
-                    self.symbolmap[regID] = Symbol(IpuCodeDecoder.ARGTYPE_TO_STRING[regID], pad_control_packet, (pc-1)*4,
-                                               Symbol.XrtPatchSchema.xrt_patch_schema_control_packet_48)
-                    self.symbols.append(self.symbolmap[regID])
-                #self.symbols.append(Symbol(IpuCodeDecoder.ARGTYPE_TO_STRING[regID], pad_control_packet, (pc-1)*4,
-                #                           Symbol.XrtPatchSchema.xrt_patch_schema_control_packet_48))
+                self.symbols.append(Symbol(IpuCodeDecoder.ARGTYPE_TO_STRING[regID], pad_control_packet, (pc-1)*4, 0,
+                                               Symbol.XrtPatchSchema.xrt_patch_schema_control_packet_48))
 
     def patch_shimbd(self, ins_buffer, ins_buffer_size_bytes, pc):
         regID = (ins_buffer[pc] & 0x000000F0) >> 4;
@@ -127,40 +86,8 @@ class IpuCodeDecoder(Decoder):
             regID != IpuCodeDecoder.MC_CODE_TYPE):
             return
         #TODO: if both mc_code and instruction buffer have same key
-        if regID in self.symbolmap.keys():
-            self.symbolmap[regID].addoffset((pc+1)*4)
-        else:
-            self.symbolmap[regID] = Symbol(IpuCodeDecoder.ARGTYPE_TO_STRING[regID], Symbol.XrtPatchBufferType.xrt_patch_buffer_type_instruct, (pc+1)*4,
-                                           Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_48)
-            self.symbols.append(self.symbolmap[regID])
-
-    def decode_instruction_buffer(self, data):
-        ins_buffer = [int.from_bytes([data[x], data[x+1], data[x+2], data[x+3]] , byteorder='little', signed = False)
-                       for x in range(0, len(data), 4)]
-        ins_buffer_size_bytes = len(ins_buffer)
-        pc = 0
-        while pc < ins_buffer_size_bytes:
-            op = (ins_buffer[pc] & 0xFF000000) >> 24
-            if op == IpuCodeDecoder.OP_WRITESHIMBD:
-                self.patch_shimbd(ins_buffer, ins_buffer_size_bytes, pc)
-                pc = pc + 9
-            elif op == IpuCodeDecoder.OP_SYNC:
-                #TODO: not sure if we are using __USE_SYNC_POLL_API__
-                #for now considering __USE_SYNC_POLL_API__ is not enabled
-                pc = pc + 2
-            elif op == IpuCodeDecoder.OP_WRITEBD:
-                row = (ins_buffer[pc] & 0x0000FF00) >> 8
-                if row == 0:
-                    self.patch_shimbd(ins_buffer, ins_buffer_size_bytes, pc)
-                    pc = pc + 9
-                elif row == 1:
-                    pc = pc + 9
-                else:
-                    pc = pc + 7
-            elif op in IpuCodeDecoder.OPERATION_MAP.keys():
-                 pc = pc + IpuCodeDecoder.OPERATION_MAP[op]
-            else:
-                raise RuntimeError(f"Unknown operation found: {op}")
+        self.symbols.append(Symbol(IpuCodeDecoder.ARGTYPE_TO_STRING[regID], Symbol.XrtPatchBufferType.xrt_patch_buffer_type_instruct, (pc+1)*4, 0,
+                                       Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_48))
 
 def parse_command_line(args):
     """ Command line parser """
@@ -180,17 +107,16 @@ def parse_command_line(args):
 if __name__ == '__main__':
     argtab = parse_command_line(sys.argv)
 
-    symbols = [Symbol("", 0, 0, 0)]
+    symbols = []
+    dist = {}
     ipudecoder = IpuCodeDecoder(symbols)
-    if argtab.ifile:
-        with open(argtab.ifile[0], 'rb') as f:
-            idata = f.read()
-            ipudecoder.decode_instruction_buffer(idata)
 
     if argtab.ccfile:
         with open(argtab.ccfile[0], 'rb') as f:
             ccdata = f.read()
             ipudecoder.decode_control_packet(ccdata, Symbol.XrtPatchBufferType.xrt_patch_buffer_type_control_packet)
+            dist = {"control-packet": { "name": "control-packet-0", "path": argtab.ccfile[0] } }
 
+    dist["symbols"] = [ {"name":"sym", "patching":[ob.__dict__ for ob in symbols ] } ]
     with open(argtab.patch_info[0], "w") as outfile:
-        json.dump([ob.__dict__ for ob in symbols], outfile)
+        json.dump(dist, outfile, indent=4)

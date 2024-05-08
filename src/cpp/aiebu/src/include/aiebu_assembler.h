@@ -44,10 +44,11 @@ enum class patch_buffer_type {
  *                    offset[3] (lower 16 bits)
  */
 enum class patch_schema {
-  scaler_32,
-  shim_dma_48,
-  shim_dma_57,
-  control_packet_48,
+  uc_dma_remote_ptr_symbol = 1,
+  shim_dma_57 = 2,
+  scaler_32 = 3,
+  control_packet_48 = 4,
+  shim_dma_48 = 5,
   unknown
 };
 
@@ -62,7 +63,8 @@ struct patch_info {
   std::string  symbol;
   patch_buffer_type  buf_type;
   patch_schema schema;
-  std::vector<uint32_t> offsets;
+  uint32_t offset;
+  uint32_t addend;
 };
 
 // Assembler Class

@@ -4,6 +4,7 @@
 #ifndef _AIEBU_PREPROCESSOR_AIE2PS_PREPROCESSOR_H_
 #define _AIEBU_PREPROCESSOR_AIE2PS_PREPROCESSOR_H_
 
+#include <string>
 #include "preprocessor.h"
 #include "asm/asm_parser.h"
 #include "assembler_state.h"
@@ -24,7 +25,7 @@ public:
   process(std::shared_ptr<preprocessor_input> input) override
   {
     // do preprocessing,
-    // saperate out asm data colnum wise
+    // separate out asm data colnum wise
     // create pages
     auto tinput = std::static_pointer_cast<aie2ps_preprocessor_input>(input);
     auto toutput = std::make_shared<aie2ps_preprocessed_output>();

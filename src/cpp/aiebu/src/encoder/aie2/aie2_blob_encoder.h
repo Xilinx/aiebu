@@ -16,18 +16,20 @@ class aie2_blob_encoder: public encoder
 public:
   aie2_blob_encoder() {}
 
-  virtual std::shared_ptr<writer>process(std::shared_ptr<preprocessed_output> input) override
+  virtual std::vector<writer> process(std::shared_ptr<preprocessed_output> input) override
   {
     // encode : nothing to be done as blob is already encoded
     auto rinput = std::static_pointer_cast<aie2_blob_preprocessed_output>(input);
-    std::shared_ptr<writer> rwriter = std::make_shared<writer>();
+    std::vector<writer> rwriter;
 
-    auto &sym = rinput->get_symbols();
-    for ( auto &s: sym)
-      rwriter->add_symbol(std::move(s));
+    for(auto key : rinput->get_keys())
+      if ( !key.compare(".ctrltext") )
+        rwriter.emplace_back(key, code_section::text, rinput->get_data(key));
+      else
+        rwriter.emplace_back(key, code_section::data, rinput->get_data(key));
 
-    rwriter->add_buffermap(0, std::make_pair(std::move(rinput->get_instruction_buffer()),
-                           std::move(rinput->get_controlcode_buffer())));
+    rwriter[0].add_symbols(rinput->get_symbols());
+
     return rwriter;
   }
 };

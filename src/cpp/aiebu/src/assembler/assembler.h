@@ -20,6 +20,7 @@ class assembler
 public:
   enum class elf_type
   {
+    aie2_transaction_blob,
     aie2_dpu_blob,
     aie2ps_asm,
     aie2_asm
