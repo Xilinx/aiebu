@@ -10,6 +10,11 @@
 #include "aie2ps_elfwriter.h"
 #include "aiebu_error.h"
 
+#include "preprocessor.h"
+#include "encoder.h"
+#include "elfwriter.h"
+#include "preprocessor_input.h"
+
 namespace aiebu {
 
 assembler::

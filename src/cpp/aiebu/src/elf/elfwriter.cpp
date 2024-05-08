@@ -15,7 +15,7 @@ add_section(elf_section data)
   sec->set_flags(data.get_flags());
   sec->set_addr_align(data.get_align());
   std::vector<uint8_t> buf = data.get_buffer();
-  
+
   if(buf.size())
     sec->set_data(reinterpret_cast<char*>(buf.data()), buf.size());
   //sec->set_info( data.get_info() );
@@ -146,8 +146,8 @@ finalize()
   stream << std::noskipws;
   //m_elfio.save( "hello_32" );
   m_elfio.save( stream );
-  std::vector<char> v; 
-  std::copy(std::istream_iterator<char>(stream), 
+  std::vector<char> v;
+  std::copy(std::istream_iterator<char>(stream),
             std::istream_iterator<char>( ),
             std::back_inserter(v));
   return std::move(v);

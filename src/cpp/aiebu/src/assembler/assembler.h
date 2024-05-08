@@ -4,12 +4,17 @@
 #ifndef _ADSM_COMMOM_ASSEMBLER_H_
 #define _ADSM_COMMOM_ASSEMBLER_H_
 
-#include "preprocessor.h"
-#include "encoder.h"
-#include "elfwriter.h"
-#include "preprocessor_input.h"
+#include <memory>
+#include <vector>
+
+#include "symbol.h"
 
 namespace aiebu {
+
+class preprocessor;
+class encoder;
+class elf_writer;
+class preprocessor_input;
 
 class assembler
 {
@@ -26,7 +31,7 @@ public:
     aie2_asm
   };
 
-  assembler(const elf_type type);
+  explicit assembler(const elf_type type);
 
   std::vector<char> process(const std::vector<char>& buffer1,
                             const std::vector<symbol>& patch_data = {},

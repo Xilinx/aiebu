@@ -10,6 +10,8 @@
 #include "op_buf.hpp"
 #include "op_init.hpp"
 
+#include "aiebu_assembler.h"
+
 constexpr auto START_OF_MEM = 0x80000;
 constexpr auto OUT_BUFFER_KERNARG_IDX = 0;
 constexpr auto IN_BUFFER_KERNARG_IDX = 1;
@@ -280,7 +282,14 @@ int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uin
 #define PREEP_SAVE    0
 #define PREEP_RESTORE 1
 
-static void generate_tran(int type, uint32_t ncol)
+static std::string tran_filename(int type, uint32_t ncol)
+{
+    std::string filename = (type == PREEP_SAVE) ? "preempt_save_" : "preempt_restore_";
+    filename += std::to_string(ncol) + "col" + ".bin";
+    return filename;
+}
+
+static void generate_tran(int type, uint32_t ncol, const std::string &filename)
 {
 	XAie_Config ConfigPtr {
 		XAIE_DEV_GEN_AIE2P,
@@ -320,22 +329,27 @@ static void generate_tran(int type, uint32_t ncol)
 	aiectrl::op_buf instr_buf;
 	instr_buf.addOP(aiectrl::transaction_op(txn_ptr));
 
-	std::string filename;
-	if (type == PREEP_SAVE)
-		filename = "preempt_save_";
-	else
-		filename = "preempt_restore_";
-	filename += std::to_string(ncol) + "col" + ".bin";
-
 	ofstream outfile(filename, ios::binary);
 	outfile.write(reinterpret_cast<const char *>(instr_buf.ibuf_.data()), instr_buf.ibuf_.size());
 	outfile.close();
+
+        static_assert(std::is_same<unsigned char, uint8_t>::value, "uint8_t is not unsigned char");
+        std::vector<char> buf1(instr_buf.ibuf_.data(), instr_buf.ibuf_.data() + instr_buf.ibuf_.size());
+        aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::blob_instr_transaction, buf1);
+        auto elf = as.get_elf();
+	ofstream outelffile(filename + ".elf", ios::binary);
+	outelffile.write(elf.data(), elf.size());
+	outelffile.close();
+
+        as.get_report(std::cout);
 }
 
 int main(int argc, char** argv)
 {
-	generate_tran(PREEP_SAVE, 1);
-	generate_tran(PREEP_RESTORE, 1);
+    std::string filename = tran_filename(PREEP_SAVE, 1);
+    generate_tran(PREEP_SAVE, 1, filename);
+    filename = tran_filename(PREEP_RESTORE, 1);
+    generate_tran(PREEP_RESTORE, 1, filename);
 
-	return 0;
+    return 0;
 }

@@ -42,7 +42,7 @@ public:
   HEADER_ACCESS_GET_SET(uint64_t, align);
   HEADER_ACCESS_GET_SET(std::vector<uint8_t>,  buffer);
   HEADER_ACCESS_GET_SET(std::string, link);
-  
+
 };
 
 class elf_segment
@@ -104,7 +104,7 @@ public:
 
   std::vector<char> process(std::vector<writer> mwriter);
 
-  virtual ~elf_writer() {}
+  virtual ~elf_writer() = default;
 
 };
 

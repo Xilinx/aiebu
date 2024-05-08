@@ -14,6 +14,14 @@ message("-- AIEBU_CPP_FILES: ${AIEBU_CPP_FILES}")
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Note, header only boost is okay in AIEBU, please no linking with Boost libraries
+
+INCLUDE (FindBoost)
+find_package(Boost
+  REQUIRED)
+
+message("-- Boost version: ${Boost_VERSION}")
+
 add_library(aiebu_library_objects OBJECT
   ${AIEBU_CPP_FILES}
   )
@@ -31,12 +39,16 @@ target_include_directories(aiebu_library_objects PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
   ${CMAKE_CURRENT_SOURCE_DIR}/common
   ${CMAKE_CURRENT_SOURCE_DIR}/ops
+  ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
+  ${AIEBU_SOURCE_DIR}/lib/aie_controller/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/analyzer
   ${CMAKE_CURRENT_SOURCE_DIR}/assembler
   ${CMAKE_CURRENT_SOURCE_DIR}/elf
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
   ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO/
   ${CMAKE_CURRENT_BINARY_DIR}/../../../python/
+  ${Boost_INCLUDE_DIRS}
   )
 
 add_library(aiebu SHARED
@@ -46,6 +58,9 @@ add_library(aiebu SHARED
 add_library(aiebu_static STATIC
   $<TARGET_OBJECTS:aiebu_library_objects>
   )
+
+target_link_libraries(aiebu xaiengine)
+#target_link_libraries(aiebu_static xaiengine)
 
 add_dependencies(aiebu_library_objects cpp-assembler-stubs)
 

@@ -8,6 +8,13 @@
 #include "aiebu_error.h"
 #include "symbol.h"
 
+#include "preprocessor.h"
+#include "encoder.h"
+#include "elfwriter.h"
+#include "preprocessor_input.h"
+
+#include "reporter.h"
+
 namespace aiebu {
 
 static
@@ -39,7 +46,7 @@ aiebu_assembler::
 aiebu_assembler(buffer_type type,
                 const std::vector<char>& buffer1,
                 const std::vector<char>& buffer2,
-                const std::vector<patch_info>& patch_data)
+                const std::vector<patch_info>& patch_data) : _type(type)
 {
   std::vector<symbol> symbols;
   // in aie2ps patch data is not used, its extracted from asm
@@ -75,6 +82,16 @@ aiebu_assembler::
 get_elf() const
 {
   return elf_data;
+}
+
+
+void
+aiebu_assembler::
+get_report(std::ostream &stream) const
+{
+    reporter rep(_type, elf_data);
+    rep.elfreport(stream);
+    rep.txnreport(stream);
 }
 
 static

@@ -18,9 +18,10 @@ target_include_directories(
   ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
   ${AIEBU_SOURCE_DIR}/lib/aie_controller/include/ps
   ${AIEBU_SOURCE_DIR}/lib/aie_controller/include
+  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
 )
 
-target_link_libraries(${GENERATOR_EXE} xaiengine)
+target_link_libraries(${GENERATOR_EXE} xaiengine aiebu)
 
 # Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
 # when it runs.
@@ -30,6 +31,8 @@ add_custom_command(
   OUTPUT ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
   COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:xaiengine> to ${GENERATOR_OUT_DIR}"
   COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:xaiengine>" "${GENERATOR_OUT_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:aiebu> to ${GENERATOR_OUT_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:aiebu>" "${GENERATOR_OUT_DIR}"
   COMMAND ${GENERATOR_EXE}
   DEPENDS ${GENERATOR_EXE}
   COMMENT "Generating save/restore ctrlcode stubs in directory ${GENERATOR_OUT_DIR}"

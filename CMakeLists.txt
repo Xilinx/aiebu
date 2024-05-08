@@ -23,15 +23,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(AIEBU_SPECIFICATION_INSTALL_DIR "aiebu/share/specification")
 
+find_program (PYLINT pylint REQUIRED)
+message("-- Pylint path: ${PYLINT}")
+
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   find_package(PkgConfig REQUIRED)
-  find_package(Boost REQUIRED)
 
   pkg_check_modules(LIBELF REQUIRED libelf)
   message("-- Libelf version: ${LIBELF_VERSION}")
-
-  find_program (PYLINT pylint REQUIRED)
-  message("-- Pylint path: ${PYLINT}")
 
   find_program (READELF eu-readelf REQUIRED)
   message("-- Readelf path: ${READELF}")

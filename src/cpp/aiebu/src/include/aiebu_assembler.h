@@ -7,6 +7,7 @@
 #include <string>
 #include <cstdint>
 #include <vector>
+#include <iostream>
 
 #if defined(_WIN32)
 #define DRIVER_DLLESPEC __declspec(dllexport)
@@ -71,6 +72,7 @@ struct patch_info {
 
 class DRIVER_DLLESPEC aiebu_assembler {
   std::vector<char> elf_data;
+
   public:
 
     enum class buffer_type {
@@ -81,6 +83,8 @@ class DRIVER_DLLESPEC aiebu_assembler {
       asm_aie2ps,
       asm_aie2
     };
+
+    const buffer_type _type;
 
     /*
      * Constructor takes buffer type , 2 buffer and a vector of symbols with
@@ -130,6 +134,8 @@ class DRIVER_DLLESPEC aiebu_assembler {
      * return: vector of char with elf content
      */
     std::vector<char> get_elf() const;
+
+    void get_report(std::ostream &stream) const;
 };
 
 } //namespace aiebu
