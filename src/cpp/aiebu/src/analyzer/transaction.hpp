@@ -6,14 +6,14 @@
 
 #include <string>
 #include <unordered_map>
-#include <vector>
-#include <sstream>
 #include <cinttypes>
+#include <memory>
 
+// Original source code came from
 // https://gitenterprise.xilinx.com/tsiddaga/dynamic_op_dispatch/blob/main/include/transaction.hpp
-// Subroutines to read the transaction binary
 
 class transaction {
+  struct transaction_impl;
 
 public:
   struct arg_map {
@@ -22,41 +22,14 @@ public:
   };
 
   transaction(const char *txn, unsigned size);
-  std::string get_txn_summary();
-  std::string get_all_ops();
-  void update_txns(struct arg_map &amap);
+  [[nodiscard]] std::string get_txn_summary() const;
+  [[nodiscard]] std::string get_all_ops() const;
+
+//  void update_txns(struct arg_map &amap);
 
 private:
-  std::vector<uint8_t> txn_;
-  uint32_t txn_size_;
-  uint32_t txn_num_ops_;
-  std::stringstream ss_ops_;
-
-  void txn_pass_through(uint8_t *ptr);
-  void txn_pass_through(uint8_t **ptr);
-  std::string get_txn_summary(uint8_t *txn_ptr);
-  void stringify_txn_ops();
-  void stringify_w32(uint8_t **ptr);
-  void stringify_bw32(uint8_t **ptr);
-  void stringify_mw32(uint8_t **ptr);
-  void stringify_mp32(uint8_t **ptr);
-  void stringify_tct(uint8_t **ptr);
-  void stringify_patchop(uint8_t **ptr);
-  void stringify_rdreg(uint8_t **ptr);
-  void stringify_rectimer(uint8_t **ptr);
-  void stringify_merge_sync(uint8_t **ptr);
-  void stringify_txn_bin();
-
-  uint32_t num_w_ops = 0;
-  uint32_t num_bw_ops = 0;
-  uint32_t num_mw_ops = 0;
-  uint32_t num_mp_ops = 0;
-  uint32_t num_tct_ops = 0;
-  uint32_t num_patch_ops = 0;
-  uint32_t num_read_ops = 0;
-  uint32_t num_readtimer_ops = 0;
-  uint32_t num_merge_sync_ops = 0;
+  std::shared_ptr<transaction_impl> impl;
 };
 
 
-#endif /* __TRANSACTION_HPP__ */
+#endif

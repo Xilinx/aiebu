@@ -90,8 +90,9 @@ aiebu_assembler::
 get_report(std::ostream &stream) const
 {
     reporter rep(_type, elf_data);
-    rep.elfreport(stream);
-    rep.txnreport(stream);
+    rep.elf_summary(stream);
+    rep.ctrlcode_summary(stream);
+    rep.ctrlcode_detail_summary(stream);
 }
 
 static

@@ -35,12 +35,15 @@ public:
   error(error_code ec, const std::string& what = "");
 
   // Retrive underlying code for return plain error code
+  [[nodiscard]]
   int
   value() const;
 
+  [[nodiscard]]
   int
   get() const;
 
+  [[nodiscard]]
   int
   get_code() const;
 };

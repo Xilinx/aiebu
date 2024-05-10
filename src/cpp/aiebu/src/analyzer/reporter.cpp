@@ -19,14 +19,14 @@ namespace aiebu {
             throw error(error::error_code::invalid_buffer_type, "Invalid ELF buffer");
     }
 
-    void reporter::elfreport(std::ostream &stream) const
+    void reporter::elf_summary(std::ostream &stream) const
     {
         ELFIO::dump::header(stream, my_elf_reader );
         ELFIO::dump::section_headers( stream, my_elf_reader);
         ELFIO::dump::segment_headers( stream, my_elf_reader);
     }
 
-    void reporter::txnreport(std::ostream &stream) const
+    void reporter::ctrlcode_summary(std::ostream &stream) const
     {
         ELFIO::Elf_Half sec_num = my_elf_reader.sections.size();
         for ( int i = 0; i < sec_num; ++i ) {
@@ -39,6 +39,22 @@ namespace aiebu {
 
             transaction tprint(psec->get_data(), psec->get_size());
             stream << tprint.get_txn_summary() << std::endl;
+        }
+    }
+
+    void reporter::ctrlcode_detail_summary(std::ostream &stream) const
+    {
+        ELFIO::Elf_Half sec_num = my_elf_reader.sections.size();
+        for ( int i = 0; i < sec_num; ++i ) {
+            const ELFIO::section* psec = my_elf_reader.sections[i];
+            if (psec->get_type() != ELFIO::SHT_PROGBITS)
+                continue;
+
+            stream << "  [" << i << "] " << psec->get_name() << "\t"
+                   << psec->get_size() << std::endl;
+
+            transaction tprint(psec->get_data(), psec->get_size());
+            stream << tprint.get_all_ops() << std::endl;
         }
     }
 }

@@ -15,8 +15,9 @@ namespace aiebu {
         ELFIO::elfio my_elf_reader;
     public:
         reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& elf_data);
-        void elfreport(std::ostream &stream) const;
-        void txnreport(std::ostream &stream) const;
+        void elf_summary(std::ostream &stream) const;
+        void ctrlcode_summary(std::ostream &stream) const;
+        void ctrlcode_detail_summary(std::ostream &stream) const;
     };
 }
 

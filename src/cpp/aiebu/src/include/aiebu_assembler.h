@@ -84,8 +84,10 @@ class DRIVER_DLLESPEC aiebu_assembler {
       asm_aie2
     };
 
+  private:
     const buffer_type _type;
 
+  public:
     /*
      * Constructor takes buffer type , 2 buffer and a vector of symbols with
      * their patching information as argument.
@@ -133,9 +135,12 @@ class DRIVER_DLLESPEC aiebu_assembler {
      *
      * return: vector of char with elf content
      */
-    std::vector<char> get_elf() const;
+    [[nodiscard]]
+    std::vector<char>
+    get_elf() const;
 
-    void get_report(std::ostream &stream) const;
+    void
+    get_report(std::ostream &stream) const;
 };
 
 } //namespace aiebu
