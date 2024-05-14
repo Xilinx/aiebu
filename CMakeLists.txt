@@ -18,7 +18,7 @@ set(AIEBU_INSTALL_DIR "aiebu")
 message("-- CMAKE_SYSTEM=${CMAKE_SYSTEM}")
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(AIEBU_SPECIFICATION_INSTALL_DIR "aiebu/share/specification")
@@ -53,7 +53,7 @@ endif()
 enable_testing()
 
 add_subdirectory(src/python)
-add_subdirectory(src/cpp/aiebu/src)
+add_subdirectory(src/cpp/aiebu)
 add_subdirectory(specification)
 add_subdirectory(scripts)
 

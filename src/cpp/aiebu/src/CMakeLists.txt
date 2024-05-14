@@ -14,14 +14,6 @@ message("-- AIEBU_CPP_FILES: ${AIEBU_CPP_FILES}")
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Note, header only boost is okay in AIEBU, please no linking with Boost libraries
-
-INCLUDE (FindBoost)
-find_package(Boost
-  REQUIRED)
-
-message("-- Boost version: ${Boost_VERSION}")
-
 add_library(aiebu_library_objects OBJECT
   ${AIEBU_CPP_FILES}
   )
