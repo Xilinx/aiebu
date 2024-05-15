@@ -19,7 +19,6 @@ namespace aiebu {
     constexpr static uint32_t ARG_OFFSET = 3;
     std::map<uint32_t,uint32_t> blockWriteRegOffsetMap;
     const char *ptr = (mc_code.data());
-    ptr += sizeof(transaction_op_t);
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
     //printf("Header version %d.%d\n", txn_header->Major, txn_header->Minor);
     //printf("Device Generation: %d\n", txn_header->DevGen);
