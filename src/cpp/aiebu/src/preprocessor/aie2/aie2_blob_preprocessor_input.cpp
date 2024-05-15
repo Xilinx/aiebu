@@ -14,6 +14,9 @@ namespace aiebu {
                                      const std::string& section_name,
                                      const std::string& argname)
   {
+    // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
+    // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
+    constexpr static uint32_t ARG_OFFSET = 3;
     std::map<uint32_t,uint32_t> blockWriteRegOffsetMap;
     const char *ptr = (mc_code.data());
     ptr += sizeof(transaction_op_t);
@@ -68,8 +71,10 @@ namespace aiebu {
                    return;
                 }
                 if (argname.empty())
-                  add_symbol(symbol(std::to_string(op->argidx), blockWriteRegOffsetMap[reg], 0, 0, op->argplus, section_name, symbol::patch_schema::shim_dma_48));
-                else
+                {
+                  // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
+                  add_symbol(symbol(std::to_string(op->argidx + ARG_OFFSET), blockWriteRegOffsetMap[reg], 0, 0, op->argplus, section_name, symbol::patch_schema::shim_dma_48));
+                } else
                   add_symbol(symbol(argname, blockWriteRegOffsetMap[reg], 0, 0, op->argplus, section_name, symbol::patch_schema::shim_dma_48));
                 ptr += hdr->Size;
                 break;
