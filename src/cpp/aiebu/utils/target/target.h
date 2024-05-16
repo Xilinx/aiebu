@@ -32,7 +32,7 @@ class target
     if (!file_exists(filename))
       throw std::runtime_error("file:" + filename + " not found\n");
 
-    std::ifstream input(filename, std::ios::in);
+    std::ifstream input(filename, std::ios::in | std::ios::binary);
     auto file_size = std::filesystem::file_size(filename);
     buffer.resize(file_size);
     input.read(buffer.data(), file_size);
@@ -42,7 +42,7 @@ class target
   {
     auto e = as.get_elf();
     std::cout << "elf size:" << e.size() << "\n";
-    std::ofstream output_file(outfile);
+    std::ofstream output_file(outfile, std::ios_base::binary);
     output_file.write(e.data(), e.size());
   }
 
