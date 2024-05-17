@@ -19,7 +19,7 @@
 #include "xaiengine.h"
 #include "transaction.hpp"
 
-struct transaction::transaction_impl {
+struct transaction::implementation {
 private:
     static constexpr unsigned int field_width = 32;
     static inline std::ostream& op_format(std::ostream& strm) {
@@ -47,7 +47,7 @@ private:
     }
 
 public:
-    transaction_impl(const char *txn, unsigned size) {
+    implementation(const char *txn, unsigned size) {
 
         // The following code attempts to detect if the TXN includes transaction_op_t header
         const auto *hdr = reinterpret_cast<const XAie_TxnHeader *>(txn);
@@ -78,7 +78,7 @@ public:
     [[nodiscard]] std::string get_txn_summary() const {
         const uint8_t *ptr = txn_.data();
         std::array<unsigned int, XAIE_IO_CUSTOM_OP_NEXT> op_count = {};
-        txn_pass_through(ptr, op_count);
+        count_txn_ops(ptr, op_count);
         std::stringstream ss;
 
         ss << op_format << "XAIE_IO_WRITE " << dec_format << op_count[XAIE_IO_WRITE] << std::endl;
@@ -103,10 +103,10 @@ public:
 
 private:
     template <std::size_t N>
-    void txn_pass_through(const uint8_t *ptr, std::array<unsigned int, N> &op_count) const {
+    void count_txn_ops(const uint8_t *ptr, std::array<unsigned int, N> &op_count) const {
         auto Hdr = (const XAie_TxnHeader *)(ptr);
         const auto num_ops = Hdr->NumOps;
-        ptr = (ptr) + sizeof(*Hdr);
+        ptr += sizeof(*Hdr);
 
         for (auto i = 0; i < num_ops; i++) {
             auto op_hdr = (const XAie_OpHdr *)(ptr);
@@ -114,43 +114,47 @@ private:
             switch (op_hdr->Op) {
             case XAIE_IO_WRITE: {
                 auto w_hdr = (const XAie_Write32Hdr *)(ptr);
-                ptr = ptr + w_hdr->Size;
+                ptr += w_hdr->Size;
                 break;
             }
             case XAIE_IO_BLOCKWRITE: {
                 auto bw_header = (const XAie_BlockWrite32Hdr *)(ptr);
-                ptr = ptr + bw_header->Size;
+                ptr += bw_header->Size;
                 break;
             }
             case XAIE_IO_MASKWRITE: {
                 auto mw_header = (const XAie_MaskWrite32Hdr *)(ptr);
-                ptr = ptr + mw_header->Size;
+                ptr += mw_header->Size;
                 break;
             }
             case XAIE_IO_MASKPOLL: {
                 auto mp_header = (const XAie_MaskPoll32Hdr *)(ptr);
-                ptr = ptr + mp_header->Size;
+                ptr += mp_header->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_TCT): {
                 auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr = ptr + Hdr->Size;
+                ptr += Hdr->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_DDR_PATCH): {
                 auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr = ptr + Hdr->Size;
+                ptr += Hdr->Size;
                 break;
             }
-            case (XAIE_IO_CUSTOM_OP_BEGIN + 2):
+            case (XAIE_IO_CUSTOM_OP_BEGIN + 2): {
+                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += Hdr->Size;
+                break;
+            }
             case (XAIE_IO_CUSTOM_OP_BEGIN + 3): {
                 auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr = ptr + Hdr->Size;
+                ptr += Hdr->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_BEGIN + 4): {
                 auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr = ptr + Hdr->Size;
+                ptr += Hdr->Size;
                 break;
             }
             default:
@@ -323,7 +327,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
                     std::to_string(offset) + " -> " +
                         std::to_string(op->argplus);
                 std::cout << log << std::endl;
-                ptr = ptr + size;
+                ptr += size;
             } break;
             default:
                 ptr += get_txn_size(op_hdr);
@@ -368,7 +372,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
     }
 };
 
-transaction::transaction(const char *txn, unsigned size) : impl(std::make_shared<transaction::transaction_impl>(txn, size)) {}
+transaction::transaction(const char *txn, unsigned size) : impl(std::make_shared<transaction::implementation>(txn, size)) {}
 
 std::string transaction::get_txn_summary() const
 {

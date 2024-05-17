@@ -13,7 +13,9 @@
 // https://gitenterprise.xilinx.com/tsiddaga/dynamic_op_dispatch/blob/main/include/transaction.hpp
 
 class transaction {
-  struct transaction_impl;
+
+  // aie-rt facing implementation is hidden in this struct
+  struct implementation;
 
 public:
   struct arg_map {
@@ -28,7 +30,7 @@ public:
 //  void update_txns(struct arg_map &amap);
 
 private:
-  std::shared_ptr<transaction_impl> impl;
+  std::shared_ptr<implementation> impl;
 };
 
 
