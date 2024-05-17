@@ -85,7 +85,7 @@ ECHO [-clean]                   - Remove build directories
 ECHO [-dbg]                     - Creates a debug build
 ECHO [-opt]                     - Creates a release build
 ECHO [-package]                 - Packages the release build to a MSI archive.
-ECHO                              Note: Depends on the WIX application. 
+ECHO                              Note: Depends on the WIX application.
 GOTO:EOF
 
 REM --------------------------------------------------------------------------
@@ -123,6 +123,9 @@ IF errorlevel 1 (POPD & exit /B %errorlevel%)
 cmake --build . --verbose --config Debug
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
+REM cmake --build . --verbose --config Debug --target run_tests
+REM IF errorlevel 1 (POPD & exit /B %errorlevel%)
+
 cmake --build . --verbose --config Debug --target install
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
@@ -148,6 +151,9 @@ IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
 cmake --build . --verbose --config Release
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
+
+REM cmake --build . --verbose --config Release --target run_tests
+REM IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
 cmake --build . --verbose --config Release --target install
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
