@@ -7,8 +7,6 @@
 #include "xaiengine/xaiegbl_params.h"
 
 #include "op_types.h"
-#include "op_buf.hpp"
-#include "op_init.hpp"
 
 #include "aiebu_assembler.h"
 
@@ -326,18 +324,15 @@ static void generate_tran(int type, uint32_t ncol, const std::string &filename)
 	XAie_TxnHeader* hdr = (XAie_TxnHeader*)txn_ptr;
 	std::cout << "Txn Size: " << hdr->TxnSize << " bytes" << std::endl;
 
-	aiectrl::op_buf instr_buf;
-	instr_buf.addOP(aiectrl::transaction_op(txn_ptr));
-
-	ofstream outfile(filename, ios::binary);
-	outfile.write(reinterpret_cast<const char *>(instr_buf.ibuf_.data()), instr_buf.ibuf_.size());
+	std::ofstream outfile(filename, std::ios::binary);
+	outfile.write(reinterpret_cast<const char *>(txn_ptr), hdr->TxnSize);
 	outfile.close();
 
         static_assert(std::is_same<unsigned char, uint8_t>::value, "uint8_t is not unsigned char");
-        std::vector<char> buf1(instr_buf.ibuf_.data(), instr_buf.ibuf_.data() + instr_buf.ibuf_.size());
+        std::vector<char> buf1(txn_ptr, txn_ptr + hdr->TxnSize);
         aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::blob_instr_transaction, buf1);
         auto elf = as.get_elf();
-	ofstream outelffile(filename + ".elf", ios::binary);
+	std::ofstream outelffile(filename + ".elf", std::ios::binary);
 	outelffile.write(elf.data(), elf.size());
 	outelffile.close();
 
