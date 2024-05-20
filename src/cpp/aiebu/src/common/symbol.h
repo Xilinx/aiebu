@@ -10,10 +10,10 @@
 namespace aiebu {
 
 // rela->addend have addend info along with schema
-// [0:2] bit are used for schema, [3:31] used for addend
-constexpr uint32_t ADDEND_SHIFT = 3;
-constexpr uint32_t ADDEND_MASK = 0xF8;
-constexpr uint32_t SCHEMA_MASK = 0x07;
+// [0:3] bit are used for schema, [4:31] used for addend
+constexpr uint32_t ADDEND_SHIFT = 4;
+constexpr uint32_t ADDEND_MASK = ~((uint32_t)0) << ADDEND_SHIFT;
+constexpr uint32_t SCHEMA_MASK = ~ADDEND_MASK;
 
 class symbol
 {
