@@ -28,7 +28,7 @@ public:
     m_data[".ctrldata"] = control_packet;
     add_symbols(patch_data);
 
-    extractSymbolFromBuffer(mc_code, ctrlText, "");
+    extractSymbolFromBuffer(mc_code, ctrlText, control_packet.size() ? "control-packet" : "");
   }
 };
 

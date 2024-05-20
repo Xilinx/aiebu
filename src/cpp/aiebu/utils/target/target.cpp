@@ -16,12 +16,14 @@ target_aie2blob::parseOption(const sub_cmd_options &_options)
 {
   bool bhelp;
   std::string input_file;
-  std::string meta_file;
+  std::string controlpkt_file;
+  std::string external_buffers_file;
   po::options_description common_options;
   common_options.add_options()
             ("outputelf,o", po::value<decltype(m_output_elffile)>(&m_output_elffile)->required(), "ELF output file name")
             ("controlcode,c", po::value<decltype(input_file)>(&input_file), "TXN control code binary")
-            ("meta,m", po::value<decltype(meta_file)>(&meta_file), "Patching Meta json file")
+            ("controlpkt,p", po::value<decltype(controlpkt_file)>(&controlpkt_file), "Control packet binary")
+            ("json,j", po::value<decltype(external_buffers_file)>(&external_buffers_file), "control packet Patching json file")
             ("help,h", po::bool_switch(&bhelp), "show help message and exit")
   ;
 
@@ -40,8 +42,11 @@ target_aie2blob::parseOption(const sub_cmd_options &_options)
 
   readfile(input_file, m_transaction_buffer);
 
-  if (!meta_file.empty())
-    readmetajson(meta_file);
+  if (!controlpkt_file.empty())
+    readfile(controlpkt_file, m_control_packet_buffer);
+
+  if (!external_buffers_file.empty())
+    readmetajson(external_buffers_file);
 
   return true;
 }
@@ -50,69 +55,205 @@ target_aie2blob::parseOption(const sub_cmd_options &_options)
 /*
 sample json
 {
-    "control-packet": {
-        "name": "control-packet-0",
-        "path": "path/to/ctrl_pkt0.bin"
-    },
-    "symbols": [
-        {
-            "name": "sym",
-            "patching": [
+    "external_buffers": {
+        "buffer0": {
+            "xrt_id": 1,
+            "size_in_bytes": 345088,
+            "name": "coalesed_weights",
+            "coalesed_buffers": [
                 {
-                    "name": "3",
-                    "buf_type": 0,
-                    "offsets": 72,
-                    "schema": 7,
-                    "addend": 0
+                    "logical_id": 0,
+                    "offset_in_bytes": 0,
+                    "name": "compute_graph.resnet_layers[0].wts_ddr",
+                    "control_packet_patch": [
+                        {
+                            "offset": 17420,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        },
+                        {
+                            "offset": 17484,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        },
+                        {
+                            "offset": 17548,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        },
+                        {
+                            "offset": 17612,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        }
+                    ]
                 },
-                }
-                    "name": "3",
-                    "buf_type": 0,
-                    "offsets": 72,
-                    "schema": 7,
-                    "addend": 0
+                {
+                    "logical_id": 1,
+                    "offset_in_bytes": 37888,
+                    "name": "compute_graph.resnet_layers[1].wts_ddr",
+                    "control_packet_patch": [
+                        {
+                            "offset": 19404,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        },
+                        {
+                            "offset": 19468,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        },
+                        {
+                            "offset": 19532,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        },
+                        {
+                            "offset": 19596,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        }
+                    ]
+                },
+                {
+                    "logical_id": 2,
+                    "offset_in_bytes": 195584,
+                    "name": "compute_graph.resnet_layers[2].wts_ddr",
+                    "control_packet_patch": [
+                        {
+                            "offset": 40012,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        },
+                        {
+                            "offset": 40076,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        },
+                        {
+                            "offset": 40140,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        },
+                        {
+                            "offset": 40204,
+                            "size": 6,
+                            "operation": "read_add_write"
+                        }
+                    ]
                 }
             ]
-       }
-    ]
+        },
+        "buffer1": {
+            "xrt_id": 2,
+            "logical_id": 3,
+            "size_in_bytes": 802816,
+            "name": "compute_graph.ifm_ddr",
+            "control_packet_patch": [
+                {
+                    "offset": 12,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 76,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer2": {
+            "xrt_id": 3,
+            "logical_id": 4,
+            "size_in_bytes": 458752,
+            "name": "compute_graph.ofm_ddr",
+            "control_packet_patch": [
+                {
+                    "offset": 60428,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 60492,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer3": {
+            "xrt_id": 0,
+            "logical_id": -1,
+            "size_in_bytes": 60736,
+            "ctrl_pkt_buffer": 1,
+            "name": "runtime_control_packet"
+        }
+    }
 }
 */
 void
 aiebu::utilities::
-target_aie2blob::readmetajson(std::string& metafile)
+target_aie2blob::extract_coalesed_buffers(const std::string& name,
+                                          const boost::property_tree::ptree& _pt)
 {
-  boost::property_tree::ptree _pt;
-  boost::property_tree::read_json(metafile, _pt);
-
-  auto _pt_control_packet = _pt.get_child_optional("control-packet");
-  if (_pt_control_packet)
+  const auto _pt_coalesed_buffers = _pt.get_child_optional("coalesed_buffers");
+  if (_pt_coalesed_buffers)
   {
-    auto path = _pt_control_packet.get().get<std::string>("path");
-    readfile(path, m_control_packet_buffer);
+    const auto coalesed_buffers = _pt_coalesed_buffers.get();
+    for (auto coalesed_buffer : coalesed_buffers)
+      extract_control_packet_patch(name,
+                                   coalesed_buffer.second.get<uint32_t>("offset_in_bytes", 0),
+                                   coalesed_buffer.second);
   }
+}
 
-  auto _pt_symbols = _pt.get_child_optional("symbols");
-  if (!_pt_symbols)
+void
+aiebu::utilities::
+target_aie2blob::extract_control_packet_patch(const std::string& name,
+                                              const uint32_t addend,
+                                              const boost::property_tree::ptree& _pt)
+{
+  const auto _pt_control_packet_patch = _pt.get_child_optional("control_packet_patch");
+  if (_pt_control_packet_patch)
+  {
+    const auto patchs = _pt_control_packet_patch.get();
+    for (auto pat : patchs)
+    {
+      auto patch = pat.second;
+      uint32_t offset = (patch.get<uint32_t>("offset") / 4) - 2; // convert byte to word and move 2 word up (header)
+      m_patch_data.push_back({name, aiebu::patch_buffer_type::control_packet,
+                                aiebu::patch_schema::control_packet_48, offset, addend});
+    }
+  }
+}
+
+void
+aiebu::utilities::
+target_aie2blob::readmetajson(const std::string& external_buffers_file)
+{
+  // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
+  // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
+  constexpr static uint32_t ARG_OFFSET = 3;
+  boost::property_tree::ptree _pt;
+  boost::property_tree::read_json(external_buffers_file, _pt);
+
+  const auto _pt_external_buffers = _pt.get_child_optional("external_buffers");
+  if (!_pt_external_buffers)
     return;
 
-  auto syms = _pt_symbols.get();
-  for (auto sym : syms)
+  const auto external_buffers = _pt_external_buffers.get();
+  for (auto& external_buffer : external_buffers)
   {
-    auto _pt_patching = sym.second.get_child_optional("patching");
-    if (_pt_patching)
-    {
-      auto patchs = _pt_patching.get();
-      for (auto pat : patchs)
-      {
-        auto patch = pat.second;
-        aiebu::patch_info sym;
-        sym.symbol = patch.get<std::string>("name");
-        sym.buf_type = (aiebu::patch_buffer_type)patch.get<uint32_t>("buf_type");
-        sym.schema = (aiebu::patch_schema)patch.get<uint32_t>("schema");
-        sym.offset = (uint32_t)patch.get<uint32_t>("offsets");
-        m_patch_data.push_back(sym);
-      }
-    }
+    const auto _pt_coalesed_buffers = external_buffer.second.get_child_optional("coalesed_buffers");
+
+    // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
+    std::string name = std::to_string(external_buffer.second.get<uint32_t>("xrt_id") + ARG_OFFSET);
+
+    if (_pt_coalesed_buffers)
+      extract_coalesed_buffers(name, external_buffer.second);
+    else
+      extract_control_packet_patch(name,
+                                   external_buffer.second.get<uint32_t>("offset_in_bytes", 0),
+                                   external_buffer.second);
   }
 }
 
