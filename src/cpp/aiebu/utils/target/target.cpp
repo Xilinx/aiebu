@@ -65,7 +65,7 @@ sample json
                     "logical_id": 0,
                     "offset_in_bytes": 0,
                     "name": "compute_graph.resnet_layers[0].wts_ddr",
-                    "control_packet_patch": [
+                    "control_packet_patch_locations": [
                         {
                             "offset": 17420,
                             "size": 6,
@@ -92,7 +92,7 @@ sample json
                     "logical_id": 1,
                     "offset_in_bytes": 37888,
                     "name": "compute_graph.resnet_layers[1].wts_ddr",
-                    "control_packet_patch": [
+                    "control_packet_patch_locations": [
                         {
                             "offset": 19404,
                             "size": 6,
@@ -119,7 +119,7 @@ sample json
                     "logical_id": 2,
                     "offset_in_bytes": 195584,
                     "name": "compute_graph.resnet_layers[2].wts_ddr",
-                    "control_packet_patch": [
+                    "control_packet_patch_locations": [
                         {
                             "offset": 40012,
                             "size": 6,
@@ -149,7 +149,7 @@ sample json
             "logical_id": 3,
             "size_in_bytes": 802816,
             "name": "compute_graph.ifm_ddr",
-            "control_packet_patch": [
+            "control_packet_patch_locations": [
                 {
                     "offset": 12,
                     "size": 6,
@@ -167,7 +167,7 @@ sample json
             "logical_id": 4,
             "size_in_bytes": 458752,
             "name": "compute_graph.ofm_ddr",
-            "control_packet_patch": [
+            "control_packet_patch_locations": [
                 {
                     "offset": 60428,
                     "size": 6,
@@ -212,7 +212,7 @@ target_aie2blob::extract_control_packet_patch(const std::string& name,
                                               const uint32_t addend,
                                               const boost::property_tree::ptree& _pt)
 {
-  const auto _pt_control_packet_patch = _pt.get_child_optional("control_packet_patch");
+  const auto _pt_control_packet_patch = _pt.get_child_optional("control_packet_patch_locations");
   if (_pt_control_packet_patch)
   {
     const auto patchs = _pt_control_packet_patch.get();
