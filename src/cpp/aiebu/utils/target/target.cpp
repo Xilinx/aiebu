@@ -219,7 +219,8 @@ target_aie2blob::extract_control_packet_patch(const std::string& name,
     for (auto pat : patchs)
     {
       auto patch = pat.second;
-      uint32_t offset = (patch.get<uint32_t>("offset") / 4) - 2; // convert byte to word and move 2 word up (header)
+      // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
+      uint32_t offset = patch.get<uint32_t>("offset") - 8;
       m_patch_data.push_back({name, aiebu::patch_buffer_type::control_packet,
                                 aiebu::patch_schema::control_packet_48, offset, addend});
     }
