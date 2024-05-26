@@ -11,6 +11,8 @@ from ctrlcode.common.writer import CtrlWriter
 from ctrlcode.common.reader import InputReader
 from ctrlcode.common.reader import ByteReader
 from ctrlcode.common.util import ELFStringTable
+from ctrlcode.common.util import get_pagenum
+from ctrlcode.common.util import get_colnum
 
 class Disassembler:
     def __init__(self, isa):
@@ -84,6 +86,8 @@ class ELFDisassembler():
         while (opcode != b''):
             opcode = int.from_bytes(opcode, byteorder="little")
             assert(opcode in self.isa_ops), f"Illegal opcode {opcode} in segment {name}"
+            if opcode == 0xff:   # should put eop before eof
+                self.writer.write_eop()
             self.isa_ops[opcode].deserializer(self.state).deserialize(reader, self.writer)
             opcode = reader.read()
 
@@ -105,21 +109,40 @@ class ELFDisassembler():
             opcode = reader.read()
 
     def _dump(self):
+        currentcol = None
+        currentlabel = ""
         curr = self.melf.elf_nextscn(None)
         while (curr != None):
             curr_shdr = curr.elf32_getshdr()
             if (curr_shdr.contents.sh_type == pylibelf.elf.SHT_PROGBITS):
                 curr_name = curr_shdr.contents.sh_name
                 name = self.strtab.get(curr_name)
+                if (name[0:9] == ".ctrltext"):
+                    colnum = get_colnum(name)
+                    if colnum != currentcol:
+                        self.writer.write_attach_to_group(colnum)
+                        currentcol = colnum
+                        self.state.externallabels.clear();
                 self._dumpcommon(curr_shdr)
+                if (name[0:9] == ".ctrltext"):
+                    pagenum = get_pagenum(name)
+                    if pagenum in self.state.externallabels:
+                        l = self.state.externallabels[pagenum]
+                        if currentlabel:
+                            self.writer.write_endl(currentlabel[1:])
+                        self.writer.write_label(l)
+                        currentlabel = l
                 scn_data = curr.elf_getdata()
                 data = ctypes.string_at(scn_data.contents.d_buf, scn_data.contents.d_size)
                 if (name[0:9] == ".ctrltext"):
                     self._dumptext(data, curr_shdr)
                 else:
-                    assert(name[0:9] == ".ctrldata"), f"Invalid program section name {name}"
-                    self._dumpdata(data, curr_shdr)
-                    self.state.reset()
+                    if name[0:9]  == ".ctrlbss.":
+                        pass
+                    else:
+                        assert(name[0:9] == ".ctrldata"), f"Invalid program section name {name}"
+                        self._dumpdata(data, curr_shdr)
+                        self.state.reset()
             curr = self.melf.elf_nextscn(curr)
 
     def run(self):

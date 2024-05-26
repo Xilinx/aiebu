@@ -5,6 +5,36 @@ import ctypes
 import pylibelf
 from ctrlcode.common.symbol import Symbol
 
+def get_colnum(name):
+    num = [int(i) for i in name.split('.') if i.isnumeric()]
+    return num[0]
+
+def get_pagenum(name):
+    num = [int(i) for i in name.split('.') if i.isnumeric()]
+    return num[1]
+
+def high_8(num):
+    return (num >> 8) & 0xFF
+
+def low_8(num):
+    return num & 0xFF
+
+def get_text_section_name(col_num, page_num):
+    return ".ctrltext." + str(col_num)+ "." + str(page_num)
+
+def get_data_section_name(col_num, page_num):
+    return ".ctrldata." + str(col_num)+ "." + str(page_num)
+
+def words_to_bytes(words):
+    result = []
+    for word in words:
+        word_data = []
+        for i in range(0, 4):
+            byte = (word >> ((3-i) * 8)) & 0xFF
+            word_data.append(byte)
+        result += reversed(word_data)
+    return result
+
 def parse_register(arg):
     assert arg.startswith('$r') or arg.startswith('$g'), f"REG val not a register: {arg}"
     val = int(arg[2:])
@@ -34,6 +64,10 @@ def parse_num_arg(arg, state):
 
     if arg.startswith('@'):
         label = arg[1:]
+        assert state.containlabel(label) or state.containscratchpads(label), f"Label not found: {label}"
+        if state.containscratchpads(label):
+            #print("got scratchpad:", state.getscratchpadpos(label))
+            return state.getscratchpadpos(label)
         assert state.containlabel(label), f"Label not found: {label}"
         return state.getlabelpos(label)
 

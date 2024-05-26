@@ -1,13 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2024 Advanced Micro Devices, Inc.
 
+from ctrlcode.common.util import words_to_bytes
 
 class ELF_Section:
   """ ELF_Section class to hold section data of elf """
+
   def __init__(self, name, section):
     self.name = name
+    self.section_index = -1
     self.section = section
     self.bytearray = bytearray()
+
+  def set_section_index(self, index):
+    self.section_index = index
 
   def write_bytes(self, buf):
     self.bytearray = self.bytearray + buf
@@ -15,18 +21,19 @@ class ELF_Section:
   def write_byte(self, buf):
     self.bytearray.append(buf)
 
+  def read_word(self, offset):
+    return int.from_bytes(self.bytearray[offset:offset+4], byteorder='little')
+
+  def write_word_at(self, offset, word):
+    bytes = self._words_to_bytes([word])
+    for index, byte in enumerate(bytes):
+        self.bytearray[offset + index] = byte
+
   def tell(self):
     return len(self.bytearray)
 
   def _words_to_bytes(self, words):
-    result = []
-    for word in words:
-      word_data = []
-      for i in range(0, 4):
-        byte = (word >> ((3-i) * 8)) & 0xFF
-        word_data.append(byte)
-      result += reversed(word_data)
-    return result
+    return words_to_bytes(words)
 
   def write_words(self, words):
     data = self._words_to_bytes(words)

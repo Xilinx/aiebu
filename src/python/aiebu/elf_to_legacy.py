@@ -69,9 +69,12 @@ class LegacyGenerator():
                   idx = re.findall('\d+', name)
                   self._dumptext(data, curr_shdr, int(idx[0]))
               else:
-                  assert(name[0:9]  == ".ctrldata"), f"Invalid program section name {name}"
-                  idx = re.findall('\d+', name)
-                  self._dumpdata(data, curr_shdr, int(idx[0]))
+                  if name[0:9]  == ".ctrlbss.":
+                      pass
+                  else:
+                      assert(name[0:9]  == ".ctrldata"), f"Invalid program section name {name}"
+                      idx = re.findall('\d+', name)
+                      self._dumpdata(data, curr_shdr, int(idx[0]))
           curr = self.melf.elf_nextscn(curr)
 
     def run(self):

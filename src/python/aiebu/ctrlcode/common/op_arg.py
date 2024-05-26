@@ -4,6 +4,7 @@ class OpArg():
     PAD = 2
     JOBSIZE = 3
     BARRIER = 4
+    PAGE_ID = 5
 
     def __init__(self, name, argtype, width=None):
         self.name = name
@@ -25,5 +26,7 @@ class OpArg():
             return OpArg.JOBSIZE
         elif s == 'barrier':
             return OpArg.BARRIER
+        elif s == 'page_id':
+            return OpArg.PAGE_ID
         else:
             raise RuntimeError('Invalid OpArg: {}'.format(s))

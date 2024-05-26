@@ -4,6 +4,7 @@ class DisAssemblerState:
         self.pos = 0
         self.labels = {}
         self.local_ptrs = {}
+        self.externallabels = {}
 
     def __str__(self):
         return f"[POS:{self.pos}\tLABEL:{self.labels}\tlocal_ptrs:{self.local_ptrs}"

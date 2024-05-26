@@ -19,6 +19,7 @@ public:
     PAD = 2,
     JOBSIZE = 3,
     BARRIER = 4,
+    PAGE_ID = 5,
   };
 
   std::string m_name;

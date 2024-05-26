@@ -17,12 +17,12 @@ class IsaOpDeSerializer(OpDeSerializer):
         result = []
         pad = reader.read_integer()
         size = int(2)
+
         for arg_index, arg in enumerate(self.op.args):
             # read data
             l = int(arg.width/8)
             size += l
             val = reader.read_integer(l)
-
             if arg.argtype == OpArg.CONST:
                 if arg.name == "tile_id":
                     result.append(to_Tile(val))
@@ -41,8 +41,12 @@ class IsaOpDeSerializer(OpDeSerializer):
                 pass
                 # TODO: check for jobsize is correct or not
             elif arg.argtype == OpArg.REG:
-                assert val < 8, "Register number out of range: {}".format(val)
-                result.append('$r' + str(val))
+                assert val < 24, "Register number out of range: {}".format(val)
+                # [0:7] are local register [8:23] are global register
+                if val < 8:
+                    result.append('$r' + str(val))
+                else:
+                    result.append('$g' + str(val-8))
             elif arg.argtype == OpArg.BARRIER:
                 if "local_barrier" == self.name:
                     result.append('$lb'+ str(val))
@@ -52,6 +56,10 @@ class IsaOpDeSerializer(OpDeSerializer):
                     assert False, "Invalid barrier arg for {self.name}."
             elif arg.argtype == OpArg.PAD:
                 pass
+            elif arg.argtype == OpArg.PAGE_ID:
+                result.append(IsaOpDeSerializer.LABEL + str(IsaOpDeSerializer.numlabel))
+                self.state.externallabels[val] = IsaOpDeSerializer.LABEL + str(IsaOpDeSerializer.numlabel)
+                IsaOpDeSerializer.numlabel += 1
             else:
                 assert False, "Invalid arg type!"
 

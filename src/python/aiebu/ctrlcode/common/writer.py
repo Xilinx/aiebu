@@ -13,24 +13,15 @@ from ctrlcode.common.util import ELFSymbolTable
 from ctrlcode.common.util import ELFRelaTable
 from ctrlcode.common.util import ELFDynamicTable
 from ctrlcode.common.symbol import Symbol
+from ctrlcode.common.util import words_to_bytes
 
 class WriterBase(abc.ABC):
     PAGE_SIZE = 0x2000
 
     def write_words(self, words, section, page):
-        data = self._words_to_bytes(words)
+        data = words_to_bytes(words)
         for byte in data:
             self.write_byte(byte, section, page)
-
-    def _words_to_bytes(self, words):
-        result = []
-        for word in words:
-            word_data = []
-            for i in range(0, 4):
-                byte = (word >> ((3-i) * 8)) & 0xFF
-                word_data.append(byte)
-            result += reversed(word_data)
-        return result
 
     @abc.abstractmethod
     def write_byte(self, byte, section, page):
@@ -81,8 +72,21 @@ class CtrlWriter:
         self.f.write(name + "\n")
 
     def write_label(self, name):
+        if name.startswith('@'):
+            name = name[1:]
         self.f.write(name + ":\n")
         self.current_label = name
+
+    def write_endl(self, name):
+        if name.startswith('@'):
+            name = name[1:]
+        self.f.write(f".endl {name}\n")
+
+    def write_eop(self):
+        self.f.write(".eop\n")
+
+    def write_attach_to_group(self, col):
+        self.f.write(f".attach_to_group {col}\n")
 
     def write_operation(self, name, args, label):
         if (self.current_label == label):
@@ -248,7 +252,7 @@ class ELFWriter:
 
         defaultlocal = 0xffff
         for symbol in self.symbols:
-            print(symbol)
+            #print(symbol)
             loc = dstrtab.add(symbol.name)
             syminfo = pylibelf.elf.ELF32_ST_INFO(pylibelf.elf.STB_GLOBAL, pylibelf.elf.STT_OBJECT)
 #           syminfo = pylibelf.elf.ELF32_ST_INFO(symbol.sbind, symbol.stype)
@@ -429,7 +433,7 @@ class AIE2_ELFWriter(ELFWriter):
         super().__init__(AIE2_ELFWriter.AMD_AIE2P_IPU, AIE2_ELFWriter.AMD_AIE2P_IPU_V1, filename, symbols, elf_sections, section_index_callback)
 
 class AIE2PS_ELFWriter(ELFWriter):
-    AMD_AIE_CERT = 0x45
+    AMD_AIE_CERT = 0x40
     AMD_AIE_CERT_V1 = 1
 
     def __init__(self, filename, symbols, elf_sections, section_index_callback):

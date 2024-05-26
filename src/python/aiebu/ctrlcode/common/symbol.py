@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2023 Advanced Micro Devices, Inc.
 
-
 from enum import IntEnum
 
 class Symbol:
@@ -45,7 +44,8 @@ class Symbol:
 
     def getbuftype(self):
         if self._buf_type == None:
-            return ".ctrldata." + str(self.col_num)+ "." + str(self.page_num)
+            from ctrlcode.common.util import get_data_section_name
+            return get_data_section_name(self.col_num, self.page_num)
         return self._buf_type
 
     def __str__(self):

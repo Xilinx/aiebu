@@ -83,8 +83,12 @@ class Data:
     def setpagenum(self, page_num):
         self._page_num = page_num
 
+    #def __str__(self):
+    #    return f"TOKEN:{self._token} SECTION:{self._section}  SIZE:{self._size} pagenum:{self._page_num} ln:{self._line_number}\tfile:{self._file}\n"
+
     def __str__(self):
-        return f"TOKEN:{self._token} SECTION:{self._section}  SIZE:{self._size} pagenum:{self._page_num} ln:{self._line_number}\tfile:{self._file}\n"
+        from pprint import pformat
+        return pformat(vars(self), indent=4, width=1)
 
 class AttachToGroup:
     def operate(self, args, parser):
@@ -111,12 +115,36 @@ class Include:
             path = path + "/" + args[0]
             if os.path.isfile(path):
                 self.readfile(path, parser)
+                parser.isdata = False
                 return
 
         raise RuntimeError(f"File {args[0]} not exist....\n")
 
+class EndOfLabel:
+    def operate(self, args, parser):
+        s = parser.current_label
+        label = s.rsplit('::', 1)[-1] or s
+        parser.current_label = s.rsplit('::', 1)[-2] or s
+        if label != args:
+            raise RuntimeError(f"endl label missmatch, {label} != {args}")
+
+class ScratchPad:
+    def operate(self, args, parser):
+        args = [x.strip() for x in args.strip().split(',')] if args is not None else []
+        parser.insertscratchpad(args[0], args[1])
+
+class SectionDirective:
+    def operate(self, args, parser):
+        args = [x.strip() for x in args.strip().split(',')] if args is not None else []
+        if args[0][0:9] == ".ctrltext":
+            parser.isdata = False
+
 class Directive:
-    DIRECTIVE = {'.attach_to_group': AttachToGroup(), '.include': Include()}
+    DIRECTIVE = {'.attach_to_group': AttachToGroup(),
+                 '.include': Include(),
+                 '.endl': EndOfLabel(),
+                 '.setscratchpad': ScratchPad(),
+                 '.section': SectionDirective() }
     DIRECTIVE_REGEX = re.compile(r'^([.a-zA-Z0-9_]+)(?:\s+(.+)+)?$')
     def __init__(self, parser):
         self.Parser = parser
@@ -128,6 +156,17 @@ class Directive:
                 Directive.DIRECTIVE[directive[1]].operate(directive[2], self.Parser)
                 return True
         return False
+
+class Column_Code:
+    def __init__(self):
+        self.text = {}
+        self.data = []
+        self.scratchpad = {}
+        self.labelpageindex = {}
+
+    def __str__(self):
+        from pprint import pformat
+        return pformat(vars(self), indent=4, width=1)
 
 class Parser:
     COMMENT_REGEX = re.compile(r'^;(.*)$')
@@ -143,23 +182,50 @@ class Parser:
         self.col = {}
         self.includedirlist = includedirlist
         self.current_col = None
+        self.isdata = False
+        self.current_label = "default"
         self.Directive = Directive(self)
 
     def setcurrentcol(self, col):
         self.current_col = col
         if self.current_col not in self.col:
-            self.col[self.current_col] =  []
+            self.col[self.current_col] = Column_Code()
 
-    def insertcoldata(self, data):
+    def insertcoldata(self, data, isdata):
         if self.current_col == None:
             self.setcurrentcol('0')
-        self.col[self.current_col].append(data)
+        if isdata:
+            self.col[self.current_col].data.append(data)
+        else:
+            # First segregate control code based on column and then base on label
+            if self.current_label not in self.col[self.current_col].text:
+                self.col[self.current_col].text[self.current_label] = []
+            self.col[self.current_col].text[self.current_label].append(data)
+            self.col[self.current_col].labelpageindex[self.current_label.rsplit('::', 1)[-1] or self.current_label] = 0
+
+    def insertscratchpad(self, name, size):
+        if self.current_col == None:
+            self.setcurrentcol('0')
+        size = int(size, 16) if size.startswith('0x') else int(size)
+        self.col[self.current_col].scratchpad[name] = {"name": name, "size":size, "offset": 0, "base": 0}
 
     def getcoldata(self, col):
-        return self.col[col]
+        return self.col[col].data
+
+    def getcolscratchpad(self, col):
+        return self.col[col].scratchpad
+
+    def getcollabelpageindex(self, col):
+        return self.col[col].labelpageindex
+
+    def getcoltextforlabel(self, col, label):
+        return self.col[col].text[label]
 
     def getcollist(self):
         return self.col.keys()
+
+    def gettextlabelsforcol(self, col):
+        return self.col[col].text.keys()
 
     def parse_line(self, line, ifile, ln):
         line = line.strip()
@@ -179,7 +245,10 @@ class Parser:
         # Label
         label_match = Parser.LABEL_REGEX.match(line)
         if label_match:
-            self.insertcoldata(Data(Label(label_match[1]), Section.UNKNOWN, 0, -1, ifile, line, ln))
+            if not self.isdata:
+                self.current_label = self.current_label + "::" + label_match[1]
+            else:
+                self.insertcoldata(Data(Label(label_match[1]), Section.UNKNOWN, 0, -1, ifile, line, ln), self.isdata)
             return
 
         # Operation
@@ -189,7 +258,13 @@ class Parser:
             args = op_match[2]
             if op in Parser.PATCHMAP:
                 op, args = Parser.PATCHMAP[op].patch(op, args)
-            self.insertcoldata(Data(Operation(op, args), Section.UNKNOWN, 0, -1, ifile, line, ln))
+            self.insertcoldata(Data(Operation(op, args), Section.UNKNOWN, 0, -1, ifile, line, ln), self.isdata)
+            if op == "EOF":
+                self.isdata = True
             return
 
         raise RuntimeError('Parse error: Invalid line: {}'.format(line))
+
+    def __str__(self):
+        from pprint import pformat
+        return pformat(vars(self), indent=4, width=1)

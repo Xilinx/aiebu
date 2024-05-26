@@ -113,7 +113,7 @@ class LocalBarrier:
 
 class AssemblerState:
     """ class to hold state """
-    def __init__(self, isa, code):
+    def __init__(self, isa, code, scratchpads, labelpageindex):
         self._isa_ops = isa
         self._pos = 0
         self._labels = {}
@@ -126,6 +126,9 @@ class AssemblerState:
         self._text_size = 0
         self._data_size = 0
         self._job_launchers = {}
+        self._scratchpads = scratchpads
+        self.labelpageindex = labelpageindex
+        self.patch = {}
         self.statecreator()
 
     def getjobsize(self, jobid):
@@ -133,6 +136,15 @@ class AssemblerState:
 
     def containlabel(self, label):
         return label in self._labels
+
+    def containscratchpads(self, label):
+        return label in self._scratchpads
+
+    def getscratchpadpos(self, label):
+        return self._scratchpads[label]["base"] + self._scratchpads[label]["offset"]
+
+    def getlabelpageindex(self, label):
+        return self.labelpageindex[label]
 
     def getlabelpos(self, label):
         return self._labels[label].getpos()
@@ -174,13 +186,8 @@ class AssemblerState:
         return self._job_launchers
 
     def __str__(self):
-        lab = ""
-        for x in self._labels.keys():
-            lab +=  self._labels[x].__str__()
-            lab +="\n"
-        return f"[{self._current_job_id}]\tPOS:{self._pos}\tsection:{self.section}\
-                 \tcurrent_label:{self._current_label}\tLABEL:{self._labels}\
-                 \tJOBS:{self._jobs}\tlocal_barriers:{self._local_barriers} \n labels:{lab}"
+        from pprint import pformat
+        return pformat(vars(self), indent=4, width=1)
 
     def statecreator(self):
         """ create state for code """
@@ -190,7 +197,7 @@ class AssemblerState:
         #last_jobid = None
         for index, data in enumerate(self._code):
             token = data.gettoken()
-
+            #print("\t\t",token)
             if isinstance(token, Label):
                 self.section = Section.DATA
                 assert token.name not in self._labels, f"Duplicate label: {token.name}"

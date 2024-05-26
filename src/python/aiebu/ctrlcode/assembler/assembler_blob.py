@@ -24,7 +24,7 @@ class Assembler_blob:
             with open(ccfile, 'rb') as f:
                 self.ccdata = f.read()
         self.symbols = [Symbol("",0,0,0,0,0)]
-        self.patchinfo2symbol(patch_info)
+        self.extract_patching_info(patch_info)
         self.elf_sections = {}
         self.ewriter = AIE2_ELFWriter(elffile, self.symbols, self.elf_sections, section_index_callback)
 
@@ -40,7 +40,8 @@ class Assembler_blob:
         self.ewriter.finalize()
         del self.ewriter
 
-    def patchinfo2symbol(self, patch_info):
+    # extract patching info from meta.json
+    def extract_patching_info(self, patch_info):
         if patch_info:
           for sym in patch_info["symbols"]:
             for data in sym["patching"]:
@@ -80,21 +81,28 @@ class Assembler_blob_transaction(Assembler_blob):
         while pc < ins_buffer_size_bytes:
             op = self.idata[pc]
             sb = Assembler_blob_transaction.OPERATION_size_index_MAP[op]
-            size = int.from_bytes([self.idata[pc+sb], self.idata[pc+sb+1], self.idata[pc+sb+2], self.idata[pc+sb+3]] , byteorder='little', signed = False)
+            size = int.from_bytes([self.idata[pc+sb], self.idata[pc+sb+1], self.idata[pc+sb+2],
+                                  self.idata[pc+sb+3]] , byteorder='little', signed = False)
             print("op:" , op)
             if op == Assembler_blob_transaction.XAIE_IO_BLOCKWRITE:
-                reg = int.from_bytes([self.idata[pc+8], self.idata[pc+8+1], self.idata[pc+8+2], self.idata[pc+8+3]] , byteorder='little', signed = False) # bw_header->RegOff is at index 8
+                reg = int.from_bytes([self.idata[pc+8], self.idata[pc+8+1], self.idata[pc+8+2],
+                                     self.idata[pc+8+3]] , byteorder='little', signed = False) # bw_header->RegOff is at index 8
                 blockWriteRegOffsetMap[reg] = pc + 16; # size of XAie_BlockWrite32Hdr (16)
                 print("XAIE_IO_BLOCKWRITE:", hex(reg))
 
             if (op == Assembler_blob_transaction.XAIE_IO_CUSTOM_OP_BEGIN_1):
-                argidx = int.from_bytes([self.idata[pc+32], self.idata[pc+32+1], self.idata[pc+32+2], self.idata[pc+32+3], self.idata[pc+32+4], self.idata[pc+32+5], self.idata[pc+32+6], self.idata[pc+32+7]] , byteorder='little', signed = False)
-                reg = int.from_bytes([self.idata[pc+24], self.idata[pc+24+1], self.idata[pc+24+2], self.idata[pc+24+3], self.idata[pc+24+4], self.idata[pc+24+5], self.idata[pc+24+6], self.idata[pc+24+7]] , byteorder='little', signed = False)
+                argidx = int.from_bytes([self.idata[pc+32], self.idata[pc+32+1], self.idata[pc+32+2],
+                                        self.idata[pc+32+3], self.idata[pc+32+4], self.idata[pc+32+5],
+                                        self.idata[pc+32+6], self.idata[pc+32+7]] , byteorder='little', signed = False)
+                reg = int.from_bytes([self.idata[pc+24], self.idata[pc+24+1], self.idata[pc+24+2],
+                                     self.idata[pc+24+3], self.idata[pc+24+4], self.idata[pc+24+5],
+                                     self.idata[pc+24+6], self.idata[pc+24+7]] , byteorder='little', signed = False)
                 reg = reg - 4 # regaddr point to 2nd word of BD
                 print("XAIE_IO_CUSTOM_OP_BEGIN_1:", hex(reg))
                 if reg in blockWriteRegOffsetMap:
-                   self.symbols.append(Symbol(str(argidx), blockWriteRegOffsetMap[reg], 0, 0, Symbol.XrtPatchSchema.xrt_patch_schema_tansaction_48,
-                                           Symbol.XrtPatchBufferType.xrt_patch_buffer_type_instruct))
+                   self.symbols.append(Symbol(str(argidx), blockWriteRegOffsetMap[reg], 0, 0,
+                                              Symbol.XrtPatchSchema.xrt_patch_schema_tansaction_48,
+                                              Symbol.XrtPatchBufferType.xrt_patch_buffer_type_instruct))
                 else:
                     print(f"address {hex(reg)} have no block write opcode !!! removing all patching info")
                     self.symbols.clear()

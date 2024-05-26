@@ -22,7 +22,6 @@ class IsaOpSerializer(OpSerializer):
             self.op.opcode,
             0
         ]
-
         arg_index = 0
         for arg in self.op.args:
             if arg.argtype == OpArg.PAD:
@@ -32,6 +31,10 @@ class IsaOpSerializer(OpSerializer):
                 job_id = parse_num_arg(self.args[0], self.state)
                 val = self.state.getjobsize(job_id)
                 argtype = OpArg.CONST
+            elif arg.argtype == OpArg.PAGE_ID:
+                val = self.state.getlabelpageindex(self.args[arg_index][1:])
+                argtype = OpArg.CONST
+                arg_index += 1
             else:
                 val = self.args[arg_index]
                 argtype = arg.argtype
@@ -47,7 +50,7 @@ class IsaOpSerializer(OpSerializer):
                     assert arg.width == 32, f"Symbol:{val} for width {arg.width} not supported"
                     val.setcol(col)
                     # We need to subtract 16 bytes control code header
-                    val.setoffset(text_section.tell()+len(result)-16)
+                    val.setoffset(text_section.tell() + len(result) - 16)
                     val.setschema(Symbol.XrtPatchSchema.xrt_patch_schema_scaler_32)
                     val.setpagenum(page)
                     symbols.append(val)

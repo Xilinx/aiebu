@@ -51,9 +51,9 @@ class Report:
 
         if len(self._symbols) > 1:
             print(f"{Fore.BLUE}SYMBOLS:{Style.RESET_ALL}")
-            print(f"{Fore.BLUE}\tNAME\t\t\tCOLUMN\t\tPAGE_NUM\tOFFSET\t\tKIND")
+            print(f"{Fore.BLUE}\tNAME\t\t\tCOLUMN\t\tPAGE_NUM\tOFFSET\t\tSCHEMA")
             for s in self._symbols[1:]:
-                print(f"{Fore.CYAN}\t\t{s.name}\t\t{s.col_num}\t\t{s.page_num}\t\t{s.pos}\t\t{s.kind}")
+                print(f"{Fore.CYAN}\t{s.name}\t\t{s.col_num}\t\t{s.page_num}\t\t{s.offset}\t\t{s.schema}")
 
         if self._debug != None:
             k = 1
