@@ -5,6 +5,7 @@
 #define _AIEBU_PREPROCESSOR_AIE2_BLOB_PREPROCESSOR_INPUT_H_
 
 #include "symbol.h"
+#include "utils.h"
 #include "aiebu_assembler.h"
 #include "preprocessor_input.h"
 
@@ -15,20 +16,37 @@ class aie2_blob_preprocessor_input : public preprocessor_input
 {
 protected:
   const std::string ctrlText = ".ctrltext";
+  const std::string preempt_save = ".preempt_save";
+  const std::string preempt_restore = ".preempt_restore";
+  const std::string preempt_lib = "preempt";
+  const std::string scratch_pad = "scratch-pad-mem";
 
   virtual void extractSymbolFromBuffer(const std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) = 0;
 
 public:
   aie2_blob_preprocessor_input() {}
   virtual void set_args(const std::vector<char>& mc_code,
-                       const std::vector<symbol>& patch_data,
-                       const std::vector<char>& control_packet)
+                        const std::vector<symbol>& patch_data,
+                        const std::vector<char>& control_packet,
+                        const std::vector<std::string>& libs,
+                        const std::vector<std::string>& libpaths) override
   {
     m_data[".ctrltext"] = mc_code;
     m_data[".ctrldata"] = control_packet;
     add_symbols(patch_data);
 
     extractSymbolFromBuffer(mc_code, ctrlText, control_packet.size() ? "control-packet" : "");
+
+    for (const auto& lib: libs)
+    {
+      if (lib == preempt_lib)
+      {
+        m_data[preempt_save] = readfile(findFilePath("preempt_save_1col.bin", libpaths));
+        m_data[preempt_restore] = readfile(findFilePath("preempt_restore_1col.bin", libpaths));
+        extractSymbolFromBuffer(m_data[preempt_save], preempt_save, scratch_pad);
+        extractSymbolFromBuffer(m_data[preempt_restore], preempt_restore, scratch_pad);
+      }
+    }
   }
 };
 

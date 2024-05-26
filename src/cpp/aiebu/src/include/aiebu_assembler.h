@@ -105,11 +105,15 @@ class DRIVER_DLLESPEC aiebu_assembler {
      * @instr_buf      first buffer
      * @constrol_buf   second buffer
      * @patch_data     relocatable information
+     * @libs           libs to include in elf
+     * @libpaths       paths to search for libs
      */
      aiebu_assembler(buffer_type type,
                const std::vector<char>& buffer1,
                const std::vector<char>& buffer2,
-               const std::vector<patch_info>& patch_data);
+               const std::vector<patch_info>& patch_data,
+               const std::vector<std::string>& libs = {},
+               const std::vector<std::string>& libpaths = {});
 
     /*
      * Constructor takes buffer type, buffer,
@@ -118,10 +122,14 @@ class DRIVER_DLLESPEC aiebu_assembler {
      *
      * @type           buffer type
      * @instr_buf      first buffer
+     * @libs           libs to include in elf
+     * @libpaths       paths to search for libs
      * @patch_data     relocatable information
      */
     aiebu_assembler(buffer_type type,
               const std::vector<char>& buffer,
+              const std::vector<std::string>& libs = {},
+              const std::vector<std::string>& libpaths = {},
               const std::vector<patch_info>& patch_data = {});
 
     /*

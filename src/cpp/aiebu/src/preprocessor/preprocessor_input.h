@@ -25,7 +25,9 @@ public:
 
   virtual void set_args(const std::vector<char>&,
                         const std::vector<symbol>&,
-                        const std::vector<char>&) = 0;
+                        const std::vector<char>&,
+                        const std::vector<std::string>&,
+                        const std::vector<std::string>&) = 0;
 
   const std::vector<std::string> get_keys()
   {

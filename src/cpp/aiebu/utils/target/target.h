@@ -81,6 +81,8 @@ class target_aie2blob: public target
     std::vector<char> m_transaction_buffer;
     std::vector<char> m_control_packet_buffer;
     std::vector<aiebu::patch_info> m_patch_data;
+    std::vector<std::string> m_libs;
+    std::vector<std::string> m_libpaths;
     std::string m_output_elffile;
     target_aie2blob(const std::string& exename, const std::string& name, const std::string& description)
       : target(exename, name, description) {}

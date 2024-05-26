@@ -2,12 +2,13 @@
 // Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
 #include <map>
+#include <string>
 #include "assembler.h"
 #include "aiebu_assembler.h"
 #include "aiebu.h"
 #include "aiebu_error.h"
 #include "symbol.h"
-
+#include "utils.h"
 #include "preprocessor.h"
 #include "encoder.h"
 #include "elfwriter.h"
@@ -38,15 +39,19 @@ symbol_schema_transform(const aiebu::patch_schema schema)
 aiebu_assembler::
 aiebu_assembler(buffer_type type,
                 const std::vector<char>& buffer,
+                const std::vector<std::string>& libs,
+                const std::vector<std::string>& libpaths,
                 const std::vector<patch_info>& patch_data)
-                : aiebu_assembler(type, buffer, {}, patch_data)
+                : aiebu_assembler(type, buffer, {}, patch_data, libs, libpaths)
 { }
 
 aiebu_assembler::
 aiebu_assembler(buffer_type type,
                 const std::vector<char>& buffer1,
                 const std::vector<char>& buffer2,
-                const std::vector<patch_info>& patch_data) : _type(type)
+                const std::vector<patch_info>& patch_data,
+                const std::vector<std::string>& libs,
+                const std::vector<std::string>& libpaths) : _type(type)
 {
   std::vector<symbol> symbols;
   // in aie2ps patch data is not used, its extracted from asm
@@ -61,17 +66,17 @@ aiebu_assembler(buffer_type type,
   if (type == buffer_type::blob_instr_dpu)
   {
     aiebu::assembler a(assembler::elf_type::aie2_dpu_blob);
-    elf_data = a.process(buffer1, symbols, buffer2);
+    elf_data = a.process(buffer1, libs, libpaths, symbols, buffer2);
   }
   else if (type == buffer_type::blob_instr_transaction)
   {
     aiebu::assembler a(assembler::elf_type::aie2_transaction_blob);
-    elf_data = a.process(buffer1, symbols, buffer2);
+    elf_data = a.process(buffer1, libs, libpaths, symbols, buffer2);
   }
   else if (type == buffer_type::asm_aie2ps)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_asm);
-    elf_data = a.process(buffer1);
+    elf_data = a.process(buffer1, libs, libpaths);
   }
   else
     throw error(error::error_code::invalid_buffer_type, "Buffer_type not supported !!!");
@@ -148,7 +153,9 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         size_t buffer2_size,
                         void** elf_buf,
                         const struct aiebu_patch_info* patch_data,
-                        size_t patch_data_size)
+                        size_t patch_data_size,
+                        const char* libs,
+                        const char* libpaths)
 {
   int ret = 0;
   try
@@ -158,8 +165,10 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
     std::vector<aiebu::patch_info> vpatch = aiebu::convert_patchdata(patch_data, patch_data_size);
     v1.assign(buffer1, buffer1+buffer1_size);
     v2.assign(buffer2, buffer2+buffer2_size);
+    std::vector<std::string> vlibs = aiebu::splitoption(libs);
+    std::vector<std::string> vlibpaths = aiebu::splitoption(libpaths);
 
-    aiebu::aiebu_assembler handler((aiebu::aiebu_assembler::buffer_type)type, v1, v2, vpatch);
+    aiebu::aiebu_assembler handler((aiebu::aiebu_assembler::buffer_type)type, v1, v2, vpatch, vlibs, vlibpaths);
     velf = handler.get_elf();
     char *aelf = static_cast<char*>(std::malloc(sizeof(char)*velf.size()));
     std::copy(velf.begin(), velf.end(), aelf);

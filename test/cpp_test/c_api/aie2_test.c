@@ -42,7 +42,8 @@ int main(int argc, char **argv)
   if ( argc > 2)
       v2 = ReadFile(argv[2], (long *)&vs2);
 
-  vs3 = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_blob_instr_dpu, v1, vs1, v2, vs2, (void**)&v3, patch_data, ps);
+  vs3 = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_blob_instr_dpu, v1, vs1, v2, vs2, (void**)&v3,
+                                patch_data, ps, "", "");
   free((void*)vs3);
   printf("Size returned :%zd\n", vs3);
   return 0;

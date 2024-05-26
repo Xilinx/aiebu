@@ -73,6 +73,10 @@ struct aiebu_patch_info {
  * @elf_buf             elf buffer
  * @patch_data          relocatable information.
  * @patch_data_size     patch data array size
+ * @libs                libs to be included, ";" separated.
+ * @libs_size           libs array size
+ * @libpaths            paths to search for libs, ";" separated.
+ * @libpaths_size       libpaths array size
  */
 DRIVER_DLLESPEC
 int
@@ -83,7 +87,9 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         size_t buffer2_size,
                         void** elf_buf,
                         const struct aiebu_patch_info* patch_data,
-                        size_t patch_data_size);
+                        size_t patch_data_size,
+                        const char* libs,
+                        const char* libpaths);
 /*
  * This API is used to free the elf buffer.
  *

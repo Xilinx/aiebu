@@ -14,8 +14,10 @@ public:
   aie2ps_preprocessor_input() {}
 
   virtual void set_args(const std::vector<char>& control_code,
-                       const std::vector<symbol>& patch_data,
-                       const std::vector<char>& buffer2)
+                        const std::vector<symbol>& patch_data,
+                        const std::vector<char>& buffer2,
+                        const std::vector<std::string>& /* libs */,
+                        const std::vector<std::string>& /* libpaths */) override
   {
     m_data[std::string("control_code")] = control_code;
   }

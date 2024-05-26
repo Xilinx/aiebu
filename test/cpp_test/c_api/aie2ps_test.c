@@ -16,7 +16,7 @@ int main(int argc, char ** argv)
   v1 = ReadFile(argv[1], (long *)&vs1);
 
   vs3 = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_asm_aie2ps, v1, vs1, v2,
-                                vs2, (void**)&v3, patch_data, ps);
+                                vs2, (void**)&v3, patch_data, ps, "", "");
 
   free((void*)vs3);
   printf("Size returned :%zd\n", vs3);

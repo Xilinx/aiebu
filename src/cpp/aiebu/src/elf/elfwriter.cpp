@@ -201,7 +201,7 @@ process(std::vector<writer> mwriter)
   // add sections
   std::vector<symbol> syms;
   add_text_data_section(mwriter, syms);
-  if (syms.size() > 1)
+  if (syms.size())
   {
     ELFIO::string_section_accessor str = add_dynstr_section();
     add_dynsym_section(&str, syms);
