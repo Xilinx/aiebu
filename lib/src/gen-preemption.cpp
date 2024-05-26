@@ -267,7 +267,7 @@ int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uin
 
 #define XAIE_NUM_ROWS 6
 #define XAIE_NUM_COLS 4
-#define XAIE_NUM_COLS_TMP 2
+#define XAIE_NUM_COLS_TMP 1
 #define XAIE_BASE_ADDR 0
 #define XAIE_COL_SHIFT 25
 #define XAIE_ROW_SHIFT 20
@@ -280,14 +280,14 @@ int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uin
 #define PREEP_SAVE    0
 #define PREEP_RESTORE 1
 
-static std::string tran_filename(int type, uint32_t ncol)
+static std::string tran_filename(int type, unsigned int ncol)
 {
     std::string filename = (type == PREEP_SAVE) ? "preempt_save_" : "preempt_restore_";
     filename += std::to_string(ncol) + "col" + ".bin";
     return filename;
 }
 
-static void generate_tran(int type, uint32_t ncol, const std::string &filename)
+static void generate_tran(int type, unsigned int ncol, const std::string &filename)
 {
 	XAie_Config ConfigPtr {
 		XAIE_DEV_GEN_AIE2P,
@@ -295,7 +295,7 @@ static void generate_tran(int type, uint32_t ncol, const std::string &filename)
 		XAIE_COL_SHIFT,
 		XAIE_ROW_SHIFT,
 		XAIE_NUM_ROWS,
-		XAIE_NUM_COLS,
+		static_cast<uint8_t>(ncol),
 		XAIE_SHIM_ROW,
 		XAIE_MEM_TILE_ROW_START,
 		XAIE_MEM_TILE_NUM_ROWS,
@@ -322,7 +322,7 @@ static void generate_tran(int type, uint32_t ncol, const std::string &filename)
 	uint8_t *txn_ptr = XAie_ExportSerializedTransaction(&DevInst, 0, 0);
 
 	XAie_TxnHeader* hdr = (XAie_TxnHeader*)txn_ptr;
-	std::cout << "Txn Size: " << hdr->TxnSize << " bytes" << std::endl;
+	std::cout << "Txn Size: " << std::dec << hdr->TxnSize << " bytes" << std::endl;
 
 	std::ofstream outfile(filename, std::ios::binary);
 	outfile.write(reinterpret_cast<const char *>(txn_ptr), hdr->TxnSize);
@@ -341,10 +341,12 @@ static void generate_tran(int type, uint32_t ncol, const std::string &filename)
 
 int main(int argc, char** argv)
 {
-    std::string filename = tran_filename(PREEP_SAVE, 1);
-    generate_tran(PREEP_SAVE, 1, filename);
-    filename = tran_filename(PREEP_RESTORE, 1);
-    generate_tran(PREEP_RESTORE, 1, filename);
-
+    const unsigned int columns[] = {1, 2, 4};
+    for (auto ncol : columns) {
+        std::string filename = tran_filename(PREEP_SAVE, ncol);
+        generate_tran(PREEP_SAVE, ncol, filename);
+        filename = tran_filename(PREEP_RESTORE, ncol);
+        generate_tran(PREEP_RESTORE, ncol, filename);
+    }
     return 0;
 }
