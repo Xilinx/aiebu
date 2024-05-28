@@ -21,8 +21,8 @@ protected:
   const std::string preempt_lib = "preempt";
   const std::string scratch_pad = "scratch-pad-mem";
 
-  virtual void extractSymbolFromBuffer(const std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) = 0;
-
+  virtual void extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) = 0;
+  void clear_shimBD_address_bits(std::vector<char>& mc_code, uint32_t offset) const;
 public:
   aie2_blob_preprocessor_input() {}
   virtual void set_args(const std::vector<char>& mc_code,
@@ -35,7 +35,7 @@ public:
     m_data[".ctrldata"] = control_packet;
     add_symbols(patch_data);
 
-    extractSymbolFromBuffer(mc_code, ctrlText, control_packet.size() ? "control-packet" : "");
+    extractSymbolFromBuffer(m_data[".ctrltext"], ctrlText, control_packet.size() ? "control-packet" : "");
 
     for (const auto& lib: libs)
     {
@@ -54,7 +54,7 @@ public:
 class aie2_blob_transaction_preprocessor_input : public aie2_blob_preprocessor_input
 {
 protected:
-  virtual void extractSymbolFromBuffer(const std::vector<char>& mc_code, const std::string& section_name, const std::string& argname);
+  virtual void extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) override;
 };
 
 class aie2_blob_dpu_preprocessor_input : public aie2_blob_preprocessor_input
@@ -120,7 +120,7 @@ class aie2_blob_dpu_preprocessor_input : public aie2_blob_preprocessor_input
 
 protected:
   void patch_shimbd(const uint32_t* ins_buffer, size_t pc, const std::string& section_name);
-  virtual void extractSymbolFromBuffer(const std::vector<char>& mc_code, const std::string& section_name, const std::string& argname);
+  virtual void extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) override;
 };
 
 }

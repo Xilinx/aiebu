@@ -9,10 +9,27 @@
 namespace aiebu {
 
   void
+  aie2_blob_preprocessor_input::
+  clear_shimBD_address_bits(std::vector<char>& mc_code, uint32_t offset) const
+  {
+    constexpr static uint32_t DMA_BD_1_IN_BYTES = 1 * 4;
+    constexpr static uint32_t DMA_BD_2_IN_BYTES = 2 * 4;
+    //Clearing address bits as they are set at runtime during patching(xrt/firmware).
+    //Lower Base Address. 30 LSB of a 46-bit long 32-bit-word-address. (bits [31:2] in DMA_BD_1 of a 48-bit byte-address)
+    //Upper Base Address. 16 MSB of a 46-bit long 32-bit-word-address. (bits [47:32] in DMA_BD_2 of a 48-bit byte-address)
+    mc_code[offset + DMA_BD_1_IN_BYTES] = mc_code[offset + DMA_BD_1_IN_BYTES] & (0x03);
+    mc_code[offset + DMA_BD_1_IN_BYTES + 1] = mc_code[offset + DMA_BD_1_IN_BYTES + 1] & (0x00);
+    mc_code[offset + DMA_BD_1_IN_BYTES + 2] = mc_code[offset + DMA_BD_1_IN_BYTES + 2] & (0x00);
+    mc_code[offset + DMA_BD_1_IN_BYTES + 3] = mc_code[offset + DMA_BD_1_IN_BYTES + 3] & (0x00);
+    mc_code[offset + DMA_BD_2_IN_BYTES] = mc_code[offset + DMA_BD_2_IN_BYTES] & (0x00);
+    mc_code[offset + DMA_BD_2_IN_BYTES + 1] = mc_code[offset + DMA_BD_2_IN_BYTES + 1] & (0x00);
+  }
+
+  void
   aie2_blob_transaction_preprocessor_input::
-  extractSymbolFromBuffer(const std::vector<char>& mc_code,
-                                     const std::string& section_name,
-                                     const std::string& argname)
+  extractSymbolFromBuffer(std::vector<char>& mc_code,
+                          const std::string& section_name,
+                          const std::string& argname)
   {
     // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
     // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
@@ -69,12 +86,15 @@ namespace aiebu {
                    m_sym.clear();
                    return;
                 }
+                uint32_t offset = blockWriteRegOffsetMap[reg];
+                clear_shimBD_address_bits(mc_code, offset);
+
                 if (argname.empty())
                 {
                   // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
-                  add_symbol(symbol(std::to_string(op->argidx + ARG_OFFSET), blockWriteRegOffsetMap[reg], 0, 0, op->argplus, section_name, symbol::patch_schema::shim_dma_48));
+                  add_symbol(symbol(std::to_string(op->argidx + ARG_OFFSET), offset, 0, 0, op->argplus, section_name, symbol::patch_schema::shim_dma_48));
                 } else
-                  add_symbol(symbol(argname, blockWriteRegOffsetMap[reg], 0, 0, op->argplus, section_name, symbol::patch_schema::shim_dma_48));
+                  add_symbol(symbol(argname, offset, 0, 0, op->argplus, section_name, symbol::patch_schema::shim_dma_48));
                 ptr += hdr->Size;
                 break;
             }
@@ -117,9 +137,9 @@ namespace aiebu {
 
   void
   aie2_blob_dpu_preprocessor_input::
-  extractSymbolFromBuffer(const std::vector<char>& mc_code,
-                                     const std::string& section_name,
-                                     const std::string& argname)
+  extractSymbolFromBuffer(std::vector<char>& mc_code,
+                          const std::string& section_name,
+                          const std::string& argname)
   {
     // For dpu 
     auto instr_ptr = reinterpret_cast<const uint32_t*>(mc_code.data());
