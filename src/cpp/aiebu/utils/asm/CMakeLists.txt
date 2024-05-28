@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Xilinx, Inc. All rights reserved.
 
 set(AIEBU_INSTALL_BIN_DIR       "${AIEBU_INSTALL_DIR}/bin/")

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 // Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef _AIEBU_PREPROCESSOR_AIE2_BLOB_PREPROCESSED_OUTPUT_H_

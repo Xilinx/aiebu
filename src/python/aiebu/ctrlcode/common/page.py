@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 # Copyright (C) 2022-2023 Advanced Micro Devices, Inc.
 
 from ctrlcode.common.util import get_text_section_name, get_data_section_name

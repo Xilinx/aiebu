@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Advanced Micro Devices, Inc.
 
 from ctrlcode.common.util import words_to_bytes

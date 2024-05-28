@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 // Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef _AIEBU_COMMON_WRITER_H_

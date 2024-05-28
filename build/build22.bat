@@ -1,6 +1,7 @@
 
-REM Copyright (C) 2022 Xilinx, Inc
-REM SPDX-License-Identifier: Apache-2.0
+REM SPDX-License-Identifier: MIT
+REM Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
+
 set SCRIPTDIR=%~dp0
 set BUILDDIR=%SCRIPTDIR%
 set NOCMAKE=0
@@ -11,8 +12,6 @@ ECHO CMAKEFLAGS=%CMAKEFLAGS%
 
 @ECHO OFF
 
-REM Copyright (C) 2022 Xilinx, Inc
-REM SPDX-License-Identifier: Apache-2.0
 set SCRIPTDIR=%~dp0
 set BUILDDIR=%SCRIPTDIR%
 

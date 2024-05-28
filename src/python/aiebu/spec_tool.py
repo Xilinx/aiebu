@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
- SPDX-License-Identifier: Apache License 2.0
+ SPDX-License-Identifier: MIT
  Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved
 """
 

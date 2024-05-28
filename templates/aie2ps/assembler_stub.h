@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 // Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef _ISA_ASSEMBLER_STUBS_H_
@@ -20,7 +20,7 @@ public:
     m_isa = std::make_shared<std::map<std::string, std::shared_ptr<isa_op>>>();
 
     {% for operation in operations %}(*m_isa)["{{operation.mnemonic.lower()}}"] = std::make_shared<isa_op>("{{operation.mnemonic.lower()}}", {{operation.opcode}}, std::vector<opArg>{
-    {% for arg in operation.arguments %} opArg({%if arg.type != 'pad' %}"{{arg.name}}"{% else %}"_pad"{% endif %}, opArg::optype::{% if arg.type == 'register' %}REG{% else %}{{arg.type.upper()}}{% endif %}, {{get_arg_width(arg)}}),{% endfor %} 
+    {% for arg in operation.arguments %} opArg({%if arg.type != 'pad' %}"{{arg.name}}"{% else %}"_pad"{% endif %}, opArg::optype::{% if arg.type == 'register' %}REG{% else %}{{arg.type.upper()}}{% endif %}, {{get_arg_width(arg)}}),{% endfor %}
     });
 
     {% endfor %}

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 # Copyright (C) 2023 Advanced Micro Devices, Inc.
 
 from enum import IntEnum
