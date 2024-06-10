@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
 
 class Line:
     def __init__(self, linenumber, high_pc, low_pc, opcode):

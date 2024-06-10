@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
+
 from colorama import init as colorama_init
 from colorama import Fore
 from colorama import Style

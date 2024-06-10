@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
+
 import re
 import sys
 import os.path

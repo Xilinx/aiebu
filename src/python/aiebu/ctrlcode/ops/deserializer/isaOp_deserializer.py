@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
+
 from ctrlcode.common.op_arg import OpArg
 from ctrlcode.common.util import to_Tile
 from ctrlcode.common.util import to_S2MM_MM2S

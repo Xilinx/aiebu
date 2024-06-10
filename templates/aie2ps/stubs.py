@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
+
 from ctrlcode.ops.isaOp import IsaOp
 from ctrlcode.ops.wordOp import WordOp
 from ctrlcode.ops.alignOp import AlignOp

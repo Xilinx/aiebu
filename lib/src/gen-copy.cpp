@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
+
 /**
  * This file generates transaction commands for data copy from L3 -> L2 and from L2 -> L3. 
  * Then wrap it into an ELF file.

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
+
 from ctrlcode.ops.serializer.ucDmaShimOp_serializer import UcDmaShimOpSerializer
 from ctrlcode.ops.deserializer.ucDmaShimOp_deserializer import UcDmaShimOpDeSerializer
 from ctrlcode.common.symbol import Symbol

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
+
 from ctrlcode.common.section import Section
 from ctrlcode.common.label import Label
 from ctrlcode.common.operation import Operation
