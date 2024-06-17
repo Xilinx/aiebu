@@ -83,6 +83,10 @@ def generate_c_stubs(spec):
   template.globals.update(jinja_functions)
   print(template.render(spec))
 
+def generate_c_defines(spec):
+  template = _environment.get_template('defines.h')
+  template.globals.update(jinja_functions)
+  print(template.render(spec))
 
 def generate_py(spec):
   template = _environment.get_template('stubs.py')
@@ -118,6 +122,8 @@ def run(spec_filename, template_dir, command):
     generate_html_docs(spec)
   elif command == 'generate_c_stubs':
     generate_c_stubs(spec)
+  elif command == 'generate_c_defines':
+    generate_c_defines(spec)
   elif command == 'generate_cpp_assembler_stubs':
     generate_cpp_assembler_stubs(spec)
   elif command == 'generate_py':
