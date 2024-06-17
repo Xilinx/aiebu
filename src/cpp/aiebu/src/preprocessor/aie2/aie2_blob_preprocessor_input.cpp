@@ -25,7 +25,7 @@ namespace aiebu {
     mc_code[offset + DMA_BD_2_IN_BYTES + 1] = mc_code[offset + DMA_BD_2_IN_BYTES + 1] & (0x00);
   }
 
-  void
+  uint32_t
   aie2_blob_transaction_preprocessor_input::
   extractSymbolFromBuffer(std::vector<char>& mc_code,
                           const std::string& section_name,
@@ -84,7 +84,7 @@ namespace aiebu {
                 if ( it == blockWriteRegOffsetMap.end()) {
                    std::cout << "address "<< std::hex <<"0x" << reg << " have no block write opcode !!! removing all patching info";
                    m_sym.clear();
-                   return;
+                   return txn_header->NumCols;
                 }
                 uint32_t offset = blockWriteRegOffsetMap[reg];
                 clear_shimBD_address_bits(mc_code, offset);
@@ -109,9 +109,10 @@ namespace aiebu {
                 break;
             }
             default:
-                return;
+                throw error(error::error_code::internal_error, "Invalid txn opcode: " + std::to_string(op_header->Op) + " !!!");
         }
     }
+    return txn_header->NumCols;
   }
 
   void
@@ -135,7 +136,7 @@ namespace aiebu {
     add_symbol(symbol(arg2name[regId], (pc+1)*4, 0, 0, 0, section_name, symbol::patch_schema::shim_dma_48));
   }
 
-  void
+  uint32_t
   aie2_blob_dpu_preprocessor_input::
   extractSymbolFromBuffer(std::vector<char>& mc_code,
                           const std::string& section_name,
@@ -209,6 +210,6 @@ namespace aiebu {
           throw error(error::error_code::internal_error, "Invalid dpu opcode: " + std::to_string(opcode) + " !!!");
       }
     }
+    return 0;
   }
-
 }
