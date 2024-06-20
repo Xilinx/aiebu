@@ -8,7 +8,7 @@ import re
 from ctrlcode.common.parser import Parser
 from ctrlcode.common.parser import Data
 from ctrlcode.assembler.assembler_state import AssemblerState
-from ctrlcode.common.writer import AIE2PS_ELFWriter
+from ctrlcode.common.writer import AIE2PS_ELFWriter, AIE4_ELFWriter
 from ctrlcode.common.symbol import Symbol
 from ctrlcode.common.section import Section
 from ctrlcode.common.operation import Operation
@@ -46,8 +46,10 @@ class Assembler:
         # header[4] == 0x01 means we have more pages
         self.header = [0xFF]*2 + [0x00]*14
         self.elf_sections = {}
-        if target == "aie2ps":
+        if self.target == "aie2ps":
             self.patch_57 = self.aie2ps_patch_57
+        elif self.target == "aie4":
+            self.patch_57 = self.aie4_patch_57
         else:
             raise RuntimeError(f"Target ({self.target}) not supported!!!")
 
@@ -100,7 +102,7 @@ class Assembler:
             for label in self._parser.gettextlabelsforcol(col):
                 #print("COL:", col, " LABEL:", label)
                 data = self._parser.getcoltextforlabel(col, label) + self._parser.getcoldata(col)
-                state = AssemblerState(self.isa_ops, data, scratchpad, labelpageindex)
+                state = AssemblerState(self.target, self.isa_ops, data, scratchpad, labelpageindex)
                 #print(state)
                 # create pages for 8k (text + data)
                 relative_page_index, pgs = self._pager.pagify(state, col, data, relative_page_index)
@@ -121,7 +123,12 @@ class Assembler:
             #print("labelpageindex[",col,"]:", labelpageindex)
 
         # create elfwriter
-        ewriter = AIE2PS_ELFWriter(self.elffile, self.symbols, self.elf_sections, section_index_callback)
+        if self.target == "aie2ps":
+            ewriter = AIE2PS_ELFWriter(self.elffile, self.symbols, self.elf_sections, section_index_callback)
+        elif self.target == "aie4":
+            ewriter = AIE4_ELFWriter(self.elffile, self.symbols, self.elf_sections, section_index_callback)
+        else:
+            raise RuntimeError(f"Target ({self.target}) not supported!!!")
 
         # for each page do the serialize of text and data section
         for page in pages:
@@ -162,7 +169,7 @@ class Assembler:
         page.data = self.alligner(page.page_num, page.text, page.data)
 
         # create state for each page
-        pagestate = AssemblerState(self.isa_ops, page.text + page.data, self._parser.getcolscratchpad(page.col_num),
+        pagestate = AssemblerState(self.target, self.isa_ops, page.text + page.data, self._parser.getcolscratchpad(page.col_num),
                                    self._parser.getcollabelpageindex(page.col_num))
 
         for byte in page_header:
@@ -236,9 +243,26 @@ class Assembler:
         arg = ((bd8 & 0x1FF) << 48) + ((bd2 & 0xFFFF) << 32) + (bd1 & 0xFFFFFFFF)
         patch = arg + value
         pbd1 = patch & 0xFFFFFFFF
-        pbd2 = ((arg >> 32) & 0xFFFF) | (bd2 & 0xFFFF0000)
-        pbd8 = ((arg >> 48) & 0x1FF) | (bd8 & 0xFFFFFE00)
+        pbd2 = ((patch >> 32) & 0xFFFF) | (bd2 & 0xFFFF0000)
+        pbd8 = ((patch >> 48) & 0x1FF) | (bd8 & 0xFFFFFE00)
 
         data_section.write_word_at(offset + 1*4, pbd1)
         data_section.write_word_at(offset + 2*4, pbd2)
         data_section.write_word_at(offset + 8*4, pbd8)
+
+    # http://cervino-doc/aie4/r0p18.2/tile_links/xregdb_aie4_shim_tile_doc.html#noc_module___DMA_BD0_0
+    def aie4_patch_57(self, text_section, data_section, offset, value):
+        assert text_section.tell() + data_section.tell() > offset, f"offset beyond range !!!"
+        assert text_section.tell() < offset, f"patch 57 patches shimbd, which should be in data section !!!"
+        offset = offset - text_section.tell()
+
+        bd0 = data_section.read_word(offset)
+        bd1 = data_section.read_word(offset + 1*4)
+
+        arg = ((bd0 & 0x1FFFFFF) << 32) + (bd1 & 0xFFFFFFFF)
+        patch = arg + value
+        pbd1 = patch & 0xFFFFFFFF
+        pbd0 = ((patch >> 32) & 0x1FFFFFF) | (bd0 & 0xFFFF0000)
+
+        data_section.write_word_at(offset, pbd0)
+        data_section.write_word_at(offset + 1*4, pbd1)

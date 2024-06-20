@@ -5,6 +5,20 @@ import ctypes
 import pylibelf
 from ctrlcode.common.symbol import Symbol
 
+action_id = {'TILE_MM2S': {'aie2ps': {'count':2 , 'base_index':6, 'split_len':3, 'index_num':2},
+                           'aie4'  : {'count':2 , 'base_index':6, 'split_len':3, 'index_num':2}},
+             'TILE_S2MM': {'aie2ps': {'count':2 , 'base_index':0, 'split_len':3, 'index_num':2},
+                          'aie4'  : {'count':2 , 'base_index':0, 'split_len':3, 'index_num':2}},
+             'SHIM_MM2S': {'aie2ps': {'count':2 , 'base_index':6, 'split_len':3, 'index_num':2},
+                           'aie4': {'count':4 , 'base_index':6, 'split_len':3, 'index_num':2}},
+             'SHIM_S2MM': {'aie2ps': {'count':2 , 'base_index':0, 'split_len':3, 'index_num':2},
+                           'aie4': {'count':4 , 'base_index':0, 'split_len':3, 'index_num':2}},
+             'MEM_MM2S': {'aie2ps': {'count':6 , 'base_index':6, 'split_len':3, 'index_num':2},
+                          'aie4': {'count':12 , 'base_index':16, 'split_len':3, 'index_num':2}},
+             'MEM_S2MM': {'aie2ps': {'count':6 , 'base_index':0, 'split_len':3, 'index_num':2},
+                          'aie4': {'count':8 , 'base_index':0, 'split_len':3, 'index_num':2}},
+             'SHIM_CTRL_MM2S': {'aie4': {'count':2 , 'base_index':15, 'split_len':4, 'index_num':3}}}
+
 def get_colnum(name):
     num = [int(i) for i in name.split('.') if i.isnumeric()]
     return num[0]
@@ -58,10 +72,20 @@ def parse_barrier(arg):
         assert (val > 0 and val < 65) , f"REMOTE BARRIER {arg} number out of range: {val}"
     return val
 
+def parse_action_id(arg, state):
+    args = arg.split('_')
+    for key in action_id:
+        if arg.startswith(key):
+            assert state.target in action_id[key], f"Invalid {arg} in {state.target} target."
+            actionId = action_id[key][state.target]
+            assert len(args) == actionId['split_len'], f"Invalid key literal: {arg}"
+            index = int(args[actionId['index_num']])
+            assert index < actionId['count'], f"Invalid {key} index: {index}"
+            return actionId['base_index'] + index
+
 def parse_num_arg(arg, state):
     if isinstance(arg, int):
         return arg
-
     if arg.startswith('@'):
         label = arg[1:]
         assert state.containlabel(label) or state.containscratchpads(label), f"Label not found: {label}"
@@ -70,6 +94,9 @@ def parse_num_arg(arg, state):
             return state.getscratchpadpos(label)
         assert state.containlabel(label), f"Label not found: {label}"
         return state.getlabelpos(label)
+
+    elif arg.startswith(tuple(action_id.keys())):
+        return parse_action_id(arg, state)
 
     elif arg.startswith('TILE_'):
         args = arg.split('_')
@@ -80,6 +107,11 @@ def parse_num_arg(arg, state):
 
     elif arg.startswith('S2MM_'):
         args = arg.split('_')
+        if state.target == 'aie4':
+            raise RuntimeError(f"Error: {arg} invalid for aie4 target. Please used TILE_S2MM_/SHIM_S2MM_/MEN_S2MM_.")
+        else:
+            print(f"Warning: \"{args[0]}_\" is deprecated. Please used TILE_S2MM_/SHIM_S2MM_/MEN_S2MM_.")
+        args = arg.split('_')
         assert len(args) == 2, f"Invalid S2MM literal: {arg}"
         index = int(args[1])
         assert index <= 5, f"Invalid S2MM index: {index}"
@@ -87,6 +119,10 @@ def parse_num_arg(arg, state):
 
     elif arg.startswith('MM2S_'):
         args = arg.split('_')
+        if state.target == 'aie4':
+            raise RuntimeError(f"Error: {arg} invalid for aie4 target. Please used TILE_MM2S_/SHIM_MM2S_/MEN_MM2S_.")
+        else:
+            print(f"Warning: \"{args[0]}_\" is deprecated. Please used TILE_MM2S_/SHIM_MM2S_/MEN_MM2S_.")
         assert len(args) == 2, f"Invalid MM2S literal: {arg}"
         index = int(args[1])
         assert index <= 5, f"Invalid MM2S index: {index}"

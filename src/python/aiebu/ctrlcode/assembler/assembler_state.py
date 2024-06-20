@@ -116,7 +116,8 @@ class LocalBarrier:
 
 class AssemblerState:
     """ class to hold state """
-    def __init__(self, isa, code, scratchpads, labelpageindex):
+    def __init__(self, target, isa, code, scratchpads, labelpageindex):
+        self.target = target
         self._isa_ops = isa
         self._pos = 0
         self._labels = {}

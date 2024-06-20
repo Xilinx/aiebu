@@ -438,3 +438,10 @@ class AIE2PS_ELFWriter(ELFWriter):
 
     def __init__(self, filename, symbols, elf_sections, section_index_callback):
         super().__init__(AIE2PS_ELFWriter.AMD_AIE_CERT, AIE2PS_ELFWriter.AMD_AIE_CERT_V1, filename, symbols, elf_sections, section_index_callback)
+
+class AIE4_ELFWriter(ELFWriter):
+    AMD_AIE_CERT = 0x41
+    AMD_AIE_CERT_V1 = 1
+
+    def __init__(self, filename, symbols, elf_sections, section_index_callback):
+        super().__init__(AIE4_ELFWriter.AMD_AIE_CERT, AIE4_ELFWriter.AMD_AIE_CERT_V1, filename, symbols, elf_sections, section_index_callback)

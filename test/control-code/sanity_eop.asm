@@ -14,8 +14,8 @@ START_JOB 1
   LOCAL_BARRIER       $lb0, 2
   WRITE_32            0x41A0634, 0x80000000
   WRITE_32            0x61A0604, 0x80000000
-  WAIT_TCTS           TILE_2_1, MM2S_0, 1
-  WAIT_TCTS           TILE_3_1, S2MM_0, 1
+  WAIT_TCTS           TILE_2_1, MEM_MM2S_0, 1
+  WAIT_TCTS           TILE_3_1, MEM_S2MM_0, 1
 END_JOB
 
 .eop
@@ -24,8 +24,8 @@ END_JOB
 START_JOB 2
   WRITE_32            0x41A0634, 0x80000000
   WRITE_32            0x61A0604, 0x80000000
-  WAIT_TCTS           TILE_2_1, MM2S_0, 1
-  WAIT_TCTS           TILE_3_1, S2MM_0, 1
+  WAIT_TCTS           TILE_2_1, MEM_MM2S_0, 1
+  WAIT_TCTS           TILE_3_1, MEM_S2MM_0, 1
 END_JOB
 
 .eop

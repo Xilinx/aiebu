@@ -11,7 +11,7 @@ END_JOB
 START_JOB 1
   LOCAL_BARRIER       $lb0, 2
   WRITE_32            0x1A0634, 0x80000000
-  WAIT_TCTS           TILE_0_1, MM2S_0, 1
+  WAIT_TCTS           TILE_0_1, MEM_MM2S_0, 1
   uC_DMA_WRITE_DES_SYNC @uc_dma_bd1
 END_JOB
 
@@ -25,7 +25,7 @@ END_JOB
 START_JOB 3
   LOCAL_BARRIER       $lb1, 2
   WRITE_32            0x2A0604, 0x80000000
-  WAIT_TCTS           TILE_1_1, S2MM_0, 1
+  WAIT_TCTS           TILE_1_1, MEM_S2MM_0, 1
 END_JOB
 
 EOF

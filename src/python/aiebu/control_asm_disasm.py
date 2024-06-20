@@ -20,7 +20,7 @@ def parse_command_line(args):
   msg = "Assemble ctrlcode ASM file and write hex and or ELF"
   parser = argparse.ArgumentParser(description = msg)
 
-  parser.add_argument('-t','--target', default='aie2ps', dest='target', help='supported targets aie2ps/aie2asm/aie2txn/aie2dpu')
+  parser.add_argument('-t','--target', default='aie2ps', dest='target', help='supported targets aie2ps/aie2asm/aie2txn/aie2dpu/aie4')
 
   parser.add_argument('-d','--disassembler', default=False, dest='disassembler', action='store_true',  help='DisAssembler')
 
@@ -53,6 +53,7 @@ if __name__ == '__main__':
   if argtab.includedir:
     includedir = includedir + argtab.includedir
 
+  #Isaspec is same for aie2ps and aie4
   specdir = "specification.aie2ps"
   if argtab.target == "aie2asm":
     specdir = "specification.aie2"

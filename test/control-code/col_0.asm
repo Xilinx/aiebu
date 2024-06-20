@@ -4,163 +4,163 @@ START_JOB 0
   LOCAL_BARRIER          $lb0, 11
 END_JOB
 
-; SupertaskKind.INPUT: row 1, Actor.MM2S_5
+; SupertaskKind.INPUT: row 1, Actor.MEM_MM2S_5
 START_JOB 1
   LOCAL_BARRIER          $lb0, 11
-  WAIT_TCTS              TILE_0_1, MM2S_5, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_5, 1
 END_JOB
 
-; SupertaskKind.INPUT: row 1, Actor.MM2S_0
+; SupertaskKind.INPUT: row 1, Actor.MEM_MM2S_0
 START_JOB 2
   LOCAL_BARRIER          $lb0, 11
-  WAIT_TCTS              TILE_0_1, MM2S_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_0, 1
   WRITE_32               0x01A0634, 0x80000004
-  WAIT_TCTS              TILE_0_1, MM2S_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_0, 1
   WRITE_32               0x01A0634, 0x80000006
-  WAIT_TCTS              TILE_0_1, MM2S_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_0, 1
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor6_task6_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_0, 1
   WRITE_32               0x01A0634, 0x80000000
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor6_task7_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_0, 1
   WRITE_32               0x01A0634, 0x80000001
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor6_task8_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_0, 1
   WRITE_32               0x01A0634, 0x80010002
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor6_task9_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_0, 1
   WRITE_32               0x01A0634, 0x80060003
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor6_task10_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_0, 1
   WRITE_32               0x01A0634, 0x80060004
-  WAIT_TCTS              TILE_0_1, MM2S_0, 4
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_0, 4
 END_JOB
 
-; SupertaskKind.INPUT: row 1, Actor.MM2S_1
+; SupertaskKind.INPUT: row 1, Actor.MEM_MM2S_1
 START_JOB 3
   LOCAL_BARRIER          $lb0, 11
-  WAIT_TCTS              TILE_0_1, MM2S_1, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_1, 1
   WRITE_32               0x01A063C, 0x8000001C
-  WAIT_TCTS              TILE_0_1, MM2S_1, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_1, 1
   WRITE_32               0x01A063C, 0x8000001E
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor7_task6_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_1, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_1, 1
   WRITE_32               0x01A063C, 0x80000018
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor7_task7_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_1, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_1, 1
   WRITE_32               0x01A063C, 0x80000019
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor7_task8_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_1, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_1, 1
   WRITE_32               0x01A063C, 0x8001001A
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor7_task9_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_1, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_1, 1
   WRITE_32               0x01A063C, 0x8006001B
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor7_task10_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_1, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_1, 1
   WRITE_32               0x01A063C, 0x8006001C
-  WAIT_TCTS              TILE_0_1, MM2S_1, 4
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_1, 4
 END_JOB
 
-; SupertaskKind.INPUT: row 1, Actor.MM2S_2
+; SupertaskKind.INPUT: row 1, Actor.MEM_MM2S_2
 START_JOB 4
   LOCAL_BARRIER          $lb0, 11
-  WAIT_TCTS              TILE_0_1, MM2S_2, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_2, 1
   WRITE_32               0x01A0644, 0x8000000C
-  WAIT_TCTS              TILE_0_1, MM2S_2, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_2, 1
   WRITE_32               0x01A0644, 0x8000000E
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor8_task6_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_2, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_2, 1
   WRITE_32               0x01A0644, 0x80000008
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor8_task7_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_2, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_2, 1
   WRITE_32               0x01A0644, 0x80000009
-  WAIT_TCTS              TILE_0_1, MM2S_2, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_2, 1
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor8_task8_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_2, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_2, 1
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor8_task9_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_2, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_2, 1
   WRITE_32               0x01A0644, 0x8006000F
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor8_task11_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_2, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_2, 1
   WRITE_32               0x01A0644, 0x80060008
-  WAIT_TCTS              TILE_0_1, MM2S_2, 4
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_2, 4
 END_JOB
 
-; SupertaskKind.INPUT: row 1, Actor.MM2S_3
+; SupertaskKind.INPUT: row 1, Actor.MEM_MM2S_3
 START_JOB 5
   LOCAL_BARRIER          $lb0, 11
-  WAIT_TCTS              TILE_0_1, MM2S_3, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_3, 1
   WRITE_32               0x01A064C, 0x80000024
-  WAIT_TCTS              TILE_0_1, MM2S_3, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_3, 1
   WRITE_32               0x01A064C, 0x80000026
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor9_task6_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_3, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_3, 1
   WRITE_32               0x01A064C, 0x80000020
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor9_task7_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_3, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_3, 1
   WRITE_32               0x01A064C, 0x80000021
-  WAIT_TCTS              TILE_0_1, MM2S_3, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_3, 1
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor9_task8_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_3, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_3, 1
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor9_task9_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_3, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_3, 1
   WRITE_32               0x01A064C, 0x80060027
   uC_DMA_WRITE_DES_SYNC  @INPUT_row1_actor9_task11_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_3, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_3, 1
   WRITE_32               0x01A064C, 0x80060020
-  WAIT_TCTS              TILE_0_1, MM2S_3, 4
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_3, 4
 END_JOB
 
-; SupertaskKind.OUTPUT: row 1, Actor.S2MM_5
+; SupertaskKind.OUTPUT: row 1, Actor.MEM_S2MM_5
 START_JOB 6
   LOCAL_BARRIER          $lb0, 11
-  WAIT_TCTS              TILE_0_1, S2MM_5, 1
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_5, 1
 END_JOB
 
-; SupertaskKind.OUTPUT: row 1, Actor.S2MM_0
+; SupertaskKind.OUTPUT: row 1, Actor.MEM_S2MM_0
 START_JOB 7
   LOCAL_BARRIER          $lb0, 11
-  WAIT_TCTS              TILE_0_1, S2MM_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_0, 1
   uC_DMA_WRITE_DES_SYNC  @OUTPUT_row1_actor0_task2_ucbds
-  WAIT_TCTS              TILE_0_1, S2MM_0, 2
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_0, 2
   uC_DMA_WRITE_DES_SYNC  @OUTPUT_row1_actor0_task3_ucbds
-  WAIT_TCTS              TILE_0_1, S2MM_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_0, 1
   uC_DMA_WRITE_DES_SYNC  @OUTPUT_row1_actor0_task4_ucbds
-  WAIT_TCTS              TILE_0_1, S2MM_0, 1
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_0, 1
 END_JOB
 
-; SupertaskKind.OUTPUT: row 1, Actor.S2MM_1
+; SupertaskKind.OUTPUT: row 1, Actor.MEM_S2MM_1
 START_JOB 8
   LOCAL_BARRIER          $lb0, 11
-  WAIT_TCTS              TILE_0_1, S2MM_1, 1
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_1, 1
   uC_DMA_WRITE_DES_SYNC  @OUTPUT_row1_actor1_task2_ucbds
-  WAIT_TCTS              TILE_0_1, S2MM_1, 1
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_1, 1
   uC_DMA_WRITE_DES_SYNC  @OUTPUT_row1_actor1_task3_ucbds
-  WAIT_TCTS              TILE_0_1, S2MM_1, 2
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_1, 2
 END_JOB
 
-; SupertaskKind.WEIGHTS: row 1, Actor.S2MM_4
+; SupertaskKind.WEIGHTS: row 1, Actor.MEM_S2MM_4
 START_JOB 9
   LOCAL_BARRIER          $lb0, 11
-  WAIT_TCTS              TILE_0_1, S2MM_4, 1
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_4, 1
   uC_DMA_WRITE_DES_SYNC  @WEIGHTS_row1_actor4_task2_ucbds
-  WAIT_TCTS              TILE_0_1, S2MM_4, 1
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_4, 1
   uC_DMA_WRITE_DES_SYNC  @WEIGHTS_row1_actor4_task3_ucbds
-  WAIT_TCTS              TILE_0_1, S2MM_4, 1
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_4, 1
   uC_DMA_WRITE_DES_SYNC  @WEIGHTS_row1_actor4_task4_ucbds
-  WAIT_TCTS              TILE_0_1, S2MM_4, 2
+  WAIT_TCTS              TILE_0_1, MEM_S2MM_4, 2
 END_JOB
 
-; SupertaskKind.WEIGHTS: row 1, Actor.MM2S_4
+; SupertaskKind.WEIGHTS: row 1, Actor.MEM_MM2S_4
 START_JOB 10
   LOCAL_BARRIER          $lb0, 11
-  WAIT_TCTS              TILE_0_1, MM2S_4, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_4, 1
   uC_DMA_WRITE_DES_SYNC  @WEIGHTS_row1_actor10_task2_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_4, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_4, 1
   uC_DMA_WRITE_DES_SYNC  @WEIGHTS_row1_actor10_task3_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_4, 1
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_4, 1
   uC_DMA_WRITE_DES_SYNC  @WEIGHTS_row1_actor10_task4_ucbds
-  WAIT_TCTS              TILE_0_1, MM2S_4, 2
+  WAIT_TCTS              TILE_0_1, MEM_MM2S_4, 2
 END_JOB
 
 EOF
