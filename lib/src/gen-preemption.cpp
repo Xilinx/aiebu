@@ -9,8 +9,6 @@
 #include "xaiengine.h"
 #include "xaiengine/xaiegbl_params.h"
 
-#include "op_types.h"
-
 #include "aiebu_assembler.h"
 
 constexpr auto START_OF_MEM = 0x80000;

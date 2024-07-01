@@ -4,7 +4,7 @@
 #include <map>
 
 #include "aie2_blob_preprocessor_input.h"
-#include "op_types.h"
+#include "xaiengine.h"
 
 namespace aiebu {
 

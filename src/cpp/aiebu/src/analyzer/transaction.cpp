@@ -13,9 +13,6 @@
 
 // https://gitenterprise.xilinx.com/tsiddaga/dynamic_op_dispatch/blob/main/include/transaction.hpp
 
-#include "ps/op_buf.hpp"
-#include "ps/op_types.h"
-
 #include "xaiengine.h"
 #include "transaction.hpp"
 
@@ -49,19 +46,8 @@ private:
 public:
     implementation(const char *txn, unsigned size) {
 
-        // The following code attempts to detect if the TXN includes transaction_op_t header
+        // TXN with transaction_op_t header is not suupported.
         const auto *hdr = reinterpret_cast<const XAie_TxnHeader *>(txn);
-        if (hdr->TxnSize != size) {
-            // Cast to XAie_TxnHeader failed so there must be a transaction_op_t header sitting there
-            const auto *tptr = reinterpret_cast<const transaction_op_t *>(txn);
-            if ((tptr->b.type == e_TRANSACTION_OP) && (tptr->b.size_in_bytes == size)) {
-                // This confirms that there is a transaction_op_t header, so strip it out
-                txn += sizeof(transaction_op_t);
-                size -= sizeof(transaction_op_t);
-                hdr = reinterpret_cast<const XAie_TxnHeader *>(txn);
-            }
-        }
-
         if (hdr->TxnSize != size) {
             throw std::runtime_error("Corrupted transaction binary");
         }

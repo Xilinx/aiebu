@@ -16,7 +16,6 @@ target_include_directories(
   ${GENERATOR_EXE}
   PRIVATE
   ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
-  ${AIEBU_SOURCE_DIR}/lib/aie_controller/include/ps
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
 )
 
@@ -74,8 +73,6 @@ target_include_directories(
   ${GENERATOR_EXE}
   PRIVATE
   ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
-  ${AIEBU_SOURCE_DIR}/lib/aie_controller/include/ps
-  ${AIEBU_SOURCE_DIR}/lib/aie_controller/include
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
 )
 

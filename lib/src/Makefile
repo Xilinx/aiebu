@@ -1,7 +1,6 @@
 AIE-RT := ${AIEBU}/lib/aie-rt
-AIE_CONTROLLER := ${AIEBU}/lib/aie_controller
 
-CXXFLAGS := -std=c++11 -I${AIE-RT}/driver/build/driver-src/include -I${AIE_CONTROLLER}/include/ps -I${AIE_CONTROLLER}/include
+CXXFLAGS := -std=c++11 -I${AIE-RT}/driver/build/driver-src/include
 LDFLAGS := -L${AIE-RT}/driver/build/driver-src -lxaiengine
 
 preemption.exe : preemption.o
