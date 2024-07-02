@@ -68,7 +68,7 @@ serialize(assembler_state& state, std::vector<symbol>& symbols,
       } catch (symbol_exception &s) {
         //TODO : assert
         symbols.emplace_back(sval, state.get_pos()+(uint32_t)ret.size(),
-                             colnum, pagenum, 0, ".ctrltext_" + std::to_string(colnum)
+                             colnum, pagenum, 0, 0, ".ctrltext_" + std::to_string(colnum)
                              + "_" + std::to_string(pagenum),
                              symbol::patch_schema::scaler_32);
       }
@@ -166,7 +166,7 @@ serialize(assembler_state& state,
   // TODO assert
   uint32_t local_ptr = local_ptr_absolute - state.get_pos();
   //TODO ADD symbol
-  symbols.emplace_back(symbol(m_args[6],local_ptr_absolute, colnum, pagenum, 0,
+  symbols.emplace_back(symbol(m_args[6],local_ptr_absolute, colnum, pagenum, 0, 0,
                               ".ctrldata_" + std::to_string(colnum) + "_"
                               + std::to_string(pagenum),
                               symbol::patch_schema::shim_dma_57  ));

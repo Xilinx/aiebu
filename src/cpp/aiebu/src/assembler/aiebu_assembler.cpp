@@ -58,7 +58,7 @@ aiebu_assembler(buffer_type type,
   if (type != buffer_type::asm_aie2ps)
   {
     for (auto s : patch_data)
-      symbols.emplace_back(s.symbol, s.offset, 0, 0, s.addend,
+      symbols.emplace_back(s.symbol, s.offset, 0, 0, s.addend, 0,
                            s.buf_type == aiebu::patch_buffer_type::instruct ? ".ctrltext" : ".ctrldata",
                            symbol_schema_transform(s.schema));
   }

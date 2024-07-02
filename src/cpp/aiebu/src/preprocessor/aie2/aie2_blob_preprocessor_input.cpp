@@ -34,7 +34,7 @@ namespace aiebu {
     // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
     // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
     constexpr static uint32_t ARG_OFFSET = 3;
-    std::map<uint32_t,uint32_t> blockWriteRegOffsetMap;
+    std::map<uint32_t,std::pair<uint32_t, uint32_t>> blockWriteRegOffsetMap;
     const char *ptr = (mc_code.data());
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
     //printf("Header version %d.%d\n", txn_header->Major, txn_header->Minor);
@@ -57,7 +57,8 @@ namespace aiebu {
                 auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr *>(ptr);
                 auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr));
                 auto offset = (size_t)(payload-mc_code.data());
-                blockWriteRegOffsetMap[bw_header->RegOff] = offset;
+                uint32_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * 4;
+                blockWriteRegOffsetMap[bw_header->RegOff] = std::make_pair(offset, buffer_length_in_bytes);
                 ptr += bw_header->Size;
                 break;
             }
@@ -86,15 +87,17 @@ namespace aiebu {
                    m_sym.clear();
                    return txn_header->NumCols;
                 }
-                uint32_t offset = blockWriteRegOffsetMap[reg];
+                uint32_t offset = blockWriteRegOffsetMap[reg].first;
+                uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
+                uint32_t addend = op->argplus;
                 clear_shimBD_address_bits(mc_code, offset);
 
                 if (argname.empty())
                 {
                   // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
-                  add_symbol(symbol(std::to_string(op->argidx + ARG_OFFSET), offset, 0, 0, op->argplus, section_name, symbol::patch_schema::shim_dma_48));
+                  add_symbol({std::to_string(op->argidx + ARG_OFFSET), offset, 0, 0, addend, buffer_length_in_bytes, section_name, symbol::patch_schema::shim_dma_48});
                 } else
-                  add_symbol(symbol(argname, offset, 0, 0, op->argplus, section_name, symbol::patch_schema::shim_dma_48));
+                  add_symbol({argname, offset, 0, 0, addend, buffer_length_in_bytes, section_name, symbol::patch_schema::shim_dma_48});
                 ptr += hdr->Size;
                 break;
             }
@@ -133,7 +136,8 @@ namespace aiebu {
     if ( it == arg2name.end() )
       throw error(error::error_code::internal_error, "Invalid dpu arg:" + std::to_string(regId) + " !!!");
 
-    add_symbol(symbol(arg2name[regId], (pc+1)*4, 0, 0, 0, section_name, symbol::patch_schema::shim_dma_48));
+    uint32_t offset = (pc+1)*4; //point to start of BD
+    add_symbol({arg2name[regId], offset, 0, 0, 0, 0, section_name, symbol::patch_schema::shim_dma_48});
   }
 
   uint32_t

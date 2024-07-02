@@ -57,6 +57,40 @@ class aie2_blob_transaction_preprocessor_input : public aie2_blob_preprocessor_i
 {
 protected:
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) override;
+  void resize_scratchpad(const std::string& section_name)
+  {
+    std::vector<symbol> &syms = get_symbols();
+    uint64_t size = 0;
+    for (auto& sym : syms)
+    {
+      if (section_name.compare(sym.get_section_name()))
+        continue;
+
+      auto ssize = sym.get_size();
+      auto saddend = sym.get_addend();
+      size = ssize + saddend > size ? ssize + saddend : size;
+    }
+
+    for (auto& sym : syms)
+    {
+      if (section_name.compare(sym.get_section_name()))
+        continue;
+
+      sym.set_size(size);
+    }
+  }
+
+public:
+  virtual void set_args(const std::vector<char>& mc_code,
+                        const std::vector<symbol>& patch_data,
+                        const std::vector<char>& control_packet,
+                        const std::vector<std::string>& libs,
+                        const std::vector<std::string>& libpaths) override
+  {
+    aie2_blob_preprocessor_input::set_args(mc_code, patch_data, control_packet, libs, libpaths);
+    resize_scratchpad(preempt_save);
+    resize_scratchpad(preempt_restore);
+  }
 };
 
 class aie2_blob_dpu_preprocessor_input : public aie2_blob_preprocessor_input

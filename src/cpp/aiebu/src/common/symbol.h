@@ -38,24 +38,18 @@ private:
   uint32_t m_addend;
   std::string m_section_name;
   ELFIO::Elf_Word m_index;
+  uint64_t m_size;
 
 public:
 
   symbol(const std::string& name, uint32_t pos, uint32_t colnum, uint32_t pagenum, uint32_t addend,
-         const std::string& section_name, patch_schema schema=patch_schema::unknown)
+         uint64_t size, const std::string& section_name, patch_schema schema=patch_schema::unknown)
          :m_name(name), m_schema(schema), m_pos(pos), m_colnum(colnum),
-          m_pagenum(pagenum), m_addend(addend), m_section_name(section_name)  { }
+          m_pagenum(pagenum), m_addend(addend), m_size(size), m_section_name(section_name)  { }
 
-  symbol(const symbol *s)
-  {
-    m_name = s->m_name;
-    m_schema = s->m_schema;
-    m_pos = s->m_pos;
-    m_colnum = s->m_colnum;
-    m_pagenum = s->m_pagenum;
-    m_addend = s->m_addend;
-    m_section_name = s->m_section_name;
-  }
+  symbol(const symbol& rhs) = default;
+  symbol& operator=(const symbol& rhs) = default;
+  symbol(symbol &&s) = default;
 
   HEADER_ACCESS_GET(std::string&, name);
   HEADER_ACCESS_GET_SET(patch_schema, schema);
@@ -63,6 +57,7 @@ public:
   HEADER_ACCESS_GET_SET(uint32_t, addend);
   HEADER_ACCESS_GET_SET(std::string, section_name);
   HEADER_ACCESS_GET_SET(ELFIO::Elf_Word, index);
+  HEADER_ACCESS_GET_SET(uint64_t, size);
 };
 }
 #endif //_AIEBU_COMMOM_SYMBOL_H_
