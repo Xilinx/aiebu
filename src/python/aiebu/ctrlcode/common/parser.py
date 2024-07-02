@@ -110,7 +110,7 @@ class Include:
         return True
 
     def operate(self, args, parser):
-        args = [x.strip() for x in args.strip().split(',')] if args is not None else []
+        args = [x.strip().strip('"') for x in args.strip().split(',')] if args is not None else []
         if os.path.isabs(args[0]):
             if not self.readfile(args[0], parser):
                 raise RuntimeError(f"File {args[0]} not exist\n")
