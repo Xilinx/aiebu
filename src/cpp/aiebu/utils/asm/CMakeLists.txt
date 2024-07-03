@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2024 Xilinx, Inc. All rights reserved.
+# Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
 
 set(AIEBU_INSTALL_BIN_DIR       "${AIEBU_INSTALL_DIR}/bin/")
 set(GENERATOR_OUT_DIR "${AIEBU_BINARY_DIR}/lib/gen")
