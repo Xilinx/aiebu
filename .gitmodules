@@ -1,0 +1,7 @@
+[submodule "lib/aie-rt"]
+	path = lib/aie-rt
+	url = https://github.com/Xilinx/aie-rt.git
+	branch = release/main_aig
+[submodule "src/cpp/ELFIO"]
+	path = src/cpp/ELFIO
+	url = https://github.com/serge1/ELFIO.git
