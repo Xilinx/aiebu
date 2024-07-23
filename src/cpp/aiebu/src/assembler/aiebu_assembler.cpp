@@ -110,7 +110,7 @@ convert_patchdata(const struct aiebu_patch_info* patch_data,
   };
 
   std::vector<aiebu::patch_info> vpatch;
-  for (int i=0; i< patch_data_size; ++i)
+  for (auto i=0U; i< patch_data_size; ++i)
   {
     aiebu::patch_info p;
     p.symbol = patch_data[i].symbol;

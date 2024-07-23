@@ -144,7 +144,7 @@ namespace aiebu {
   aie2_blob_dpu_preprocessor_input::
   extractSymbolFromBuffer(std::vector<char>& mc_code,
                           const std::string& section_name,
-                          const std::string& argname)
+                          const std::string& /*argname*/)
   {
     // For dpu 
     auto instr_ptr = reinterpret_cast<const uint32_t*>(mc_code.data());

@@ -150,7 +150,7 @@ finalize()
   std::copy(std::istream_iterator<char>(stream),
             std::istream_iterator<char>( ),
             std::back_inserter(v));
-  return std::move(v);
+  return v;
 }
 
 void

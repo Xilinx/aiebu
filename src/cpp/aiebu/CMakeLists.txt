@@ -6,5 +6,11 @@ INCLUDE (FindBoost)
 message("-- Boost version: ${Boost_VERSION}")
 find_package(Boost REQUIRED COMPONENTS program_options)
 
+if (MSVC)
+  add_compile_options(/WX /W4)
+else()
+  add_compile_options(-Wall -Wextra -Werror)
+endif()
+
 add_subdirectory(src)
 add_subdirectory(utils)

@@ -40,7 +40,7 @@ padding(offset_type pagesize)
   if (datasize > pagesize)
     throw error(error::error_code::internal_error, "page content more the pagesize !!!");
   auto padsize = pagesize - datasize;
-  for( int i=0; i<padsize; ++i)
+  for( auto i = 0U; i < padsize; ++i)
     write_byte(0x00);
 }
 

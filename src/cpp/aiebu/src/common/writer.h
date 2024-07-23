@@ -15,10 +15,11 @@ namespace aiebu {
 // Class to hold sections name, data, symbols, type
 class writer
 {
-  std::vector<uint8_t> m_data;
+
   const std::string m_name;
-  std::vector<symbol> m_symbols;
   const code_section m_type;
+  std::vector<uint8_t> m_data;
+  std::vector<symbol> m_symbols;
 
 public:
   writer(const std::string name, code_section type, std::vector<uint8_t>& data): m_name(name), m_type(type), m_data(std::move(data)) {}

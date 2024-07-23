@@ -94,7 +94,7 @@ private:
         const auto num_ops = Hdr->NumOps;
         ptr += sizeof(*Hdr);
 
-        for (auto i = 0; i < num_ops; i++) {
+        for (auto i = 0U; i < num_ops; i++) {
             auto op_hdr = (const XAie_OpHdr *)(ptr);
             op_count[op_hdr->Op]++;
             switch (op_hdr->Op) {
@@ -244,7 +244,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
 
         std::stringstream ss;
 
-        for (auto i = 0; i < num_ops; i++) {
+        for (auto i = 0U; i < num_ops; i++) {
             const auto op_hdr = (const XAie_OpHdr *)ptr;
             size_t size = 0;
             switch (op_hdr->Op) {
@@ -292,7 +292,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
         // modify the txn in place.
         auto txn_hdr = (XAie_TxnHeader *)txn_ptr;
         auto ptr = txn_ptr + sizeof(*txn_hdr);
-        for (int i = 0; i < txn_hdr->NumOps; i++) {
+        for (auto i = 0U; i < txn_hdr->NumOps; i++) {
             auto op_hdr = (XAie_OpHdr *)ptr;
             switch (op_hdr->Op) {
             case XAIE_IO_CUSTOM_OP_DDR_PATCH: {
