@@ -44,7 +44,7 @@ private:
     }
 
 public:
-    implementation(const char *txn, unsigned size) {
+    implementation(const char *txn, uint64_t size) {
 
         // TXN with transaction_op_t header is not suupported.
         const auto *hdr = reinterpret_cast<const XAie_TxnHeader *>(txn);
@@ -119,28 +119,28 @@ private:
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_TCT): {
-                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr += Hdr->Size;
+                auto custom_hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += custom_hdr->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_DDR_PATCH): {
-                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr += Hdr->Size;
+                auto custom_hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += custom_hdr->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_BEGIN + 2): {
-                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr += Hdr->Size;
+                auto custom_hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += custom_hdr->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_BEGIN + 3): {
-                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr += Hdr->Size;
+                auto custom_hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += custom_hdr->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_BEGIN + 4): {
-                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr += Hdr->Size;
+                auto custom_hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += custom_hdr->Size;
                 break;
             }
             default:
@@ -358,7 +358,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
     }
 };
 
-transaction::transaction(const char *txn, unsigned size) : impl(std::make_shared<transaction::implementation>(txn, size)) {}
+transaction::transaction(const char *txn, uint64_t size) : impl(std::make_shared<transaction::implementation>(txn, size)) {}
 
 std::string transaction::get_txn_summary() const
 {

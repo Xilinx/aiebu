@@ -28,7 +28,7 @@ offset_type
 writer::
 tell() const
 {
-  return m_data.size();
+  return static_cast<offset_type>(m_data.size());
 }
 
 

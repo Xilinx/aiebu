@@ -17,7 +17,7 @@ add_section(elf_section data)
   std::vector<uint8_t> buf = data.get_buffer();
 
   if(buf.size())
-    sec->set_data(reinterpret_cast<char*>(buf.data()), buf.size());
+    sec->set_data(reinterpret_cast<char*>(buf.data()), static_cast<ELFIO::Elf_Word>(buf.size()));
   //sec->set_info( data.get_info() );
   if (!data.get_link().empty())
   {
