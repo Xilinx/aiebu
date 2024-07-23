@@ -17,57 +17,6 @@
 
 namespace aiebu {
 
-enum class patch_buffer_type {
-  instruct,
-  control_packet,
-  max
-};
- /*
- * This enum defines the patching schema that will be applied by the
- * elf loader. The schema will be encoded into the elf's addend field
- * in RELA section. All the patching starts at places indicated by buffer
- * type and offset.
- *
- * scaler_32:   symbol value (32 bits) will replace data in
- *              place
- * shim_dma_48: offset points to the start of shim DMA BD(8DW).
- *              symbol address (lower 48 bits) will be added
- *              to the value in offset[1] (full 32 bits) and
- *              offset[2] (lower 16 bits)
- * shim_dma_57: offset points to the start of shim DMA BD(9DW).
- *              symbol address (lower 57 bits) will be added
- *              to the value in offset[1] (full 32 bits),
- *              offset[2] (lower 16 bits) and offset[8]
- *              (lower 9 bits)
- * control_packet_48: offset points to the start of control-packet.
- *                    symbol address (lower 48 bits) will be added
- *                    to the value in offset[2] (full 32 bits) and
- *                    offset[3] (lower 16 bits)
- */
-enum class patch_schema {
-  uc_dma_remote_ptr_symbol = 1,
-  shim_dma_57 = 2,
-  scaler_32 = 3,
-  control_packet_48 = 4,
-  shim_dma_48 = 5,
-  unknown
-};
-
-/*
- * Define the patch information for a given symbol.
- * @symbol     the symobl name
- * @buf_type   buf type, instruction buffer or control buffer
- * @schema     patching schema, see patch_schema
- * @offsets    the places the symbol should be patched.
- */
-struct patch_info {
-  std::string  symbol;
-  patch_buffer_type  buf_type;
-  patch_schema schema;
-  uint32_t offset;
-  uint32_t addend;
-};
-
 // Assembler Class
 
 class DRIVER_DLLESPEC aiebu_assembler {
@@ -90,13 +39,13 @@ class DRIVER_DLLESPEC aiebu_assembler {
   public:
     /*
      * Constructor takes buffer type , 2 buffer and a vector of symbols with
-     * their patching information as argument.
+     * external_buffer_id json as argument.
      * its throws aiebu::error object.
      * User may pass any combination like
-     * 1. type as blob_instr_dpu, buffer1 as instruction buffer
+     * 1. type as blob_instr_transaction, buffer1 as instruction buffer
      *    and buffer2 as control_packet: in this case it will package buffers in text and data
      *    section of elf respectively.
-     * 2. type as blob_instr_dpu, buffer1 as instruction buffer
+     * 2. type as blob_instr_transaction, buffer1 as instruction buffer
      *    and buffer2 as empty: in this case it will package buffer in text section.
      * 3. type as asm_aie2ps, buffer1 as asm buffer and buffer2
      *    as empty: in this case it will assemble the asm code and package in elf.
@@ -104,14 +53,14 @@ class DRIVER_DLLESPEC aiebu_assembler {
      * @type           buffer type
      * @instr_buf      first buffer
      * @constrol_buf   second buffer
-     * @patch_data     relocatable information
+     * @patch_json     external_buffer_id json
      * @libs           libs to include in elf
      * @libpaths       paths to search for libs
      */
      aiebu_assembler(buffer_type type,
                const std::vector<char>& buffer1,
                const std::vector<char>& buffer2,
-               const std::vector<patch_info>& patch_data,
+               const std::vector<char>& patch_json,
                const std::vector<std::string>& libs = {},
                const std::vector<std::string>& libpaths = {});
 
@@ -124,13 +73,13 @@ class DRIVER_DLLESPEC aiebu_assembler {
      * @instr_buf      first buffer
      * @libs           libs to include in elf
      * @libpaths       paths to search for libs
-     * @patch_data     relocatable information
+     * @patch_json     external_buffer_id json
      */
     aiebu_assembler(buffer_type type,
               const std::vector<char>& buffer,
               const std::vector<std::string>& libs = {},
               const std::vector<std::string>& libpaths = {},
-              const std::vector<patch_info>& patch_data = {});
+              const std::vector<char>& patch_json = {});
 
     /*
      * This function return vector with elf content.

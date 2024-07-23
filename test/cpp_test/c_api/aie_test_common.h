@@ -17,7 +17,7 @@ char* ReadFile(char *name, long *s)
   file = fopen(name, "rb");
   if (!file)
   {
-    fprintf(stderr, "Unable to open file %s", name);
+    printf("Unable to open file %s", name);
     return NULL;
   }
 
@@ -31,7 +31,7 @@ char* ReadFile(char *name, long *s)
   *s = fileLen;
   if (!buffer)
   {
-    fprintf(stderr, "Memory error!");
+    printf("Memory error!");
     fclose(file);
     return NULL;
   }

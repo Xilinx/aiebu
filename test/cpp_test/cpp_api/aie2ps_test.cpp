@@ -9,22 +9,28 @@
 #include "aiebu_error.h"
 #include <algorithm>
 
-using namespace std;
+void usage_exit()
+{
+  std::cout << "Usage: aie2ps_cpp.out <control_code.asm>" << std::endl;
+  exit(1);
+}
 
 int main(int argc, char ** argv)
 {
+  if (argc != 2)
+    usage_exit();
+
   std::ifstream input( argv[1], std::ios::binary );
-  vector<char> v;
+  std::vector<char> control_code_buf;
   std::copy(std::istreambuf_iterator<char>(input),
             std::istreambuf_iterator<char>( ),
-            std::back_inserter(v));
+            std::back_inserter(control_code_buf));
 
-  std::vector<aiebu::patch_info> patch_data;
   try
   {
-    auto as = aiebu::aiebu_assembler(aiebu::aiebu_assembler::buffer_type::asm_aie2ps, v);
+    auto as = aiebu::aiebu_assembler(aiebu::aiebu_assembler::buffer_type::asm_aie2ps, control_code_buf);
     auto e = as.get_elf();
-    cout << "elf size:" << e.size() << "\n";
+    std::cout << "elf size:" << e.size() << "\n";
     std::ofstream output_file("out.elf");
     std::ostream_iterator<char> output_iterator(output_file);
     std::copy(e.begin(), e.end(), output_iterator);

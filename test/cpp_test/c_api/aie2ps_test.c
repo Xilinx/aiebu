@@ -6,19 +6,29 @@
 #include "aiebu.h"
 #include "aie_test_common.h"
 
+void usage_exit()
+{
+  printf("Usage: aie2ps_c.out <control_code.asm>\n");
+  exit(1);
+}
+
 int main(int argc, char ** argv)
 {
-  char* v1;
-  char* v2;
-  char* v3;
-  size_t vs1 = 0, vs2 = 0, ps = 0, vs3 = 0;
-  struct aiebu_patch_info* patch_data;
-  v1 = ReadFile(argv[1], (long *)&vs1);
+  if (argc != 2)
+    usage_exit();
 
-  vs3 = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_asm_aie2ps, v1, vs1, v2,
-                                vs2, (void**)&v3, patch_data, ps, "", "");
+  char* control_code_buf;
+  char* elf_buf;
+  size_t control_code_buf_size, elf_buf_size;
+  control_code_buf_size = ReadFile(argv[1], (long *)&control_code_buf);
 
-  free((void*)vs3);
-  printf("Size returned :%zd\n", vs3);
+  elf_buf_size = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_asm_aie2ps,
+                                         control_code_buf, control_code_buf_size,
+                                         NULL, 0, (void**)&elf_buf, NULL, 0, "", "");
+  if (elf_buf_size > 0)
+  {
+    free((void*)elf_buf);
+    printf("Size returned :%zd\n", elf_buf_size);
+  }
   return 0;
 }

@@ -36,7 +36,7 @@ public:
   std::vector<char> process(const std::vector<char>& buffer1,
                             const std::vector<std::string>& libs = {},
                             const std::vector<std::string>& libpaths = {},
-                            const std::vector<symbol>& patch_data = {},
+                            const std::vector<char>& patch_json = {},
                             const std::vector<char>& buffer2 = {});
 
 };

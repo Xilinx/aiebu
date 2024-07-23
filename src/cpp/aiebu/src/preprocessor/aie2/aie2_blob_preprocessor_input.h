@@ -8,7 +8,8 @@
 #include "utils.h"
 #include "aiebu_assembler.h"
 #include "preprocessor_input.h"
-
+#include <boost/format.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 namespace aiebu {
 
@@ -16,24 +17,33 @@ class aie2_blob_preprocessor_input : public preprocessor_input
 {
 protected:
   const std::string ctrlText = ".ctrltext";
+  const std::string ctrlData = ".ctrldata";
   const std::string preempt_save = ".preempt_save";
   const std::string preempt_restore = ".preempt_restore";
   const std::string preempt_lib = "preempt";
   const std::string scratch_pad = "scratch-pad-mem";
 
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) = 0;
+  void readmetajson(std::stringstream& patch_json);
+  void extract_control_packet_patch(const std::string& name, const boost::property_tree::ptree& _pt);
+  void extract_coalesed_buffers(const std::string& name, const boost::property_tree::ptree& _pt);
   void clear_shimBD_address_bits(std::vector<char>& mc_code, uint32_t offset) const;
 public:
   aie2_blob_preprocessor_input() {}
   virtual void set_args(const std::vector<char>& mc_code,
-                        const std::vector<symbol>& patch_data,
+                        const std::vector<char>& patch_json,
                         const std::vector<char>& control_packet,
                         const std::vector<std::string>& libs,
                         const std::vector<std::string>& libpaths) override
   {
     m_data[".ctrltext"] = mc_code;
     m_data[".ctrldata"] = control_packet;
-    add_symbols(patch_data);
+
+    if (patch_json.size() !=0 )
+    {
+      std::stringstream elf_stream(patch_json.data());
+      readmetajson(elf_stream);
+    }
 
     auto col = extractSymbolFromBuffer(m_data[".ctrltext"], ctrlText, control_packet.size() ? "control-packet" : "");
 
@@ -51,7 +61,6 @@ public:
     }
   }
 };
-
 
 class aie2_blob_transaction_preprocessor_input : public aie2_blob_preprocessor_input
 {
@@ -82,12 +91,12 @@ protected:
 
 public:
   virtual void set_args(const std::vector<char>& mc_code,
-                        const std::vector<symbol>& patch_data,
+                        const std::vector<char>& patch_json,
                         const std::vector<char>& control_packet,
                         const std::vector<std::string>& libs,
                         const std::vector<std::string>& libpaths) override
   {
-    aie2_blob_preprocessor_input::set_args(mc_code, patch_data, control_packet, libs, libpaths);
+    aie2_blob_preprocessor_input::set_args(mc_code, patch_json, control_packet, libs, libpaths);
     resize_scratchpad(preempt_save);
     resize_scratchpad(preempt_restore);
   }

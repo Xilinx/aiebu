@@ -8,31 +8,45 @@
 #include "aiebu_assembler.h"
 #include <algorithm>
 
-using namespace std;
+void usage_exit()
+{
+  std::cout << "Usage: aie2_cpp.out <txn.bin> <control_packet.bin> <external_buffer_id.json>" << std::endl;
+  exit(1);
+}
 
 int main(int argc, char ** argv)
 {
 
-  vector<char> v1;
-  vector<char> v2;
-  std::vector<aiebu::patch_info> patch_data;
+  if (argc != 2 && argc != 4)
+    usage_exit();
 
-  std::ifstream input( argv[1], std::ios::binary );
+  std::vector<char> txn_buf;
+  std::vector<char> control_packet_buf;
+  std::vector<char> external_buffer_id_json_buf;
+
+  // Reading txn buffer
+  std::ifstream input(argv[1], std::ios::binary);
   std::copy(std::istreambuf_iterator<char>(input),
             std::istreambuf_iterator<char>( ),
-            std::back_inserter(v1));
+            std::back_inserter(txn_buf));
 
   if (argc > 2) {
-  std::ifstream input( argv[2], std::ios::binary );
-  std::copy(std::istreambuf_iterator<char>(input),
-            std::istreambuf_iterator<char>( ),
-            std::back_inserter(v2));
+    // Reading control_pack and external_buffer_id_json
+    std::ifstream input(argv[2], std::ios::binary);
+    std::copy(std::istreambuf_iterator<char>(input),
+              std::istreambuf_iterator<char>( ),
+              std::back_inserter(control_packet_buf));
+
+    std::ifstream input1(argv[3], std::ios::binary);
+    std::copy(std::istreambuf_iterator<char>(input1),
+              std::istreambuf_iterator<char>( ),
+              std::back_inserter(external_buffer_id_json_buf));
   }
 
-  aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::blob_instr_dpu, v1, v2, patch_data);
+  aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::blob_instr_transaction,
+                            txn_buf, control_packet_buf, external_buffer_id_json_buf);
   auto e = as.get_elf();
-  cout << "elf size:" << e.size() << "\n";
-
+  std::cout << "elf size:" << e.size() << "\n";
   std::ofstream output_file("out.elf");
   std::ostream_iterator<char> output_iterator(output_file);
   std::copy(e.begin(), e.end(), output_iterator);

@@ -49,10 +49,10 @@ assembler::
 process(const std::vector<char>& buffer1,
         const std::vector<std::string>& libs,
         const std::vector<std::string>& libpaths,
-        const std::vector<symbol>& patch_data,
+        const std::vector<char>& patch_json,
         const std::vector<char>& buffer2)
 {
-  m_ppi->set_args(buffer1, patch_data, buffer2, libs, libpaths);
+  m_ppi->set_args(buffer1, patch_json, buffer2, libs, libpaths);
   auto ppo = m_preprocessor->process(m_ppi);
   auto w = m_enoder->process(ppo);
   auto u = m_elfwriter->process(w);

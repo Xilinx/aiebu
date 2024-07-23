@@ -8,6 +8,208 @@
 
 namespace aiebu {
 
+
+  /*
+  sample json
+  {
+      "external_buffers": {
+          "buffer0": {
+              "xrt_id": 1,
+              "size_in_bytes": 345088,
+              "name": "coalesed_weights",
+              "coalesed_buffers": [
+                  {
+                      "logical_id": 0,
+                      "offset_in_bytes": 0,
+                      "name": "compute_graph.resnet_layers[0].wts_ddr",
+                      "control_packet_patch_locations": [
+                          {
+                              "offset": 17420,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          },
+                          {
+                              "offset": 17484,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          },
+                          {
+                              "offset": 17548,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          },
+                          {
+                              "offset": 17612,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          }
+                      ]
+                  },
+                  {
+                      "logical_id": 1,
+                      "offset_in_bytes": 37888,
+                      "name": "compute_graph.resnet_layers[1].wts_ddr",
+                      "control_packet_patch_locations": [
+                          {
+                              "offset": 19404,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          },
+                          {
+                              "offset": 19468,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          },
+                          {
+                              "offset": 19532,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          },
+                          {
+                              "offset": 19596,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          }
+                      ]
+                  },
+                  {
+                      "logical_id": 2,
+                      "offset_in_bytes": 195584,
+                      "name": "compute_graph.resnet_layers[2].wts_ddr",
+                      "control_packet_patch_locations": [
+                          {
+                              "offset": 40012,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          },
+                          {
+                              "offset": 40076,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          },
+                          {
+                              "offset": 40140,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          },
+                          {
+                              "offset": 40204,
+                              "size": 6,
+                              "operation": "read_add_write"
+                          }
+                      ]
+                  }
+              ]
+          },
+          "buffer1": {
+              "xrt_id": 2,
+              "logical_id": 3,
+              "size_in_bytes": 802816,
+              "name": "compute_graph.ifm_ddr",
+              "control_packet_patch_locations": [
+                  {
+                      "offset": 12,
+                      "size": 6,
+                      "operation": "read_add_write"
+                  },
+                  {
+                      "offset": 76,
+                      "size": 6,
+                      "operation": "read_add_write"
+                  }
+              ]
+          },
+          "buffer2": {
+              "xrt_id": 3,
+              "logical_id": 4,
+              "size_in_bytes": 458752,
+              "name": "compute_graph.ofm_ddr",
+              "control_packet_patch_locations": [
+                  {
+                      "offset": 60428,
+                      "size": 6,
+                      "operation": "read_add_write"
+                  },
+                  {
+                      "offset": 60492,
+                      "size": 6,
+                      "operation": "read_add_write"
+                  }
+              ]
+          },
+          "buffer3": {
+              "xrt_id": 0,
+              "logical_id": -1,
+              "size_in_bytes": 60736,
+              "ctrl_pkt_buffer": 1,
+              "name": "runtime_control_packet"
+          }
+      }
+  }
+  */
+  void
+  aie2_blob_preprocessor_input::
+  extract_coalesed_buffers(const std::string& name,
+                           const boost::property_tree::ptree& pt)
+  {
+    const auto coalesed_buffers_pt = pt.get_child_optional("coalesed_buffers");
+    if (!coalesed_buffers_pt)
+      return;
+
+    const auto coalesed_buffers = coalesed_buffers_pt.get();
+    for (auto coalesed_buffer : coalesed_buffers)
+      extract_control_packet_patch(name, coalesed_buffer.second);
+  }
+
+  void
+  aie2_blob_preprocessor_input::
+  extract_control_packet_patch(const std::string& name,
+                               const boost::property_tree::ptree& pt)
+  {
+    const uint32_t addend = pt.get<uint32_t>("offset_in_bytes", 0);
+    const auto control_packet_patch_pt = pt.get_child_optional("control_packet_patch_locations");
+    if (!control_packet_patch_pt)
+      return;
+
+    const auto patchs = control_packet_patch_pt.get();
+    for (auto pat : patchs)
+    {
+      auto patch = pat.second;
+      // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
+      uint32_t offset = patch.get<uint32_t>("offset") - 8;
+      add_symbol({name, offset, 0, 0, addend, 0, ctrlData, symbol::patch_schema::control_packet_48});
+    }
+  }
+
+  void
+  aie2_blob_preprocessor_input::
+  readmetajson(std::stringstream& patch_json)
+  {
+    // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
+    // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
+    constexpr static uint32_t ARG_OFFSET = 3;
+    boost::property_tree::ptree pt;
+    boost::property_tree::read_json(patch_json, pt);
+  
+    const auto pt_external_buffers = pt.get_child_optional("external_buffers");
+    if (!pt_external_buffers)
+      return;
+
+    const auto external_buffers = pt_external_buffers.get();
+    for (auto& external_buffer : external_buffers)
+    {
+      const auto pt_coalesed_buffers = external_buffer.second.get_child_optional("coalesed_buffers");
+
+      // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
+      std::string name = std::to_string(external_buffer.second.get<uint32_t>("xrt_id") + ARG_OFFSET);
+
+      if (pt_coalesed_buffers)
+        extract_coalesed_buffers(name, external_buffer.second);
+      else
+        extract_control_packet_patch(name, external_buffer.second);
+    }
+  }
+
   void
   aie2_blob_preprocessor_input::
   clear_shimBD_address_bits(std::vector<char>& mc_code, uint32_t offset) const
