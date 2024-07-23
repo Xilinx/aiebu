@@ -11,7 +11,7 @@
 
 namespace aiebu {
 
-    reporter::reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& elf_data)
+    reporter::reporter(aiebu::aiebu_assembler::buffer_type /*type*/, const std::vector<char>& elf_data)
     {
         boost::interprocess::ibufferstream istr(elf_data.data(), elf_data.size());
         bool result = my_elf_reader.load(istr);

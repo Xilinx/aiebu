@@ -10,8 +10,8 @@ namespace aiebu {
 
 class aie2_blob_elf_writer: public elf_writer
 {
-  constexpr static int ob_abi = 0x45;
-  constexpr static int version = 0x01;
+  constexpr static unsigned char ob_abi = 0x45;
+  constexpr static unsigned char version = 0x01;
 public:
   aie2_blob_elf_writer(): elf_writer(ob_abi, version)
   { }

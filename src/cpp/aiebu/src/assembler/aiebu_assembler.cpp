@@ -110,7 +110,7 @@ convert_patchdata(const struct aiebu_patch_info* patch_data,
   };
 
   std::vector<aiebu::patch_info> vpatch;
-  for (int i=0; i< patch_data_size; ++i)
+  for (auto i=0U; i< patch_data_size; ++i)
   {
     aiebu::patch_info p;
     p.symbol = patch_data[i].symbol;
@@ -165,7 +165,7 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
     char *aelf = static_cast<char*>(std::malloc(sizeof(char)*velf.size()));
     std::copy(velf.begin(), velf.end(), aelf);
     *elf_buf = (void*)aelf;
-    ret = velf.size();
+    ret = static_cast<int>(velf.size());
   }
   catch (aiebu::error &ex)
   {

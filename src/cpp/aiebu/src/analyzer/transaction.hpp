@@ -20,10 +20,10 @@ class transaction {
 public:
   struct arg_map {
     // map of arg_idx to new_arg_idx, offset
-    std::unordered_map<uint32_t, std::pair<uint32_t, size_t>> amap;
+    std::unordered_map<uint64_t, std::pair<uint64_t, uint64_t>> amap;
   };
 
-  transaction(const char *txn, unsigned size);
+  transaction(const char *txn, uint64_t size);
   [[nodiscard]] std::string get_txn_summary() const;
   [[nodiscard]] std::string get_all_ops() const;
 

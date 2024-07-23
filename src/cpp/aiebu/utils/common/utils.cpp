@@ -329,7 +329,7 @@ void
 aiebu::utilities::report_commands_help(const std::string &executable,
                                        const std::string &description,
                                        const po::options_description& option_description,
-                                       const target_collection& sub_targets)
+                                       const target_collection& /*sub_targets*/)
 {
   const auto& fh = FormatHelper::instance();
 
@@ -415,7 +415,6 @@ aiebu::utilities::report_option_help(const std::string & group_name,
   if ( !group_name.empty() )
     std::cout << fmtHeader % group_name;
 
-  bool printAllOptions = false;
   po::options_description common_options(option_description);
 
   // Generate the common options
@@ -431,7 +430,7 @@ aiebu::utilities::report_target_help(const std::string& executable_name,
                                      const std::string& starget,
                                      const std::string& description,
                                      const po::options_description& option_description,
-                                     bool remove_long_opt_dashes)
+                                     bool /*remove_long_opt_dashes*/)
 {
   const auto& fh = FormatHelper::instance();
 
