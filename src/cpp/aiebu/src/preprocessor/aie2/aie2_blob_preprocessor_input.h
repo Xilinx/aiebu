@@ -4,6 +4,7 @@
 #ifndef _AIEBU_PREPROCESSOR_AIE2_BLOB_PREPROCESSOR_INPUT_H_
 #define _AIEBU_PREPROCESSOR_AIE2_BLOB_PREPROCESSOR_INPUT_H_
 
+#include <map>
 #include "symbol.h"
 #include "utils.h"
 #include "aiebu_assembler.h"
@@ -23,6 +24,17 @@ protected:
   const std::string preempt_lib = "preempt";
   const std::string scratch_pad = "scratch-pad-mem";
 
+  enum class register_id {
+    MEM_BUFFER_LENGTH,
+    MEM_BASE_ADDRESS,
+    SHIM_BUFFER_LENGTH
+  };
+
+  std::map<register_id, uint32_t> register_mask = {
+    { register_id::MEM_BUFFER_LENGTH, 0x1FFFF},
+    { register_id::MEM_BASE_ADDRESS, 0x7FFFF},
+    { register_id::SHIM_BUFFER_LENGTH, 0xFFFFFFFF}
+  };
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) = 0;
   void readmetajson(std::stringstream& patch_json);
   void extract_control_packet_patch(const std::string& name, const boost::property_tree::ptree& _pt);
@@ -66,6 +78,8 @@ class aie2_blob_transaction_preprocessor_input : public aie2_blob_preprocessor_i
 {
 protected:
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) override;
+  void patch_helper(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname,
+                    uint32_t reg, uint32_t argidx, uint32_t offset, uint64_t buffer_length_in_bytes, uint32_t addend);
   void resize_scratchpad(const std::string& section_name)
   {
     std::vector<symbol> &syms = get_symbols();

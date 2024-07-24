@@ -38,12 +38,16 @@ private:
   uint32_t m_addend;
   std::string m_section_name;
   ELFIO::Elf_Word m_index;
+  // size is overloaded
+  // for scaler_32, it contaim mask
+  // for shim_dma_48, it contain size of dma
   uint64_t m_size;
 
 public:
 
   symbol(const std::string& name, uint32_t pos, uint32_t colnum, uint32_t pagenum, uint32_t addend,
-         uint64_t size, const std::string& section_name, patch_schema schema=patch_schema::unknown)
+         uint64_t size, const std::string& section_name,
+         patch_schema schema=patch_schema::unknown)
          :m_name(name), m_schema(schema), m_pos(pos), m_colnum(colnum),
           m_pagenum(pagenum), m_addend(addend), m_size(size), m_section_name(section_name)  { }
 
