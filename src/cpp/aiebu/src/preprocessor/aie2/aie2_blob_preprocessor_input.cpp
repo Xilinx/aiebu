@@ -34,7 +34,7 @@ namespace aiebu {
     // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
     // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
     constexpr static uint32_t ARG_OFFSET = 3;
-    std::map<uint32_t,std::pair<uint32_t, uint32_t>> blockWriteRegOffsetMap;
+    std::map<uint64_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
     const char *ptr = (mc_code.data());
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
     //printf("Header version %d.%d\n", txn_header->Major, txn_header->Minor);
@@ -56,8 +56,8 @@ namespace aiebu {
             case XAIE_IO_BLOCKWRITE: {
                 auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr *>(ptr);
                 auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr));
-                auto offset = (size_t)(payload-mc_code.data());
-                uint32_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * 4;
+                auto offset = static_cast<uint32_t>(payload-mc_code.data());
+                uint64_t buffer_length_in_bytes = reinterpret_cast<const uint64_t*>(payload)[0] * 4;
                 blockWriteRegOffsetMap[bw_header->RegOff] = std::make_pair(offset, buffer_length_in_bytes);
                 ptr += bw_header->Size;
                 break;
@@ -80,7 +80,7 @@ namespace aiebu {
             case XAIE_IO_CUSTOM_OP_BEGIN+1: {
                 auto hdr = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
                 auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
-                uint32_t reg = op->regaddr-4;  // regaddr point to 2nd word of BD
+                uint64_t reg = op->regaddr-4;  // regaddr point to 2nd word of BD
                 auto it = blockWriteRegOffsetMap.find(reg);
                 if ( it == blockWriteRegOffsetMap.end()) {
                    std::cout << "address "<< std::hex <<"0x" << reg << " have no block write opcode !!! removing all patching info";
@@ -89,7 +89,7 @@ namespace aiebu {
                 }
                 uint32_t offset = blockWriteRegOffsetMap[reg].first;
                 uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
-                uint32_t addend = op->argplus;
+                uint32_t addend = static_cast<uint32_t>(op->argplus);
                 clear_shimBD_address_bits(mc_code, offset);
 
                 if (argname.empty())
@@ -136,7 +136,7 @@ namespace aiebu {
     if ( it == arg2name.end() )
       throw error(error::error_code::internal_error, "Invalid dpu arg:" + std::to_string(regId) + " !!!");
 
-    uint32_t offset = (pc+1)*4; //point to start of BD
+    uint32_t offset = static_cast<uint32_t>((pc+1)*4); //point to start of BD
     add_symbol({arg2name[regId], offset, 0, 0, 0, 0, section_name, symbol::patch_schema::shim_dma_48});
   }
 
@@ -144,12 +144,12 @@ namespace aiebu {
   aie2_blob_dpu_preprocessor_input::
   extractSymbolFromBuffer(std::vector<char>& mc_code,
                           const std::string& section_name,
-                          const std::string& argname)
+                          const std::string& /*argname*/)
   {
     // For dpu 
     auto instr_ptr = reinterpret_cast<const uint32_t*>(mc_code.data());
-    uint32_t inst_word_size = mc_code.size()/4;
-    size_t pc = 0;																		
+    size_t inst_word_size = mc_code.size()/4;
+    size_t pc = 0;
 
     while (pc < inst_word_size) {
       uint32_t opcode = (instr_ptr[pc] & 0xFF000000) >> 24;

@@ -26,7 +26,7 @@ using offset_type = uint32_t;
 namespace aiebu {
 
 #define HEADER_ACCESS_GET_SET( TYPE, FNAME )  \
-    const TYPE get_##FNAME() const            \
+    TYPE get_##FNAME() const            \
     {                                         \
         return m_##FNAME;                     \
     }                                         \
@@ -36,7 +36,7 @@ namespace aiebu {
     }
 
 #define HEADER_ACCESS_GET( TYPE, FNAME )      \
-    const TYPE get_##FNAME() const            \
+    TYPE get_##FNAME() const            \
     {                                         \
         return m_##FNAME;                     \
     }

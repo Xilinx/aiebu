@@ -36,9 +36,10 @@ private:
   uint32_t m_colnum;
   uint32_t m_pagenum;
   uint32_t m_addend;
+  uint64_t m_size;
   std::string m_section_name;
   ELFIO::Elf_Word m_index;
-  uint64_t m_size;
+
 
 public:
 
@@ -51,7 +52,11 @@ public:
   symbol& operator=(const symbol& rhs) = default;
   symbol(symbol &&s) = default;
 
-  HEADER_ACCESS_GET(std::string&, name);
+  std::string get_name() const
+  {
+    return m_name;
+  }
+
   HEADER_ACCESS_GET_SET(patch_schema, schema);
   HEADER_ACCESS_GET_SET(offset_type, pos);
   HEADER_ACCESS_GET_SET(uint32_t, addend);

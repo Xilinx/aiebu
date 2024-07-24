@@ -22,7 +22,7 @@ public:
     std::vector<uint8_t> out;
     out.resize(in.size());
     std::transform(in.begin(), in.end(), out.begin(), [](char c) {return static_cast<uint8_t>(c);});
-    return std::move(out);
+    return out;
   }
 
   virtual std::shared_ptr<preprocessed_output>

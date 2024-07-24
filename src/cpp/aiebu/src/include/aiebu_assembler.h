@@ -70,12 +70,12 @@ struct patch_info {
 
 // Assembler Class
 
-class DRIVER_DLLESPEC aiebu_assembler {
+class aiebu_assembler {
   std::vector<char> elf_data;
 
   public:
 
-    enum class buffer_type {
+    enum class DRIVER_DLLESPEC buffer_type {
       blob_instr_dpu,
       blob_instr_prepost,
       blob_instr_transaction,
@@ -104,6 +104,7 @@ class DRIVER_DLLESPEC aiebu_assembler {
      * @libs           libs to include in elf
      * @libpaths       paths to search for libs
      */
+     DRIVER_DLLESPEC
      aiebu_assembler(buffer_type type,
                const std::vector<char>& buffer1,
                const std::vector<char>& buffer2,
@@ -122,6 +123,7 @@ class DRIVER_DLLESPEC aiebu_assembler {
      * @libpaths       paths to search for libs
      * @patch_data     relocatable information
      */
+    DRIVER_DLLESPEC
     aiebu_assembler(buffer_type type,
               const std::vector<char>& buffer,
               const std::vector<std::string>& libs = {},
@@ -140,9 +142,11 @@ class DRIVER_DLLESPEC aiebu_assembler {
      * return: vector of char with elf content
      */
     [[nodiscard]]
+    DRIVER_DLLESPEC
     std::vector<char>
     get_elf() const;
 
+    DRIVER_DLLESPEC
     void
     get_report(std::ostream &stream) const;
 };

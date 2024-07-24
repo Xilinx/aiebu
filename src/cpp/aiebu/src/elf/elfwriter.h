@@ -82,7 +82,7 @@ protected:
 
 public:
 
-  elf_writer(int abi, int version)
+  elf_writer(unsigned char abi, unsigned char version)
   {
     m_elfio.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2LSB);
     m_elfio.set_os_abi(abi);
