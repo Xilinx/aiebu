@@ -8,9 +8,9 @@
 
 int main(int argc, char **argv)
 {
-  char* v1;
-  char* v2;
-  char* v3;
+  char* v1 = NULL;
+  char* v2 = NULL;
+  char* v3 = NULL;
   size_t vs1 = 0, vs2 = 0, ps = 0, vs3 = 0;
   struct aiebu_patch_info patch_data[3];
   patch_data[0].symbol[0] = 'i';

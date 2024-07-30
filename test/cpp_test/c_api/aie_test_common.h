@@ -37,7 +37,11 @@ char* ReadFile(char *name, long *s)
   }
 
   //Read file contents into buffer
-  fread(buffer, fileLen, 1, file);
+  size_t count = fread(buffer, fileLen, 1, file);
+  if (count != fileLen) {
+    free(buffer);
+    buffer = NULL;
+  }
   fclose(file);
   return buffer;
 }
