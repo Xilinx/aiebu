@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.18.0)
 
-project(AIEBU HOMEPAGE_URL https://gitenterprise.xilinx.com/XRT/aiebu)
+project(AIEBU HOMEPAGE_URL https://github.com/Xilinx/aiebu)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(CMAKE_INSTALL_PREFIX "/opt/xilinx")
@@ -11,12 +11,32 @@ else()
   set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/xilinx" CACHE PATH "..." FORCE)
 endif()
 
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(AIEBU_INSTALL_DIR "aiebu")
 
 message("-- CMAKE_SYSTEM=${CMAKE_SYSTEM}")
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
+
+find_package(Git REQUIRED)
+
+if (NOT AIEBU_IS_TOP_LEVEL)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --show-superproject-working-tree
+    WORKING_DIRECTORY ${AIEBU_SOURCE_DIR}
+    OUTPUT_VARIABLE PARENT_PROJECT_ROOT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  message("-- Compiling AIEBU as a submodule of: ${PARENT_PROJECT_ROOT}")
+  # Make AIEBU .clangd configuration for compile_commands.json point back to the compile_commands.json
+  # in the top level repository
+  SET(DEBUG_DIR_NAME "Debug")
+  if (CMAKE_HOST_WIN32)
+    SET(DEBUG_DIR_NAME "WDebug")
+  endif()
+  file(CREATE_LINK "${PARENT_PROJECT_ROOT}/build/${DEBUG_DIR_NAME}" "${AIEBU_SOURCE_DIR}/build/${DEBUG_DIR_NAME}" SYMBOLIC)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
