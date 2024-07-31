@@ -65,7 +65,7 @@ class target_aie2blob: public target
   protected:
     std::vector<char> m_transaction_buffer;
     std::vector<char> m_control_packet_buffer;
-    std::vector<aiebu::patch_info> m_patch_data;
+    std::vector<char> m_patch_data_buffer;
     std::vector<std::string> m_libs;
     std::vector<std::string> m_libpaths;
     std::string m_output_elffile;

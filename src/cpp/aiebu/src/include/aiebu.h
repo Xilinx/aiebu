@@ -31,35 +31,15 @@ enum aiebu_assembler_buffer_type {
   aiebu_assembler_buffer_type_blob_control_packet
 };
 
-enum aiebu_patch_buffer_type {
-  aiebu_patch_buffer_type_instruct,
-  aiebu_patch_buffer_type_control_packet
-};
-
-enum aiebu_patch_schema {
-  aiebu_patch_schema_scaler_32,
-  aiebu_patch_schema_shim_dma_48,
-  aiebu_patch_schema_shim_dma_57,
-  aiebu_patch_schema_control_packet_48
-};
-
-struct aiebu_patch_info {
-  char symbol[128];
-  enum aiebu_patch_buffer_type  buf_type;
-  enum aiebu_patch_schema  schema;
-  unsigned int offset;
-  unsigned int addend;
-};
-
 /*
- * This API takes buffer type, 2 buffers, their sizes and a array of symbols with their
- * patching information as input. it also allocate elf_buf and It fill elf content in it.
+ * This API takes buffer type, 2 buffers, their sizes and external_buffer_id json
+ * it also allocate elf_buf and It fill elf content in it.
  * return, on success return return elf size, else posix error(negative).
  * User may pass any combination like
- * 1. type as aiebu_assembler_buffer_type_blob_instr_dpu, buffer1 as instruction buffer
+ * 1. type as aiebu_assembler_buffer_type_blob_instr_transaction, buffer1 as instruction buffer
  *    and buffer2 as control_packet: in this case it will package buffers in text and data
  *    section of elf respectively.
- * 2. type as aiebu_assembler_buffer_type_blob_instr_dpu, buffer1 as instruction buffer
+ * 2. type as aiebu_assembler_buffer_type_blob_instr_transaction, buffer1 as instruction buffer
  *    and buffer2 as null: in this case it will package buffer in text section.
  *
  * @type                buffer type
@@ -68,12 +48,10 @@ struct aiebu_patch_info {
  * @control_buf         second buffer
  * @control_buf_size    second buffer size
  * @elf_buf             elf buffer
- * @patch_data          relocatable information.
- * @patch_data_size     patch data array size
+ * @patch_json          external_buffer_id_json buffer.
+ * @patch_json_size     patch_json array size
  * @libs                libs to be included, ";" separated.
- * @libs_size           libs array size
  * @libpaths            paths to search for libs, ";" separated.
- * @libpaths_size       libpaths array size
  */
 DRIVER_DLLESPEC
 int
@@ -83,8 +61,8 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         const char* buffer2,
                         size_t buffer2_size,
                         void** elf_buf,
-                        const struct aiebu_patch_info* patch_data,
-                        size_t patch_data_size,
+                        const char* patch_json,
+                        size_t patch_json_size,
                         const char* libs,
                         const char* libpaths);
 

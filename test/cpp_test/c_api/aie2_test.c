@@ -6,45 +6,41 @@
 #include "aiebu.h"
 #include "aie_test_common.h"
 
+void usage_exit()
+{
+  printf("Usage: aie2_c.out <txn.bin> <control_packet.bin> <external_buffer_id.json>\n");
+  exit(1);
+}
+
 int main(int argc, char **argv)
 {
-  char* v1 = NULL;
-  char* v2 = NULL;
-  char* v3 = NULL;
-  size_t vs1 = 0, vs2 = 0, ps = 0, vs3 = 0;
-  struct aiebu_patch_info patch_data[3];
-  patch_data[0].symbol[0] = 'i';
-  patch_data[0].symbol[1] = 'f';
-  patch_data[0].symbol[2] = 'm';
-  patch_data[0].symbol[3] = '\0';
+  if (argc != 2 && argc != 4)
+    usage_exit();
 
-  patch_data[0].buf_type = aiebu_patch_buffer_type_instruct;
-  patch_data[0].schema = aiebu_patch_schema_shim_dma_48;
-  patch_data[0].offset = 0x100;
+  char* txn_buf = NULL;
+  char* control_packet_buf = NULL;
+  char* external_buffer_id_json_buf = NULL;
+  char* elf_buf = NULL;
 
-  patch_data[1].symbol[0] = 'd';
-  patch_data[1].symbol[1] = 'f';
-  patch_data[1].symbol[2] = 'g';
-  patch_data[1].symbol[3] = '\0';
-  patch_data[1].buf_type = aiebu_patch_buffer_type_instruct;
-  patch_data[1].schema = aiebu_patch_schema_shim_dma_48;
-  patch_data[1].offset = 0x2100;
+  size_t txn_buf_size, control_packet_buf_size = 0, external_buffer_id_json_buf_size = 0, elf_buf_size;
 
-  patch_data[2].symbol[0] = 'x';
-  patch_data[2].symbol[1] = 'y';
-  patch_data[2].symbol[2] = 'z';
-  patch_data[2].symbol[3] = '\0';
-  patch_data[2].buf_type = aiebu_patch_buffer_type_control_packet;
-  patch_data[2].schema = aiebu_patch_schema_shim_dma_48;
-  patch_data[2].offset = 0x3100;
-  ps = 3;
-  v1 = ReadFile(argv[1], (long *)&vs1);
-  if ( argc > 2)
-      v2 = ReadFile(argv[2], (long *)&vs2);
+  txn_buf = ReadFile(argv[1], (long *)&txn_buf_size);
+  if (argc > 2)
+  {
+    control_packet_buf = ReadFile(argv[2], (long *)&control_packet_buf_size);
+    external_buffer_id_json_buf = ReadFile(argv[3], (long *)&external_buffer_id_json_buf_size);
+  }
 
-  vs3 = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_blob_instr_dpu, v1, vs1, v2, vs2, (void**)&v3,
-                                patch_data, ps, "", "");
-  free((void*)vs3);
-  printf("Size returned :%zd\n", vs3);
+  elf_buf_size = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_blob_instr_transaction,
+                                txn_buf, txn_buf_size,
+                                control_packet_buf, control_packet_buf_size,
+                                (void**)&elf_buf,
+                                external_buffer_id_json_buf, external_buffer_id_json_buf_size,
+                                "", "");
+  if (elf_buf_size > 0)
+  {
+    free((void*)elf_buf);
+    printf("Size returned :%zd\n", elf_buf_size);
+  }
   return 0;
 }

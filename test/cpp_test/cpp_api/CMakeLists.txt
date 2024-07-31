@@ -4,7 +4,7 @@
 
 PROJECT(cpp_api)
 
-set(AIE2_TESTNAME "aie2.out")
+set(AIE2_TESTNAME "aie2_cpp.out")
 
 add_executable(${AIE2_TESTNAME} aie2_test.cpp)
 
