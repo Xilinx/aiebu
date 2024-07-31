@@ -75,9 +75,20 @@ add_dynsym_section(ELFIO::string_section_accessor* stra, std::vector<symbol>& sy
 
   // Create symbol table writer
   ELFIO::symbol_section_accessor syma( m_elfio, dsym_sec );
+  std::map<std::string, ELFIO::Elf_Word> hash;
   for (auto & sym : syms) {
-    const ELFIO::section* sec = m_elfio.sections[sym.get_section_name()];
-    sym.set_index(syma.add_symbol(*stra, sym.get_name().c_str(), 0, sym.get_size(), ELFIO::STB_GLOBAL, ELFIO::STT_OBJECT, 0, sec->get_index()));
+    std::string key = sym.get_section_name() + "_" + sym.get_name() + "_" +
+                      std::to_string(sym.get_size());
+    auto it = hash.find(key);
+    if (it == hash.end())
+    {
+      const ELFIO::section* sec = m_elfio.sections[sym.get_section_name()];
+      auto index = syma.add_symbol(*stra, sym.get_name().c_str(), 0,
+                                   sym.get_size(), ELFIO::STB_GLOBAL, ELFIO::STT_OBJECT,
+                                   0, sec->get_index());
+      hash[key] = index;
+    }
+    sym.set_index(hash[key]);
   }
 
 }
