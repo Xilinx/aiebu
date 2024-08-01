@@ -21,7 +21,7 @@ message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 
 find_package(Git REQUIRED)
 
-if (NOT AIEBU_IS_TOP_LEVEL)
+if ((NOT AIEBU_IS_TOP_LEVEL) OR (DEFINED XRT_SOURCE_DIR))
   execute_process(
     COMMAND ${GIT_EXECUTABLE} rev-parse --show-superproject-working-tree
     WORKING_DIRECTORY ${AIEBU_SOURCE_DIR}
