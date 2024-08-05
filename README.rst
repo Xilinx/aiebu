@@ -8,46 +8,63 @@
 AIE Binary Utilities (AIEBU)
 ============================
 
-AIE Binary Utilities for assembler, disassembler, ELF, etc.
+This repository contains library and utilities to work with AIE *ctrlcode*
 
-Init worksapce, including submodules
+Init workspace, including submodules
 ====================================
 
-git submodule update --init --recursive
+::
 
+   git submodule update --init --recursive
 
-Build dependencies
+Build Dependencies
 ==================
 
-Compiling requires having installed:
- * cmake >= version 3.18
- * c++17
+ * cmake 3.21 or above
+ * c++17 compiler
+ * Boost
+ * ELFIO (included as submodule)
+ * aie-rt (included as submodule)
 
 Build Instruction
 =================
-For centos and ubuntu
+Linux
+-----
 
- * cd build
- * ./build.sh
+::
 
-For Windows
+   cd build
+   ./build.sh
 
- * cd build
- * ./build22.bat
+Windows
+-------
+
+::
+
+   cd build
+   ./build22.bat
 
 
 Test
 ----
-"test/cpp_test" contain sample code to show usage exposed apis(c/cpp).
+Directory ``test/cpp_test`` contains sample code to show usage of public C/C++ APIs.
 
-Test binaries location: opt/xilinx/aiebu/bin/cpp_api and opt/xilinx/aiebu/bin/c_api
+Compiled test binaries location:
+ * ``opt/xilinx/aiebu/bin/cpp_api``
+ * ``opt/xilinx/aiebu/bin/c_api``
 
-Exposed headerfiles/Library
----------------------------
-Headerfiles: opt/xilinx/aiebu/include
+
+Public Header Files
+-------------------
+
+Directory ``opt/xilinx/aiebu/include``
  * aiebu.h
  * aiebu_assembler.h
  * aiebu_error.h
 
-Libary: opt/xilinx/aiebu/lib
+Compiled Libraries
+------------------
+
+Directory ``opt/xilinx/aiebu/lib``
  * libaiebu.so
+ * libaiebu_static.a
