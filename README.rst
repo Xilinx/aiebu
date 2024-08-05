@@ -8,7 +8,7 @@
 AIE Binary Utilities (AIEBU)
 ============================
 
-This repository contains library and utilities to work with AIE ctrlcode
+This repository contains library and utilities to work with AIE *ctrlcode*
 
 Init workspace, including submodules
 ====================================
