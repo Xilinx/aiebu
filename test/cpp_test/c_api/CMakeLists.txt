@@ -4,7 +4,7 @@
 
 PROJECT(c_api)
 
-set(AIE2_TESTNAME "aie2c.out")
+set(AIE2_TESTNAME "aie2_c.out")
 
 add_executable(${AIE2_TESTNAME} aie2_test.c)
 

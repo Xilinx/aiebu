@@ -24,7 +24,7 @@ public:
   preprocessor_input() {}
 
   virtual void set_args(const std::vector<char>&,
-                        const std::vector<symbol>&,
+                        const std::vector<char>& patch_json,
                         const std::vector<char>&,
                         const std::vector<std::string>&,
                         const std::vector<std::string>&) = 0;
