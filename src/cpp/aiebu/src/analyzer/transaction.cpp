@@ -44,7 +44,7 @@ private:
     }
 
 public:
-    implementation(const char *txn, unsigned size) {
+    implementation(const char *txn, uint64_t size) {
 
         // TXN with transaction_op_t header is not suupported.
         const auto *hdr = reinterpret_cast<const XAie_TxnHeader *>(txn);
@@ -94,7 +94,7 @@ private:
         const auto num_ops = Hdr->NumOps;
         ptr += sizeof(*Hdr);
 
-        for (auto i = 0; i < num_ops; i++) {
+        for (auto i = 0U; i < num_ops; i++) {
             auto op_hdr = (const XAie_OpHdr *)(ptr);
             op_count[op_hdr->Op]++;
             switch (op_hdr->Op) {
@@ -119,28 +119,28 @@ private:
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_TCT): {
-                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr += Hdr->Size;
+                auto custom_hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += custom_hdr->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_DDR_PATCH): {
-                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr += Hdr->Size;
+                auto custom_hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += custom_hdr->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_BEGIN + 2): {
-                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr += Hdr->Size;
+                auto custom_hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += custom_hdr->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_BEGIN + 3): {
-                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr += Hdr->Size;
+                auto custom_hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += custom_hdr->Size;
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_BEGIN + 4): {
-                auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-                ptr += Hdr->Size;
+                auto custom_hdr = (const XAie_CustomOpHdr *)(ptr);
+                ptr += custom_hdr->Size;
                 break;
             }
             default:
@@ -244,7 +244,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
 
         std::stringstream ss;
 
-        for (auto i = 0; i < num_ops; i++) {
+        for (auto i = 0U; i < num_ops; i++) {
             const auto op_hdr = (const XAie_OpHdr *)ptr;
             size_t size = 0;
             switch (op_hdr->Op) {
@@ -292,7 +292,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
         // modify the txn in place.
         auto txn_hdr = (XAie_TxnHeader *)txn_ptr;
         auto ptr = txn_ptr + sizeof(*txn_hdr);
-        for (int i = 0; i < txn_hdr->NumOps; i++) {
+        for (auto i = 0U; i < txn_hdr->NumOps; i++) {
             auto op_hdr = (XAie_OpHdr *)ptr;
             switch (op_hdr->Op) {
             case XAIE_IO_CUSTOM_OP_DDR_PATCH: {
@@ -358,7 +358,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
     }
 };
 
-transaction::transaction(const char *txn, unsigned size) : impl(std::make_shared<transaction::implementation>(txn, size)) {}
+transaction::transaction(const char *txn, uint64_t size) : impl(std::make_shared<transaction::implementation>(txn, size)) {}
 
 std::string transaction::get_txn_summary() const
 {

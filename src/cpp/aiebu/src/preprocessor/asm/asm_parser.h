@@ -68,7 +68,7 @@ public:
            code_section sec, uint64_t size, uint32_t pgnum,
            uint32_t ln, std::string line)
            :m_op(op), m_optype(optype), m_section(sec), m_size(size),
-            m_pagenum(pgnum), m_linenumber(), m_line(line) {}
+            m_pagenum(pgnum), m_linenumber(ln), m_line(line) {}
 
   asm_data( asm_data* a)
   {

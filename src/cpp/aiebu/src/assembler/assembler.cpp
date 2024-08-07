@@ -56,7 +56,7 @@ process(const std::vector<char>& buffer1,
   auto ppo = m_preprocessor->process(m_ppi);
   auto w = m_enoder->process(ppo);
   auto u = m_elfwriter->process(w);
-  return std::move(u);
+  return u;
 }
 
 }

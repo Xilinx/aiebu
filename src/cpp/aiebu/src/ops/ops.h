@@ -35,7 +35,7 @@ public:
 
   virtual offset_type size(assembler_state& ) { return 0;}
   virtual offset_type align() {return 0;}
-  virtual std::vector<uint8_t> serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum)
+  virtual std::vector<uint8_t> serialize(assembler_state& /*state*/, std::vector<symbol>& /*symbols*/, uint32_t /*colnum*/, pageid_type /*pagenum*/)
   { std::vector<uint8_t> v; return v;}
 };
 
@@ -56,7 +56,7 @@ class long_op_serializer: public op_serializer
 public:
   long_op_serializer(std::shared_ptr<isa_op> opcode, std::vector<std::string> args):op_serializer(opcode, args) {}
 
-  offset_type size(assembler_state& state) override { return 4; }
+  offset_type size(assembler_state& /*state*/) override { return 4; }
 
   offset_type align() override { return 4; }
   std::vector<uint8_t> serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum) override;
@@ -78,7 +78,7 @@ class ucDmaBd_op_serializer: public op_serializer
 public:
   ucDmaBd_op_serializer(std::shared_ptr<isa_op> opcode, std::vector<std::string> args):op_serializer(opcode, args) {}
 
-  offset_type size(assembler_state& state) override { return 16; }
+  offset_type size(assembler_state& /*state*/) override { return 16; }
 
   offset_type align() override { return 16; }
   std::vector<uint8_t> serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum) override;
@@ -89,7 +89,7 @@ class ucDmaShimBd_op_serializer: public op_serializer
 public:
   ucDmaShimBd_op_serializer(std::shared_ptr<isa_op> opcode, std::vector<std::string> args):op_serializer(opcode, args) {}
 
-  offset_type size(assembler_state& state) override { return 16; }
+  offset_type size(assembler_state& /*state*/) override { return 16; }
 
   offset_type align() override { return 16; }
   std::vector<uint8_t> serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum) override;

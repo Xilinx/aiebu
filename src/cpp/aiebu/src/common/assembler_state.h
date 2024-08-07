@@ -30,8 +30,8 @@ class job
   uint32_t m_start_index;
   uint32_t m_end_index;
   pageid_type m_pagenum;
-  uint32_t m_eopnum;
   bool m_isdeferred;
+  uint32_t m_eopnum;
 
 public:
   std::vector<barrierid_type> m_barrierids;
@@ -107,13 +107,13 @@ class assembler_state
 {
   offset_type m_pos = 0;
 public:
+  std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> m_isa;
   std::vector<std::shared_ptr<asm_data>>& m_data;
   std::vector<jobid_type> m_jobids;
   std::unordered_map<jobid_type, std::shared_ptr<job>> m_jobmap;
   std::unordered_map<std::string, std::shared_ptr<label>> m_labelmap; 
   std::unordered_map<barrierid_type, std::vector<jobid_type>> m_localbarriermap;
   std::unordered_map<jobid_type, std::vector<jobid_type>> m_joblaunchmap;
-  std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> m_isa;
 
 
   assembler_state(std::shared_ptr<std::map<std::string,
@@ -141,7 +141,7 @@ public:
       m_jobmap.end(),
       std::back_inserter(keys),
       [](const std::unordered_map<jobid_type, std::shared_ptr<job>>::value_type &pair){return pair.first;});
-    return std::move(keys);
+    return keys;
   }
 
 };

@@ -21,8 +21,8 @@ public:
   page() {}
   page(uint32_t colnum, uint32_t pagenum, std::vector<std::shared_ptr<asm_data>> text,
        std::vector<std::shared_ptr<asm_data>> data, bool islastpage)
-       : m_colnum(colnum), m_pagenum(pagenum), m_text(text), m_data(data),
-       m_islastpage(islastpage) { }
+       : m_colnum(colnum), m_pagenum(pagenum), m_islastpage(islastpage),
+         m_text(text), m_data(data) { }
 
   HEADER_ACCESS_GET_SET(uint32_t, colnum);
   HEADER_ACCESS_GET_SET(pageid_type, pagenum);

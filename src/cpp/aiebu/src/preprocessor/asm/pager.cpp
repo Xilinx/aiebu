@@ -17,7 +17,7 @@ union_of_lists_inorder(std::vector<T>& vec1, std::vector<T>& vec2)
   std::merge(vec1.begin(), vec1.end(), vec2.begin(), vec2.end(), std::back_inserter(vec3));
   auto pte = std::unique(vec3.begin(), vec3.end());
   vec3.erase(pte, vec3.end());
-  return std::move(vec3);
+  return vec3;
 }
 
 offset_type
@@ -82,7 +82,7 @@ extractjobs(assembler_state& state, std::shared_ptr<job> pjob)
   }
   // Explicit dependencies (e.g. launch_job relation)
   jobids = union_of_lists_inorder<jobid_type>(jobids, pjob->m_dependentjobs);
-  return std::move(jobids); 
+  return jobids;
 }
 
 std::vector<std::string>
@@ -92,7 +92,7 @@ extractlabels(assembler_state& state, std::shared_ptr<asm_data> token)
   // Extract all labels connected to token
   std::vector<std::string> labels;
   if (token->isLabel())
-    return std::move(labels);
+    return labels;
 
   for (auto &arg : token->get_operation()->get_args())
   {
@@ -112,13 +112,13 @@ extractlabels(assembler_state& state, std::shared_ptr<asm_data> token)
       }
     }
   }
-  return std::move(labels);
+  return labels;
 }
 
 offset_type
 pager::
 extractjobsandlabels(assembler_state& state, std::shared_ptr<job> pjob,
-                     std::vector<jobid_type>& page_jobs,
+                     std::vector<jobid_type>& /*page_jobs*/,
                      std::vector<jobid_type>& job_list,
                      std::vector<std::string>& labels_list)
 {
@@ -168,7 +168,7 @@ labelalignmentsorter(assembler_state& state, std::vector<std::string>& clist)
     throw error(error::error_code::internal_error, "clist size" + std::to_string(clist.size()) + " != " +
           " labels size" + std::to_string(labels.size()));
 
-  return std::move(labels);
+  return labels;
 }
 
 void
@@ -228,7 +228,6 @@ pager::
 pagify(assembler_state& state, uint32_t col, std::vector<page>& pages)
 {
   // pagify the content
-  offset_type pos = PAGE_HEADER_SIZE;
   offset_type page_tsize = 0;
   offset_type page_dsize = 0;
   uint32_t page_index = 0;

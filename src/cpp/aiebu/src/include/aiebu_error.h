@@ -15,11 +15,11 @@
 
 namespace aiebu {
 
-class DRIVER_DLLESPEC error : public std::system_error
+class error : public std::system_error
 {
 public:
 
-  enum class error_code : int
+  enum class DRIVER_DLLESPEC error_code : int
   {
     invalid_asm = aiebu_invalid_asm,
     invalid_patch_schema = aiebu_invalid_patch_schema,
@@ -29,21 +29,26 @@ public:
     internal_error = aiebu_invalid_internal_error
   };
 
+  DRIVER_DLLESPEC
   error(error_code ec, const std::error_category& cat, const std::string& what = "");
 
   explicit
+  DRIVER_DLLESPEC
   error(error_code ec, const std::string& what = "");
 
   // Retrive underlying code for return plain error code
   [[nodiscard]]
+  DRIVER_DLLESPEC
   int
   value() const;
 
   [[nodiscard]]
+  DRIVER_DLLESPEC
   int
   get() const;
 
   [[nodiscard]]
+  DRIVER_DLLESPEC
   int
   get_code() const;
 };

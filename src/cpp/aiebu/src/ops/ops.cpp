@@ -7,7 +7,7 @@
 namespace aiebu {
 
 offset_type
-isa_op_serializer::size(assembler_state& state)
+isa_op_serializer::size(assembler_state& /*state*/)
 {
   offset_type result = 2; // 2 bytes for opcode
   for (auto &arg : m_opcode->get_args())
@@ -75,18 +75,18 @@ serialize(assembler_state& state, std::vector<symbol>& symbols,
 
       if (arg.m_width == width_8)
       {
-        if (val == -1)
+        if (val == static_cast<uint32_t>(-1))
           val = 0;
         ret.push_back(val & BYTE_MASK);
       } else if (arg.m_width == width_16)
       {
-        if (val == -1)
+        if (val == static_cast<uint32_t>(-1))
           val = 0;
         ret.push_back(val & BYTE_MASK);
         ret.push_back((val >> SECOND_BYTE_SHIFT) & BYTE_MASK);
       } else if (arg.m_width == width_32)
       {
-        if (val == -1)
+        if (val == static_cast<uint32_t>(-1))
           val = 0;
         ret.push_back((val >> FIRST_BYTE_SHIFT)& BYTE_MASK);
         ret.push_back((val >> SECOND_BYTE_SHIFT) & BYTE_MASK);
@@ -103,8 +103,8 @@ serialize(assembler_state& state, std::vector<symbol>& symbols,
 std::vector<uint8_t>
 ucDmaBd_op_serializer::
 serialize(assembler_state& state,
-          std::vector<symbol>& symbols,
-          uint32_t colnum, pageid_type pagenum)
+          std::vector<symbol>& /*symbols*/,
+          uint32_t /*colnum*/, pageid_type /*pagenum*/)
 {
   //encode ucDmaBd
   std::vector<uint8_t> ret;
@@ -202,9 +202,9 @@ serialize(assembler_state& state,
 std::vector<uint8_t>
 long_op_serializer::
 serialize(assembler_state& state,
-          std::vector<symbol>& symbols,
-          uint32_t colnum,
-          pageid_type pagenum)
+          std::vector<symbol>& /*symbols*/,
+          uint32_t /*colnum*/,
+          pageid_type /*pagenum*/)
 {
   //encode long
   std::vector<uint8_t> ret;
@@ -220,8 +220,8 @@ serialize(assembler_state& state,
 std::vector<uint8_t>
 align_op_serializer::
 serialize(assembler_state& state,
-          std::vector<symbol>& symbols,
-          uint32_t colnum, pageid_type pagenum)
+          std::vector<symbol>& /*symbols*/,
+          uint32_t /*colnum*/, pageid_type /*pagenum*/)
 {
   //encode align
   std::vector<uint8_t> ret;

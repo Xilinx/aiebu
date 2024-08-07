@@ -36,12 +36,12 @@ private:
   uint32_t m_colnum;
   uint32_t m_pagenum;
   uint32_t m_addend;
-  std::string m_section_name;
-  ELFIO::Elf_Word m_index;
   // size is overloaded
   // for scaler_32, it contaim mask
   // for shim_dma_48, it contain size of dma
   uint64_t m_size;
+  std::string m_section_name;
+  ELFIO::Elf_Word m_index;
 
 public:
 
@@ -55,7 +55,11 @@ public:
   symbol& operator=(const symbol& rhs) = default;
   symbol(symbol &&s) = default;
 
-  HEADER_ACCESS_GET(std::string&, name);
+  std::string get_name() const
+  {
+    return m_name;
+  }
+
   HEADER_ACCESS_GET_SET(patch_schema, schema);
   HEADER_ACCESS_GET_SET(offset_type, pos);
   HEADER_ACCESS_GET_SET(uint32_t, addend);

@@ -55,12 +55,12 @@ add_dependencies(aiebu_library_objects cpp-assembler-stubs)
 
 install (TARGETS aiebu
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}
-  CONFIGURATIONS Debug Release COMPONENT Runtime
+  RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
 )
 
 install (TARGETS aiebu aiebu_static
   ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR}
-  CONFIGURATIONS Debug Release COMPONENT Runtime
+  LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}
 )
 
 install(FILES include/aiebu.h include/aiebu_assembler.h include/aiebu_error.h
