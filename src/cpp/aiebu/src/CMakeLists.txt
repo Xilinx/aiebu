@@ -19,7 +19,7 @@ add_library(aiebu_library_objects OBJECT
   )
 
 target_include_directories(aiebu_library_objects PRIVATE
-  ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
+  ${AIEBU_AIE_RT_BIN_DIR}/lib/aie-rt/driver/driver-src/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2
@@ -30,7 +30,7 @@ target_include_directories(aiebu_library_objects PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/assembler
   ${CMAKE_CURRENT_SOURCE_DIR}/elf
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2
-  ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO/
+  ${AIEBU_ELFIO_SRC_DIR}
   ${Boost_INCLUDE_DIRS}
   )
 
