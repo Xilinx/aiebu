@@ -29,9 +29,10 @@ class Pager:
 
         for arg in token.args:
             if arg.startswith('@') and token.name not in Pager.OOO:
-                label = arg[1:]
+                label = arg[1:]   # scratchpad label is not having file scope
                 if state.containscratchpads(label):
                     continue
+                label = state.getlabelkey(label, token.filename, True)
                 assert state.containlabel(label), f"Label not found: {label}"
                 labels = union_of_lists_inorder(labels, [label])
                 index = state.getlabel(label).getindex()
@@ -49,7 +50,7 @@ class Pager:
 
         for arg in token.args:
             if arg.startswith('@') and token.name in Pager.OOO:
-                label = arg[1:]
+                label = state.getlabelkey(arg[1:], token.filename, True)
                 labels = union_of_lists_inorder(labels, [label])
         return labels
 

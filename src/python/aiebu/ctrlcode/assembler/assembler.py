@@ -78,7 +78,7 @@ class Assembler:
                 self.isa_ops[token.name].serializer(token.args, None)
                 if align != 0:
                     newData.insert(numalign + last_label, \
-                                   Data(Operation('.align', str(align)), \
+                                   Data(Operation('.align', str(align), ""), \
                                    Section.DATA, 0, page_num, "", f".align {align}", -1))
                     numalign += 1
                 pos += self.isa_ops[token.name].serializer(token.args, None).size()
@@ -102,7 +102,7 @@ class Assembler:
             for label in self._parser.gettextlabelsforcol(col):
                 #print("COL:", col, " LABEL:", label)
                 data = self._parser.getcoltextforlabel(col, label) + self._parser.getcoldata(col)
-                state = AssemblerState(self.target, self.isa_ops, data, scratchpad, labelpageindex)
+                state = AssemblerState(self.target, self.isa_ops, data, scratchpad, labelpageindex, True)
                 #print(state)
                 # create pages for 8k (text + data)
                 relative_page_index, pgs = self._pager.pagify(state, col, data, relative_page_index)
@@ -170,7 +170,7 @@ class Assembler:
 
         # create state for each page
         pagestate = AssemblerState(self.target, self.isa_ops, page.text + page.data, self._parser.getcolscratchpad(page.col_num),
-                                   self._parser.getcollabelpageindex(page.col_num))
+                                   self._parser.getcollabelpageindex(page.col_num), False)
 
         for byte in page_header:
             text_section.write_byte(byte)

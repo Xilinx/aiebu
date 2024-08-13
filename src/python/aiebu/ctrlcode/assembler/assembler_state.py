@@ -116,7 +116,7 @@ class LocalBarrier:
 
 class AssemblerState:
     """ class to hold state """
-    def __init__(self, target, isa, code, scratchpads, labelpageindex):
+    def __init__(self, target, isa, code, scratchpads, labelpageindex, makeunique):
         self.target = target
         self._isa_ops = isa
         self._pos = 0
@@ -133,7 +133,7 @@ class AssemblerState:
         self._scratchpads = scratchpads
         self.labelpageindex = labelpageindex
         self.patch = {}
-        self.statecreator()
+        self.statecreator(makeunique)
 
     def getjobsize(self, jobid):
         return self._jobs[jobid].getsize()
@@ -193,7 +193,22 @@ class AssemblerState:
         from pprint import pformat
         return pformat(vars(self), indent=4, width=1)
 
-    def statecreator(self):
+    def getlabelkeyfromtoken(self, token, makeunique=False):
+        if makeunique:
+            return token.filename + ":" + token.name
+        return token.name
+
+    def getlabelkey(self, label, filename, makeunique=False):
+        if makeunique:
+            return filename + ":" + label
+        return label
+
+    def getjobidkey(self, jobid, filename, makeunique=False):
+        if makeunique:
+            return filename + ":" + jobid
+        return int(jobid)
+
+    def statecreator(self, makeunique):
         """ create state for code """
         # Pass 1: Calculate sizes
         self.section = Section.TEXT
@@ -204,15 +219,15 @@ class AssemblerState:
             #print("\t\t",token)
             if isinstance(token, Label):
                 self.section = Section.DATA
-                assert token.name not in self._labels, f"Duplicate label: {token.name}"
                 data.setsize(0)
-                self._labels[token.name] = LabelState(token.name, index, self._pos)
-                self._current_label = token.name
+                self._current_label = self.getlabelkeyfromtoken(token, makeunique)
+                assert self._current_label not in self._labels, f"Duplicate label: {self._current_label}"
+                self._labels[self._current_label] = LabelState(self._current_label, index, self._pos)
 
             elif isinstance(token, Operation):
                 if token.name in ['start_job', 'start_job_deferred']:
                     self._current_label = None
-                    job_id = parse_num_arg(token.args[0], self)
+                    job_id = self.getjobidkey(str(parse_num_arg(token.args[0], self)), token.filename, makeunique)
                     assert job_id not in self._jobs, f"Duplicate job id: {job_id}"
                     self._jobs[job_id] = Job(job_id, self._pos, index, eop_number, is_deferred=(token.name == 'start_job_deferred'))
                     self._current_job_id = job_id
@@ -234,7 +249,7 @@ class AssemblerState:
                     self._local_barriers[lb_id].insertjob(self._current_job_id)
 
                 if token.name == 'launch_job':
-                    launch_job_id = int(token.args[0])
+                    launch_job_id = self.getjobidkey(token.args[0], token.filename, makeunique)
                     self._jobs[self._current_job_id].insertdependentjob(launch_job_id)
                     if launch_job_id not in self._job_launchers:
                         self._job_launchers[launch_job_id] = []

@@ -86,12 +86,12 @@ class Data:
     def setpagenum(self, page_num):
         self._page_num = page_num
 
-    #def __str__(self):
-    #    return f"TOKEN:{self._token} SECTION:{self._section}  SIZE:{self._size} pagenum:{self._page_num} ln:{self._line_number}\tfile:{self._file}\n"
-
     def __str__(self):
-        from pprint import pformat
-        return pformat(vars(self), indent=4, width=1)
+        return f"TOKEN:{self._token}\tSECTION:{self._section}\tSIZE:{self._size}\tpagenum:{self._page_num}\tln:{self._line_number}\tfile:{self._file}\n"
+
+    #def __str__(self):
+    #    from pprint import pformat
+    #    return pformat(vars(self), indent=4, width=1)
 
 class AttachToGroup:
     def operate(self, args, parser):
@@ -168,8 +168,16 @@ class Column_Code:
         self.labelpageindex = {}
 
     def __str__(self):
-        from pprint import pformat
-        return pformat(vars(self), indent=4, width=1)
+        s = f"SCRATCHPAD:{self.scratchpad}\t\tLABELPAGEINDEX:{self.labelpageindex}\nTEXT:\n"
+        for t in self.text:
+          s = s + "\t" + t.__str__()
+          s = s + "\n"
+          for ta in self.text[t]:
+            s = s + "\t\t" + ta.__str__()
+        s = s + "DATA:\n"
+        for t in self.data:
+          s = s + "\t" + t.__str__()
+        return s
 
 class Parser:
     COMMENT_REGEX = re.compile(r'^;(.*)$')
@@ -251,7 +259,7 @@ class Parser:
             if not self.isdata:
                 self.current_label = self.current_label + "::" + label_match[1]
             else:
-                self.insertcoldata(Data(Label(label_match[1]), Section.UNKNOWN, 0, -1, ifile, line, ln), self.isdata)
+                self.insertcoldata(Data(Label(label_match[1], ifile.split('/')[-1]), Section.UNKNOWN, 0, -1, ifile, line, ln), self.isdata)
             return
 
         # Operation
@@ -261,7 +269,7 @@ class Parser:
             args = op_match[2]
             if op in Parser.PATCHMAP:
                 op, args = Parser.PATCHMAP[op].patch(op, args)
-            self.insertcoldata(Data(Operation(op, args), Section.UNKNOWN, 0, -1, ifile, line, ln), self.isdata)
+            self.insertcoldata(Data(Operation(op, args, ifile.split('/')[-1]), Section.UNKNOWN, 0, -1, ifile, line, ln), self.isdata)
             if op == "EOF":
                 self.isdata = True
             return
