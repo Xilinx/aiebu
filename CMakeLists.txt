@@ -36,11 +36,21 @@ if (DEFINED XRT_SOURCE_DIR)
     SET(DEBUG_DIR_NAME "WDebug")
   endif()
   file(CREATE_LINK "${PARENT_PROJECT_ROOT}/build/${DEBUG_DIR_NAME}" "${AIEBU_SOURCE_DIR}/build/${DEBUG_DIR_NAME}" SYMBOLIC)
+endif()
 
-  set(AIEBU_AIE_RT_BIN_DIR ${XRT_BINARY_DIR})
-  set(AIEBU_ELFIO_SRC_DIR "${XRT_SOURCE_DIR}/src/runtime_src/core/common/elf")
-else()
+
+# If this repository is used as a submodule, the parent repository may set the
+# followiing variables in CMake to make aiebu point to the parents copy of ELFIO
+# and/or AIE-RT. e.g, XRT parent repository can set the following in its CMake
+# for aiebu to inherit it:
+# set(AIEBU_AIE_RT_BIN_DIR ${XRT_BINARY_DIR})
+# set(AIEBU_ELFIO_SRC_DIR "${XRT_SOURCE_DIR}/src/runtime_src/core/common/elf")
+
+if (NOT (DEFINED AIEBU_AIE_RT_BIN_DIR))
   set(AIEBU_AIE_RT_BIN_DIR ${AIEBU_BINARY_DIR})
+endif()
+
+if (NOT (DEFINED AIEBU_ELFIO_SRC_DIR))
   set(AIEBU_ELFIO_SRC_DIR "${AIEBU_SOURCE_DIR}/src/cpp/ELFIO")
 endif()
 
