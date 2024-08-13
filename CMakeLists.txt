@@ -50,9 +50,13 @@ if (NOT (DEFINED AIEBU_AIE_RT_BIN_DIR))
   set(AIEBU_AIE_RT_BIN_DIR ${AIEBU_BINARY_DIR})
 endif()
 
+message("-- Using aie-rt from ${AIEBU_AIE_RT_BIN_DIR}")
+
 if (NOT (DEFINED AIEBU_ELFIO_SRC_DIR))
   set(AIEBU_ELFIO_SRC_DIR "${AIEBU_SOURCE_DIR}/src/cpp/ELFIO")
 endif()
+
+message("-- Using ELFIO from ${AIEBU_ELFIO_SRC_DIR}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
