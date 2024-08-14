@@ -102,7 +102,7 @@ class Pager:
         text.append(content[state.getjob('eof').getstartindex()])
         page_rsize = page_tsize + page_dsize + (self.datasectionaligner(page_tsize) if page_dsize else 0)+ Pager.HEADER_SIZE + Pager.EOF_SIZE
         page_rsize = (((page_rsize + 3) >> 2) << 2) # round off to next multiple of 4
-        pages.append(Page(col, page_index, text, data, islastpage, page_rsize, 0, external_labels))
+        pages.append(Page(col, page_index, text, data, islastpage, page_rsize, 0, [i.rsplit(":",1)[-1] for i in external_labels]))
         if (len(pages) > 1):
             pages[len(pages) - 2].in_order_page_len = page_rsize
 
