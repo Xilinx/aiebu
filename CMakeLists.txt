@@ -45,11 +45,20 @@ endif()
 # set(AIEBU_AIE_RT_BIN_DIR ${XRT_BINARY_DIR})
 # set(AIEBU_ELFIO_SRC_DIR "${XRT_SOURCE_DIR}/src/runtime_src/core/common/elf")
 
+# These variables may be defined by the parent project as it may also include
+# AIE-RT and or ELFIO as a submodule
+# AIEBU_AIE_RT_BIN_DIR, AIEBU_AIE_RT_HEADER_DIR and AIEBU_ELFIO_SRC_DIR
+
 if (NOT (DEFINED AIEBU_AIE_RT_BIN_DIR))
   set(AIEBU_AIE_RT_BIN_DIR ${AIEBU_BINARY_DIR})
 endif()
 
-message("-- Using aie-rt from ${AIEBU_AIE_RT_BIN_DIR}")
+if (NOT (DEFINED AIEBU_AIE_RT_HEADER_DIR))
+  set(AIEBU_AIE_RT_HEADER_DIR "${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include")
+endif()
+
+message("-- Using aie-rt headers from ${AIEBU_AIE_RT_HEADER_DIR}")
+message("-- Using aie-rt build from ${AIEBU_AIE_RT_BIN_DIR}")
 
 if (NOT (DEFINED AIEBU_ELFIO_SRC_DIR))
   set(AIEBU_ELFIO_SRC_DIR "${AIEBU_SOURCE_DIR}/src/cpp/ELFIO")
