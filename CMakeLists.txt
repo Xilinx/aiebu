@@ -32,10 +32,9 @@ if (DEFINED XRT_SOURCE_DIR)
   # Make AIEBU .clangd configuration for compile_commands.json point back to the compile_commands.json
   # in the top level repository
   SET(DEBUG_DIR_NAME "Debug")
-  if (CMAKE_HOST_WIN32)
-    SET(DEBUG_DIR_NAME "WDebug")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    file(CREATE_LINK "${PARENT_PROJECT_ROOT}/build/${DEBUG_DIR_NAME}" "${AIEBU_SOURCE_DIR}/build/${DEBUG_DIR_NAME}" SYMBOLIC)
   endif()
-  file(CREATE_LINK "${PARENT_PROJECT_ROOT}/build/${DEBUG_DIR_NAME}" "${AIEBU_SOURCE_DIR}/build/${DEBUG_DIR_NAME}" SYMBOLIC)
 endif()
 
 
