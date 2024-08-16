@@ -20,14 +20,14 @@ constexpr uint8_t patch_ddr_opcode = XAIE_IO_CUSTOM_OP_DDR_PATCH;
 constexpr auto DEFAULT_UNPATCHED_ADDR = 0;
 
 /* Creates the sequence to store data from MEM to external ddr memory dst*/
-int MEM_Tile_Save_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col) {
+int MEM_Tile_Save_Context(XAie_DevInst* dev, uint32_t num_elems, uint8_t col) {
         assert(num_elems % 2 == 0);
         AieRC RC = XAIE_OK;
-        uint64_t size_per_column = num_elems * sizeof(uint32_t);
+        uint32_t size_per_column = num_elems * sizeof(uint32_t);
 
         XAie_LocType Tile_M, Tile_S;
-        Tile_M = XAie_TileLoc(col, 1);   // MEM Tile
-        Tile_S = XAie_TileLoc(col, 0);   // SHIM Tile
+        Tile_M = XAie_TileLoc(col, UINT8_C(1));   // MEM Tile
+        Tile_S = XAie_TileLoc(col, UINT8_C(0));   // SHIM Tile
         XAie_DmaDesc Tile_M_MM2S, Tile_S_S2MM;
 
         /* Configure stream switch ports to move data from MEM to SHIM */
@@ -66,7 +66,7 @@ int MEM_Tile_Save_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col) {
 
         // patch BD address
         patch_op_t patch_instr = {};
-        uint64_t tile_offset = _XAie_GetTileAddr(dev, 0, col);
+        uint64_t tile_offset = _XAie_GetTileAddr(dev, UINT8_C(0), col);
 
         patch_instr.regaddr = XAIEGBL_MEM_DMABD0ADDB + tile_offset;
         patch_instr.argidx = OUT_BUFFER_KERNARG_IDX;//argidx points to out_bo
@@ -94,18 +94,18 @@ int MEM_Tile_Save_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col) {
 }
 
 /* Creates the sequence to store data to MEM from external ddr memory ddr_src*/
-int MEM_Tile_Restore_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col) {
+int MEM_Tile_Restore_Context(XAie_DevInst* dev, uint32_t num_elems, uint8_t col) {
         assert(num_elems % 2 == 0);
 
-        uint64_t size_per_column = num_elems * sizeof(uint32_t);
+        uint32_t size_per_column = num_elems * sizeof(uint32_t);
 
         // setup DDR->SHIM->MEM Tile
         AieRC RC = XAIE_OK;
 
         XAie_LocType Tile_M, Tile_S;
 
-        Tile_M = XAie_TileLoc(col, 1);   // MEM Tile
-        Tile_S = XAie_TileLoc(col, 0);   // SHIM Tile
+        Tile_M = XAie_TileLoc(col, UINT8_C(1));   // MEM Tile
+        Tile_S = XAie_TileLoc(col, UINT8_C(0));   // SHIM Tile
 
         XAie_DmaDesc Tile_M_S2MM, Tile_S_MM2S;
 
@@ -145,7 +145,7 @@ int MEM_Tile_Restore_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col
 
         // patch BD
         patch_op_t patch_instr = {};
-        uint64_t tile_offset = _XAie_GetTileAddr(dev, 0, col);
+        uint64_t tile_offset = _XAie_GetTileAddr(dev, UINT8_C(0), col);
 
         patch_instr.regaddr = XAIEGBL_MEM_DMABD0ADDB + tile_offset;
         patch_instr.argidx = IN_BUFFER_KERNARG_IDX;//argidx points to out_bo
@@ -174,17 +174,17 @@ int MEM_Tile_Restore_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col
 
 // The two functions below only needed for col0 on PHX
 // They work assuming the above functions could also be running on other cols
-int MEM_Tile_Save_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uint32_t col) {
+int MEM_Tile_Save_Context_Col0_PHX(XAie_DevInst* dev, uint32_t num_elems, uint8_t col) {
         assert(num_elems % 2 == 0);
 
-        uint64_t size_per_column = num_elems * sizeof(uint32_t);
+        uint32_t size_per_column = num_elems * sizeof(uint32_t);
         AieRC RC = XAIE_OK;
 
         XAie_LocType Tile_M, Tile_S, Tile_S_E;
 
-        Tile_M = XAie_TileLoc(0, 1);   // MEM Tile
-        Tile_S = XAie_TileLoc(0, 0);   // SHIM Tile
-        Tile_S_E = XAie_TileLoc(1, 0); // SHIM-col1 Tile
+        Tile_M = XAie_TileLoc(UINT8_C(0), UINT8_C(1));   // MEM Tile
+        Tile_S = XAie_TileLoc(UINT8_C(0), UINT8_C(0));   // SHIM Tile
+        Tile_S_E = XAie_TileLoc(UINT8_C(1), UINT8_C(0)); // SHIM-col1 Tile
 
         XAie_DmaDesc Tile_M_MM2S, Tile_S_S2MM;
 
@@ -226,7 +226,7 @@ int MEM_Tile_Save_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uint32
 
         // patch BD address
         patch_op_t patch_instr = {};
-        uint64_t tile_offset = _XAie_GetTileAddr(dev, 0, col + 1); // SHIM in col 1 is doing the DMA
+        uint64_t tile_offset = _XAie_GetTileAddr(dev, UINT8_C(0), col + 1); // SHIM in col 1 is doing the DMA
 
         patch_instr.regaddr = XAIEGBL_MEM_DMABD1ADDB + tile_offset; // taking BD 1 again
         patch_instr.argidx = OUT_BUFFER_KERNARG_IDX; //argidx points to out_bo
@@ -256,16 +256,16 @@ int MEM_Tile_Save_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uint32
         return 0;
 }
 
-int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uint32_t col) {
+int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint32_t num_elems, uint8_t col) {
         assert(num_elems % 2 == 0);
 
-        uint64_t size_per_column = num_elems * sizeof(uint32_t);
+        uint32_t size_per_column = num_elems * sizeof(uint32_t);
 
         XAie_LocType Tile_M, Tile_S, Tile_S_E;
 
-        Tile_M =   XAie_TileLoc(0,   1);   // MEM Tile
-        Tile_S =   XAie_TileLoc(0,   0);   // SHIM Tile
-        Tile_S_E = XAie_TileLoc(1,   0);   // SHIM Tile col 1
+        Tile_M =   XAie_TileLoc(UINT8_C(0),   UINT8_C(1));   // MEM Tile
+        Tile_S =   XAie_TileLoc(UINT8_C(0),   UINT8_C(0));   // SHIM Tile
+        Tile_S_E = XAie_TileLoc(UINT8_C(1),   UINT8_C(0));   // SHIM Tile col 1
 
         XAie_DmaDesc Tile_M_S2MM, Tile_S_MM2S;
 
@@ -308,7 +308,7 @@ int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uin
 
         // patch BD address
         patch_op_t patch_instr = {};
-        uint64_t tile_offset = _XAie_GetTileAddr(dev, 0, col + 1); // SHIM tile in col 1 is doing the DMA
+        uint64_t tile_offset = _XAie_GetTileAddr(dev, UINT8_C(0), col + 1); // SHIM tile in col 1 is doing the DMA
 
         patch_instr.regaddr = XAIEGBL_MEM_DMABD1ADDB + tile_offset; // taking BD 1 again
         patch_instr.argidx = IN_BUFFER_KERNARG_IDX; //argidx points to inp_bo
@@ -383,7 +383,7 @@ static void generate_tran(int type, unsigned int ncol, const std::string &filena
         RC = XAie_StartTransaction(&DevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
         gen_XAie_check(RC);
 
-        for (unsigned int col = 0U; col < ncol; col++) {
+        for (uint8_t col = UINT8_C(0); col < ncol; col++) {
                 if (type == PREEP_SAVE)
                         MEM_Tile_Save_Context(&DevInst, data_sz, col);
                 else
@@ -410,7 +410,7 @@ static void generate_tran(int type, unsigned int ncol, const std::string &filena
         as.get_report(std::cout);
 }
 
-int main(int argc, char** argv)
+int main(int /* argc */, char** /* argv */)
 {
     const unsigned int columns[] = {1, 2, 4};
     for (auto ncol : columns) {
