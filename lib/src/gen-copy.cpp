@@ -51,13 +51,13 @@ constexpr auto DEFAULT_UNPATCHED_ADDR = 0;
 
 
 /* Creates the sequence to store data from MEM to external ddr memory dst*/
-int Mem_Tile_to_DDR_Copy(XAie_DevInst* dev, uint32_t num_elems, uint32_t col)
+int Mem_Tile_to_DDR_Copy(XAie_DevInst* dev, uint32_t num_elems, uint8_t col)
 {
         AieRC RC = XAIE_OK;
 
         XAie_LocType Tile_M, Tile_S;
-        Tile_M = XAie_TileLoc(col, 1);   // MEM Tile
-        Tile_S = XAie_TileLoc(col, 0);   // SHIM Tile
+        Tile_M = XAie_TileLoc(col, UINT8_C(1));   // MEM Tile
+        Tile_S = XAie_TileLoc(col, UINT8_C(0));   // SHIM Tile
         XAie_DmaDesc Tile_M_MM2S, Tile_S_S2MM;
 
         /* Configure stream switch ports to move data from MEM to SHIM */
@@ -126,13 +126,13 @@ int Mem_Tile_to_DDR_Copy(XAie_DevInst* dev, uint32_t num_elems, uint32_t col)
 
 
 /* Creates the sequence to store data to MEM from external ddr memory ddr_src*/
-int DDR_to_Mem_Tile_Copy(XAie_DevInst* dev, uint32_t num_elems, uint32_t col)
+int DDR_to_Mem_Tile_Copy(XAie_DevInst* dev, uint32_t num_elems, uint8_t col)
 {
         AieRC RC = XAIE_OK;
 
         XAie_LocType Tile_M, Tile_S;
-        Tile_M = XAie_TileLoc(col, 1);   // MEM Tile
-        Tile_S = XAie_TileLoc(col, 0);   // SHIM Tile
+        Tile_M = XAie_TileLoc(col, UINT8_C(1));   // MEM Tile
+        Tile_S = XAie_TileLoc(col, UINT8_C(0));   // SHIM Tile
 
         XAie_DmaDesc Tile_M_S2MM, Tile_S_MM2S;
 
@@ -228,9 +228,9 @@ static void generate_tran_and_elf(const std::string &filename, int type)
         gen_XAie_check(RC);
 
         if(type == Mem_Tile_to_DDR)
-                Mem_Tile_to_DDR_Copy(&DevInst, (uint32_t)data_size, 0);
+            Mem_Tile_to_DDR_Copy(&DevInst, (uint32_t)data_size, UINT8_C(0));
         else
-                DDR_to_Mem_Tile_Copy(&DevInst, (uint32_t)data_size, 0);
+            DDR_to_Mem_Tile_Copy(&DevInst, (uint32_t)data_size, UINT8_C(0));
 
         uint8_t *txn_ptr = XAie_ExportSerializedTransaction(&DevInst, 0, 0);
 
@@ -255,7 +255,7 @@ static void generate_tran_and_elf(const std::string &filename, int type)
         as.get_report(std::cout);
 }
 
-int main(int argc, char** argv)
+int main(int /* argc */, char** /* argv */)
 {
         std::string filename = "copy_Mem_Tile_to_DDR.bin";
         generate_tran_and_elf(filename, Mem_Tile_to_DDR);
