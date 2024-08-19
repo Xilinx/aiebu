@@ -21,7 +21,7 @@ set CREATE_PACKAGE=0
 set CMAKEFLAGS=
 set NOCMAKE=0
 set NOCTEST=0
-set BOOST=
+set BOOST=C:\Xilinx\Xilinx\XRT\ext
 
 IF DEFINED MSVC_PARALLEL_JOBS ( SET LOCAL_MSVC_PARALLEL_JOBS=%MSVC_PARALLEL_JOBS%) ELSE ( SET LOCAL_MSVC_PARALLEL_JOBS=3 )
 
@@ -83,7 +83,8 @@ ECHO [-help]                    - List this help
 ECHO [-clean]                   - Remove build directories
 ECHO [-dbg]                     - Creates a debug build
 ECHO [-opt]                     - Creates a release build
-ECHO [-package]                 - Packages the release build to a MSI archive.
+ECHO [-package]                 - Packages the release build to a MSI archive
+ECHO [-boost]                   - Specify the path to the boost install
 ECHO                              Note: Depends on the WIX application.
 GOTO:EOF
 
