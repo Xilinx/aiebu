@@ -292,7 +292,8 @@ namespace aiebu {
           uint32_t offset = blockWriteRegOffsetMap[reg].first;
           uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
           uint32_t addend = static_cast<uint32_t>(op->argplus);
-          patch_helper(mc_code, section_name, argname, GET_REG(op->regaddr), op->argidx + ARG_OFFSET, offset, buffer_length_in_bytes, addend);
+          patch_helper(mc_code, section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)), static_cast<uint32_t>(op->argidx + ARG_OFFSET), 
+                      offset, buffer_length_in_bytes, addend);
           ptr += hdr->Size;
           break;
         }

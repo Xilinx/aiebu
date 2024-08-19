@@ -8,7 +8,11 @@
 #include <iterator>
 #include "writer.h"
 #include "symbol.h"
+
+#pragma warning(push)
+#pragma warning(disable: 4245)
 #include "elfio/elfio.hpp"
+#pragma warning(pop)
 
 namespace aiebu {
 

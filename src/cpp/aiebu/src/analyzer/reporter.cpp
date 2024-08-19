@@ -7,7 +7,10 @@
 #include "transaction.hpp"
 
 #include <boost/interprocess/streams/bufferstream.hpp>
+#pragma warning(push)
+#pragma warning(disable: 4245)
 #include <elfio/elfio_dump.hpp>
+#pragma warning(pop)
 
 namespace aiebu {
 
