@@ -9,10 +9,12 @@
 #include "writer.h"
 #include "symbol.h"
 
+#ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable: 4245)
 #include "elfio/elfio.hpp"
 #pragma warning(pop)
+#endif
 
 namespace aiebu {
 
