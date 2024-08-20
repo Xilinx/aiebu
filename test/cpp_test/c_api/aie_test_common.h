@@ -4,6 +4,13 @@
 #ifndef _AIE_TEST_COMMON_H_
 #define _AIE_TEST_COMMON_H_
 
+//The _CRT_XXX does not work :-(
+//Instead use the explicit pragma to disable the windows compiler warnings
+//about insecure fopen, etc.
+//#define _CRT_SECURE_NO_WARNINGS
+//#define _CRT_SECURE_NO_DEPRECATE
+#pragma warning(push)
+#pragma warning(disable: 4996)
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -45,5 +52,5 @@ char* ReadFile(char *name, long *s)
   fclose(file);
   return buffer;
 }
-
+#pragma warning(pop)
 #endif
