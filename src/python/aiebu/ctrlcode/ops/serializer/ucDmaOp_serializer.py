@@ -6,10 +6,11 @@ import struct
 from ctrlcode.common.util import parse_num_arg
 from ctrlcode.common.section import Section
 from ctrlcode.ops.serializer.op_serializer import OpSerializer
+from ctrlcode.common.symbol import Symbol
 
 class UcDmaOpSerializer(OpSerializer):
     def __init__(self, op, args, state):
-        assert len(args) == 6, "Invalid args for UC_DMA_BD!"
+        assert len(args) == 6 or len(args) == 7, "Invalid args for UC_DMA_BD!"
         super().__init__(op, args, state)
 
     def size(self):
@@ -20,7 +21,6 @@ class UcDmaOpSerializer(OpSerializer):
 
     def serialize(self, text_section, data_section, col, page, symbols):
         assert self.state.getpos() % 16 == 0, "uC DMA definition has to be 128-bit aligned!"
-
         remote_ptr_high = parse_num_arg(self.args[0], self.state)
         remote_ptr_low = parse_num_arg(self.args[1], self.state)
         local_ptr_absolute = parse_num_arg(self.args[2], self.state)
@@ -28,6 +28,12 @@ class UcDmaOpSerializer(OpSerializer):
         ctrl_external = parse_num_arg(self.args[4], self.state) != 0
         ctrl_next_BD = parse_num_arg(self.args[5], self.state) != 0
         ctrl_local_relative = True
+
+        if len(self.args) == 7:
+            ursymbo = self.args[6][1:]
+
+            if self.state.containscratchpads(ursymbo):
+                self.state.patch[ursymbo] = self.args[2]
 
         assert local_ptr_absolute > self.state.getpos(), "uC DMA local ptr has to be located after the DMA definition!"
         local_ptr = local_ptr_absolute - self.state.getpos()

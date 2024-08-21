@@ -67,4 +67,4 @@ class IsaOpDeSerializer(OpDeSerializer):
                 assert False, "Invalid arg type!"
 
         self.state.pos += size
-        writer.write_operation(self.op.opcode.upper(), result, None)
+        writer.write_operation(self.op.name.upper(), result, None)

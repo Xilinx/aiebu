@@ -296,22 +296,22 @@ operations:
       - name: num_entries
         type: const
         width: 16
-      - name: offset_high
-        type: register
-      - name: offset_low
-        type: register
+      - name: offset
+        type: const
+        width: 16
     brief: Applies an offset to one or more shim DMA BD base address fields. (Version for 57-bit base addresses.)
     description: |
       Patches the base address of `num_entries` Shim DMA buffer descriptors by adding the offset
-      loaded from the registers passed in `offset_high` and `offset_low`.
+      loaded from 'offset' and 'offset+1' in argument list.
+      if the offset is 0xFFFF, the offset added is the host address of 1st page of control code
       The location of the `num_entries` buffer descriptors should be given in a table stored
       at `table_ptr`. One entry in the table is a set of Shim DMA BDs. If there are multiple entries in the table,
       those set of BDS have to be contiguous.
       Example:
       ```
         # non-contiguous BDs
-        APPLY_OFFSET_57     @mem21_bd0, 1, $g1, $g0
-        APPLY_OFFSET_57     @mem31_bd0, 1, $g1, $g0
+        APPLY_OFFSET_57     @mem21_bd0, 1, 0xffff
+        APPLY_OFFSET_57     @mem31_bd0, 1, 0xffff
         # ...
         ALIGN             4
       mem21_bd0:
@@ -336,7 +336,7 @@ operations:
         WORD              0x80000000
         WORD              0x00000000
         # contiguous BDs
-        APPLY_OFFSET_57     @mem41_bd0, 2, $g1, $g0
+        APPLY_OFFSET_57     @mem41_bd0, 2, 0xffff
         # ...
         ALIGN             4
       mem41_bd0:

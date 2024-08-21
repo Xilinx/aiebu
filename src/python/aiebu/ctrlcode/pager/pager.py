@@ -14,7 +14,7 @@ class Pager:
     HEADER_SIZE = 16
     EOF_SIZE = 4
     DATA_SECTION_ALIGNMENT = 16
-    ALIGNMAP = {"uc_dma_bd" : 16, "uc_dma_bd_shim" : 16, ".long": 4}
+    ALIGNMAP = {"uc_dma_bd" : 16, ".long": 4}
     OOO = ["load_pdi", "preemption_checkpoint"]
 
     def __init__(self, pagesize):

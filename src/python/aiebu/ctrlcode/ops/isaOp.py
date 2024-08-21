@@ -5,9 +5,9 @@ from ctrlcode.ops.serializer.isaOp_serializer import IsaOpSerializer
 from ctrlcode.ops.deserializer.isaOp_deserializer import IsaOpDeSerializer
 
 class IsaOp:
-    def __init__(self, opcode, args=[]):
+    def __init__(self, opcode, opcode_name, args=[]):
         self.opcode = opcode
-        self.name = opcode
+        self.name = opcode_name
         self.args = args
 
     def serializer(self, args, state):

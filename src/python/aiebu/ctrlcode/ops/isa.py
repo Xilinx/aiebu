@@ -7,7 +7,6 @@ from ctrlcode.ops.isaOp import IsaOp
 from ctrlcode.ops.wordOp import WordOp
 from ctrlcode.ops.alignOp import AlignOp
 from ctrlcode.ops.ucDmaOp import UcDmaOp
-from ctrlcode.ops.ucDmaShimOp import UcDmaShimOp
 
 class ISA:
     def __init__(self, yfile):
@@ -52,18 +51,16 @@ class ISA:
                 else:
                     aname = "_pad"
                 opargs.append(OpArg(aname, atype, self.get_arg_width(arg)))
-            self.UC_ISA_OPS[operation['mnemonic'].lower()] = IsaOp(operation['opcode'], opargs)
-            self.UC_ISA_OPS_REVERSE[operation['opcode']] = IsaOp(operation['mnemonic'].lower(), opargs)
+            self.UC_ISA_OPS[operation['mnemonic'].lower()] = IsaOp(operation['opcode'], operation['mnemonic'].lower(), opargs)
+            self.UC_ISA_OPS_REVERSE[operation['opcode']] = IsaOp(operation['opcode'], operation['mnemonic'].lower(), opargs)
 
             self.UC_ISA_OPS['.long'] = WordOp()
             self.UC_ISA_OPS['.align'] = AlignOp()
             self.UC_ISA_OPS['uc_dma_bd'] = UcDmaOp()
-            self.UC_ISA_OPS['uc_dma_bd_shim'] = UcDmaShimOp()
 
             self.UC_ISA_OPS_REVERSE['.long'] = WordOp()
             self.UC_ISA_OPS_REVERSE[165] = AlignOp()
             self.UC_ISA_OPS_REVERSE['uc_dma_bd'] = UcDmaOp()
-            self.UC_ISA_OPS_REVERSE['uc_dma_bd_shim'] = UcDmaShimOp()
 
     def __str__(self):
         mkeys = self.UC_ISA_OPS.keys()

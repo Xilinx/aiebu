@@ -66,6 +66,13 @@ class IsaOpSerializer(OpSerializer):
                 elif arg.width == 16:
                     if val == -1:
                         val = 0
+                    # For opcode is 'apply_offset_57' and arg is 'offset',
+                    # if val is 0xFFFF means we need to patch the host address of 1st page of controlcode
+                    # and that is always patched in cert,
+                    # if val is not 0xFFFF, we can do patching in cert or host so add symbol info in elf
+                    if self.op.name == "apply_offset_57" and arg.name == "offset" and val != 0xFFFF:
+                            symbols.append(Symbol(str(val), parse_num_arg(self.args[0], self.state), col, page,
+                                           Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57))
                     result.append(val & 0xFF)
                     result.append((val >> 8) & 0xFF)
                 elif arg.width == 32:

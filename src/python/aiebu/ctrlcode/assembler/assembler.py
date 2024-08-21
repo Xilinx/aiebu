@@ -210,7 +210,7 @@ class Assembler:
                 pc_high = pc_low + self.isa_ops[token.name].serializer(token.args, pagestate).size() -1
                 self._debug.adddataline(fid, data.getlinenum(), pc_high, pc_low, data.getline())
 
-                # operation can be uc_dma_bd_shim, uc_dma_bd, align, .long
+                # operation can be uc_dma_bd, align, .long
                 self.isa_ops[token.name].serializer(token.args, pagestate) \
                                         .serialize(text_section, data_section, page.col_num, page.page_num, self.symbols)
             else:
