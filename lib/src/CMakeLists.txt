@@ -26,12 +26,18 @@ target_link_libraries(${GENERATOR_EXE} xaiengine aiebu)
 # The copy is not required for Linux but I am copying nevertheless as it does not harm
 # When aie-rt is available as static library, we will switch to using static linking
 add_custom_command(
-  OUTPUT ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin
-         ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
-         ${GENERATOR_OUT_DIR}/preempt_restore_2col.bin
-         ${GENERATOR_OUT_DIR}/preempt_save_2col.bin
-         ${GENERATOR_OUT_DIR}/preempt_restore_4col.bin
-         ${GENERATOR_OUT_DIR}/preempt_save_4col.bin
+  OUTPUT ${GENERATOR_OUT_DIR}/preempt_save_phx_4x1.bin
+         ${GENERATOR_OUT_DIR}/preempt_save_phx_4x2.bin
+         ${GENERATOR_OUT_DIR}/preempt_save_phx_4x4.bin
+         ${GENERATOR_OUT_DIR}/preempt_save_stx_4x1.bin
+         ${GENERATOR_OUT_DIR}/preempt_save_stx_4x2.bin
+         ${GENERATOR_OUT_DIR}/preempt_save_stx_4x4.bin
+         ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x1.bin
+         ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x2.bin
+         ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x4.bin
+         ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
+         ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
+         ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
 #  COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:xaiengine> to ${GENERATOR_OUT_DIR}"
 #  COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:xaiengine>" "${GENERATOR_OUT_DIR}"
   COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:aiebu> to ${GENERATOR_OUT_DIR}"
@@ -45,24 +51,35 @@ add_custom_command(
 
 add_custom_target(
   ctrlcodelib ALL
-  DEPENDS ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin
-          ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
-          ${GENERATOR_OUT_DIR}/preempt_restore_2col.bin
-          ${GENERATOR_OUT_DIR}/preempt_save_2col.bin
-          ${GENERATOR_OUT_DIR}/preempt_restore_4col.bin
-          ${GENERATOR_OUT_DIR}/preempt_save_4col.bin
+  DEPENDS ${GENERATOR_OUT_DIR}/preempt_save_stx_4x1.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_stx_4x2.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_stx_4x4.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_phx_4x1.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_phx_4x2.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_phx_4x4.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x1.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x2.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x4.bin
 )
 
-install(FILES ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin
-              ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
-              ${GENERATOR_OUT_DIR}/preempt_restore_2col.bin
-              ${GENERATOR_OUT_DIR}/preempt_save_2col.bin
-              ${GENERATOR_OUT_DIR}/preempt_restore_4col.bin
-              ${GENERATOR_OUT_DIR}/preempt_save_4col.bin
+install(FILES ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
+              ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
+              ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
+              ${GENERATOR_OUT_DIR}/preempt_save_stx_4x1.bin
+              ${GENERATOR_OUT_DIR}/preempt_save_stx_4x2.bin
+              ${GENERATOR_OUT_DIR}/preempt_save_stx_4x4.bin
+              ${GENERATOR_OUT_DIR}/preempt_save_phx_4x1.bin
+              ${GENERATOR_OUT_DIR}/preempt_save_phx_4x2.bin
+              ${GENERATOR_OUT_DIR}/preempt_save_phx_4x4.bin
+              ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x1.bin
+              ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x2.bin
+              ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x4.bin
   DESTINATION ${AIEBU_INSTALL_AIE_LIB_DIR}
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )
-
 
 # For Copy transaction commands and ELF Generation
 set(GENERATOR_EXE "copy")
@@ -104,16 +121,22 @@ add_custom_target(
 add_custom_command(
   OUTPUT "${CHECKSUMS_FILE}"
   COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/md5sum.cmake" "${GENERATOR_OUT_DIR}" "${CHECKSUMS_FILE}"
-  DEPENDS ${GENERATOR_OUT_DIR}/preempt_restore_1col.bin
-          ${GENERATOR_OUT_DIR}/preempt_save_1col.bin
-          ${GENERATOR_OUT_DIR}/preempt_restore_2col.bin
-          ${GENERATOR_OUT_DIR}/preempt_save_2col.bin
-          ${GENERATOR_OUT_DIR}/preempt_restore_4col.bin
-          ${GENERATOR_OUT_DIR}/preempt_save_4col.bin
-	  ${GENERATOR_OUT_DIR}/copy_Mem_Tile_to_DDR.bin
+  DEPENDS ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_stx_4x1.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_stx_4x2.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_stx_4x4.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_phx_4x1.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_phx_4x2.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_phx_4x4.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x1.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x2.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x4.bin
+          ${GENERATOR_OUT_DIR}/copy_Mem_Tile_to_DDR.bin
           ${GENERATOR_OUT_DIR}/copy_DDR_to_Mem_Tile.bin
           ctrlcodelib
-	  copyctrlcodelib
+          copyctrlcodelib
 )
 
 add_custom_target(
