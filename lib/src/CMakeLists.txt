@@ -15,7 +15,7 @@ add_executable(${GENERATOR_EXE} gen-preemption.cpp)
 target_include_directories(
   ${GENERATOR_EXE}
   PRIVATE
-  ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
+  ${AIEBU_AIE_RT_HEADER_DIR}
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
 )
 
@@ -72,7 +72,7 @@ add_executable(${GENERATOR_EXE} gen-copy.cpp)
 target_include_directories(
   ${GENERATOR_EXE}
   PRIVATE
-  ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
+  ${AIEBU_AIE_RT_HEADER_DIR}
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
 )
 
