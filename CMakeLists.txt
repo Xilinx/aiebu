@@ -5,19 +5,11 @@ cmake_minimum_required(VERSION 3.18.0)
 
 project(AIEBU HOMEPAGE_URL https://github.com/Xilinx/aiebu)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(CMAKE_INSTALL_PREFIX "/opt/xilinx")
-else()
-  set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/xilinx" CACHE PATH "..." FORCE)
-endif()
-
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(AIEBU_INSTALL_DIR "aiebu")
 
 message("-- CMAKE_SYSTEM=${CMAKE_SYSTEM}")
-message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 
 find_package(Git REQUIRED)
 
@@ -35,8 +27,15 @@ if (DEFINED XRT_SOURCE_DIR)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     file(CREATE_LINK "${PARENT_PROJECT_ROOT}/build/${DEBUG_DIR_NAME}" "${AIEBU_SOURCE_DIR}/build/${DEBUG_DIR_NAME}" SYMBOLIC)
   endif()
+else()
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set(CMAKE_INSTALL_PREFIX "/opt/xilinx")
+  else()
+    set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/xilinx" CACHE PATH "..." FORCE)
+  endif()
 endif()
 
+message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 
 # If this repository is used as a submodule, the parent repository may set the
 # followiing variables in CMake to make aiebu point to the parents copy of ELFIO
