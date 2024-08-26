@@ -39,125 +39,352 @@ enum PreemptOp {
 	PREEMPT_RESTORE,
 };
 
+typedef struct {
+	union {
+		struct {
+			uint8_t num_tcts;
+			uint8_t num_cols;
+		} data;
+		uint32_t reserved;
+	};
+} MergeSync;
+
 constexpr auto START_OF_MEM = 0x80000;
 constexpr auto OUT_BUFFER_KERNARG_IDX = 0;
 constexpr auto IN_BUFFER_KERNARG_IDX = 1;
-constexpr uint8_t patch_ddr_opcode = XAIE_IO_CUSTOM_OP_DDR_PATCH;
+constexpr auto TCT_CTRL_ID = 0x9;
+constexpr auto MEMTILE_BD_OFF = 24;
 
 /* Creates the sequence to store data from MEM to external ddr memory dst*/
-int MEM_Tile_Save_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col) {
-	assert(num_elems % 2 == 0);
-	AieRC RC = XAIE_OK;
-	uint64_t size_per_column = num_elems * sizeof(uint32_t);
-	uint64_t DEFAULT_UNPATCHED_SAVE_ADDR = col * size_per_column;
+int MEM_Tile_Save_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col, uint32_t chan_id) {
+	uint64_t size, chan_addr_offset, col_addr_offset, dst_addr_offset, src_addr_offset;
+	uint8_t tile_m_bd = chan_id * MEMTILE_BD_OFF;
+	XAie_DmaDesc tile_m_mm2s, tile_s_s2mm;
+	uint8_t tile_s_bd = chan_id * 1;
+	XAie_LocType tile_m, tile_s;
+	AieRC rc = XAIE_OK;
 
-	XAie_LocType Tile_M, Tile_S;
-	Tile_M = XAie_TileLoc(col, 1);   // MEM Tile
-	Tile_S = XAie_TileLoc(col, 0);   // SHIM Tile
-	XAie_DmaDesc Tile_M_MM2S, Tile_S_S2MM;
+	size = num_elems * sizeof(uint32_t);
+	chan_addr_offset = chan_id * size;
+	col_addr_offset = col * MEMTILE_SIZE_BYTES;
+	dst_addr_offset = col_addr_offset + chan_addr_offset;
+	src_addr_offset = START_OF_MEM + chan_addr_offset;
+
+	tile_m = XAie_TileLoc(col, 1);   // MEM Tile
+	tile_s = XAie_TileLoc(col, 0);   // SHIM Tile
 
 	/* Configure stream switch ports to move data from MEM to SHIM */
-	RC = XAie_StrmConnCctEnable(dev, Tile_M, DMA, 0, SOUTH, 0);   // DMA 0 to SOUTH 0
-	RC = XAie_StrmConnCctEnable(dev, Tile_S, NORTH, 0, SOUTH, 2); // NORTH to SOUTH 2
-	RC = XAie_EnableAieToShimDmaStrmPort(dev, Tile_S, 2); // this is needed because the south port 2 is also used as DMA
+	rc = XAie_StrmConnCctEnable(dev, tile_m, DMA, chan_id, SOUTH, chan_id);   // DMA 0 to SOUTH 0
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_StrmConnCctEnable(dev, tile_s, NORTH, chan_id, SOUTH, chan_id + 2); // NORTH to SOUTH 2
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	// this is needed because the south port 2 is also used as DMA
+	rc = XAie_EnableAieToShimDmaStrmPort(dev, tile_s, chan_id + 2);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	// TCT Routing
+	rc = XAie_StrmConnCctEnable(dev, tile_s, CTRL, 0, SOUTH, 0); // Control to SOUTH 0
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
 
 	// create BDs
-	RC = XAie_DmaDescInit(dev, &Tile_M_MM2S, Tile_M);
-	RC = XAie_DmaDescInit(dev, &Tile_S_S2MM, Tile_S);
+	rc = XAie_DmaDescInit(dev, &tile_m_mm2s, tile_m);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaDescInit(dev, &tile_s_s2mm, tile_s);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
 	/* Configure address and length in dma software descriptors */
-	RC = XAie_DmaSetAddrLen(&Tile_M_MM2S, START_OF_MEM, (num_elems / 2) * sizeof(uint32_t)); // Read from local address 0
-	RC = XAie_DmaSetAddrLen(&Tile_S_S2MM, DEFAULT_UNPATCHED_SAVE_ADDR, num_elems * sizeof(uint32_t)); // Write to external ddr mem -- address obtained later
-	RC = XAie_DmaEnableBd(&Tile_M_MM2S);
-	RC = XAie_DmaEnableBd(&Tile_S_S2MM);
+	rc = XAie_DmaSetAddrLen(&tile_m_mm2s, src_addr_offset, size);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
 
-	// configure BDs
-	RC = XAie_DmaSetAxi(&Tile_S_S2MM, 0U, 16U, 0U, 0U, 0U);
-	RC = XAie_DmaSetBdIteration(&Tile_M_MM2S, num_elems / 2, 0, 0); // we are using newer API to support 512KB. Copy 256KB in one BD, execute BD twice
+	rc = XAie_DmaSetAddrLen(&tile_s_s2mm, dst_addr_offset, size);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
 
-	RC = XAie_DmaWriteBd(dev, &Tile_M_MM2S, Tile_M, 0U); // BD 0
-	RC = XAie_DmaWriteBd(dev, &Tile_S_S2MM, Tile_S, 0U); // BD 0
+	rc = XAie_DmaEnableBd(&tile_m_mm2s);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaEnableBd(&tile_s_s2mm);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	// configure BD burst length
+	if (dev->DevProp.DevGen == XAIE_DEV_GEN_AIE2IPU)
+		rc = XAie_DmaSetAxi(&tile_s_s2mm, 0U, 16U, 0U, 0U, 0U);
+	else
+		rc = XAie_DmaSetAxi(&tile_s_s2mm, 0U, 32U, 0U, 0U, 0U);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaWriteBd(dev, &tile_m_mm2s, tile_m, tile_m_bd);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaWriteBd(dev, &tile_s_s2mm, tile_s, tile_s_bd);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
 
 	// patch BD address
 	patch_op_t patch_instr = {};
 	uint64_t tile_offset = _XAie_GetTileAddr(dev, 0, col);
-	patch_instr.regaddr = XAIEGBL_MEM_DMABD0ADDB + tile_offset;
-	patch_instr.argidx = OUT_BUFFER_KERNARG_IDX;//argidx points to out_bo
-	patch_instr.argplus = DEFAULT_UNPATCHED_SAVE_ADDR; //argplus
+	patch_instr.regaddr = XAIEGBL_MEM_DMABD0ADDB + tile_offset + chan_id * 0x20;
+	patch_instr.argplus = dst_addr_offset; //argplus
 
-	XAie_AddCustomTxnOp(dev, patch_ddr_opcode, &patch_instr, sizeof(patch_instr)); // Create patch operation that will set actual address to use at runtime
-
-	/* Push Bd numbers to aie dma channel queues and enable the channels */
-	RC = XAie_DmaChannelSetStartQueue(dev, Tile_M, 0U, DMA_MM2S, 0, 2, 0); // Execute this BD twice. 256 * 2 = 512 KB
-	RC = XAie_DmaChannelPushBdToQueue(dev, Tile_S, 0U, DMA_S2MM, 0U); // Push BD 0
-
-	/* Enable the buffer descriptors in software dma descriptors */
-	RC = XAie_DmaChannelEnable(dev, Tile_M, 0U, DMA_MM2S); // Enable channel 0
-	RC = XAie_DmaChannelEnable(dev, Tile_S, 0U, DMA_S2MM); // Enable channel 0 for DMA
-
-	RC = XAie_DmaWaitForDone(dev, Tile_S, 0, DMA_S2MM, 0); // wait for SHIM DMA to finish
-	if (RC != XAIE_OK) {
+	// Create patch operation that will set actual address to use at runtime
+	rc = XAie_AddCustomTxnOp(dev, XAIE_IO_CUSTOM_OP_DDR_PATCH, &patch_instr, sizeof(patch_instr));
+	if (rc != XAIE_OK) {
 		std::cout << "Error at " << __LINE__ << std::endl;
 		return -1;
 	}
+
+	/* Push Bd numbers to aie dma channel queues and enable the channels */
+	rc = XAie_DmaChannelSetStartQueue(dev, tile_m, chan_id, DMA_MM2S, tile_m_bd, 1U, XAIE_ENABLE);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	XAie_DmaChannelDesc tile_s_chan_desc;
+	rc = XAie_DmaChannelDescInit(dev, &tile_s_chan_desc, tile_s);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaChannelSetControllerId(&tile_s_chan_desc, TCT_CTRL_ID);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaWriteChannel(dev, &tile_s_chan_desc, tile_s, chan_id, DMA_S2MM);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaChannelSetStartQueue(dev, tile_s, chan_id, DMA_S2MM, tile_s_bd, 1U, XAIE_ENABLE);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	/* Enable the buffer descriptors in software dma descriptors */
+	rc = XAie_DmaChannelEnable(dev, tile_m, chan_id, DMA_MM2S);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaChannelEnable(dev, tile_s, chan_id, DMA_S2MM);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
 	return 0;
 }
 
 /* Creates the sequence to store data to MEM from external ddr memory ddr_src*/
-int MEM_Tile_Restore_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col) {
-	assert(num_elems % 2 == 0);
-	AieRC RC = XAIE_OK;
-	uint64_t size_per_column = num_elems * sizeof(uint32_t);
-	uint64_t DEFAULT_UNPATCHED_RESTORE_ADDR = col * size_per_column;
+int MEM_Tile_Restore_Context(XAie_DevInst* dev, uint64_t num_elems, uint32_t col, uint8_t chan_id) {
+	uint64_t size, chan_addr_offset, col_addr_offset, dst_addr_offset, src_addr_offset;
+	uint8_t tile_m_bd = chan_id * MEMTILE_BD_OFF;
+	XAie_DmaDesc tile_m_s2mm, tile_s_mm2s;
+	uint8_t tile_s_bd = chan_id * 1;
+	XAie_LocType tile_m, tile_s;
+	AieRC rc = XAIE_OK;
 
-	XAie_LocType Tile_M, Tile_S;
-	Tile_M = XAie_TileLoc(col, 1);   // MEM Tile
-	Tile_S = XAie_TileLoc(col, 0);   // SHIM Tile
-	XAie_DmaDesc Tile_M_S2MM, Tile_S_MM2S;
+	size = num_elems * sizeof(uint32_t);
+	chan_addr_offset = chan_id * size;
+	col_addr_offset = col * MEMTILE_SIZE_BYTES;
+	src_addr_offset = col_addr_offset + chan_addr_offset;
+	dst_addr_offset = START_OF_MEM + chan_addr_offset;
+
+	tile_m = XAie_TileLoc(col, 1);   // MEM Tile
+	tile_s = XAie_TileLoc(col, 0);   // SHIM Tile
 
 	/* Configure stream switch ports to move data from DMA port to SOUTH*/
-	RC = XAie_StrmConnCctEnable(dev, Tile_M, SOUTH, 0, DMA, 0);
-	RC = XAie_StrmConnCctEnable(dev, Tile_S, SOUTH, 3, NORTH, 0);
-	RC = XAie_EnableShimDmaToAieStrmPort(dev, Tile_S, 3); // this is needed because the south port 3 is also used as DMA. 3 for output
+	rc = XAie_StrmConnCctEnable(dev, tile_m, SOUTH, chan_id, DMA, chan_id);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_StrmConnCctEnable(dev, tile_s, SOUTH, chan_id * 4 + 3, NORTH, chan_id);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	// this is needed because the south port 3 is also used as DMA. 3 for output
+	rc = XAie_EnableShimDmaToAieStrmPort(dev, tile_s, chan_id * 4 + 3);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	// TCT Routing
+	rc = XAie_StrmConnCctEnable(dev, tile_m, CTRL, 0, SOUTH, 2);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_StrmConnCctEnable(dev, tile_s, NORTH, 2, SOUTH, 0);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
 
 	// create BDs
-	RC = XAie_DmaDescInit(dev, &Tile_M_S2MM, Tile_M);
-	RC = XAie_DmaDescInit(dev, &Tile_S_MM2S, Tile_S);
+	rc = XAie_DmaDescInit(dev, &tile_m_s2mm, tile_m);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaDescInit(dev, &tile_s_mm2s, tile_s);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
 
 	/* Configure address and length in dma software descriptors */
-	RC = XAie_DmaSetAddrLen(&Tile_S_MM2S, DEFAULT_UNPATCHED_RESTORE_ADDR, num_elems * sizeof(uint32_t)); // Read from external ddr mem -- address patched in later
-	RC = XAie_DmaSetAddrLen(&Tile_M_S2MM, START_OF_MEM, (num_elems / 2) * sizeof(uint32_t)); // Write to local address 0 of MEM tile
-	RC = XAie_DmaEnableBd(&Tile_M_S2MM);
-	RC = XAie_DmaEnableBd(&Tile_S_MM2S);
+	rc = XAie_DmaSetAddrLen(&tile_s_mm2s, src_addr_offset, size);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
 
-	RC = XAie_DmaSetAxi(&Tile_S_MM2S, 0U, 16U, 0U, 0U, 0U);
-	RC = XAie_DmaSetBdIteration(&Tile_M_S2MM, num_elems / 2, 0, 0); // we are using newer API to support 512KB. Copy 256 KB in one BD
+	rc = XAie_DmaSetAddrLen(&tile_m_s2mm, dst_addr_offset, size);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
 
-	RC = XAie_DmaWriteBd(dev, &Tile_S_MM2S, Tile_S, 0U); // BD 0
-	RC = XAie_DmaWriteBd(dev, &Tile_M_S2MM, Tile_M, 0U); // BD 0
+	rc = XAie_DmaEnableBd(&tile_m_s2mm);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaEnableBd(&tile_s_mm2s);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	if (dev->DevProp.DevGen == XAIE_DEV_GEN_AIE2IPU)
+		rc = XAie_DmaSetAxi(&tile_s_mm2s, 0U, 16U, 0U, 0U, 0U);
+	else
+		rc = XAie_DmaSetAxi(&tile_s_mm2s, 0U, 32U, 0U, 0U, 0U);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaWriteBd(dev, &tile_s_mm2s, tile_s, tile_s_bd);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaWriteBd(dev, &tile_m_s2mm, tile_m, tile_m_bd);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
 
 	// patch BD
 	patch_op_t patch_instr = {};
 	uint64_t tile_offset = _XAie_GetTileAddr(dev, 0, col);
-	patch_instr.regaddr = XAIEGBL_MEM_DMABD0ADDB + tile_offset;
+	patch_instr.regaddr = XAIEGBL_MEM_DMABD0ADDB + tile_offset + chan_id * 0x20;
 	patch_instr.argidx = IN_BUFFER_KERNARG_IDX;//argidx points to out_bo
-	patch_instr.argplus = DEFAULT_UNPATCHED_RESTORE_ADDR; //argplus
+	patch_instr.argplus = src_addr_offset; //argplus
 
-	XAie_AddCustomTxnOp(dev, patch_ddr_opcode, &patch_instr, sizeof(patch_instr)); // Create patch operation that will set actual address to use at runtime
-
-	/* Push Bd numbers to aie dma channel queues and enable the channels */
-	RC = XAie_DmaChannelPushBdToQueue(dev, Tile_S, 0U, DMA_MM2S, 0U);
-	RC = XAie_DmaChannelSetStartQueue(dev, Tile_M, 0U, DMA_S2MM, 0, 2, 0); // Execute this BD twice. 256 * 2 = 512 KB
-
-	/* Enable the buffer descriptors in software dma descriptors */
-	RC = XAie_DmaChannelEnable(dev, Tile_S, 0U, DMA_MM2S); // channel 0
-	RC = XAie_DmaChannelEnable(dev, Tile_M, 0U, DMA_S2MM); // channel 0
-
-	RC = XAie_DmaWaitForDone(dev, Tile_M, 0, DMA_S2MM, 0);
-
-	if (RC != XAIE_OK) {
+	// Create patch operation that will set actual address to use at runtime
+	rc = XAie_AddCustomTxnOp(dev, XAIE_IO_CUSTOM_OP_DDR_PATCH, &patch_instr, sizeof(patch_instr));
+	if (rc != XAIE_OK) {
 		std::cout << "Error at " << __LINE__ << std::endl;
 		return -1;
 	}
+
+	/* Push Bd numbers to aie dma channel queues and enable the channels */
+	rc = XAie_DmaChannelPushBdToQueue(dev, tile_s, chan_id, DMA_MM2S, tile_s_bd);
+	XAie_DmaChannelDesc tile_m_chan_desc;
+	rc = XAie_DmaChannelDescInit(dev, &tile_m_chan_desc, tile_m);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaChannelSetControllerId(&tile_m_chan_desc, TCT_CTRL_ID);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaWriteChannel(dev, &tile_m_chan_desc, tile_m, chan_id, DMA_S2MM);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaChannelSetStartQueue(dev, tile_m, chan_id, DMA_S2MM, tile_m_bd, 1U, XAIE_ENABLE);
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	/* Enable the buffer descriptors in software dma descriptors */
+	rc = XAie_DmaChannelEnable(dev, tile_s, chan_id, DMA_MM2S); // channel 0
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
+	rc = XAie_DmaChannelEnable(dev, tile_m, chan_id, DMA_S2MM); // channel 0
+	if (rc != XAIE_OK) {
+		std::cout << "Error at " << __LINE__ << std::endl;
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -206,7 +433,7 @@ int MEM_Tile_Save_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uint32
 	patch_instr.argidx = OUT_BUFFER_KERNARG_IDX; //argidx points to out_bo
 	patch_instr.argplus = DEFAULT_UNPATCHED_SAVE_ADDR; //argplus
 
-	XAie_AddCustomTxnOp(dev, patch_ddr_opcode, &patch_instr, sizeof(patch_instr)); // Create patch operation that will set actual address to use at runtime
+	XAie_AddCustomTxnOp(dev, XAIE_IO_CUSTOM_OP_DDR_PATCH, &patch_instr, sizeof(patch_instr)); // Create patch operation that will set actual address to use at runtime
 
 	/* Push Bd numbers to aie dma channel queues and enable the channels */
 	RC = XAie_DmaChannelSetStartQueue(dev, Tile_M, 0, DMA_MM2S, 0, 2, 0); // Execute this BD twice. 256 * 2 = 512 KB
@@ -270,7 +497,7 @@ int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uin
 	patch_instr.argidx = IN_BUFFER_KERNARG_IDX; //argidx points to inp_bo
 	patch_instr.argplus = DEFAULT_UNPATCHED_RESTORE_ADDR; //argplus
 
-	XAie_AddCustomTxnOp(dev, patch_ddr_opcode, &patch_instr, sizeof(patch_instr)); // Create patch operation that will set actual address to use at runtime
+	XAie_AddCustomTxnOp(dev, XAIE_IO_CUSTOM_OP_DDR_PATCH, &patch_instr, sizeof(patch_instr)); // Create patch operation that will set actual address to use at runtime
 
 	/* Push Bd numbers to aie dma channel queues and enable the channels */
 	RC = XAie_DmaChannelPushBdToQueue(dev, Tile_S_E, 1U, DMA_MM2S, 1U); // BD 1
@@ -364,17 +591,30 @@ static int generate_tran(uint8_t device, enum PreemptOp type, uint32_t start_col
 
 	XAie_StartTransaction(&DevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
 
+	const unsigned int channels[] = {0, 1};
+	uint8_t nchans = sizeof(channels) / sizeof(channels[0]);
+	uint64_t size = data_sz / nchans;
+	MergeSync completion = {0};
+	AieRC RC;
+
 	for (int col = 0; col < ncol; col++) {
-		if (type == PREEMPT_SAVE) {
-			ret = MEM_Tile_Save_Context(&DevInst, data_sz, col);
-			if (ret)
-				return ret;
-		} else {
-			ret = MEM_Tile_Restore_Context(&DevInst, data_sz, col);
-			if (ret)
-				return ret;
+		for (auto chan: channels) {
+			if (type == PREEMPT_SAVE) {
+				ret = MEM_Tile_Save_Context(&DevInst, size, col, chan);
+				if (ret)
+					return ret;
+			} else {
+				ret = MEM_Tile_Restore_Context(&DevInst, size, col, chan);
+				if (ret)
+					return ret;
+			}
 		}
 	}
+	completion.data.num_tcts = ncol * nchans;
+	completion.data.num_cols = ncol;
+	RC = XAie_AddCustomTxnOp(&DevInst, XAIE_IO_CUSTOM_OP_MERGE_SYNC, &completion, sizeof(MergeSync));
+	if (RC != XAIE_OK)
+		return -1;
 
 	uint8_t *txn_ptr = XAie_ExportSerializedTransaction_opt(&DevInst, 0, 0);
 	XAie_TxnHeader* hdr = (XAie_TxnHeader*)txn_ptr;

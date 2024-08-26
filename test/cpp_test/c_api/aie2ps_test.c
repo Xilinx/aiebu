@@ -20,7 +20,7 @@ int main(int argc, char ** argv)
   char* control_code_buf;
   char* elf_buf;
   size_t control_code_buf_size, elf_buf_size;
-  control_code_buf_size = ReadFile(argv[1], (long *)&control_code_buf);
+  control_code_buf = ReadFile(argv[1], &control_code_buf_size);
 
   elf_buf_size = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_asm_aie2ps,
                                          control_code_buf, control_code_buf_size,

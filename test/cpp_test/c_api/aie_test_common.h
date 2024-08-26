@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char* ReadFile(char *name, long *s)
+char* ReadFile(char *name, size_t *s)
 {
   FILE *file;
   char *buffer;
