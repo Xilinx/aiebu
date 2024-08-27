@@ -22,6 +22,7 @@ protected:
   std::vector<symbol> m_sym;
 public:
   preprocessor_input() {}
+  virtual ~preprocessor_input() = default;
 
   virtual void set_args(const std::vector<char>&,
                         const std::vector<char>& patch_json,

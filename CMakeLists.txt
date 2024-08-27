@@ -28,6 +28,7 @@ if (DEFINED XRT_SOURCE_DIR)
     file(CREATE_LINK "${PARENT_PROJECT_ROOT}/build/${DEBUG_DIR_NAME}" "${AIEBU_SOURCE_DIR}/build/${DEBUG_DIR_NAME}" SYMBOLIC)
   endif()
 else()
+  # define our own install area when compiling independently
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(CMAKE_INSTALL_PREFIX "/opt/xilinx")
   else()
@@ -38,7 +39,7 @@ endif()
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 
 # If this repository is used as a submodule, the parent repository may set the
-# followiing variables in CMake to make aiebu point to the parents copy of ELFIO
+# following variables in CMake to make aiebu point to the parents copy of ELFIO
 # and/or AIE-RT. e.g, XRT parent repository can set the following in its CMake
 # for aiebu to inherit it:
 # set(AIEBU_AIE_RT_BIN_DIR ${XRT_BINARY_DIR})
