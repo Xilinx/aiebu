@@ -10,6 +10,13 @@ set(CHECKSUMS_FILE "${GENERATOR_OUT_DIR}/checksums.txt")
 
 file(MAKE_DIRECTORY ${GENERATOR_OUT_DIR})
 
+#if (MSVC)
+#  gen-copy.cpp and gen-preemption.cpp have many "missing initializer" errors
+#  add_compile_options(/WX /W2)
+#else()
+#  add_compile_options(-Wall -Wextra -Werror)
+#endif()
+
 add_executable(${GENERATOR_EXE} gen-preemption.cpp)
 
 target_include_directories(
@@ -19,7 +26,7 @@ target_include_directories(
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
 )
 
-target_link_libraries(${GENERATOR_EXE} xaiengine aiebu)
+target_link_libraries(${GENERATOR_EXE} xaiengine aiebu_static)
 
 # Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
 # when it runs.
@@ -76,7 +83,7 @@ target_include_directories(
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
 )
 
-target_link_libraries(${GENERATOR_EXE} xaiengine aiebu)
+target_link_libraries(${GENERATOR_EXE} xaiengine aiebu_static)
 
 # Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
 # when it runs.
