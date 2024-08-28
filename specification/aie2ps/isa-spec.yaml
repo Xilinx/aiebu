@@ -571,6 +571,21 @@ operations:
     description: |
       Used in preemption restore case. The info (pdi id and location in host ddr) of the pdi last time loaded is saved
       in firmware. During restore (after a context switch), the last loaded pdi will be loaded with this opcode
+  - mnemonic: SAVE_TIMESTAMPS
+    opcode: 0x1c
+    regular: True
+    arguments:
+      - type: pad
+        width: 16
+      - name: unq_id
+        type: const
+        width: 32
+    brief: save the timestamps
+    description: |
+      Used to save the time stamps whenever control code encountered this opcode. AIE compiler will also add the unique
+      identifier while generating control code. The timestamps will get saved in shared data memory. Whenever the
+      allocated shared memory gets fill, CERT should initiate the uc-DMA to transfer data from shared
+      data memory to host memory.
 directives:
   - mnemonic: .long
     brief: Specifies a 4 byte integer value.
