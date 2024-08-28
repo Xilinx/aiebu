@@ -723,3 +723,9 @@ macro_defines:
   - mnemonic: UC_DMA_WORD_LEN
     value: 4
     brief: minimum length of an ucdma
+  - mnemonic: HOST_PATCH_ADDR_FLAG
+    value: 0xdeadbeef
+    brief: Flag to indicate, BD is patched in host
+  - mnemonic: PATCH_CONTROL_CODE_FLAG
+    value: 0xFFFF
+    brief: Flag to indicate, patching control code base address

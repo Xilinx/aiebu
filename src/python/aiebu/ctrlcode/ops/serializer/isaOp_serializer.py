@@ -71,8 +71,11 @@ class IsaOpSerializer(OpSerializer):
                     # and that is always patched in cert,
                     # if val is not 0xFFFF, we can do patching in cert or host so add symbol info in elf
                     if self.op.name == "apply_offset_57" and arg.name == "offset" and val != 0xFFFF:
-                            symbols.append(Symbol(str(val), parse_num_arg(self.args[0], self.state), col, page,
-                                           Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57))
+                        symbols.append(Symbol(str(val), parse_num_arg(self.args[0], self.state), col, page,
+                                              Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57))
+                        assert val < 8, f"arg index {val} >= 8, which is not supported"
+                        # val is arg index, to get offset x2
+                        val = val * 2
                     result.append(val & 0xFF)
                     result.append((val >> 8) & 0xFF)
                 elif arg.width == 32:
