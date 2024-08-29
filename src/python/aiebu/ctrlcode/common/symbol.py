@@ -13,8 +13,7 @@ class Symbol:
         xrt_patch_schema_scaler_32 = 3
         xrt_patch_schema_control_packet_48 = 4
         xrt_patch_schema_shim_dma_48 = 5
-        xrt_patch_schema_tansaction_ctrlpkt_48 = 6
-        xrt_patch_schema_tansaction_48 = 7
+        xrt_patch_schema_shim_dma_57_aie4 = 6
         xrt_patch_schema_unknown = 8
 
     class XrtPatchBufferType(IntEnum):

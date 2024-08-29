@@ -26,6 +26,7 @@ public:
     scaler_32 = 3,
     control_packet_48 = 4,
     shim_dma_48 = 5,
+    shim_dma_57_aie4 = 6,
     unknown = 8,
   };
 

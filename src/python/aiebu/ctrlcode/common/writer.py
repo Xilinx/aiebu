@@ -140,8 +140,7 @@ class ELFWriter:
             Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_48: pylibelf.elf.R_M32R_24_RELA,
             Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57: pylibelf.elf.R_M32R_NUM,
             Symbol.XrtPatchSchema.xrt_patch_schema_control_packet_48:pylibelf.elf.R_M32R_REL32,
-            Symbol.XrtPatchSchema.xrt_patch_schema_tansaction_ctrlpkt_48: pylibelf.elf.R_M32R_GOT24,
-            Symbol.XrtPatchSchema.xrt_patch_schema_tansaction_48: pylibelf.elf.R_M32R_26_PLTREL,
+            Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57_aie4: pylibelf.elf.R_M32R_NUM,
             Symbol.XrtPatchSchema.xrt_patch_schema_unknown: pylibelf.elf.R_M32R_NONE
         }
 
@@ -440,7 +439,7 @@ class AIE2PS_ELFWriter(ELFWriter):
         super().__init__(AIE2PS_ELFWriter.AMD_AIE_CERT, AIE2PS_ELFWriter.AMD_AIE_CERT_V1, filename, symbols, elf_sections, section_index_callback)
 
 class AIE4_ELFWriter(ELFWriter):
-    AMD_AIE_CERT = 0x41
+    AMD_AIE_CERT = 0x40
     AMD_AIE_CERT_V1 = 1
 
     def __init__(self, filename, symbols, elf_sections, section_index_callback):

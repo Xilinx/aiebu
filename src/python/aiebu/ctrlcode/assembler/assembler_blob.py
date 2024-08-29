@@ -101,7 +101,7 @@ class Assembler_blob_transaction(Assembler_blob):
                 print("XAIE_IO_CUSTOM_OP_BEGIN_1:", hex(reg))
                 if reg in blockWriteRegOffsetMap:
                    self.symbols.append(Symbol(str(argidx), blockWriteRegOffsetMap[reg], 0, 0,
-                                              Symbol.XrtPatchSchema.xrt_patch_schema_tansaction_48,
+                                              Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_48,
                                               Symbol.XrtPatchBufferType.xrt_patch_buffer_type_instruct))
                 else:
                     print(f"address {hex(reg)} have no block write opcode !!! removing all patching info")
