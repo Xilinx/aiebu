@@ -21,7 +21,7 @@ set CREATE_PACKAGE=0
 set CMAKEFLAGS=
 set NOCMAKE=0
 set NOCTEST=0
-set BOOST=C:\Xilinx\Xilinx\XRT\ext
+set BOOST=C:\Xilinx\XRT\ext
 
 IF DEFINED MSVC_PARALLEL_JOBS ( SET LOCAL_MSVC_PARALLEL_JOBS=%MSVC_PARALLEL_JOBS%) ELSE ( SET LOCAL_MSVC_PARALLEL_JOBS=3 )
 
@@ -119,8 +119,8 @@ if [%NOCMAKE%] == [0] (
 cmake --build . --verbose --config Debug
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
-REM cmake --build . --verbose --config Debug --target run_tests
-REM IF errorlevel 1 (POPD & exit /B %errorlevel%)
+cmake --build . --verbose --config Debug --target run_tests
+IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
 cmake --build . --verbose --config Debug --target install
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
@@ -145,8 +145,8 @@ if [%NOCMAKE%] == [0] (
 cmake --build . --verbose --config Release
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
-REM cmake --build . --verbose --config Release --target run_tests
-REM IF errorlevel 1 (POPD & exit /B %errorlevel%)
+cmake --build . --verbose --config Release --target run_tests
+IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
 cmake --build . --verbose --config Release --target install
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
