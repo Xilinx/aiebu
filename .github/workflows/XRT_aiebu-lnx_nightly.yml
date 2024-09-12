@@ -54,6 +54,7 @@ jobs:
           echo "--> Build inside docker container on $RUNNER_HOSTNAME"
           docker run --name aiebu_container --rm --volume ${GITHUB_WORKSPACE}:/home/aiebu -i ubuntu:xrt_aiebu_1 /bin/bash -c \
             "apt install rapidjson-dev && \ 
+            apt install libssl-dev && \ 
             git config --global --add safe.directory /home/aiebu && \
             cd /home/aiebu/ && \
             build/build.sh && \
