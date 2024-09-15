@@ -22,6 +22,7 @@ Build dependencies
 Compiling requires having installed:
  * cmake >= version 3.18
  * c++17
+ * Openssl (for linux only)
 
 Build Instruction
 =================

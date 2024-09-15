@@ -35,6 +35,8 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   find_program (READELF eu-readelf REQUIRED)
   message("-- Readelf path: ${READELF}")
 
+  find_package(OpenSSL REQUIRED)
+  message("-- OpenSSL path: ${OPENSSL_LIBRARIES}")
 endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)

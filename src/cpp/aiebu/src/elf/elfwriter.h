@@ -9,6 +9,7 @@
 #include "writer.h"
 #include "symbol.h"
 #include "elfio/elfio.hpp"
+#include "uid_md5.h"
 
 namespace aiebu {
 
@@ -18,6 +19,8 @@ constexpr int data_align = 16;
 constexpr int phdr_align = 8;
 constexpr int program_header_static_count = 2;
 constexpr int program_header_dynamic_count = 3;
+
+constexpr ELFIO::Elf_Word NT_XRT_UID = 4;
 
 class elf_section
 {
@@ -70,6 +73,7 @@ class elf_writer
 {
 protected:
   ELFIO::elfio m_elfio;
+  uid_md5 m_uid;
 
   ELFIO::section* add_section(elf_section data);
   ELFIO::segment* add_segment(elf_segment data);
@@ -79,6 +83,7 @@ protected:
   void add_dynamic_section_segment();
   std::vector<char> finalize();
   void add_text_data_section(std::vector<writer>& mwriter, std::vector<symbol>& syms);
+  void add_note(ELFIO::Elf_Word type, std::string name, std::string dec);
 
 public:
 
