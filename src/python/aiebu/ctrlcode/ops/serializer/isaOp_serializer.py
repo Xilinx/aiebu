@@ -74,7 +74,10 @@ class IsaOpSerializer(OpSerializer):
                         symbols.append(Symbol(str(val), parse_num_arg(self.args[0], self.state), col, page,
                                               Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57 if self.state.target == "aie2ps" else
                                               Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57_aie4))
-                        assert val < 8, f"arg index {val} >= 8, which is not supported"
+                        # arg 0 to 6 and be patched in CERT.
+                        # Beyond that its elfloader/host responsibility to patch mandatorily
+                        if val > 6:
+                            print(f"WARNING: Apply_offset_57 has arg index {val} > 6, Should be mandatorily patched in host!!!")
                         # val is arg index, to get offset x2
                         val = val * 2
                     result.append(val & 0xFF)
