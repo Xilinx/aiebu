@@ -27,6 +27,10 @@ target_include_directories(
 )
 
 target_link_libraries(${GENERATOR_EXE} xaiengine aiebu_static)
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_link_options(${GENERATOR_EXE} PRIVATE "-static")
+  target_link_libraries(${GENERATOR_EXE} ${CRYPTO_LIB} ${LD_LIB} ${Z_LIB} ${PTHREAD_LIB})
+endif()
 
 # Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
 # when it runs.
@@ -102,6 +106,10 @@ target_include_directories(
 )
 
 target_link_libraries(${GENERATOR_EXE} xaiengine aiebu_static)
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_link_options(${GENERATOR_EXE} PRIVATE "-static")
+  target_link_libraries(${GENERATOR_EXE} ${CRYPTO_LIB} ${LD_LIB} ${Z_LIB} ${PTHREAD_LIB})
+endif()
 
 # Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
 # when it runs.
