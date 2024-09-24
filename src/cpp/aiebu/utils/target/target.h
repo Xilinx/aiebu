@@ -70,6 +70,7 @@ protected:
   std::vector<std::string> m_libs;
   std::vector<std::string> m_libpaths;
   std::string m_output_elffile;
+  bool m_print_report;
   target_aie2blob(const std::string& exename, const std::string& name, const std::string& description)
     : target(exename, name, description) {}
 
