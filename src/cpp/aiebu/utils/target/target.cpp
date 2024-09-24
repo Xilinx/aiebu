@@ -26,6 +26,7 @@ target_aie2blob::parseOption(const sub_cmd_options &_options)
             ("json,j", po::value<decltype(external_buffers_file)>(&external_buffers_file), "control packet Patching json file")
             ("lib,l", po::value<decltype(m_libs)>(&m_libs)->multitoken(), "linked libs")
             ("libpath,L", po::value<decltype(m_libpaths)>(&m_libpaths)->multitoken(), "libs path")
+            ("report,r", po::bool_switch(&m_print_report), "Generate Report")
             ("help,h", po::bool_switch(&bhelp), "show help message and exit")
   ;
 
@@ -65,6 +66,8 @@ target_aie2blob_dpu::assemble(const sub_cmd_options &_options)
                               m_transaction_buffer, m_control_packet_buffer, m_patch_data_buffer,
                               m_libs, m_libpaths);
     write_elf(as, m_output_elffile);
+    if (m_print_report)
+      as.get_report(std::cout);
   } catch (aiebu::error &ex) {
     auto errMsg = boost::format("Error: %s, code:%d\n") % ex.what() % ex.get_code() ;
     throw std::runtime_error(errMsg.str());
@@ -82,6 +85,8 @@ target_aie2blob_transaction::assemble(const sub_cmd_options &_options)
     aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::blob_instr_transaction,
                               m_transaction_buffer, m_control_packet_buffer, m_patch_data_buffer, m_libs, m_libpaths);
     write_elf(as, m_output_elffile);
+    if (m_print_report)
+      as.get_report(std::cout);
   } catch (aiebu::error &ex) {
     auto errMsg = boost::format("Error: %s, code:%d\n") % ex.what() % ex.get_code() ;
     throw std::runtime_error(errMsg.str());
