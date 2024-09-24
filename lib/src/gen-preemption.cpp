@@ -58,7 +58,7 @@ constexpr auto TCT_CTRL_ID = 0x9;
 constexpr auto MEMTILE_BD_OFF = 24;
 
 /* Creates the sequence to store data from MEM to external ddr memory dst*/
-int MEM_Tile_Save_Context(XAie_DevInst* dev, uint64_t num_elems, uint8_t col, uint32_t chan_id) {
+int MEM_Tile_Save_Context(XAie_DevInst* dev, uint64_t num_elems, uint8_t col, uint8_t chan_id) {
     uint64_t size, chan_addr_offset, col_addr_offset, dst_addr_offset, src_addr_offset;
     uint8_t tile_m_bd = chan_id * MEMTILE_BD_OFF;
     XAie_DmaDesc tile_m_mm2s, tile_s_s2mm;
@@ -499,13 +499,13 @@ static int generate_tran(uint8_t device, enum PreemptOp type, uint32_t start_col
 
     XAie_StartTransaction(&DevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
 
-    const unsigned int channels[] = {0, 1};
+    const uint8_t channels[] = {0, 1};
     uint8_t nchans = sizeof(channels) / sizeof(channels[0]);
     uint64_t size = data_sz / nchans;
     MergeSync completion = {0};
     AieRC RC;
 
-    for (int col = 0; col < ncol; col++) {
+    for (uint8_t col = UINT8_C(0); col < ncol; col++) {
         for (auto chan: channels) {
             if (type == PREEMPT_SAVE) {
                 ret = MEM_Tile_Save_Context(&DevInst, size, col, chan);
@@ -548,7 +548,7 @@ static int generate_tran(uint8_t device, enum PreemptOp type, uint32_t start_col
 
 int main(int /* argc */, char** /* argv */)
 {
-    uint32_t start_col, ncol;
+    uint32_t start_col;
     int ret;
 
     const unsigned int columns[] = {1, 2, 4};

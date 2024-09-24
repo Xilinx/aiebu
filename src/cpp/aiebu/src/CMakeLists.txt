@@ -46,15 +46,14 @@ add_library(aiebu_static STATIC
   $<TARGET_OBJECTS:aiebu_library_objects>
   )
 
-target_link_libraries(aiebu xaiengine)
-
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(aiebu ${OPENSSL_LIBRARIES})
-  target_link_libraries(aiebu_static ${CRYPTO_LIB} ${LD_LIB} ${Z_LIB})
+  target_link_libraries(aiebu_static crypto dl z pthread)
 else()
   target_link_libraries(aiebu advapi32)
 endif()
 
+target_link_libraries(aiebu xaiengine)
 #target_link_libraries(aiebu_static xaiengine)
 
 install (TARGETS aiebu
