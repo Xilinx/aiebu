@@ -37,6 +37,9 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
   find_package(OpenSSL REQUIRED)
   message("-- OpenSSL path: ${OPENSSL_LIBRARIES}")
+
+  find_library(CRYPTO_LIB libcrypto.a REQUIRED)
+  message("-- CRYPTO_LIB path: ${CRYPTO_LIB}")
 endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)

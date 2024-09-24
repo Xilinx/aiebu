@@ -20,9 +20,11 @@ target_link_libraries(${TARGET}
   )
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_link_options(${TARGET} PRIVATE "-static")
+
   target_link_libraries(${TARGET}
     PRIVATE
-    ${OPENSSL_LIBRARIES}
+    ${CRYPTO_LIB}
     )
 endif()
 
