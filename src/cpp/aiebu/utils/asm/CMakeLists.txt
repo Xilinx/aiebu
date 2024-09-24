@@ -19,6 +19,13 @@ target_link_libraries(${TARGET}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_link_libraries(${TARGET}
+    PRIVATE
+    ${OPENSSL_LIBRARIES}
+    )
+endif()
+
 target_include_directories(${TARGET} PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/assembler/

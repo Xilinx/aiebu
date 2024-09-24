@@ -228,24 +228,17 @@ namespace aiebu {
     mc_code[offset + DMA_BD_2_IN_BYTES + 1] = mc_code[offset + DMA_BD_2_IN_BYTES + 1] & (0x00);
   }
 
-  uint32_t
-  aie2_blob_transaction_preprocessor_input::
-  extractSymbolFromBuffer(std::vector<char>& mc_code,
-                          const std::string& section_name,
-                          const std::string& argname)
+  #define MAJOR_VER 1
+  #define MINOR_VER 0
+
+  uint32_t aie2_blob_transaction_preprocessor_input::process_txn(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname)
   {
     // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
     // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
     constexpr static uint32_t ARG_OFFSET = 3;
     std::map<uint64_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
-    const char *ptr = (mc_code.data());
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
-    //printf("Header version %d.%d\n", txn_header->Major, txn_header->Minor);
-    //printf("Device Generation: %d\n", txn_header->DevGen);
-    //printf("Cols, Rows, NumMemRows : (%d, %d, %d)\n", txn_header->NumCols,
-    //     txn_header.NumRows, txn_header->NumMemTileRows);
-    //printf("TransactionSize: %u\n", txn_header->TxnSize);
-    //printf("NumOps: %u\n", txn_header->NumOps);
+
     ptr += sizeof(XAie_TxnHeader);
     for(uint32_t num = 0; num < txn_header->NumOps; num++) {
       auto op_header = reinterpret_cast<const XAie_OpHdr *>(ptr);
@@ -274,6 +267,14 @@ namespace aiebu {
           ptr += mp_header->Size;
           break;
         }
+        case XAIE_IO_NOOP: {
+            ptr += sizeof(XAie_NoOpHdr);
+            break;
+        }
+        case XAIE_IO_PREEMPT: {
+            ptr += sizeof(XAie_PreemptHdr);
+            break;
+        }
         case XAIE_IO_CUSTOM_OP_BEGIN: {
           auto co_header = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
           ptr += co_header->Size;
@@ -292,8 +293,8 @@ namespace aiebu {
           uint32_t offset = blockWriteRegOffsetMap[reg].first;
           uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
           uint32_t addend = static_cast<uint32_t>(op->argplus);
-          patch_helper(mc_code, section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)), static_cast<uint32_t>(op->argidx + ARG_OFFSET), 
-                      offset, buffer_length_in_bytes, addend);
+          patch_helper(mc_code, section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)), static_cast<uint32_t>(op->argidx + ARG_OFFSET),
+                       offset, buffer_length_in_bytes, addend);
           ptr += hdr->Size;
           break;
         }
@@ -313,6 +314,120 @@ namespace aiebu {
     }
     return txn_header->NumCols;
   }
+
+
+  uint32_t aie2_blob_transaction_preprocessor_input::process_txn_opt(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname)
+  {
+    // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
+    // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
+    constexpr static uint32_t ARG_OFFSET = 3;
+    std::map<uint32_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
+    auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
+
+    ptr += sizeof(XAie_TxnHeader);
+    for(uint32_t num = 0; num < txn_header->NumOps; num++) {
+      auto op_header = reinterpret_cast<const XAie_OpHdr_opt *>(ptr);
+      switch(op_header->Op) {
+        case XAIE_IO_WRITE: {
+          ptr += sizeof(XAie_Write32Hdr_opt);
+          break;
+        }
+        case XAIE_IO_BLOCKWRITE: {
+          auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr_opt *>(ptr);
+          auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr_opt));
+          auto offset = static_cast<uint32_t>(payload-mc_code.data());
+          uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * 4;
+          blockWriteRegOffsetMap[bw_header->RegOff] = std::make_pair(offset, buffer_length_in_bytes);
+          ptr += bw_header->Size;
+          break;
+        }
+        case XAIE_IO_MASKWRITE: {
+          ptr += sizeof(XAie_MaskWrite32Hdr_opt);
+          break;
+        }
+        case XAIE_IO_MASKPOLL: {
+          ptr += sizeof(XAie_MaskPoll32Hdr_opt);
+          break;
+        }
+        case XAIE_IO_NOOP: {
+            ptr += sizeof(XAie_NoOpHdr);
+            break;
+        }
+        case XAIE_IO_PREEMPT: {
+            ptr += sizeof(XAie_PreemptHdr);
+            break;
+        }
+        case XAIE_IO_CUSTOM_OP_TCT: {
+          auto co_header = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
+          ptr += co_header->Size;
+          break;
+        }
+        case XAIE_IO_CUSTOM_OP_DDR_PATCH: {
+          auto hdr = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
+          auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
+          uint64_t reg = op->regaddr & 0xFFFFFFF0; // regaddr point either to 1st word or 2nd word of BD
+          auto it = blockWriteRegOffsetMap.find(reg);
+          if ( it == blockWriteRegOffsetMap.end()) {
+            std::cout << "address "<< std::hex <<"0x" << reg << " have no block write opcode !!! removing all patching info" << std::endl;
+            m_sym.clear();
+            return txn_header->NumCols;
+          }
+          uint32_t offset = blockWriteRegOffsetMap[reg].first;
+          uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
+          uint32_t addend = static_cast<uint32_t>(op->argplus);
+          patch_helper(mc_code, section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)), static_cast<uint32_t>(op->argidx + ARG_OFFSET),
+                       offset, buffer_length_in_bytes, addend);
+          ptr += hdr->Size;
+          break;
+        }
+        case XAIE_IO_CUSTOM_OP_READ_REGS: {
+          auto hdr = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
+          ptr += hdr->Size;
+          break;
+        }
+        case XAIE_IO_CUSTOM_OP_RECORD_TIMER: {
+          auto hdr = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
+          ptr += hdr->Size;
+          break;
+        }
+        case XAIE_IO_CUSTOM_OP_MERGE_SYNC: {
+          auto hdr = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
+          ptr += hdr->Size;
+          break;
+        }
+        default:
+          throw error(error::error_code::internal_error, "Invalid txn opcode: " + std::to_string(op_header->Op) + " !!!");
+      }
+    }
+    return txn_header->NumCols;
+  }
+
+  uint32_t
+  aie2_blob_transaction_preprocessor_input::
+  extractSymbolFromBuffer(std::vector<char>& mc_code,
+                          const std::string& section_name,
+                          const std::string& argname)
+  {
+    const char *ptr = (mc_code.data());
+    auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
+
+    printf("Header version %d.%d\n", txn_header->Major, txn_header->Minor);
+    printf("Device Generation: %d\n", txn_header->DevGen);
+    printf("Cols, Rows, NumMemRows : (%d, %d, %d)\n", txn_header->NumCols,
+         txn_header->NumRows, txn_header->NumMemTileRows);
+    printf("TransactionSize: %u\n", txn_header->TxnSize);
+    printf("NumOps: %u\n", txn_header->NumOps);
+
+    /**
+     * Check if Header Version is 1.0 then call optimized API else continue with this
+     * function to service the TXN buffer.
+     */
+    if ((txn_header->Major == MAJOR_VER) && (txn_header->Minor == MINOR_VER)) {
+        printf("Optimized HEADER version detected \n");
+        return process_txn_opt(ptr, mc_code, section_name, argname);
+    }
+    return process_txn(ptr, mc_code, section_name, argname);
+   }
 
   void
   aie2_blob_transaction_preprocessor_input::
@@ -415,7 +530,7 @@ namespace aiebu {
                           const std::string& section_name,
                           const std::string& /*argname*/)
   {
-    // For dpu 
+    // For dpu
     auto instr_ptr = reinterpret_cast<const uint32_t*>(mc_code.data());
     size_t inst_word_size = mc_code.size()/4;
     size_t pc = 0;
@@ -476,7 +591,7 @@ namespace aiebu {
           uint32_t total = count << 1;
           pc += total;
           break;
-        } 
+        }
         case OP_RECORD_TIMESTAMP: pc += OP_RECORD_TIMESTAMP_SIZE;
           break;
         default:

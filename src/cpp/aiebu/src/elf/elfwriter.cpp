@@ -75,9 +75,20 @@ add_dynsym_section(ELFIO::string_section_accessor* stra, std::vector<symbol>& sy
 
   // Create symbol table writer
   ELFIO::symbol_section_accessor syma( m_elfio, dsym_sec );
+  std::map<std::string, ELFIO::Elf_Word> hash;
   for (auto & sym : syms) {
-    const ELFIO::section* sec = m_elfio.sections[sym.get_section_name()];
-    sym.set_index(syma.add_symbol(*stra, sym.get_name().c_str(), 0, sym.get_size(), ELFIO::STB_GLOBAL, ELFIO::STT_OBJECT, 0, sec->get_index()));
+    std::string key = sym.get_section_name() + "_" + sym.get_name() + "_" +
+                      std::to_string(sym.get_size());
+    auto it = hash.find(key);
+    if (it == hash.end())
+    {
+      const ELFIO::section* sec = m_elfio.sections[sym.get_section_name()];
+      auto index = syma.add_symbol(*stra, sym.get_name().c_str(), 0,
+                                   sym.get_size(), ELFIO::STB_GLOBAL, ELFIO::STT_OBJECT,
+                                   0, sec->get_index());
+      hash[key] = index;
+    }
+    sym.set_index(hash[key]);
   }
 
 }
@@ -138,10 +149,24 @@ add_dynamic_section_segment()
   add_segment(seg_data);
 }
 
+void
+elf_writer::
+add_note(ELFIO::Elf_Word type, std::string name, std::string dec)
+{
+  ELFIO::section* note_sec = m_elfio.sections.add( name.c_str() );
+  note_sec->set_type( ELFIO::SHT_NOTE );
+  note_sec->set_addr_align( 1 );
+
+  ELFIO::note_section_accessor note_writer( m_elfio, note_sec );
+  note_writer.add_note( type, "XRT", dec.c_str(), dec.size() );
+}
+
 std::vector<char>
 elf_writer::
 finalize()
 {
+  std::cout << "UID:" << m_uid.calculate() << "\n";
+  add_note(NT_XRT_UID, ".note.xrt.UID", m_uid.calculate());
   std::stringstream stream;
   stream << std::noskipws;
   //m_elfio.save( "hello_32" );
@@ -161,6 +186,7 @@ add_text_data_section(std::vector<writer>& mwriter, std::vector<symbol>& syms)
   {
     if(buffer.get_data().size())
     {
+      m_uid.update(buffer.get_data());
       elf_section sec_data;
       sec_data.set_name(buffer.get_name());
       sec_data.set_type(ELFIO::SHT_PROGBITS);

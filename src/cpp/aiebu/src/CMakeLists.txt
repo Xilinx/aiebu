@@ -9,6 +9,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE AIEBU_CPP_FILES "*.cpp")
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "windows/*")
+endif()
+
 message("-- AIEBU_CPP_FILES: ${AIEBU_CPP_FILES}")
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
@@ -43,6 +47,14 @@ add_library(aiebu_static STATIC
   )
 
 target_link_libraries(aiebu xaiengine)
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_link_libraries(aiebu ${OPENSSL_LIBRARIES})
+  target_link_libraries(aiebu_static ${OPENSSL_LIBRARIES})
+else()
+  target_link_libraries(aiebu advapi32)
+endif()
+
 #target_link_libraries(aiebu_static xaiengine)
 
 install (TARGETS aiebu
