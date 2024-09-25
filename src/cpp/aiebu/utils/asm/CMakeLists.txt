@@ -13,22 +13,10 @@ add_executable(${TARGET}
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/common/utils.cpp
   )
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_options(${TARGET} PRIVATE "-static")
-
-  target_link_libraries(${TARGET}
-    PRIVATE
-    crypto
-    dl
-    z
-    )
-endif()
-
-
 target_link_libraries(${TARGET}
   PRIVATE
   aiebu_static
-  boost_program_options
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
 target_include_directories(${TARGET} PRIVATE

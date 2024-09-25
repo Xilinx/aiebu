@@ -72,18 +72,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   find_package(OpenSSL REQUIRED)
   message("-- OpenSSL path: ${OPENSSL_LIBRARIES}")
-
-  find_library(CRYPTO_LIB libcrypto.a REQUIRED)
-  message("-- CRYPTO_LIB path: ${CRYPTO_LIB}")
-
-  find_library(LD_LIB libdl.a REQUIRED)
-  message("-- LD_LIB path: ${LD_LIB}")
-
-  find_library(Z_LIB libz.a REQUIRED)
-  message("-- Z_LIB path: ${Z_LIB}")
-
-  find_library(PTHREAD_LIB libpthread.a REQUIRED)
-  message("-- PTHREAD_LIB path: ${PTHREAD_LIB}")
 endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
