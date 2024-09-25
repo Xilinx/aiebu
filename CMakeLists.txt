@@ -69,6 +69,11 @@ message("-- Using ELFIO from ${AIEBU_ELFIO_SRC_DIR}")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  find_package(OpenSSL REQUIRED)
+  message("-- OpenSSL path: ${OPENSSL_LIBRARIES}")
+endif()
+
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 message("-- Python version: ${Python3_VERSION}")
 

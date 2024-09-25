@@ -63,8 +63,8 @@ public:
     {
       if (lib == preempt_lib)
       {
-        m_data[preempt_save] = readfile(findFilePath("preempt_save_" + std::to_string(col) + "col.bin", libpaths));
-        m_data[preempt_restore] = readfile(findFilePath("preempt_restore_" + std::to_string(col) + "col.bin", libpaths));
+        m_data[preempt_save] = readfile(findFilePath("preempt_save_stx_4x" + std::to_string(col) + ".bin", libpaths));
+        m_data[preempt_restore] = readfile(findFilePath("preempt_restore_stx_4x" + std::to_string(col) + ".bin", libpaths));
         extractSymbolFromBuffer(m_data[preempt_save], preempt_save, scratch_pad);
         extractSymbolFromBuffer(m_data[preempt_restore], preempt_restore, scratch_pad);
       }
@@ -80,6 +80,8 @@ protected:
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) override;
   void patch_helper(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname,
                     uint32_t reg, uint32_t argidx, uint32_t offset, uint64_t buffer_length_in_bytes, uint32_t addend);
+  uint32_t process_txn(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname);
+  uint32_t process_txn_opt(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname);
   void resize_scratchpad(const std::string& section_name)
   {
     std::vector<symbol> &syms = get_symbols();
