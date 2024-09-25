@@ -58,8 +58,9 @@ constexpr auto TCT_CTRL_ID = 0x9;
 constexpr auto MEMTILE_BD_OFF = 24;
 
 /* Creates the sequence to store data from MEM to external ddr memory dst*/
-int MEM_Tile_Save_Context(XAie_DevInst* dev, uint64_t num_elems, uint8_t col, uint8_t chan_id) {
-    uint64_t size, chan_addr_offset, col_addr_offset, dst_addr_offset, src_addr_offset;
+int MEM_Tile_Save_Context(XAie_DevInst* dev, uint32_t num_elems, uint8_t col, uint8_t chan_id) {
+    uint64_t chan_addr_offset, col_addr_offset, dst_addr_offset, src_addr_offset;
+    uint32_t size;
     uint8_t tile_m_bd = chan_id * MEMTILE_BD_OFF;
     XAie_DmaDesc tile_m_mm2s, tile_s_s2mm;
     uint8_t tile_s_bd = chan_id * 1;
@@ -161,8 +162,9 @@ int MEM_Tile_Save_Context(XAie_DevInst* dev, uint64_t num_elems, uint8_t col, ui
 }
 
 /* Creates the sequence to store data to MEM from external ddr memory ddr_src*/
-int MEM_Tile_Restore_Context(XAie_DevInst* dev, uint64_t num_elems, uint8_t col, uint8_t chan_id) {
-    uint64_t size, chan_addr_offset, col_addr_offset, dst_addr_offset, src_addr_offset;
+int MEM_Tile_Restore_Context(XAie_DevInst* dev, uint32_t num_elems, uint8_t col, uint8_t chan_id) {
+    uint64_t chan_addr_offset, col_addr_offset, dst_addr_offset, src_addr_offset;
+    uint32_t size;
     uint8_t tile_m_bd = chan_id * MEMTILE_BD_OFF;
     XAie_DmaDesc tile_m_s2mm, tile_s_mm2s;
     uint8_t tile_s_bd = chan_id * 1;
@@ -267,7 +269,7 @@ int MEM_Tile_Restore_Context(XAie_DevInst* dev, uint64_t num_elems, uint8_t col,
 
 // The two functions below only needed for col0 on PHX
 // They work assuming the above functions could also be running on other cols
-int MEM_Tile_Save_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uint8_t col) {
+int MEM_Tile_Save_Context_Col0_PHX(XAie_DevInst* dev, uint32_t num_elems, uint8_t col) {
     assert(num_elems % 2 == 0);
 
     uint64_t size_per_column = num_elems * sizeof(uint32_t);
@@ -345,7 +347,7 @@ int MEM_Tile_Save_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uint8_
     return 0;
 }
 
-int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uint8_t col) {
+int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint32_t num_elems, uint8_t col) {
     assert(num_elems % 2 == 0);
 
     AieRC RC = XAIE_OK;
@@ -428,12 +430,12 @@ int MEM_Tile_Restore_Context_Col0_PHX(XAie_DevInst* dev, uint64_t num_elems, uin
 std::string to_lower_copy(const std::string& input) {
     std::string result = input; // Create a copy of the input string
     std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) {
-        return std::tolower(c);
+        return static_cast<unsigned char>(std::tolower(c));
     });
     return result;
 }
 
-static std::string tran_filename(uint8_t device, enum PreemptOp type, uint32_t ncol)
+static std::string tran_filename(uint8_t device, enum PreemptOp type, uint8_t ncol)
 {
     std::string filename;
     switch (type) {
@@ -451,7 +453,7 @@ static std::string tran_filename(uint8_t device, enum PreemptOp type, uint32_t n
     return filename;
 }
 
-static int generate_tran(uint8_t device, enum PreemptOp type, uint32_t start_col, uint32_t ncol)
+static int generate_tran(uint8_t device, enum PreemptOp type, uint8_t start_col, uint8_t ncol)
 {
     int data_sz = (MEMTILE_SIZE_BYTES / sizeof(uint32_t));
     uint8_t XAIE_DEV_GEN, XAIE_NUM_COLS;
@@ -501,7 +503,7 @@ static int generate_tran(uint8_t device, enum PreemptOp type, uint32_t start_col
 
     const uint8_t channels[] = {0, 1};
     uint8_t nchans = sizeof(channels) / sizeof(channels[0]);
-    uint64_t size = data_sz / nchans;
+    uint32_t size = data_sz / nchans;
     MergeSync completion = {0};
     AieRC RC;
 
@@ -548,10 +550,10 @@ static int generate_tran(uint8_t device, enum PreemptOp type, uint32_t start_col
 
 int main(int /* argc */, char** /* argv */)
 {
-    uint32_t start_col;
+    uint8_t start_col;
     int ret;
 
-    const unsigned int columns[] = {1, 2, 4};
+    const uint8_t columns[] = {1, 2, 4};
 
     /* STX */
     start_col = 0;
