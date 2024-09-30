@@ -307,7 +307,7 @@ class ELFWriter:
         if ("text" in name):
             self.phdr[index].p_flags = pylibelf.elf.PF_R | pylibelf.elf.PF_X
             self.phdr[index].p_align = ELFWriter.AMD_AIE_CTRLCODE_TEXT_ALIGN
-        elif ("data" in name or "bss" in name):
+        elif ("data" in name or "bss" in name or "dump" in name):
             self.phdr[index].p_flags = pylibelf.elf.PF_R | pylibelf.elf.PF_W
             self.phdr[index].p_align = ELFWriter.AMD_AIE_CTRLCODE_DATA_ALIGN
         else:

@@ -137,7 +137,7 @@ class ELFDisassembler():
                 if (name[0:9] == ".ctrltext"):
                     self._dumptext(data, curr_shdr)
                 else:
-                    if name[0:9]  == ".ctrlbss.":
+                    if name[0:9]  == ".ctrlbss." or name[0:5] == ".dump":
                         pass
                     else:
                         assert(name[0:9] == ".ctrldata"), f"Invalid program section name {name}"

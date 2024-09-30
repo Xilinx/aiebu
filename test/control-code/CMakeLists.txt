@@ -19,7 +19,7 @@ foreach(tfile ${tfiles})
   set(sampledisasm "${sample}.dis.asm")
 
   add_test(NAME ${sample}
-    COMMAND "${AIEBU_SOURCE_DIR}/src/python/aiebu/control_asm_disasm.py" "${tfile}" -o "${sampleelf}"
+    COMMAND "${AIEBU_SOURCE_DIR}/src/python/aiebu/control_asm_disasm.py" --disable_dump_map "${tfile}" -o "${sampleelf}"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   add_test(NAME ${sample}_elftolegacy
     COMMAND "${AIEBU_SOURCE_DIR}/src/python/aiebu/elf_to_legacy.py" "-o" "${sampleouttxt}" "-i" "${sampleelf}"

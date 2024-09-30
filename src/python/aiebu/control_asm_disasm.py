@@ -23,6 +23,7 @@ def parse_command_line(args):
   parser.add_argument('-t','--target', default='aie2ps', dest='target', help='supported targets aie2ps/aie2asm/aie2txn/aie2dpu/aie4')
 
   parser.add_argument('-d','--disassembler', default=False, dest='disassembler', action='store_true',  help='DisAssembler')
+  parser.add_argument('-w','--disable_dump_map', default=True, dest='dump', action='store_false',  help='Disable adding debug map in elf in .dump section')
 
   parser.add_argument("-m", "--map", dest ='mapfilename', nargs = '?', default = 'debug_map.json',
                       help = "json output map file name")
@@ -94,7 +95,7 @@ if __name__ == '__main__':
 
   if not argtab.disassembler:
     operation = Assembler(argtab.target, argtab.ifilename[0], argtab.efilename[0], isa.UC_ISA_OPS, includedir,
-                          argtab.mapfilename)
+                          argtab.mapfilename, argtab.dump)
     operation.run()
   else:
     with open(argtab.efilename[0], 'w') as efile:

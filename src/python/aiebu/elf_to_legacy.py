@@ -69,7 +69,7 @@ class LegacyGenerator():
                   idx = re.findall('\d+', name)
                   self._dumptext(data, curr_shdr, int(idx[0]))
               else:
-                  if name[0:9]  == ".ctrlbss.":
+                  if name[0:9]  == ".ctrlbss." or name[0:5] == ".dump":
                       pass
                   else:
                       assert(name[0:9]  == ".ctrldata"), f"Invalid program section name {name}"

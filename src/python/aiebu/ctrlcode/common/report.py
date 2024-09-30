@@ -57,7 +57,6 @@ class Report:
             print(f"{Fore.BLUE}\tNAME\t\t\tCOLUMN\t\tPAGE_NUM\tOFFSET\t\tSCHEMA")
             for s in self._symbols[1:]:
                 print(f"{Fore.CYAN}\t{s.name}\t\t{s.col_num}\t\t{s.page_num}\t\t{s.offset}\t\t{s.schema}")
-
         if self._debug != None:
             k = 1
             dmap = []
@@ -80,3 +79,4 @@ class Report:
                     k = k + 1
             dfile.write(json.dumps(dmap, indent=4))
             dfile.close()
+        return json.dumps(dmap, indent=4).encode('utf-8')

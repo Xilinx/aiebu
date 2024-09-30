@@ -27,7 +27,7 @@ def section_index_callback(buf_type, elf_sections):
 class Assembler:
     """ Assembler class """
     REPO = git.Repo(os.path.dirname(os.path.abspath(__file__)), search_parent_directories=True)
-    def __init__(self, target, ifilename, efilename, isa, includedirlist, mapfilename):
+    def __init__(self, target, ifilename, efilename, isa, includedirlist, mapfilename, isdump=False):
         self.target = target
         self.ifilename = ifilename
         self.ifile = open(self.ifilename, 'r')
@@ -41,6 +41,7 @@ class Assembler:
         # for various ELF sections which always have a dummy first element.
         self.symbols = [Symbol("", 0, 0, 0)]
         self._debug = Debug()
+        self.isdump = isdump
         self._report = Report(self.symbols, mapfilename, self._debug)
         self._report.setbuildid(Assembler.REPO.head.object.hexsha)
         # header[4] == 0x01 means we have more pages
@@ -144,9 +145,12 @@ class Assembler:
                              self.elf_sections[page.get_data_section_name()],
                              page, ooo_page_len_1, ooo_page_len_2)
 
+        dmap = self._report.generate()
+        if self.isdump:
+            self.elf_sections[".dump"] = ELF_Section(".dump", Section.DATA)
+            self.elf_sections[".dump"].write_bytes(bytearray(dmap))
         ewriter.finalize()
         del ewriter
-        self._report.generate()
 
     def page_writer(self, text_section, data_section, page, ooo_page_len_1, ooo_page_len_2):
         """ write page to text_section, data_section """
