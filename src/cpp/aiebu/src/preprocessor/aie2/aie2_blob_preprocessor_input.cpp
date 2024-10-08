@@ -181,7 +181,7 @@ namespace aiebu {
 
   void
   aie2_blob_preprocessor_input::
-  readmetajson(std::stringstream& patch_json)
+  readmetajson(std::istream& patch_json)
   {
     // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
     // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.

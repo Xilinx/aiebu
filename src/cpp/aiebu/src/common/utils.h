@@ -128,5 +128,14 @@ inline std::vector<std::string> splitoption(const char* data, char delimiter = '
   return tokens;
 }
 
+// Custom stream buffer that reads from a vector<char>
+class vector_streambuf : public std::streambuf {
+public:
+    vector_streambuf(const std::vector<char>& vec) {
+        char* begin = const_cast<char*>(vec.data());
+        this->setg(begin, begin, begin + vec.size());
+    }
+};
+
 }
 #endif // _AIEBU_COMMOM_UTILS_H_

@@ -36,7 +36,7 @@ protected:
     { register_id::SHIM_BUFFER_LENGTH, 0xFFFFFFFF}
   };
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) = 0;
-  void readmetajson(std::stringstream& patch_json);
+  void readmetajson(std::istream& patch_json);
   void extract_control_packet_patch(const std::string& name, const boost::property_tree::ptree& _pt);
   void extract_coalesed_buffers(const std::string& name, const boost::property_tree::ptree& _pt);
   void clear_shimBD_address_bits(std::vector<char>& mc_code, uint32_t offset) const;
@@ -53,7 +53,8 @@ public:
 
     if (patch_json.size() !=0 )
     {
-      std::stringstream elf_stream(patch_json.data());
+      vector_streambuf vsb(patch_json);
+      std::istream elf_stream(&vsb);
       readmetajson(elf_stream);
     }
 
