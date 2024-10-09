@@ -24,6 +24,15 @@ protected:
   const std::string preempt_lib = "preempt";
   const std::string scratch_pad = "scratch-pad-mem";
 
+  constexpr static uint32_t SHIM_DMA_BD0_0 = 0x0001D000;
+  constexpr static uint32_t SHIM_DMA_BD_NUM = 16;
+  constexpr static uint32_t SHIM_DMA_BD_SIZE = 0x20; // 8*4bytes
+
+  constexpr static uint32_t MEM_DMA_BD0_0 = 0x000A0000;
+  constexpr static uint32_t MEM_DMA_BD_NUM = 48;
+  constexpr static uint32_t MEM_DMA_BD_SIZE = 0x20; // 8*4bytes
+  constexpr static uint32_t byte_in_word = 4;
+
   enum class register_id {
     MEM_BUFFER_LENGTH,
     MEM_BASE_ADDRESS,
