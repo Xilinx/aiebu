@@ -58,6 +58,8 @@ class target
       m_sub_target_name(name),
       m_description(description)
   {}
+  virtual ~target() = default;
+
 };
 
 class target_aie2ps: public target
