@@ -26,7 +26,7 @@ using offset_type = uint32_t;
 namespace aiebu {
 
 #define HEADER_ACCESS_GET_SET( TYPE, FNAME )  \
-    TYPE get_##FNAME() const            \
+    TYPE get_##FNAME() const                  \
     {                                         \
         return m_##FNAME;                     \
     }                                         \
@@ -36,7 +36,7 @@ namespace aiebu {
     }
 
 #define HEADER_ACCESS_GET( TYPE, FNAME )      \
-    TYPE get_##FNAME() const            \
+    TYPE get_##FNAME() const                  \
     {                                         \
         return m_##FNAME;                     \
     }
@@ -75,6 +75,15 @@ inline std::vector<std::string> splitoption(const char* data, char delimiter = '
   }
   return tokens;
 }
+
+// Custom stream buffer that reads from a vector<char>
+class vector_streambuf : public std::streambuf {
+public:
+    vector_streambuf(const std::vector<char>& vec) {
+        char* begin = const_cast<char*>(vec.data());
+        this->setg(begin, begin, begin + vec.size());
+    }
+};
 
 }
 #endif // _AIEBU_COMMOM_UTILS_H_
