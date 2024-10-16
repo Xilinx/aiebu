@@ -16,6 +16,7 @@ add_executable(${TARGET}
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   if (${AIEBU_UTIL_LINK_STATIC})
     target_link_options(${TARGET} PRIVATE "-static")
+    set_target_properties(${TARGET} PROPERTIES INSTALL_RPATH "" BUILD_RPATH "")
   endif()
 
   target_link_libraries(${TARGET}
