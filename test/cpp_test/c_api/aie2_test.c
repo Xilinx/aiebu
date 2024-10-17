@@ -24,11 +24,11 @@ int main(int argc, char **argv)
 
   size_t txn_buf_size, control_packet_buf_size = 0, external_buffer_id_json_buf_size = 0, elf_buf_size;
 
-  txn_buf = ReadFile(argv[1], (long *)&txn_buf_size);
+  txn_buf = aiebu_ReadFile(argv[1], (long *)&txn_buf_size);
   if (argc > 2)
   {
-    control_packet_buf = ReadFile(argv[2], (long *)&control_packet_buf_size);
-    external_buffer_id_json_buf = ReadFile(argv[3], (long *)&external_buffer_id_json_buf_size);
+    control_packet_buf = aiebu_ReadFile(argv[2], (long *)&control_packet_buf_size);
+    external_buffer_id_json_buf = aiebu_ReadFile(argv[3], (long *)&external_buffer_id_json_buf_size);
   }
 
   elf_buf_size = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_blob_instr_transaction,
