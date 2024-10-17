@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char* ReadFile(char *name, long *s)
+char* aiebu_ReadFile(char *name, long *s)
 {
   FILE *file;
   char *buffer;
