@@ -252,6 +252,8 @@ namespace aiebu {
           auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr *>(ptr);
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr));
           auto offset = static_cast<uint32_t>(payload-mc_code.data());
+          // we can combine multiple bd writes in one blockwrite and have patch opcodes after that
+          // we divide the blockwrite in bd chuncks and add in blockWriteRegOffsetMap
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
           for (auto bd = 0U ; bd < size; bd+=SHIM_DMA_BD_SIZE) { //size and bd in bytes
             uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd/byte_in_word] * byte_in_word;
@@ -339,6 +341,8 @@ namespace aiebu {
           auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr_opt *>(ptr);
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr_opt));
           auto offset = static_cast<uint32_t>(payload-mc_code.data());
+          // we can combine multiple bd writes in one blockwrite and have patch opcodes after that
+          // we divide the blockwrite in bd chuncks and add in blockWriteRegOffsetMap
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
           for (auto bd = 0U ; bd < size; bd+=SHIM_DMA_BD_SIZE) { //size and bd in bytes
             uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd / byte_in_word] * byte_in_word;
