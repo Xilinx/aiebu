@@ -181,7 +181,7 @@ namespace aiebu {
 
   void
   aie2_blob_preprocessor_input::
-  readmetajson(std::stringstream& patch_json)
+  readmetajson(std::istream& patch_json)
   {
     // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
     // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
@@ -252,8 +252,13 @@ namespace aiebu {
           auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr *>(ptr);
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr));
           auto offset = static_cast<uint32_t>(payload-mc_code.data());
-          uint64_t buffer_length_in_bytes = reinterpret_cast<const uint64_t*>(payload)[0] * 4;
-          blockWriteRegOffsetMap[bw_header->RegOff] = std::make_pair(offset, buffer_length_in_bytes);
+          // we can combine multiple bd writes in one blockwrite and have patch opcodes after that
+          // we divide the blockwrite in bd chuncks and add in blockWriteRegOffsetMap
+          uint32_t size = (bw_header->Size - sizeof(*bw_header));
+          for (auto bd = 0U ; bd < size; bd+=SHIM_DMA_BD_SIZE) { //size and bd in bytes
+            uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd/byte_in_word] * byte_in_word;
+            blockWriteRegOffsetMap[bw_header->RegOff + bd] = std::make_pair(offset + bd, buffer_length_in_bytes);
+          }
           ptr += bw_header->Size;
           break;
         }
@@ -336,8 +341,13 @@ namespace aiebu {
           auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr_opt *>(ptr);
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr_opt));
           auto offset = static_cast<uint32_t>(payload-mc_code.data());
-          uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * 4;
-          blockWriteRegOffsetMap[bw_header->RegOff] = std::make_pair(offset, buffer_length_in_bytes);
+          // we can combine multiple bd writes in one blockwrite and have patch opcodes after that
+          // we divide the blockwrite in bd chuncks and add in blockWriteRegOffsetMap
+          uint32_t size = (bw_header->Size - sizeof(*bw_header));
+          for (auto bd = 0U ; bd < size; bd+=SHIM_DMA_BD_SIZE) { //size and bd in bytes
+            uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd / byte_in_word] * byte_in_word;
+            blockWriteRegOffsetMap[bw_header->RegOff + bd] = std::make_pair(offset + bd, buffer_length_in_bytes);
+          }
           ptr += bw_header->Size;
           break;
         }
@@ -437,17 +447,10 @@ namespace aiebu {
                uint32_t reg, uint32_t argidx, uint32_t offset,
                uint64_t buffer_length_in_bytes, uint32_t addend)
   {
-    constexpr static uint32_t MEM_DMA_BD0_0 = 0x000A0000;
-    constexpr static uint32_t MEM_DMA_BD_NUM = 48;
-    constexpr static uint32_t MEM_DMA_BD_SIZE = 0x20; // 8*4bytes
-
     std::vector<uint32_t> MEM_BD_ADDRESS;
     for (auto i=0U; i < MEM_DMA_BD_NUM; ++i)
       MEM_BD_ADDRESS.push_back(MEM_DMA_BD0_0 + i * MEM_DMA_BD_SIZE);
 
-    constexpr static uint32_t SHIM_DMA_BD0_0 = 0x0001D000;
-    constexpr static uint32_t SHIM_DMA_BD_NUM = 16;
-    constexpr static uint32_t SHIM_DMA_BD_SIZE = 0x20; // 8*4bytes
     std::vector<uint32_t> SHIM_BD_ADDRESS;
     for (auto i=0U; i < SHIM_DMA_BD_NUM; ++i)
       SHIM_BD_ADDRESS.push_back(SHIM_DMA_BD0_0 + i * SHIM_DMA_BD_SIZE);
