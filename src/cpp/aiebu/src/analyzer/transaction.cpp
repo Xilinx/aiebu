@@ -71,6 +71,7 @@ public:
         ss << op_format << "XAIE_IO_BLOCKWRITE " << dec_format << op_count[XAIE_IO_BLOCKWRITE] << std::endl;
         ss << op_format << "XAIE_IO_MASKWRITE " << dec_format << op_count[XAIE_IO_MASKWRITE] << std::endl;
         ss << op_format << "XAIE_IO_MASKPOLL " << dec_format << op_count[XAIE_IO_MASKPOLL] << std::endl;
+        ss << op_format << "XAIE_IO_MASKPOLL_BUSY " << dec_format << op_count[XAIE_IO_MASKPOLL_BUSY] << std::endl;
         ss << op_format << "XAIE_IO_NOOP " << dec_format << op_count[XAIE_IO_NOOP] << std::endl;
         ss << op_format << "XAIE_IO_PREEMPT " << dec_format << op_count[XAIE_IO_PREEMPT] << std::endl;
         ss << op_format << "XAIE_IO_CUSTOM_OP_TCT " << dec_format << op_count[XAIE_IO_CUSTOM_OP_TCT] << std::endl;
@@ -118,7 +119,8 @@ private:
                 ptr += mw_header->Size;
                 break;
             }
-            case XAIE_IO_MASKPOLL: {
+            case XAIE_IO_MASKPOLL:
+            case XAIE_IO_MASKPOLL_BUSY: {
                 auto mp_header = (const XAie_MaskPoll32Hdr *)(ptr);
                 ptr += mp_header->Size;
                 break;
@@ -169,7 +171,8 @@ private:
                 ptr += sizeof(XAie_MaskWrite32Hdr_opt);
                 break;
             }
-            case XAIE_IO_MASKPOLL: {
+            case XAIE_IO_MASKPOLL:
+            case XAIE_IO_MASKPOLL_BUSY: {
                 ptr += sizeof(XAie_MaskPoll32Hdr_opt);
                 break;
             }
@@ -246,6 +249,13 @@ private:
     size_t stringify_mp32(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_MaskPoll32Hdr *)(ptr);
         ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
+                << ", 0x" << mp_header->Value << std::endl;
+        return mp_header->Size;
+    }
+
+    size_t stringify_mp32_busy(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
+        auto mp_header = (const XAie_MaskPoll32Hdr *)(ptr);
+        ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY, " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
                 << ", 0x" << mp_header->Value << std::endl;
         return mp_header->Size;
     }
@@ -347,6 +357,13 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
         return sizeof(XAie_MaskPoll32Hdr_opt);
     }
 
+    size_t stringify_mp32_busy_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
+        auto mp_header = (const XAie_MaskPoll32Hdr_opt *)(ptr);
+ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY, " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
+                << ", 0x" << mp_header->Value << std::endl;
+        return sizeof(XAie_MaskPoll32Hdr_opt);
+    }
+
     size_t stringify_noop_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         (void)ptr;
         ss_ops_ << op_format << "XAIE_IO_NOOP, " << std::endl;
@@ -418,6 +435,9 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
             case XAIE_IO_MASKPOLL:
                 size = stringify_mp32(op_hdr, ss);
                 break;
+            case XAIE_IO_MASKPOLL_BUSY:
+                size = stringify_mp32_busy(op_hdr, ss);
+                break;
             case XAIE_IO_NOOP:
                 size = stringify_noop(op_hdr, ss);
                 break;
@@ -471,6 +491,9 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->
                 break;
             case XAIE_IO_MASKPOLL:
                 size = stringify_mp32_opt(op_hdr, ss);
+                break;
+            case XAIE_IO_MASKPOLL_BUSY:
+                size = stringify_mp32_busy_opt(op_hdr, ss);
                 break;
             case XAIE_IO_NOOP:
                 size = stringify_noop_opt(op_hdr, ss);

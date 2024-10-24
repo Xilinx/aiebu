@@ -265,7 +265,8 @@ namespace aiebu {
           ptr += mw_header->Size;
           break;
         }
-        case XAIE_IO_MASKPOLL: {
+        case XAIE_IO_MASKPOLL:
+        case XAIE_IO_MASKPOLL_BUSY: {
           auto mp_header = reinterpret_cast<const XAie_MaskPoll32Hdr *>(ptr);
           ptr += mp_header->Size;
           break;
@@ -351,7 +352,8 @@ namespace aiebu {
           ptr += sizeof(XAie_MaskWrite32Hdr_opt);
           break;
         }
-        case XAIE_IO_MASKPOLL: {
+        case XAIE_IO_MASKPOLL:
+        case XAIE_IO_MASKPOLL_BUSY: {
           ptr += sizeof(XAie_MaskPoll32Hdr_opt);
           break;
         }
