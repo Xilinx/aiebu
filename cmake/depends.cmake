@@ -10,11 +10,13 @@ cmake_minimum_required(VERSION 3.18)
 
 set(DEPENDS_TOOL "ldd")
 
-set(DEPENDS_TOOL_SWITCH "")
+set(DEPENDS_TOOL_SWITCH1 "")
+set(DEPENDS_TOOL_SWITCH2 "")
 
 if (WIN32)
   set(DEPENDS_TOOL "dumpbin")
-  set(DEPENDS_TOOL_SWITCH "/nologo /dependents")
+  set(DEPENDS_TOOL_SWITCH1 "/nologo")
+  set(DEPENDS_TOOL_SWITCH2 "/dependents")
 endif()
 
 find_program(DEPENDS_TOOL "${DEPENDS_TOOL}")
@@ -23,11 +25,12 @@ if(NOT DEPENDS_TOOL)
 endif()
 
 message("-- Generating dependency file ${CMAKE_ARGV4} for binary ${CMAKE_ARGV3}")
+message("-- Working directory ${CMAKE_CURRENT_BINARY_DIR}")
 
 file(REMOVE "${CMAKE_ARGV4}")
 
 execute_process(
-  COMMAND ${DEPENDS_TOOL} ${DEPENDS_TOOL_SWITCH} ${CMAKE_ARGV3}
+  COMMAND ${DEPENDS_TOOL} ${DEPENDS_TOOL_SWITCH1} ${DEPENDS_TOOL_SWITCH2} ${CMAKE_ARGV3}
   OUTPUT_VARIABLE DEPENDS_OUT
 )
 
