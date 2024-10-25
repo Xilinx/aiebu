@@ -243,6 +243,6 @@ class Pager:
         if len(page_jobs):
             self.assignpagenumber(state, col, page_jobs, page_labels, page_external_labels, content, text, data, page_index, pages, 1, page_tsize, page_dsize)
             page_index += 1
-        else:
+        elif (page_index-relative_page_index > 0):
             pages[page_index-relative_page_index-1].islastpage = 1
         return page_index, pages
