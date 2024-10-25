@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
 
-set(AIEBU_INSTALL_BIN_DIR       "${AIEBU_INSTALL_DIR}/bin/")
 set(GENERATOR_OUT_DIR "${AIEBU_BINARY_DIR}/lib/gen")
-set(AIEBU_INSTALL_AIE_LIB_DIR "${AIEBU_INSTALL_DIR}/lib/aie")
 
 set(TARGET "aiebu-asm")
+set(TARGET_DEPENDS_LIST_FILE "${TARGET}_depends.txt")
 
 add_executable(${TARGET}
   asm.cpp
@@ -35,12 +34,12 @@ else()
     )
 endif()
 
-
-
-target_compile_options(${TARGET}
-  PRIVATE
-  $<$<CONFIG:Debug>:/MTd>
-  $<$<CONFIG:Release>:/MT>)
+if (MSVC)
+  target_compile_options(${TARGET}
+    PRIVATE
+    $<$<CONFIG:Debug>:/MTd>
+    $<$<CONFIG:Release>:/MT>)
+endif()
 
 target_include_directories(${TARGET} PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
@@ -48,6 +47,17 @@ target_include_directories(${TARGET} PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/common/
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target/
   )
+
+add_custom_command(
+  OUTPUT "${TARGET_DEPENDS_LIST_FILE}"
+  COMMAND "${CMAKE_COMMAND}" -P "${AIEBU_SOURCE_DIR}/cmake/depends.cmake" "${TARGET}" "${TARGET_DEPENDS_LIST_FILE}"
+  DEPENDS ${TARGET}
+)
+
+add_custom_target(
+  dependencylist ALL
+  DEPENDS ${TARGET_DEPENDS_LIST_FILE}
+)
 
 install(TARGETS ${TARGET}
   RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
