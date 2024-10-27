@@ -16,7 +16,7 @@
 #include "gen-common.h"
 
 #define XAIE_NUM_COLS_PHX			5
-#define XAIE_NUM_COLS_STX			4
+#define XAIE_NUM_COLS_STX			8
 #define XAIE_NUM_ROWS				6
 #define XAIE_BASE_ADDR				0
 #define XAIE_COL_SHIFT				25
@@ -553,40 +553,40 @@ int main(int /* argc */, char** /* argv */)
     uint8_t start_col;
     int ret;
 
-    const uint8_t columns[] = {1, 2, 4};
-
     /* STX */
+    const uint8_t columns_stx[] = {1, 2, 4, 8};
     start_col = 0;
-    for (auto ncol : columns) {
+    for (auto ncol : columns_stx) {
         ret = generate_tran(DEVICE_STX, PREEMPT_SAVE, start_col, ncol);
         if (ret) {
-            std::cout << "Failed to generate save " << dev_to_str[DEVICE_STX] << " TXN bin for start col: " << start_col << " ncol: " << ncol  << "\n";
+            std::cout << "Failed to generate save " << dev_to_str[DEVICE_STX] << " TXN bin for start col: " << std::to_string(start_col) << " ncol: " << std::to_string(ncol)  << "\n";
             return ret;
         }
-        std::cout << "Successfully generated " << dev_to_str[DEVICE_STX] << " 4x" << ncol << " save transaction binary!\n";
+        std::cout << "Successfully generated " << dev_to_str[DEVICE_STX] << " 4x" << std::to_string(ncol) << " save transaction binary!\n";
         ret = generate_tran(DEVICE_STX, PREEMPT_RESTORE, start_col, ncol);
         if (ret) {
-            std::cout << "Failed to generate restore " << dev_to_str[DEVICE_STX] << " TXN bin for start col: " << start_col << " ncol: " << ncol  << "\n";
+            std::cout << "Failed to generate restore " << dev_to_str[DEVICE_STX] << " TXN bin for start col: " << std::to_string(start_col) << " ncol: " << std::to_string(ncol)  << "\n";
             return ret;
         }
-        std::cout << "Successfully generated " << dev_to_str[DEVICE_STX] << " 4x" << ncol << " restore transaction binary!\n";
+        std::cout << "Successfully generated " << dev_to_str[DEVICE_STX] << " 4x" << std::to_string(ncol) << " restore transaction binary!\n";
     }
 
     /* PHX */
+    const uint8_t columns_phx[] = {1, 2, 4};
     start_col = 1;
-    for (auto ncol : columns) {
+    for (auto ncol : columns_phx) {
         ret = generate_tran(DEVICE_PHX, PREEMPT_SAVE, start_col, ncol);
         if (ret) {
-            std::cout << "Failed to generate save " << dev_to_str[DEVICE_PHX] << " TXN bin for start col: " << start_col << " ncol: " << ncol  << "\n";
+            std::cout << "Failed to generate save " << dev_to_str[DEVICE_PHX] << " TXN bin for start col: " << std::to_string(start_col) << " ncol: " << std::to_string(ncol)  << "\n";
             return ret;
         }
-        std::cout << "Successfully generated " << dev_to_str[DEVICE_PHX] << " 4x" << ncol << " save transaction binary!\n";
+        std::cout << "Successfully generated " << dev_to_str[DEVICE_PHX] << " 4x" << std::to_string(ncol) << " save transaction binary!\n";
         ret = generate_tran(DEVICE_PHX, PREEMPT_RESTORE, start_col, ncol);
         if (ret) {
-            std::cout << "Failed to generate restore " << dev_to_str[DEVICE_PHX] << " TXN bin for start col: " << start_col << " ncol: " << ncol  << "\n";
+            std::cout << "Failed to generate restore " << dev_to_str[DEVICE_PHX] << " TXN bin for start col: " << std::to_string(start_col) << " ncol: " << std::to_string(ncol)  << "\n";
             return ret;
         }
-        std::cout << "Successfully generated " << dev_to_str[DEVICE_PHX] << " 4x" << ncol << " restore transaction binary!\n";
+        std::cout << "Successfully generated " << dev_to_str[DEVICE_PHX] << " 4x" << std::to_string(ncol) << " restore transaction binary!\n";
     }
     return 0;
 }
