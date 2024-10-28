@@ -128,7 +128,7 @@ add_custom_target(
 
 add_custom_command(
   OUTPUT "${CHECKSUMS_FILE}"
-  COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/md5sum.cmake" "${GENERATOR_OUT_DIR}" "${CHECKSUMS_FILE}"
+  COMMAND "${CMAKE_COMMAND}" -P "${AIEBU_SOURCE_DIR}/cmake/md5sum.cmake" "${GENERATOR_OUT_DIR}" "${CHECKSUMS_FILE}"
   DEPENDS ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
