@@ -32,12 +32,14 @@ add_custom_command(
          ${GENERATOR_OUT_DIR}/preempt_save_stx_4x1.bin
          ${GENERATOR_OUT_DIR}/preempt_save_stx_4x2.bin
          ${GENERATOR_OUT_DIR}/preempt_save_stx_4x4.bin
+         ${GENERATOR_OUT_DIR}/preempt_save_stx_4x8.bin
          ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x1.bin
          ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x2.bin
          ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x4.bin
          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
+         ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x8.bin
 #  COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:xaiengine> to ${GENERATOR_OUT_DIR}"
 #  COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:xaiengine>" "${GENERATOR_OUT_DIR}"
   COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:aiebu> to ${GENERATOR_OUT_DIR}"
@@ -54,9 +56,11 @@ add_custom_target(
   DEPENDS ${GENERATOR_OUT_DIR}/preempt_save_stx_4x1.bin
           ${GENERATOR_OUT_DIR}/preempt_save_stx_4x2.bin
           ${GENERATOR_OUT_DIR}/preempt_save_stx_4x4.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_stx_4x8.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x8.bin
           ${GENERATOR_OUT_DIR}/preempt_save_phx_4x1.bin
           ${GENERATOR_OUT_DIR}/preempt_save_phx_4x2.bin
           ${GENERATOR_OUT_DIR}/preempt_save_phx_4x4.bin
@@ -68,9 +72,11 @@ add_custom_target(
 install(FILES ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
               ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
               ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
+              ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x8.bin
               ${GENERATOR_OUT_DIR}/preempt_save_stx_4x1.bin
               ${GENERATOR_OUT_DIR}/preempt_save_stx_4x2.bin
               ${GENERATOR_OUT_DIR}/preempt_save_stx_4x4.bin
+              ${GENERATOR_OUT_DIR}/preempt_save_stx_4x8.bin
               ${GENERATOR_OUT_DIR}/preempt_save_phx_4x1.bin
               ${GENERATOR_OUT_DIR}/preempt_save_phx_4x2.bin
               ${GENERATOR_OUT_DIR}/preempt_save_phx_4x4.bin
@@ -124,9 +130,11 @@ add_custom_command(
   DEPENDS ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
+          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x8.bin
           ${GENERATOR_OUT_DIR}/preempt_save_stx_4x1.bin
           ${GENERATOR_OUT_DIR}/preempt_save_stx_4x2.bin
           ${GENERATOR_OUT_DIR}/preempt_save_stx_4x4.bin
+          ${GENERATOR_OUT_DIR}/preempt_save_stx_4x8.bin
           ${GENERATOR_OUT_DIR}/preempt_save_phx_4x1.bin
           ${GENERATOR_OUT_DIR}/preempt_save_phx_4x2.bin
           ${GENERATOR_OUT_DIR}/preempt_save_phx_4x4.bin
