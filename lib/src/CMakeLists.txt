@@ -3,23 +3,27 @@
 # SPDX-License-Identifier: MIT
 ###############################################################################
 
-set(GENERATOR_EXE "preemption")
+set(GENERATOR_EXE1 "preemption")
 set(GENERATOR_OUT_DIR "${AIEBU_BINARY_DIR}/lib/gen")
 set(AIEBU_INSTALL_AIE_LIB_DIR "${AIEBU_INSTALL_DIR}/lib/aie2")
 set(CHECKSUMS_FILE "${GENERATOR_OUT_DIR}/checksums.txt")
 
 file(MAKE_DIRECTORY ${GENERATOR_OUT_DIR})
 
-add_executable(${GENERATOR_EXE} gen-preemption.cpp)
+add_executable(${GENERATOR_EXE1} gen-preemption.cpp)
 
 target_include_directories(
-  ${GENERATOR_EXE}
+  ${GENERATOR_EXE1}
   PRIVATE
   ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
 )
 
-target_link_libraries(${GENERATOR_EXE} xaiengine aiebu)
+target_link_libraries(${GENERATOR_EXE1} xaiengine aiebu_static)
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_link_libraries(${GENERATOR_EXE1} ${CRYPTO_LIB})
+endif()
 
 # Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
 # when it runs.
@@ -40,12 +44,10 @@ add_custom_command(
          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x8.bin
-#  COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:xaiengine> to ${GENERATOR_OUT_DIR}"
-#  COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:xaiengine>" "${GENERATOR_OUT_DIR}"
   COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:aiebu> to ${GENERATOR_OUT_DIR}"
   COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:aiebu>" "${GENERATOR_OUT_DIR}"
-  COMMAND ${GENERATOR_EXE}
-  DEPENDS ${GENERATOR_EXE}
+  COMMAND ${GENERATOR_EXE1}
+  DEPENDS ${GENERATOR_EXE1}
   COMMENT "Generating save/restore ctrlcode stubs in directory ${GENERATOR_OUT_DIR}"
   VERBATIM
   WORKING_DIRECTORY ${GENERATOR_OUT_DIR}
@@ -88,18 +90,22 @@ install(FILES ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
 )
 
 # For Copy transaction commands and ELF Generation
-set(GENERATOR_EXE "copy")
+set(GENERATOR_EXE2 "copy")
 
-add_executable(${GENERATOR_EXE} gen-copy.cpp)
+add_executable(${GENERATOR_EXE2} gen-copy.cpp)
 
 target_include_directories(
-  ${GENERATOR_EXE}
+  ${GENERATOR_EXE2}
   PRIVATE
   ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
 )
 
-target_link_libraries(${GENERATOR_EXE} xaiengine aiebu)
+target_link_libraries(${GENERATOR_EXE2} xaiengine aiebu_static)
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_link_libraries(${GENERATOR_EXE2} ${CRYPTO_LIB})
+endif()
+
 
 # Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
 # when it runs.
@@ -107,12 +113,10 @@ target_link_libraries(${GENERATOR_EXE} xaiengine aiebu)
 # When aie-rt is available as static library, we will switch to using static linking
 add_custom_command(
   OUTPUT ${GENERATOR_OUT_DIR}/copy_Mem_Tile_to_DDR.bin ${GENERATOR_OUT_DIR}/copy_DDR_to_Mem_Tile.bin
-  COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:xaiengine> to ${GENERATOR_OUT_DIR}"
-  COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:xaiengine>" "${GENERATOR_OUT_DIR}"
   COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:aiebu> to ${GENERATOR_OUT_DIR}"
   COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:aiebu>" "${GENERATOR_OUT_DIR}"
-  COMMAND ${GENERATOR_EXE}
-  DEPENDS ${GENERATOR_EXE}
+  COMMAND ${GENERATOR_EXE2}
+  DEPENDS ${GENERATOR_EXE2}
   COMMENT "Generating copy ctrlcode stubs in directory ${GENERATOR_OUT_DIR}"
   VERBATIM
   WORKING_DIRECTORY ${GENERATOR_OUT_DIR}
@@ -126,7 +130,7 @@ add_custom_target(
 
 add_custom_command(
   OUTPUT "${CHECKSUMS_FILE}"
-  COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/md5sum.cmake" "${GENERATOR_OUT_DIR}" "${CHECKSUMS_FILE}"
+  COMMAND "${CMAKE_COMMAND}" -P "${AIEBU_SOURCE_DIR}/cmake/md5sum.cmake" "${GENERATOR_OUT_DIR}" "${CHECKSUMS_FILE}"
   DEPENDS ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin

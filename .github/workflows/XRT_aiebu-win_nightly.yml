@@ -5,7 +5,7 @@ name: XRT_aiebu-win_nightly
 on:
   schedule:
     # Run workflow nightly at 5 AM UTC = 10 PM PST (DST)
-    - cron: "0 5 * * *" 
+    - cron: "0 5 * * *"
 
   # Allow triggering this Action/Workflow manually from the Actions tab
   workflow_dispatch:
@@ -33,15 +33,15 @@ jobs:
           echo "    GITHUB_WORKSPACE=${{ github.WORKSPACE }}"
           echo "    GITHUB_SHA=${{ github.SHA }}"
           echo "    GITHUB_REF=${{ github.REF }}"
-      
+
       - name: Build
         run: |
           $RUNNER_HOSTNAME=hostname
           echo "--> Building win target on $RUNNER_HOSTNAME"
           cd ${{ github.WORKSPACE }}\build
-          .\build22.bat -boost C:\boost\boost_1_85_0
+          .\build22.bat -boost C:\Xilinx\XRT\ext.new
         # artifact (target: C:\scratch\XRT_aiebu\actions-runner\_work\aiebu\build\WRelease\AIEBU-0.1.1-win64.zip)
-      
+
       - name: Upload Artifact to Artifactory
         run: |
           cd ${{ github.WORKSPACE }}\build\WRelease\
@@ -49,7 +49,7 @@ jobs:
 
           $DATE=Get-Date -format "yyyyMMdd"
           $BRANCH="${{ github.REF }}".split("/")[-1]
-          
+
           $ARTIFACT_FILE=Get-ChildItem -Filter "AIEBU-*-win64.zip"
           $ARTIFACT_VERSION=($ARTIFACT_FILE[0].Name -split '-')[1]
           $ARTIFACT_SRC="AIEBU-$ARTIFACT_VERSION-win64-$DATE-${{ github.RUN_NUMBER }}.zip"
@@ -67,14 +67,14 @@ jobs:
           echo "--> Uploading to Artifactory:"
           jf rt upload $ARTIFACT_SRC $ARTIFACT_DEST `
             --insecure-tls=true `
-            --flat 
+            --flat
           echo "    Artifact location:"
-          echo "    https://xcoartifactory/ui/native/$ARTIFACT_DEST"          
+          echo "    https://xcoartifactory/ui/native/$ARTIFACT_DEST"
 
           echo "--> Uploading to LATEST"
           $ARTIFACT_LATEST="/xrt-ipu-dev-local/$BRANCH/win/LATEST/$ARTIFACT_FILE"
           jf rt upload $ARTIFACT_SRC $ARTIFACT_LATEST `
             --insecure-tls=true `
-            --flat 
+            --flat
           echo "    LATEST artifact location:"
-          echo "    https://xcoartifactory/ui/native/$ARTIFACT_LATEST"      
+          echo "    https://xcoartifactory/ui/native/$ARTIFACT_LATEST"
