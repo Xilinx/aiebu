@@ -183,9 +183,6 @@ namespace aiebu {
   aie2_blob_preprocessor_input::
   readmetajson(std::istream& patch_json)
   {
-    // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
-    // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
-    constexpr static uint32_t ARG_OFFSET = 3;
     boost::property_tree::ptree pt;
     boost::property_tree::read_json(patch_json, pt);
 
@@ -199,7 +196,12 @@ namespace aiebu {
       const auto pt_coalesed_buffers = external_buffer.second.get_child_optional("coalesed_buffers");
 
       // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
-      std::string name = std::to_string(external_buffer.second.get<uint32_t>("xrt_id") + ARG_OFFSET);
+      auto arg = external_buffer.second.get<uint32_t>("xrt_id");
+      std::string name = std::to_string(arg + ARG_OFFSET);
+      if (external_buffer.second.get<bool>("ctrl_pkt_buffer", false))
+        xrt_id_map.insert({arg, "control-packet"});
+      else
+        xrt_id_map.insert({arg, name});
 
       if (pt_coalesed_buffers)
         extract_coalesed_buffers(name, external_buffer.second);
@@ -233,9 +235,6 @@ namespace aiebu {
 
   uint32_t aie2_blob_transaction_preprocessor_input::process_txn(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname)
   {
-    // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
-    // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
-    constexpr static uint32_t ARG_OFFSET = 3;
     std::map<uint64_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
 
@@ -321,9 +320,6 @@ namespace aiebu {
 
   uint32_t aie2_blob_transaction_preprocessor_input::process_txn_opt(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname)
   {
-    // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
-    // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
-    constexpr static uint32_t ARG_OFFSET = 3;
     std::map<uint32_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
 
@@ -491,12 +487,21 @@ namespace aiebu {
       if (it != SHIM_BD_ADDRESS.end())
       {
         clear_shimBD_address_bits(mc_code, offset);
-        if (argname.empty())
+        if (!argname.empty())
+        {
+          // in case of scratchpad
+          add_symbol({argname, offset, 0, 0, addend, buffer_length_in_bytes, section_name, symbol::patch_schema::shim_dma_48});
+        }
+        else if (xrt_id_map.find(argidx-ARG_OFFSET) != xrt_id_map.end())
+        {
+          // incase external buffer json is provided with xrt_id
+          add_symbol({xrt_id_map[argidx-ARG_OFFSET], offset, 0, 0, addend, buffer_length_in_bytes, section_name, symbol::patch_schema::shim_dma_48});
+        }
+        else
         {
           // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
           add_symbol({std::to_string(argidx), offset, 0, 0, addend, buffer_length_in_bytes, section_name, symbol::patch_schema::shim_dma_48});
-        } else
-          add_symbol({argname, offset, 0, 0, addend, buffer_length_in_bytes, section_name, symbol::patch_schema::shim_dma_48});
+        }
         return;
       }
     }

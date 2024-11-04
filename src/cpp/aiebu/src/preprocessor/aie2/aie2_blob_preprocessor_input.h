@@ -33,6 +33,10 @@ protected:
   constexpr static uint32_t MEM_DMA_BD_SIZE = 0x20; // 8*4bytes
   constexpr static uint32_t byte_in_word = 4;
 
+  // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
+  // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
+  constexpr static uint32_t ARG_OFFSET = 3;
+
   enum class register_id {
     MEM_BUFFER_LENGTH,
     MEM_BASE_ADDRESS,
@@ -44,6 +48,8 @@ protected:
     { register_id::MEM_BASE_ADDRESS, 0x7FFFF},
     { register_id::SHIM_BUFFER_LENGTH, 0xFFFFFFFF}
   };
+
+  std::map<uint32_t, std::string> xrt_id_map;
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) = 0;
   void readmetajson(std::istream& patch_json);
   void extract_control_packet_patch(const std::string& name, const boost::property_tree::ptree& _pt);
@@ -67,7 +73,7 @@ public:
       readmetajson(elf_stream);
     }
 
-    auto col = extractSymbolFromBuffer(m_data[".ctrltext"], ctrlText, control_packet.size() ? "control-packet" : "");
+    auto col = extractSymbolFromBuffer(m_data[".ctrltext"], ctrlText, "");
 
     for (const auto& lib: libs)
     {
