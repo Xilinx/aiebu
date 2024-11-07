@@ -181,11 +181,8 @@ namespace aiebu {
 
   void
   aie2_blob_preprocessor_input::
-  readmetajson(std::istream& patch_json)
+  aiecompiler_json_parser(const boost::property_tree::ptree& pt)
   {
-    boost::property_tree::ptree pt;
-    boost::property_tree::read_json(patch_json, pt);
-
     const auto pt_external_buffers = pt.get_child_optional("external_buffers");
     if (!pt_external_buffers)
       return;
@@ -209,6 +206,57 @@ namespace aiebu {
         extract_control_packet_patch(name, external_buffer.second);
     }
   }
+
+  void
+  aie2_blob_preprocessor_input::
+  dmacompiler_json_parser(const boost::property_tree::ptree& pt)
+  {
+    const auto pt_ctrl_pkt_patch_info = pt.get_child_optional("ctrl_pkt_patch_info");
+    if (!pt_ctrl_pkt_patch_info)
+      return;
+
+    // fixed in dma compiler
+    xrt_id_map.insert({0, "3"});
+    xrt_id_map.insert({1, "4"});
+    xrt_id_map.insert({2, "5"});
+    xrt_id_map.insert({3, "6"});
+    xrt_id_map.insert({4, "control-packet"});
+
+    const auto patchs = pt_ctrl_pkt_patch_info.get();
+    for (auto pat : patchs)
+    {
+      auto patch = pat.second;
+      // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
+      uint32_t offset = patch.get<uint32_t>("offset") - 8;
+      const uint32_t addend = patch.get<uint32_t>("bo_offset", 0);
+      const uint32_t arg = patch.get<uint32_t>("xrt_arg_idx");
+      add_symbol({std::to_string(arg + ARG_OFFSET), offset, 0, 0, addend, 0, ctrlData, symbol::patch_schema::control_packet_48});
+    }
+
+  }
+
+  void
+  aie2_blob_preprocessor_input::
+  readmetajson(std::istream& patch_json)
+  {
+    boost::property_tree::ptree pt;
+    boost::property_tree::read_json(patch_json, pt);
+
+    const auto aiecompiler_json = pt.get_child_optional("external_buffers");
+    if (aiecompiler_json)
+    {
+      aiecompiler_json_parser(pt);
+      return;
+    }
+
+    const auto dmacompiler_json = pt.get_child_optional("ctrl_pkt_patch_info");
+    if (dmacompiler_json)
+    {
+      dmacompiler_json_parser(pt);
+      return;
+    }
+  }
+
 
   // 20 Lower bits
   #define GET_REG(reg) (reg & 0xFFFFF)

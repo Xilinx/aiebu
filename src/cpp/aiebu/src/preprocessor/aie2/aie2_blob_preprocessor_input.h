@@ -51,6 +51,8 @@ protected:
 
   std::map<uint32_t, std::string> xrt_id_map;
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) = 0;
+  void aiecompiler_json_parser(const boost::property_tree::ptree& pt);
+  void dmacompiler_json_parser(const boost::property_tree::ptree& pt);
   void readmetajson(std::istream& patch_json);
   void extract_control_packet_patch(const std::string& name, const boost::property_tree::ptree& _pt);
   void extract_coalesed_buffers(const std::string& name, const boost::property_tree::ptree& _pt);
