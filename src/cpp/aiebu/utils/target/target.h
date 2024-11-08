@@ -6,7 +6,6 @@
 
 #include <fstream>
 #include <filesystem>
-#include <boost/property_tree/ptree.hpp>
 
 #include "aiebu_assembler.h"
 #include "aiebu_error.h"
@@ -89,13 +88,6 @@ class target_aie2blob: public target
     bool m_print_report;
     target_aie2blob(const std::string& exename, const std::string& name, const std::string& description)
       : target(exename, name, description) {}
-
-  void extract_coalesed_buffers(const std::string& name,
-                                const boost::property_tree::ptree& _pt);
-  void extract_control_packet_patch(const std::string& name,
-                                    const uint32_t addend,
-                                    const boost::property_tree::ptree& _pt);
-  void readmetajson(const std::string& metafile);
   bool parseOption(const sub_cmd_options &_options);
 };
 

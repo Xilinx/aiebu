@@ -48,6 +48,7 @@ target_include_directories(${ASM_TGT} PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/assembler/
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/common/
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target/
+  ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include/
   )
 
 add_custom_command(
