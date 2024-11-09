@@ -55,7 +55,7 @@ add_library(aiebu_static STATIC
 target_link_libraries(aiebu xaiengine)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_libraries(aiebu ${OPENSSL_LIBRARIES})
+  target_link_libraries(aiebu ${CRYPTO_LIB})
 else()
   target_link_libraries(aiebu advapi32)
 endif()
