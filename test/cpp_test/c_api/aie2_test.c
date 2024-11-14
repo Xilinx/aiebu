@@ -36,7 +36,7 @@ int main(int argc, char **argv)
                                 control_packet_buf, control_packet_buf_size,
                                 (void**)&elf_buf,
                                 external_buffer_id_json_buf, external_buffer_id_json_buf_size,
-                                "", "");
+                                "", "", NULL, 0);
   if (elf_buf_size > 0)
   {
     free((void*)elf_buf);

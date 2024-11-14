@@ -8,6 +8,29 @@
 #include "target.h"
 #include "utils.h"
 
+std::map<uint8_t, std::vector<char> >
+aiebu::utilities::
+target_aie2blob::parse_pmctrlpkt(const std::vector<std::string> pm_key_value_pairs)
+{
+  std::map<uint8_t, std::vector<char> > mappmctrl;
+
+  for (const auto& kv : pm_key_value_pairs) {
+    size_t pos = kv.find(':');
+    if (pos == std::string::npos) {
+      auto errMsg = boost::format("Invalid key:value pair: %s in pmctrl\n") % kv ;
+      throw std::runtime_error(errMsg.str());
+    }
+
+    std::string key = kv.substr(0, pos);
+    uint8_t ikey = std::stoi(key);
+    std::string value = kv.substr(pos + 1);
+    std::vector<char> buffer;
+    readfile(value, buffer);
+    mappmctrl[ikey] = buffer;
+  }
+  return mappmctrl;
+}
+
 bool
 aiebu::utilities::
 target_aie2blob::parseOption(const sub_cmd_options &_options)
@@ -15,6 +38,7 @@ target_aie2blob::parseOption(const sub_cmd_options &_options)
   std::string input_file;
   std::string controlpkt_file;
   std::string external_buffers_file;
+  std::vector<std::string> pm_key_value_pairs;
   cxxopts::Options all_options("Target aie2blob Options", m_description);
 
   try {
@@ -25,6 +49,7 @@ target_aie2blob::parseOption(const sub_cmd_options &_options)
             ("j,json", "control packet Patching json file", cxxopts::value<decltype(external_buffers_file)>())
             ("l,lib", "linked libs", cxxopts::value<decltype(m_libs)>())
             ("L,libpath", "libs path", cxxopts::value<decltype(m_libpaths)>())
+            ("m,pmctrl", "pm ctrlpkt <id>:<file>", cxxopts::value<decltype(pm_key_value_pairs)>())
             ("r,report", "Generate Report", cxxopts::value<bool>()->default_value("false"))
             ("h,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
     ;
@@ -58,6 +83,9 @@ target_aie2blob::parseOption(const sub_cmd_options &_options)
     if (result.count("libpath"))
       m_libpaths = result["libpath"].as<decltype(m_libpaths)>();
 
+    if (result.count("pmctrl"))
+      pm_key_value_pairs = result["pmctrl"].as<decltype(pm_key_value_pairs)>();
+
     if (result.count("report"))
       m_print_report = result["report"].as<decltype(m_print_report)>();
 
@@ -69,6 +97,8 @@ target_aie2blob::parseOption(const sub_cmd_options &_options)
   }
 
   readfile(input_file, m_transaction_buffer);
+
+  m_ctrlpkt = parse_pmctrlpkt(pm_key_value_pairs);
 
   if (!controlpkt_file.empty())
     readfile(controlpkt_file, m_control_packet_buffer);
@@ -108,7 +138,7 @@ target_aie2blob_transaction::assemble(const sub_cmd_options &_options)
 
   try {
     aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::blob_instr_transaction,
-                              m_transaction_buffer, m_control_packet_buffer, m_patch_data_buffer, m_libs, m_libpaths);
+                              m_transaction_buffer, m_control_packet_buffer, m_patch_data_buffer, m_libs, m_libpaths, m_ctrlpkt);
     write_elf(as, m_output_elffile);
     if (m_print_report)
       as.get_report(std::cout);

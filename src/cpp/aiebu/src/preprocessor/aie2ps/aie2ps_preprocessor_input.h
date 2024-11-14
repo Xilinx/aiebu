@@ -17,7 +17,8 @@ public:
                         const std::vector<char>& /*patch_json*/,
                         const std::vector<char>& /*buffer2*/,
                         const std::vector<std::string>& /* libs */,
-                        const std::vector<std::string>& /* libpaths */) override
+                        const std::vector<std::string>& /* libpaths */,
+                        const std::map<uint8_t, std::vector<char> >& /*ctrlpkt*/) override
   {
     m_data[std::string("control_code")] = control_code;
   }

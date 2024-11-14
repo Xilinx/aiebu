@@ -74,6 +74,7 @@ public:
         ss << op_format << "XAIE_IO_MASKPOLL_BUSY " << dec_format << op_count[XAIE_IO_MASKPOLL_BUSY] << std::endl;
         ss << op_format << "XAIE_IO_NOOP " << dec_format << op_count[XAIE_IO_NOOP] << std::endl;
         ss << op_format << "XAIE_IO_PREEMPT " << dec_format << op_count[XAIE_IO_PREEMPT] << std::endl;
+        ss << op_format << "XAIE_IO_LOAD_PM_START " << dec_format << op_count[XAIE_IO_LOAD_PM_START] << std::endl;
         ss << op_format << "XAIE_IO_CUSTOM_OP_TCT " << dec_format << op_count[XAIE_IO_CUSTOM_OP_TCT] << std::endl;
         ss << op_format << "XAIE_IO_CUSTOM_OP_DDR_PATCH " << dec_format << op_count[XAIE_IO_CUSTOM_OP_DDR_PATCH] << std::endl;
         /*
@@ -133,6 +134,10 @@ private:
                 ptr += sizeof(XAie_PreemptHdr);
                 break;
             }
+            case XAIE_IO_LOAD_PM_START: {
+                ptr += sizeof(XAie_PmLoadHdr);
+                break;
+            }
             case (XAIE_IO_CUSTOM_OP_TCT):
             case (XAIE_IO_CUSTOM_OP_DDR_PATCH):
             case (XAIE_IO_CUSTOM_OP_READ_REGS):
@@ -182,6 +187,10 @@ private:
             }
             case XAIE_IO_PREEMPT: {
                 ptr += sizeof(XAie_PreemptHdr);
+                break;
+            }
+            case XAIE_IO_LOAD_PM_START: {
+                ptr += sizeof(XAie_PmLoadHdr);
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_TCT):
@@ -270,6 +279,13 @@ private:
         auto mp_header = (const XAie_PreemptHdr *)(ptr);
         ss_ops_ << op_format << "XAIE_IO_PREEMPT, " << "@0x" << mp_header->Preempt_level << std::endl;
         return sizeof(XAie_PreemptHdr);
+    }
+
+    size_t stringify_pmload(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
+        auto mp_header = (const XAie_PmLoadHdr *)(ptr);
+        uint32_t loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
+        ss_ops_ << op_format << "XAIE_IO_LOAD_PM_START, " << "0x" <<  std::hex << loadsequence << ", 0x" << mp_header->PmLoadId << std::endl;
+        return sizeof(XAie_PmLoadHdr);
     }
 
     size_t stringify_tct(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
@@ -376,6 +392,13 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY, " << "@0x" << std::hex << mp_hea
         return sizeof(XAie_PreemptHdr);
     }
 
+    size_t stringify_pmload_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
+        auto mp_header = (const XAie_PmLoadHdr *)(ptr);
+        uint32_t loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
+        ss_ops_ << op_format << "XAIE_IO_LOAD_PM_START, " << "0x" <<  std::hex << loadsequence << ", 0x" << mp_header->PmLoadId << std::endl;
+        return sizeof(XAie_PmLoadHdr);
+    }
+
     size_t stringify_patchop_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto hdr = (const XAie_CustomOpHdr_opt *)(ptr);
         u32 size = hdr->Size;
@@ -444,6 +467,9 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY, " << "@0x" << std::hex << mp_hea
             case XAIE_IO_PREEMPT:
                 size = stringify_preempt(op_hdr, ss);
                 break;
+            case XAIE_IO_LOAD_PM_START:
+                size = stringify_pmload(op_hdr, ss);
+                break;
             case XAIE_IO_CUSTOM_OP_TCT:
                 size = stringify_tct(op_hdr, ss);
                 break;
@@ -500,6 +526,9 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY, " << "@0x" << std::hex << mp_hea
                 break;
             case XAIE_IO_PREEMPT:
                 size = stringify_preempt_opt(op_hdr, ss);
+                break;
+            case XAIE_IO_LOAD_PM_START:
+                size = stringify_pmload_opt(op_hdr, ss);
                 break;
             case XAIE_IO_CUSTOM_OP_TCT:
                 size = stringify_tct_opt(op_hdr, ss);

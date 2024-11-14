@@ -33,8 +33,10 @@ namespace aiebu {
             const ELFIO::section* psec = my_elf_reader.sections[i];
 
             // Decoding not supported for ".ctrldata" section
-            // for aie2 ".ctrldata" contain control packet which cannot be decoded
-            if (psec->get_type() != ELFIO::SHT_PROGBITS || !psec->get_name().compare(".ctrldata"))
+            // for aie2 ".ctrldata" contain control packet and ".ctrlpkt-pm-N" contain
+            // pm control packet which cannot be decoded
+            if (psec->get_type() != ELFIO::SHT_PROGBITS || is_ctrldata(psec->get_name())
+               || is_pm_ctrlpkt(psec->get_name()))
                 continue;
 
             stream << "  [" << i << "] " << psec->get_name() << "\t"
@@ -52,8 +54,10 @@ namespace aiebu {
             const ELFIO::section* psec = my_elf_reader.sections[i];
 
             // Decoding not supported for ".ctrldata" section
-            // for aie2 ".ctrldata" contain control packet which cannot be decoded
-            if (psec->get_type() != ELFIO::SHT_PROGBITS || !psec->get_name().compare(".ctrldata"))
+            // for aie2 ".ctrldata" contain control packet and ".ctrlpkt-pm-N" contain
+            // pm control packet which cannot be decoded
+            if (psec->get_type() != ELFIO::SHT_PROGBITS || is_ctrldata(psec->get_name())
+                || is_pm_ctrlpkt(psec->get_name()))
                 continue;
 
             stream << "  [" << i << "] " << psec->get_name() << "\t"

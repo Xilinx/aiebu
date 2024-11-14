@@ -39,6 +39,8 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(${ASM_TGT}
     PRIVATE
     ${CRYPTO_LIB}
+    dl
+    z
   )
 endif()
 

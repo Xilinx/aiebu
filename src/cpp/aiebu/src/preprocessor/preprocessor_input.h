@@ -6,8 +6,8 @@
 
 #include <vector>
 #include <string>
-#include <unordered_map>
 #include <algorithm>
+#include <map>
 #include "symbol.h"
 #include "aiebu_error.h"
 
@@ -16,7 +16,7 @@ namespace aiebu {
 class preprocessor_input
 {
 protected:
-  std::unordered_map<std::string, std::vector<char>> m_data;
+  std::map<std::string, std::vector<char>> m_data;
   std::vector<symbol> m_sym;
 public:
   preprocessor_input() {}
@@ -26,7 +26,8 @@ public:
                         const std::vector<char>& patch_json,
                         const std::vector<char>&,
                         const std::vector<std::string>&,
-                        const std::vector<std::string>&) = 0;
+                        const std::vector<std::string>&,
+                        const std::map<uint8_t, std::vector<char> >& ctrlpkt) = 0;
 
   const std::vector<std::string> get_keys()
   {

@@ -285,6 +285,8 @@ namespace aiebu {
   {
     std::map<uint64_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
+    uint32_t loadsequence = 0;
+    uint8_t pm_id = 0;
 
     ptr += sizeof(XAie_TxnHeader);
     for(uint32_t num = 0; num < txn_header->NumOps; num++) {
@@ -300,9 +302,20 @@ namespace aiebu {
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr));
           auto offset = static_cast<uint32_t>(payload-mc_code.data());
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
-          for (auto bd = 0U ; bd < size; bd+=SHIM_DMA_BD_SIZE) { //size and bd in bytes
-            uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd/byte_in_word] * byte_in_word;
-            blockWriteRegOffsetMap[bw_header->RegOff + bd] = std::make_pair(offset + bd, buffer_length_in_bytes);
+          if (loadsequence > 0)
+          {
+            uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * byte_in_word;
+            patch_helper_input input = {section_name, ctrlpkt_pm + std::to_string(pm_id),
+                                        static_cast<uint32_t>(GET_REG(bw_header->RegOff)+ 4),
+                                        0, offset, buffer_length_in_bytes, 0};
+            patch_helper(mc_code, input);
+          }
+          else
+          {
+            for (auto bd = 0U ; bd < size; bd += SHIM_DMA_BD_SIZE) { //size and bd in bytes
+              uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd/byte_in_word] * byte_in_word;
+              blockWriteRegOffsetMap[bw_header->RegOff + bd] = std::make_pair(offset + bd, buffer_length_in_bytes);
+            }
           }
           ptr += bw_header->Size;
           break;
@@ -326,6 +339,16 @@ namespace aiebu {
             ptr += sizeof(XAie_PreemptHdr);
             break;
         }
+        case XAIE_IO_LOAD_PM_START: {
+          auto mp_header = (const XAie_PmLoadHdr *)(ptr);
+          loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
+          loadsequence = loadsequence + 1;
+          pm_id = mp_header->PmLoadId;
+          if (std::find(pm_id_list.begin(), pm_id_list.end(), pm_id) == pm_id_list.end())
+            throw error(error::error_code::internal_error, "PM id:" + std::to_string(pm_id) + " has no corresponding pm control packet !!!");
+          ptr += sizeof(XAie_PmLoadHdr);
+          break;
+        }
         case XAIE_IO_CUSTOM_OP_BEGIN: {
           auto co_header = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
           ptr += co_header->Size;
@@ -333,6 +356,8 @@ namespace aiebu {
         }
         case XAIE_IO_CUSTOM_OP_BEGIN+1: {
           auto hdr = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
+          if (loadsequence)
+            throw error(error::error_code::internal_error, "Patch opcode found in PM Load Sequence!!!");
           auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
           uint64_t reg = op->regaddr & 0xFFFFFFF0; // regaddr point either to 1st word or 2nd word of BD
           auto it = blockWriteRegOffsetMap.find(reg);
@@ -344,7 +369,10 @@ namespace aiebu {
           uint32_t offset = blockWriteRegOffsetMap[reg].first;
           uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
           uint32_t addend = static_cast<uint32_t>(op->argplus);
-          patch_helper(mc_code, section_name, argname, GET_REG(op->regaddr), op->argidx + ARG_OFFSET, offset, buffer_length_in_bytes, addend);
+          patch_helper_input input = {section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)),
+                                      static_cast<uint32_t>(op->argidx + ARG_OFFSET), offset,
+                                      buffer_length_in_bytes, addend};
+          patch_helper(mc_code, input);
           ptr += hdr->Size;
           break;
         }
@@ -361,6 +389,8 @@ namespace aiebu {
         default:
           throw error(error::error_code::internal_error, "Invalid txn opcode: " + std::to_string(op_header->Op) + " !!!");
       }
+
+      loadsequence = loadsequence > 0 ? loadsequence-1 : 0;
     }
     return txn_header->NumCols;
   }
@@ -370,6 +400,8 @@ namespace aiebu {
   {
     std::map<uint32_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
+    uint32_t loadsequence = 0;
+    uint8_t pm_id = 0;
 
     ptr += sizeof(XAie_TxnHeader);
     for(uint32_t num = 0; num < txn_header->NumOps; num++) {
@@ -384,11 +416,21 @@ namespace aiebu {
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr_opt));
           auto offset = static_cast<uint32_t>(payload-mc_code.data());
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
-          for (auto bd = 0U ; bd < size; bd+=SHIM_DMA_BD_SIZE) { //size and bd in bytes
-            uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd / byte_in_word] * byte_in_word;
-            blockWriteRegOffsetMap[bw_header->RegOff + bd] = std::make_pair(offset + bd, buffer_length_in_bytes);
+          if (loadsequence > 0)
+          {
+            uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * byte_in_word;
+            patch_helper_input input = {section_name, ctrlpkt_pm + std::to_string(pm_id),
+                                        static_cast<uint32_t>(GET_REG(bw_header->RegOff)+ 4),
+                                        0, offset, buffer_length_in_bytes, 0};
+            patch_helper(mc_code, input);
           }
-
+          else
+          {
+            for (auto bd = 0U ; bd < size; bd+=SHIM_DMA_BD_SIZE) { //size and bd in bytes
+              uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd/byte_in_word] * byte_in_word;
+              blockWriteRegOffsetMap[bw_header->RegOff + bd] = std::make_pair(offset + bd, buffer_length_in_bytes);
+            }
+          }
           ptr += bw_header->Size;
           break;
         }
@@ -409,6 +451,16 @@ namespace aiebu {
             ptr += sizeof(XAie_PreemptHdr);
             break;
         }
+        case XAIE_IO_LOAD_PM_START: {
+          auto mp_header = (const XAie_PmLoadHdr *)(ptr);
+          loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
+          loadsequence = loadsequence + 1;
+          pm_id = mp_header->PmLoadId;
+          if (std::find(pm_id_list.begin(), pm_id_list.end(), pm_id) == pm_id_list.end())
+            throw error(error::error_code::internal_error, "PM id:" + std::to_string(pm_id) + " has no corresponding pm control packet !!!");
+          ptr += sizeof(XAie_PmLoadHdr);
+          break;
+        }
         case XAIE_IO_CUSTOM_OP_TCT: {
           auto co_header = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
           ptr += co_header->Size;
@@ -416,6 +468,8 @@ namespace aiebu {
         }
         case XAIE_IO_CUSTOM_OP_DDR_PATCH: {
           auto hdr = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
+          if (loadsequence)
+            throw error(error::error_code::internal_error, "Patch opcode found in PM Load Sequence!!!");
           auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
           uint64_t reg = op->regaddr & 0xFFFFFFF0; // regaddr point either to 1st word or 2nd word of BD
           auto it = blockWriteRegOffsetMap.find(reg);
@@ -427,7 +481,10 @@ namespace aiebu {
           uint32_t offset = blockWriteRegOffsetMap[reg].first;
           uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
           uint32_t addend = static_cast<uint32_t>(op->argplus);
-          patch_helper(mc_code, section_name, argname, GET_REG(op->regaddr), op->argidx + ARG_OFFSET, offset, buffer_length_in_bytes, addend);
+          patch_helper_input input = {section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)),
+                                      static_cast<uint32_t>(op->argidx + ARG_OFFSET), offset,
+                                      buffer_length_in_bytes, addend};
+          patch_helper(mc_code, input);
           ptr += hdr->Size;
           break;
         }
@@ -483,11 +540,15 @@ namespace aiebu {
   void
   aie2_blob_transaction_preprocessor_input::
   patch_helper(std::vector<char>& mc_code,
-               const std::string& section_name,
-               const std::string& argname,
-               uint32_t reg, uint32_t argidx, uint32_t offset,
-               uint64_t buffer_length_in_bytes, uint32_t addend)
+               const patch_helper_input& input)
   {
+    const std::string& section_name = input.section_name;
+    const std::string& argname = input.argname;
+    uint32_t reg = input.reg;
+    uint32_t argidx = input.argidx;
+    uint32_t offset = input.offset;
+    uint64_t buffer_length_in_bytes = input.buffer_length_in_bytes;
+    uint32_t addend = input.addend;
     std::vector<uint32_t> MEM_BD_ADDRESS;
     for (auto i=0U; i < MEM_DMA_BD_NUM; ++i)
       MEM_BD_ADDRESS.push_back(MEM_DMA_BD0_0 + i * MEM_DMA_BD_SIZE);

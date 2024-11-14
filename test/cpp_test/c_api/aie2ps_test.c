@@ -24,7 +24,7 @@ int main(int argc, char ** argv)
 
   elf_buf_size = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_asm_aie2ps,
                                          control_code_buf, control_code_buf_size,
-                                         NULL, 0, (void**)&elf_buf, NULL, 0, "", "");
+                                         NULL, 0, (void**)&elf_buf, NULL, 0, "", "", NULL, 0);
   if (elf_buf_size > 0)
   {
     free((void*)elf_buf);

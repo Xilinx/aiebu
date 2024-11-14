@@ -9,6 +9,8 @@ extern "C" {
 #include <stddef.h>
 #endif
 
+#include <stdint.h>
+
 #if defined(_WIN32)
 #define DRIVER_DLLESPEC __declspec(dllexport)
 #else
@@ -30,6 +32,12 @@ enum aiebu_assembler_buffer_type {
   aiebu_assembler_buffer_type_blob_instr_transaction,
   aiebu_assembler_buffer_type_blob_control_packet,
   aiebu_assembler_buffer_type_asm_aie2ps
+};
+
+struct pm_ctrlpkt {
+  uint8_t pm_id;
+  const char* pm_buffer;
+  size_t pm_buffer_size;
 };
 
 /*
@@ -55,6 +63,8 @@ enum aiebu_assembler_buffer_type {
  * @patch_json_size     patch_json array size
  * @libs                libs to be included, ";" separated.
  * @libpaths            paths to search for libs, ";" separated.
+ * @ctrlpkt             array of pm_ctrlpkt holding pm buffer and id
+ * @ctrlpkt_size        size of ctrlpkt array
  */
 DRIVER_DLLESPEC
 int
@@ -67,7 +77,9 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         const char* patch_json,
                         size_t patch_json_size,
                         const char* libs,
-                        const char* libpaths);
+                        const char* libpaths,
+                        struct pm_ctrlpkt* pm_ctrlpkts,
+                        size_t pm_ctrlpkt_size);
 
 #ifdef __cplusplus
 }

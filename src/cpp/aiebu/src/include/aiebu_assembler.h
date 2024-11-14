@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <vector>
 #include <iostream>
+#include <map>
 
 #if defined(_WIN32)
 #define DRIVER_DLLESPEC __declspec(dllexport)
@@ -43,10 +44,12 @@ class aiebu_assembler {
      * its throws aiebu::error object.
      * User may pass any combination like
      * 1. type as blob_instr_transaction, buffer1 as instruction buffer
-     *    and buffer2 as control_packet: in this case it will package buffers in text and data
-     *    section of elf respectively.
+     *    and buffer2 as control_packet and pm_ctrlpkt as map of <pm_ctrlpkt_ID, pm_ctrlpkt_buf>
+     *    : in this case it will package buffers in text section, data section and
+     *    ctrlpkt_pm_N section of elf respectively.
      * 2. type as blob_instr_transaction, buffer1 as instruction buffer
-     *    and buffer2 as empty: in this case it will package buffer in text section.
+     *    and buffer2 as empty and and pm_ctrlpkt as map of <pm_ctrlpkt_ID, pm_ctrlpkt_buf>
+     *    : in this case it will package buffer in text section and ctrlpkt_pm_N section of elf respectively.
      * 3. type as asm_aie2ps, buffer1 as asm buffer and buffer2
      *    as empty: in this case it will assemble the asm code and package in elf.
      *
@@ -56,6 +59,7 @@ class aiebu_assembler {
      * @patch_json     external_buffer_id json
      * @libs           libs to include in elf
      * @libpaths       paths to search for libs
+     * @ctrlpkt        map of pm id and pm control packet buffer
      */
      DRIVER_DLLESPEC
      aiebu_assembler(buffer_type type,
@@ -63,7 +67,8 @@ class aiebu_assembler {
                const std::vector<char>& buffer2,
                const std::vector<char>& patch_json,
                const std::vector<std::string>& libs = {},
-               const std::vector<std::string>& libpaths = {});
+               const std::vector<std::string>& libpaths = {},
+               const std::map<uint8_t, std::vector<char> >& pm_ctrlpkt = {});
 
     /*
      * Constructor takes buffer type, buffer,
