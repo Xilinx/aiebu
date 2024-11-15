@@ -1,19 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
 
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include <boost/format.hpp>
-#include <boost/program_options.hpp>
+#include <cxxopts.hpp>
 #include <exception>
 #include <filesystem>
 #include <iostream>
 #include <string>
 
 #include "target.h"
-#include "utils.h"
 
-namespace po = boost::program_options;
 namespace aiebu::utilities {
 
 void main_helper(int argc, char** argv,
@@ -24,16 +20,32 @@ void main_helper(int argc, char** argv,
 
   bool bhelp = false;
   std::string target_name;
+  std::vector<std::string> subcmd_options;
+  cxxopts::Options global_options(_executable, _description);
 
-  po::options_description global_options("Global Options");
-  global_options.add_options()
-    ("help,h", po::bool_switch(&bhelp), "show help message and exit")
-    ("target,t", po::value<decltype(target_name)>(&target_name), "supported targets aie2txn/aie2dpu")
-  ;
+  try {
+    global_options
+      .allow_unrecognised_options()
+      .add_options()
+      ("h,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
+      ("t,target", "supported targets aie2txn/aie2dpu", cxxopts::value<decltype(target_name)>())
+    ;
 
-  po::variables_map vm;
-  po::command_line_parser parser(argc, argv);
-  auto subcmd_options = aiebu::utilities::process_arguments(vm, parser, global_options, false);
+    auto result = global_options.parse(argc, argv);
+
+    subcmd_options = result.unmatched();
+
+    if (result.count("help"))
+      bhelp = result["help"].as<bool>();
+
+    if (result.count("target"))
+      target_name = result["target"].as<decltype(target_name)>();
+  }
+  catch (const cxxopts::exceptions::exception& e) {
+    auto errMsg = boost::format("Error parsing options: %s\n") % e.what() ;
+    throw std::runtime_error(errMsg.str());
+  }
+
 
   // Search for the target (case sensitive)
   std::shared_ptr<target> starget;
@@ -47,13 +59,14 @@ void main_helper(int argc, char** argv,
   if (!starget) {
     if (bhelp)
       std::cerr << "ERROR: " << "Unknown target: '" << target_name << "'" << std::endl;
-    aiebu::utilities::report_commands_help(_executable, _description, global_options, _targets);
+    std::cout << global_options.help({"", _executable}) << std::endl;
     return;
   }
 
-  if (bhelp)
+  if (bhelp || subcmd_options.size() == 0)
     subcmd_options.push_back("--help");
 
+  subcmd_options.insert(subcmd_options.begin(), _executable);
   starget->assemble(subcmd_options);
 }
 

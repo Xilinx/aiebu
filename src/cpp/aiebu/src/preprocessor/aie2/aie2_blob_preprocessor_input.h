@@ -23,6 +23,7 @@ protected:
   const std::string preempt_restore = ".preempt_restore";
   const std::string preempt_lib = "preempt";
   const std::string scratch_pad = "scratch-pad-mem";
+  const std::string ctrlpkt_pm = "ctrlpkt-pm-";
 
   constexpr static uint32_t SHIM_DMA_BD0_0 = 0x0001D000;
   constexpr static uint32_t SHIM_DMA_BD_NUM = 16;
@@ -32,6 +33,10 @@ protected:
   constexpr static uint32_t MEM_DMA_BD_NUM = 48;
   constexpr static uint32_t MEM_DMA_BD_SIZE = 0x20; // 8*4bytes
   constexpr static uint32_t byte_in_word = 4;
+
+  // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
+  // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
+  constexpr static uint32_t ARG_OFFSET = 3;
 
   enum class register_id {
     MEM_BUFFER_LENGTH,
@@ -44,7 +49,12 @@ protected:
     { register_id::MEM_BASE_ADDRESS, 0x7FFFF},
     { register_id::SHIM_BUFFER_LENGTH, 0xFFFFFFFF}
   };
+
+  std::map<uint32_t, std::string> xrt_id_map;
+  std::vector<uint8_t> pm_id_list;
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) = 0;
+  void aiecompiler_json_parser(const boost::property_tree::ptree& pt);
+  void dmacompiler_json_parser(const boost::property_tree::ptree& pt);
   void readmetajson(std::istream& patch_json);
   void extract_control_packet_patch(const std::string& name, const boost::property_tree::ptree& _pt);
   void extract_coalesed_buffers(const std::string& name, const boost::property_tree::ptree& _pt);
@@ -55,10 +65,19 @@ public:
                         const std::vector<char>& patch_json,
                         const std::vector<char>& control_packet,
                         const std::vector<std::string>& libs,
-                        const std::vector<std::string>& libpaths) override
+                        const std::vector<std::string>& libpaths,
+                        const std::map<uint8_t, std::vector<char> >& ctrlpkt) override
   {
     m_data[".ctrltext"] = mc_code;
-    m_data[".ctrldata"] = control_packet;
+
+    if(control_packet.size())
+      m_data[".ctrldata"] = control_packet;
+
+    for (auto& pm_ctrl : ctrlpkt)
+    {
+      m_data[".ctrlpkt.pm." + std::to_string(pm_ctrl.first)] = pm_ctrl.second;
+      pm_id_list.push_back(pm_ctrl.first);
+    }
 
     if (patch_json.size() !=0 )
     {
@@ -67,7 +86,7 @@ public:
       readmetajson(elf_stream);
     }
 
-    auto col = extractSymbolFromBuffer(m_data[".ctrltext"], ctrlText, control_packet.size() ? "control-packet" : "");
+    auto col = extractSymbolFromBuffer(m_data[".ctrltext"], ctrlText, "");
 
     for (const auto& lib: libs)
     {
@@ -81,6 +100,7 @@ public:
       else
         std::cout << "Invalid flag: " << lib << ", ignored !!!" << std::endl;
     }
+
   }
 };
 
@@ -88,8 +108,17 @@ class aie2_blob_transaction_preprocessor_input : public aie2_blob_preprocessor_i
 {
 protected:
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) override;
-  void patch_helper(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname,
-                    uint32_t reg, uint32_t argidx, uint32_t offset, uint64_t buffer_length_in_bytes, uint32_t addend);
+
+  struct patch_helper_input {
+    const std::string& section_name;
+    const std::string& argname;
+    uint32_t reg;
+    uint32_t argidx;
+    uint32_t offset;
+    uint64_t buffer_length_in_bytes;
+    uint32_t addend;
+  };
+  void patch_helper(std::vector<char>& mc_code, const patch_helper_input& input);
   uint32_t process_txn(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname);
   uint32_t process_txn_opt(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname);
   void resize_scratchpad(const std::string& section_name)
@@ -120,9 +149,10 @@ public:
                         const std::vector<char>& patch_json,
                         const std::vector<char>& control_packet,
                         const std::vector<std::string>& libs,
-                        const std::vector<std::string>& libpaths) override
+                        const std::vector<std::string>& libpaths,
+                        const std::map<uint8_t, std::vector<char> >& ctrlpkt) override
   {
-    aie2_blob_preprocessor_input::set_args(mc_code, patch_json, control_packet, libs, libpaths);
+    aie2_blob_preprocessor_input::set_args(mc_code, patch_json, control_packet, libs, libpaths, ctrlpkt);
     resize_scratchpad(preempt_save);
     resize_scratchpad(preempt_restore);
   }

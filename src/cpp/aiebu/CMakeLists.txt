@@ -4,11 +4,12 @@
 set(Boost_USE_STATIC_LIBS ON)
 INCLUDE (FindBoost)
 message("-- Boost version: ${Boost_VERSION}")
-find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(Boost REQUIRED)
 
 if (MSVC)
   # Cannot use /W4 since ELFIO has three warnings that cause build failure with /WX
   add_compile_options(/WX /W2)
+  # Use Hybrid linking on Windows
   add_compile_options($<$<CONFIG:Debug>:/MTd>
                       $<$<CONFIG:Release>:/MT>)
   add_link_options($<$<CONFIG:Debug>:/NODEFAULTLIB:libucrtd.lib>
