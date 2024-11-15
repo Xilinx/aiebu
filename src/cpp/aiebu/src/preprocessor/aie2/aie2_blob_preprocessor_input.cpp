@@ -181,14 +181,8 @@ namespace aiebu {
 
   void
   aie2_blob_preprocessor_input::
-  readmetajson(std::istream& patch_json)
+  aiecompiler_json_parser(const boost::property_tree::ptree& pt)
   {
-    // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
-    // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
-    constexpr static uint32_t ARG_OFFSET = 3;
-    boost::property_tree::ptree pt;
-    boost::property_tree::read_json(patch_json, pt);
-
     const auto pt_external_buffers = pt.get_child_optional("external_buffers");
     if (!pt_external_buffers)
       return;
@@ -199,7 +193,12 @@ namespace aiebu {
       const auto pt_coalesed_buffers = external_buffer.second.get_child_optional("coalesed_buffers");
 
       // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
-      std::string name = std::to_string(external_buffer.second.get<uint32_t>("xrt_id") + ARG_OFFSET);
+      auto arg = external_buffer.second.get<uint32_t>("xrt_id");
+      std::string name = std::to_string(arg + ARG_OFFSET);
+      if (external_buffer.second.get<bool>("ctrl_pkt_buffer", false))
+        xrt_id_map.insert({arg, "control-packet"});
+      else
+        xrt_id_map.insert({arg, name});
 
       if (pt_coalesed_buffers)
         extract_coalesed_buffers(name, external_buffer.second);
@@ -207,6 +206,57 @@ namespace aiebu {
         extract_control_packet_patch(name, external_buffer.second);
     }
   }
+
+  void
+  aie2_blob_preprocessor_input::
+  dmacompiler_json_parser(const boost::property_tree::ptree& pt)
+  {
+    const auto pt_ctrl_pkt_patch_info = pt.get_child_optional("ctrl_pkt_patch_info");
+    if (!pt_ctrl_pkt_patch_info)
+      return;
+
+    // fixed in dma compiler
+    xrt_id_map.insert({0, "3"});
+    xrt_id_map.insert({1, "4"});
+    xrt_id_map.insert({2, "5"});
+    xrt_id_map.insert({3, "6"});
+    xrt_id_map.insert({4, "control-packet"});
+
+    const auto patchs = pt_ctrl_pkt_patch_info.get();
+    for (auto pat : patchs)
+    {
+      auto patch = pat.second;
+      // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
+      uint32_t offset = patch.get<uint32_t>("offset") - 8;
+      const uint32_t addend = patch.get<uint32_t>("bo_offset", 0);
+      const uint32_t arg = patch.get<uint32_t>("xrt_arg_idx");
+      add_symbol({std::to_string(arg + ARG_OFFSET), offset, 0, 0, addend, 0, ctrlData, symbol::patch_schema::control_packet_48});
+    }
+
+  }
+
+  void
+  aie2_blob_preprocessor_input::
+  readmetajson(std::istream& patch_json)
+  {
+    boost::property_tree::ptree pt;
+    boost::property_tree::read_json(patch_json, pt);
+
+    const auto aiecompiler_json = pt.get_child_optional("external_buffers");
+    if (aiecompiler_json)
+    {
+      aiecompiler_json_parser(pt);
+      return;
+    }
+
+    const auto dmacompiler_json = pt.get_child_optional("ctrl_pkt_patch_info");
+    if (dmacompiler_json)
+    {
+      dmacompiler_json_parser(pt);
+      return;
+    }
+  }
+
 
   // 20 Lower bits
   #define GET_REG(reg) (reg & 0xFFFFF)
@@ -233,11 +283,10 @@ namespace aiebu {
 
   uint32_t aie2_blob_transaction_preprocessor_input::process_txn(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname)
   {
-    // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
-    // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
-    constexpr static uint32_t ARG_OFFSET = 3;
     std::map<uint64_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
+    uint32_t loadsequence = 0;
+    uint8_t pm_id = 0;
 
     ptr += sizeof(XAie_TxnHeader);
     for(uint32_t num = 0; num < txn_header->NumOps; num++) {
@@ -252,12 +301,23 @@ namespace aiebu {
           auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr *>(ptr);
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr));
           auto offset = static_cast<uint32_t>(payload-mc_code.data());
-          // we can combine multiple bd writes in one blockwrite and have patch opcodes after that
-          // we divide the blockwrite in bd chuncks and add in blockWriteRegOffsetMap
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
-          for (auto bd = 0U ; bd < size; bd+=SHIM_DMA_BD_SIZE) { //size and bd in bytes
-            uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd/byte_in_word] * byte_in_word;
-            blockWriteRegOffsetMap[bw_header->RegOff + bd] = std::make_pair(offset + bd, buffer_length_in_bytes);
+          if (loadsequence > 0)
+          {
+            uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * byte_in_word;
+            patch_helper_input input = {section_name, ctrlpkt_pm + std::to_string(pm_id),
+                                        static_cast<uint32_t>(GET_REG(bw_header->RegOff)+ 4),
+                                        0, offset, buffer_length_in_bytes, 0};
+            patch_helper(mc_code, input);
+          }
+          else
+          {
+            // we can combine multiple bd writes in one blockwrite and have patch opcodes after that
+            // we divide the blockwrite in bd chuncks and add in blockWriteRegOffsetMap
+            for (auto bd = 0U ; bd < size; bd += SHIM_DMA_BD_SIZE) { //size and bd in bytes
+              uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd/byte_in_word] * byte_in_word;
+              blockWriteRegOffsetMap[bw_header->RegOff + bd] = std::make_pair(offset + bd, buffer_length_in_bytes);
+            }
           }
           ptr += bw_header->Size;
           break;
@@ -267,7 +327,8 @@ namespace aiebu {
           ptr += mw_header->Size;
           break;
         }
-        case XAIE_IO_MASKPOLL: {
+        case XAIE_IO_MASKPOLL:
+        case XAIE_IO_MASKPOLL_BUSY: {
           auto mp_header = reinterpret_cast<const XAie_MaskPoll32Hdr *>(ptr);
           ptr += mp_header->Size;
           break;
@@ -280,6 +341,16 @@ namespace aiebu {
             ptr += sizeof(XAie_PreemptHdr);
             break;
         }
+        case XAIE_IO_LOAD_PM_START: {
+          auto mp_header = (const XAie_PmLoadHdr *)(ptr);
+          loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
+          loadsequence = loadsequence + 1;
+          pm_id = mp_header->PmLoadId;
+          if (std::find(pm_id_list.begin(), pm_id_list.end(), pm_id) == pm_id_list.end())
+            throw error(error::error_code::internal_error, "PM id:" + std::to_string(pm_id) + " has no corresponding pm control packet !!!");
+          ptr += sizeof(XAie_PmLoadHdr);
+          break;
+        }
         case XAIE_IO_CUSTOM_OP_BEGIN: {
           auto co_header = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
           ptr += co_header->Size;
@@ -287,6 +358,8 @@ namespace aiebu {
         }
         case XAIE_IO_CUSTOM_OP_BEGIN+1: {
           auto hdr = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
+          if (loadsequence)
+            throw error(error::error_code::internal_error, "Patch opcode found in PM Load Sequence!!!");
           auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
           uint64_t reg = op->regaddr & 0xFFFFFFF0; // regaddr point either to 1st word or 2nd word of BD
           auto it = blockWriteRegOffsetMap.find(reg);
@@ -298,8 +371,10 @@ namespace aiebu {
           uint32_t offset = blockWriteRegOffsetMap[reg].first;
           uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
           uint32_t addend = static_cast<uint32_t>(op->argplus);
-          patch_helper(mc_code, section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)), static_cast<uint32_t>(op->argidx + ARG_OFFSET),
-                       offset, buffer_length_in_bytes, addend);
+          patch_helper_input input = {section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)),
+                                      static_cast<uint32_t>(op->argidx + ARG_OFFSET), offset,
+                                      buffer_length_in_bytes, addend};
+          patch_helper(mc_code, input);
           ptr += hdr->Size;
           break;
         }
@@ -316,6 +391,8 @@ namespace aiebu {
         default:
           throw error(error::error_code::internal_error, "Invalid txn opcode: " + std::to_string(op_header->Op) + " !!!");
       }
+
+      loadsequence = loadsequence > 0 ? loadsequence-1 : 0;
     }
     return txn_header->NumCols;
   }
@@ -323,11 +400,10 @@ namespace aiebu {
 
   uint32_t aie2_blob_transaction_preprocessor_input::process_txn_opt(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname)
   {
-    // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
-    // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
-    constexpr static uint32_t ARG_OFFSET = 3;
     std::map<uint32_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
+    uint32_t loadsequence = 0;
+    uint8_t pm_id = 0;
 
     ptr += sizeof(XAie_TxnHeader);
     for(uint32_t num = 0; num < txn_header->NumOps; num++) {
@@ -341,12 +417,23 @@ namespace aiebu {
           auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr_opt *>(ptr);
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr_opt));
           auto offset = static_cast<uint32_t>(payload-mc_code.data());
-          // we can combine multiple bd writes in one blockwrite and have patch opcodes after that
-          // we divide the blockwrite in bd chuncks and add in blockWriteRegOffsetMap
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
-          for (auto bd = 0U ; bd < size; bd+=SHIM_DMA_BD_SIZE) { //size and bd in bytes
-            uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd / byte_in_word] * byte_in_word;
-            blockWriteRegOffsetMap[bw_header->RegOff + bd] = std::make_pair(offset + bd, buffer_length_in_bytes);
+          if (loadsequence > 0)
+          {
+            uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * byte_in_word;
+            patch_helper_input input = {section_name, ctrlpkt_pm + std::to_string(pm_id),
+                                        static_cast<uint32_t>(GET_REG(bw_header->RegOff)+ 4),
+                                        0, offset, buffer_length_in_bytes, 0};
+            patch_helper(mc_code, input);
+          }
+          else
+          {
+            // we can combine multiple bd writes in one blockwrite and have patch opcodes after that
+            // we divide the blockwrite in bd chuncks and add in blockWriteRegOffsetMap
+            for (auto bd = 0U ; bd < size; bd+=SHIM_DMA_BD_SIZE) { //size and bd in bytes
+              uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[bd/byte_in_word] * byte_in_word;
+              blockWriteRegOffsetMap[bw_header->RegOff + bd] = std::make_pair(offset + bd, buffer_length_in_bytes);
+            }
           }
           ptr += bw_header->Size;
           break;
@@ -355,7 +442,8 @@ namespace aiebu {
           ptr += sizeof(XAie_MaskWrite32Hdr_opt);
           break;
         }
-        case XAIE_IO_MASKPOLL: {
+        case XAIE_IO_MASKPOLL:
+        case XAIE_IO_MASKPOLL_BUSY: {
           ptr += sizeof(XAie_MaskPoll32Hdr_opt);
           break;
         }
@@ -367,6 +455,16 @@ namespace aiebu {
             ptr += sizeof(XAie_PreemptHdr);
             break;
         }
+        case XAIE_IO_LOAD_PM_START: {
+          auto mp_header = (const XAie_PmLoadHdr *)(ptr);
+          loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
+          loadsequence = loadsequence + 1;
+          pm_id = mp_header->PmLoadId;
+          if (std::find(pm_id_list.begin(), pm_id_list.end(), pm_id) == pm_id_list.end())
+            throw error(error::error_code::internal_error, "PM id:" + std::to_string(pm_id) + " has no corresponding pm control packet !!!");
+          ptr += sizeof(XAie_PmLoadHdr);
+          break;
+        }
         case XAIE_IO_CUSTOM_OP_TCT: {
           auto co_header = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
           ptr += co_header->Size;
@@ -374,6 +472,8 @@ namespace aiebu {
         }
         case XAIE_IO_CUSTOM_OP_DDR_PATCH: {
           auto hdr = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
+          if (loadsequence)
+            throw error(error::error_code::internal_error, "Patch opcode found in PM Load Sequence!!!");
           auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
           uint64_t reg = op->regaddr & 0xFFFFFFF0; // regaddr point either to 1st word or 2nd word of BD
           auto it = blockWriteRegOffsetMap.find(reg);
@@ -385,8 +485,10 @@ namespace aiebu {
           uint32_t offset = blockWriteRegOffsetMap[reg].first;
           uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
           uint32_t addend = static_cast<uint32_t>(op->argplus);
-          patch_helper(mc_code, section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)), static_cast<uint32_t>(op->argidx + ARG_OFFSET),
-                       offset, buffer_length_in_bytes, addend);
+          patch_helper_input input = {section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)),
+                                      static_cast<uint32_t>(op->argidx + ARG_OFFSET), offset,
+                                      buffer_length_in_bytes, addend};
+          patch_helper(mc_code, input);
           ptr += hdr->Size;
           break;
         }
@@ -442,11 +544,15 @@ namespace aiebu {
   void
   aie2_blob_transaction_preprocessor_input::
   patch_helper(std::vector<char>& mc_code,
-               const std::string& section_name,
-               const std::string& argname,
-               uint32_t reg, uint32_t argidx, uint32_t offset,
-               uint64_t buffer_length_in_bytes, uint32_t addend)
+               const patch_helper_input& input)
   {
+    const std::string& section_name = input.section_name;
+    const std::string& argname = input.argname;
+    uint32_t reg = input.reg;
+    uint32_t argidx = input.argidx;
+    uint32_t offset = input.offset;
+    uint64_t buffer_length_in_bytes = input.buffer_length_in_bytes;
+    uint32_t addend = input.addend;
     std::vector<uint32_t> MEM_BD_ADDRESS;
     for (auto i=0U; i < MEM_DMA_BD_NUM; ++i)
       MEM_BD_ADDRESS.push_back(MEM_DMA_BD0_0 + i * MEM_DMA_BD_SIZE);
@@ -494,12 +600,21 @@ namespace aiebu {
       if (it != SHIM_BD_ADDRESS.end())
       {
         clear_shimBD_address_bits(mc_code, offset);
-        if (argname.empty())
+        if (!argname.empty())
+        {
+          // in case of scratchpad
+          add_symbol({argname, offset, 0, 0, addend, buffer_length_in_bytes, section_name, symbol::patch_schema::shim_dma_48});
+        }
+        else if (xrt_id_map.find(argidx-ARG_OFFSET) != xrt_id_map.end())
+        {
+          // incase external buffer json is provided with xrt_id
+          add_symbol({xrt_id_map[argidx-ARG_OFFSET], offset, 0, 0, addend, buffer_length_in_bytes, section_name, symbol::patch_schema::shim_dma_48});
+        }
+        else
         {
           // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
           add_symbol({std::to_string(argidx), offset, 0, 0, addend, buffer_length_in_bytes, section_name, symbol::patch_schema::shim_dma_48});
-        } else
-          add_symbol({argname, offset, 0, 0, addend, buffer_length_in_bytes, section_name, symbol::patch_schema::shim_dma_48});
+        }
         return;
       }
     }

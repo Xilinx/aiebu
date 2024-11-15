@@ -2,6 +2,7 @@
 # Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
 
 set(GENERATOR_OUT_DIR "${AIEBU_BINARY_DIR}/lib/gen")
+set(AIEBU_INSTALL_BINARY_DIR "${AIEBU_INSTALL_DIR}/bin/")
 
 set(ASM_TGT "aiebu-asm")
 
@@ -22,7 +23,6 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(${ASM_TGT}
     PRIVATE
     aiebu_static
-    boost_program_options
     crypto
     dl
     z
@@ -31,7 +31,6 @@ else()
   target_link_libraries(${ASM_TGT}
     PRIVATE
     aiebu_static
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
     )
 endif()
 
@@ -47,6 +46,8 @@ target_include_directories(${ASM_TGT} PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/assembler/
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/common/
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target/
+  ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include/
+  ${Boost_INCLUDE_DIRS}
   )
 
 add_custom_command(
@@ -62,6 +63,6 @@ add_custom_target(
 )
 
 install(TARGETS ${ASM_TGT}
-  RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
+  RUNTIME DESTINATION ${AIEBU_INSTALL_BINARY_DIR}
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )

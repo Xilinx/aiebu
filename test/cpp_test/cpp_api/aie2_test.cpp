@@ -44,7 +44,7 @@ int main(int argc, char ** argv)
   }
 
   aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::blob_instr_transaction,
-                            txn_buf, control_packet_buf, external_buffer_id_json_buf);
+                            txn_buf, control_packet_buf, external_buffer_id_json_buf, {});
   auto e = as.get_elf();
   std::cout << "elf size:" << e.size() << "\n";
   std::ofstream output_file("out.elf");

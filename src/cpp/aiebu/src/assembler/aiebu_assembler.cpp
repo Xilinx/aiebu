@@ -24,7 +24,7 @@ aiebu_assembler(buffer_type type,
                 const std::vector<std::string>& libs,
                 const std::vector<std::string>& libpaths,
                 const std::vector<char>& patch_json)
-                : aiebu_assembler(type, buffer, {}, patch_json, libs, libpaths)
+                : aiebu_assembler(type, buffer, {}, patch_json, libs, libpaths, {})
 { }
 
 aiebu_assembler::
@@ -33,7 +33,8 @@ aiebu_assembler(buffer_type type,
                 const std::vector<char>& buffer2,
                 const std::vector<char>& patch_json,
                 const std::vector<std::string>& libs,
-                const std::vector<std::string>& libpaths) : _type(type)
+                const std::vector<std::string>& libpaths,
+                const std::map<uint8_t, std::vector<char> >& ctrlpkt) : _type(type)
 {
   if (type == buffer_type::blob_instr_dpu)
   {
@@ -43,7 +44,7 @@ aiebu_assembler(buffer_type type,
   else if (type == buffer_type::blob_instr_transaction)
   {
     aiebu::assembler a(assembler::elf_type::aie2_transaction_blob);
-    elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
+    elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
   }
   else
     throw error(error::error_code::invalid_buffer_type, "Buffer_type not supported !!!");
@@ -80,7 +81,9 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         const char* patch_json,
                         size_t patch_json_size,
                         const char* libs,
-                        const char* libpaths)
+                        const char* libpaths,
+                        struct pm_ctrlpkt* pm_ctrlpkts,
+                        size_t pm_ctrlpkt_size)
 {
   int ret = 0;
   if (buffer2 == NULL && buffer2_size != 0)
@@ -103,6 +106,7 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
     v1.assign(buffer1, buffer1+buffer1_size);
     v2.assign(buffer2, buffer2+buffer2_size);
     v3.assign(patch_json, patch_json+patch_json_size);
+    std::map<uint8_t, std::vector<char> > mctrlpkt;
 
     std::vector<std::string> vlibs;
     if (libs)
@@ -112,7 +116,13 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
     if (libpaths)
       vlibpaths = aiebu::splitoption(libpaths);
 
-    aiebu::aiebu_assembler handler((aiebu::aiebu_assembler::buffer_type)type, v1, v2, v3, vlibs, vlibpaths);
+    for (auto i=0ul; i < pm_ctrlpkt_size; i++)
+    {
+      std::vector<char> v(pm_ctrlpkts[i].pm_buffer, pm_ctrlpkts[i].pm_buffer + pm_ctrlpkts[i].pm_buffer_size);
+      mctrlpkt[pm_ctrlpkts[i].pm_id] = std::move(v);
+    }
+
+    aiebu::aiebu_assembler handler((aiebu::aiebu_assembler::buffer_type)type, v1, v2, v3, vlibs, vlibpaths, mctrlpkt);
     velf = handler.get_elf();
     char *aelf = static_cast<char*>(std::malloc(sizeof(char)*velf.size()));
     std::copy(velf.begin(), velf.end(), aelf);
