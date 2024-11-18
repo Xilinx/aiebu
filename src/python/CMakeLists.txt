@@ -44,96 +44,96 @@ add_custom_target(docs
   COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH="${CMAKE_CURRENT_BINARY_DIR}"
           ${Python3_EXECUTABLE}
           ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
-          ${CMAKE_SOURCE_DIR}/templates/aie2ps generate_docs > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa-spec.md
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/templates/aie2ps generate_docs > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa-spec.md
   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa-spec.md
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   SOURCES ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
 )
 
 add_custom_target(html-docs
   COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH="${CMAKE_CURRENT_BINARY_DIR}"
           ${Python3_EXECUTABLE}
           ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
-          ${CMAKE_SOURCE_DIR}/templates/aie2ps generate_html_docs > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa-spec.html
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/templates/aie2ps generate_html_docs > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa-spec.html
   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa-spec.html
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   SOURCES ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
 )
 
 add_custom_target(c-stubs
   COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH="${CMAKE_CURRENT_BINARY_DIR}"
           ${Python3_EXECUTABLE}
           ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
-          ${CMAKE_SOURCE_DIR}/templates/aie2ps generate_c_stubs > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa_stubs.h
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/templates/aie2ps generate_c_stubs > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa_stubs.h
   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa_stubs.h
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   SOURCES ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
 )
 
 add_custom_target(c-defines
   COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH="${CMAKE_CURRENT_BINARY_DIR}"
           ${Python3_EXECUTABLE}
           ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
-          ${CMAKE_SOURCE_DIR}/templates/aie2ps generate_c_defines > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa_defines.h
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/templates/aie2ps generate_c_defines > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa_defines.h
   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa_defines.h
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   SOURCES ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
 )
 
 add_custom_target(py-stubs
   COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH="${CMAKE_CURRENT_BINARY_DIR}"
           ${Python3_EXECUTABLE}
           ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
-          ${CMAKE_SOURCE_DIR}/templates/aie2ps generate_py > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.py
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/templates/aie2ps generate_py > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.py
   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.py
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   SOURCES ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
 )
 
 add_custom_target(docs-aie2
   COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH="${CMAKE_CURRENT_BINARY_DIR}"
           ${Python3_EXECUTABLE}
           ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2/isa-spec.yaml
-          ${CMAKE_SOURCE_DIR}/templates/aie2 generate_docs > ${CMAKE_CURRENT_BINARY_DIR}/aie2/isa-spec.md
+          ${AIEBU_SOURCE_DIR}/specification/aie2/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/templates/aie2 generate_docs > ${CMAKE_CURRENT_BINARY_DIR}/aie2/isa-spec.md
   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aie2/isa-spec.md
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   SOURCES ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/specification/aie2/isa-spec.yaml
 )
 
 add_custom_target(html-docs-aie2
   COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH="${CMAKE_CURRENT_BINARY_DIR}"
           ${Python3_EXECUTABLE}
           ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2/isa-spec.yaml
-          ${CMAKE_SOURCE_DIR}/templates/aie2 generate_html_docs > ${CMAKE_CURRENT_BINARY_DIR}/aie2/isa-spec.html
+          ${AIEBU_SOURCE_DIR}/specification/aie2/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/templates/aie2 generate_html_docs > ${CMAKE_CURRENT_BINARY_DIR}/aie2/isa-spec.html
   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aie2/isa-spec.html
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   SOURCES ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/specification/aie2/isa-spec.yaml
 )
 
 add_custom_target(cpp-assembler-stubs
   COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH="${CMAKE_CURRENT_BINARY_DIR}"
           ${Python3_EXECUTABLE}
           ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
-          ${CMAKE_SOURCE_DIR}/templates/aie2ps generate_cpp_assembler_stubs > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.h
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/templates/aie2ps generate_cpp_assembler_stubs > ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.h
   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/aie2ps/isa.h
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   SOURCES ${AIEBU_SOURCE_DIR}/src/python/aiebu/spec_tool.py
-          ${CMAKE_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
+          ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
 )
 
 add_custom_target(isa-spec ALL)
