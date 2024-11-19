@@ -386,6 +386,11 @@ namespace aiebu {
           ptr += hdr->Size;
           break;
         }
+        case XAIE_IO_CUSTOM_OP_MERGE_SYNC: {
+          auto hdr = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
+          ptr += hdr->Size;
+          break;
+        }
         default:
           throw error(error::error_code::internal_error, "Invalid txn opcode: " + std::to_string(op_header->Op) + " !!!");
       }
