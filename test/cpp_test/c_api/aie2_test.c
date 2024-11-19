@@ -40,7 +40,7 @@ int main(int argc, char **argv)
   if (elf_buf_size > 0)
   {
     free((void*)elf_buf);
-    printf("Size returned :%zd\n", elf_buf_size);
+    printf("Size returned :%zu\n", elf_buf_size);
   }
   return 0;
 }
