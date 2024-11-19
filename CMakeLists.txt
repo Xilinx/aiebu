@@ -11,9 +11,8 @@ else()
   set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/xilinx" CACHE PATH "..." FORCE)
 endif()
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(AIEBU_INSTALL_DIR "aiebu")
+include (cmake/settings.cmake)
 
 message("-- CMAKE_SYSTEM=${CMAKE_SYSTEM}")
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
@@ -45,11 +44,6 @@ if (NOT (DEFINED AIEBU_ELFIO_SRC_DIR))
 endif()
 
 message("-- Using ELFIO from ${AIEBU_ELFIO_SRC_DIR}")
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-set(AIEBU_SPECIFICATION_INSTALL_DIR "aiebu/share/specification")
 
 find_program (PYLINT pylint REQUIRED)
 message("-- Pylint path: ${PYLINT}")
@@ -103,5 +97,7 @@ SET(CPACK_PACKAGE_VENDOR "Advanced Micro Devices Inc.")
 SET(CPACK_PACKAGE_CONTACT "runtimeca39d@amd.com")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AMD XDNA binutils package")
 SET(CPACK_RESOURCE_FILE_LICENSE "${AIEBU_SOURCE_DIR}/LICENSE")
+
+include (cmake/findpackage.cmake)
 
 INCLUDE(CPack)
