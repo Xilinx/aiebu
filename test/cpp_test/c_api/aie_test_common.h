@@ -17,11 +17,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char* aiebu_ReadFile(char *name, long *s)
+char* aiebu_ReadFile(char *name, size_t *s)
 {
   FILE *file;
   char *buffer;
-  unsigned long fileLen;
+  size_t fileLen;
 
   //Open file
   file = fopen(name, "rb");
@@ -34,6 +34,11 @@ char* aiebu_ReadFile(char *name, long *s)
   //Get file length
   fseek(file, 0, SEEK_END);
   fileLen=ftell(file);
+  if (fileLen < 0) {
+    printf("Error determining file length");
+    fclose(file);
+    return NULL;
+  }
   fseek(file, 0, SEEK_SET);
 
   //Allocate memory
