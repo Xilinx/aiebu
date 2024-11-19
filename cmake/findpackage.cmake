@@ -40,3 +40,14 @@ install (
 #  NAMESPACE ${PROJECT_NAME}::
 #  DESTINATION ${AIEBU_INSTALL_DIR}/share/cmake/${PROJECT_NAME}
 #  )
+
+install(TARGETS aiebu_static
+        EXPORT aiebuTargets
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin)
+
+install(EXPORT aiebuTargets
+        FILE aiebuTargets.cmake
+        NAMESPACE AIEBU::
+        DESTINATION ${AIEBU_INSTALL_DIR}/share/cmake/${PROJECT_NAME})
