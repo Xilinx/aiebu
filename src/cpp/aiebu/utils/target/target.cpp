@@ -148,6 +148,7 @@ target_aie2blob_transaction::assemble(const sub_cmd_options &_options)
   }
 }
 
+#ifdef AIEBU_FULL
 void
 aiebu::utilities::
 target_aie2::assemble(const sub_cmd_options &_options)
@@ -249,3 +250,4 @@ target_aie2ps::assemble(const sub_cmd_options &_options)
     throw std::runtime_error(errMsg.str());
   }
 }
+#endif

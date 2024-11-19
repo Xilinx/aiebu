@@ -46,11 +46,13 @@ aiebu_assembler(buffer_type type,
     aiebu::assembler a(assembler::elf_type::aie2_transaction_blob);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
   }
+#ifdef AIEBU_FULL
   else if (type == buffer_type::asm_aie2ps)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_asm);
     elf_data = a.process(buffer1, libs, libpaths);
   }
+#endif
   else
     throw error(error::error_code::invalid_buffer_type, "Buffer_type not supported !!!");
 }

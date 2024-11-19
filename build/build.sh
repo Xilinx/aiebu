@@ -17,7 +17,14 @@ here=$PWD
 
 function compile {
     local config=$1
+    local build=$2
     local cmakeflags="-DCMAKE_BUILD_TYPE=$config"
+
+    if [[ $build == "aie2" ]]; then
+      cmakeflags="$cmakeflags -DAIEBU_FULL=OFF"
+    else
+      cmakeflags="$cmakeflags -DAIEBU_FULL=ON"
+    fi
 
     mkdir -p $config
     cd $config
@@ -29,17 +36,34 @@ function compile {
 
     make -j $CORE VERBOSE=1 DESTDIR=$PWD
     make -j $CORE VERBOSE=1 DESTDIR=$PWD test
-    make -j $CORE VERBOSE=1 DESTDIR=$PWD isa-spec
+    if [[ $build != "aie2" ]]; then
+      make -j $CORE VERBOSE=1 DESTDIR=$PWD isa-spec
+    fi
     make -j $CORE VERBOSE=1 DESTDIR=$PWD install
     if [[ $config == "Release" ]]; then
 	make -j $CORE VERBOSE=1 DESTDIR=$PWD package
     fi
 }
 
-cd $BUILDDIR
-compile Debug
+build=""
+usage() { echo "Usage: $0 [-r]" 1>&2; exit 1; }
+
+while getopts ":rh" o; do
+    case "${o}" in
+        r)
+            build="aie2"
+            ;;
+        h)
+            usage
+            ;;
+    esac
+done
+shift $((OPTIND-1))
 
 cd $BUILDDIR
-compile Release
+compile Debug $build
+
+cd $BUILDDIR
+compile Release $build
 
 cd $here

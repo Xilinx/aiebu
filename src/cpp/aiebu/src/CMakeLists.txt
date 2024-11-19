@@ -13,6 +13,11 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "windows/*")
 endif()
 
+if (AIEBU_FULL STREQUAL "OFF")
+  list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "aie2ps/*")
+  list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "asm/*")
+endif()
+
 message("-- AIEBU_CPP_FILES: ${AIEBU_CPP_FILES}")
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
@@ -27,10 +32,8 @@ target_include_directories(aiebu_library_objects PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2
-  ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2ps
   ${CMAKE_CURRENT_SOURCE_DIR}/encoder
   ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2
-  ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
   ${CMAKE_CURRENT_SOURCE_DIR}/common
   ${CMAKE_CURRENT_SOURCE_DIR}/ops
   ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
@@ -38,9 +41,7 @@ target_include_directories(aiebu_library_objects PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/assembler
   ${CMAKE_CURRENT_SOURCE_DIR}/elf
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2
-  ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
   ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO/
-  ${CMAKE_CURRENT_BINARY_DIR}/../../../python/
   ${Boost_INCLUDE_DIRS}
   )
 
@@ -62,7 +63,18 @@ endif()
 
 #target_link_libraries(aiebu_static xaiengine)
 
-add_dependencies(aiebu_library_objects cpp-assembler-stubs)
+
+if (AIEBU_FULL STREQUAL "ON")
+  target_include_directories(aiebu_library_objects PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2ps
+    ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
+    ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
+    ${CMAKE_CURRENT_BINARY_DIR}/../../../python/
+  )
+
+  add_dependencies(aiebu_library_objects cpp-assembler-stubs)
+endif()
+
 
 install (TARGETS aiebu
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}

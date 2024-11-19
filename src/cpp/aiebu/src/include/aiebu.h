@@ -31,7 +31,9 @@ enum aiebu_assembler_buffer_type {
   aiebu_assembler_buffer_type_blob_instr_prepost,
   aiebu_assembler_buffer_type_blob_instr_transaction,
   aiebu_assembler_buffer_type_blob_control_packet,
+#ifdef AIEBU_FULL
   aiebu_assembler_buffer_type_asm_aie2ps
+#endif
 };
 
 struct pm_ctrlpkt {

@@ -21,6 +21,7 @@ set CREATE_PACKAGE=0
 set CMAKEFLAGS=
 set NOCMAKE=0
 set NOCTEST=0
+set AIEBU_BUILD=""
 set BOOST=C:\Xilinx\XRT\ext.new
 
 IF DEFINED MSVC_PARALLEL_JOBS ( SET LOCAL_MSVC_PARALLEL_JOBS=%MSVC_PARALLEL_JOBS%) ELSE ( SET LOCAL_MSVC_PARALLEL_JOBS=3 )
@@ -45,6 +46,9 @@ IF DEFINED MSVC_PARALLEL_JOBS ( SET LOCAL_MSVC_PARALLEL_JOBS=%MSVC_PARALLEL_JOBS
     set BOOST=%2
     shift
   ) else (
+  if [%1] == [-r] (
+    set AIEBU_BUILD="aie2"
+  ) else (
   if [%1] == [-pkg] (
     set CREATE_PACKAGE=1
   ) else (
@@ -53,7 +57,7 @@ IF DEFINED MSVC_PARALLEL_JOBS ( SET LOCAL_MSVC_PARALLEL_JOBS=%MSVC_PARALLEL_JOBS
   ) else (
     echo Unknown option: %1
     goto Help
-  ))))))))
+  )))))))))
   shift
   goto parseArgs
 
@@ -84,6 +88,7 @@ ECHO [-clean]                   - Remove build directories
 ECHO [-dbg]                     - Creates a debug build
 ECHO [-opt]                     - Creates a release build
 ECHO [-package]                 - Packages the release build to a MSI archive.
+ECHO [-r]                       - build only aie2
 ECHO                              Note: Depends on the WIX application.
 GOTO:EOF
 
@@ -105,6 +110,12 @@ REM --------------------------------------------------------------------------
 :DebugBuild
 echo ====================== Windows Debug Build ============================
 set CMAKEFLAGS=%CMAKEFLAGS% -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=%BUILDDIR%/WDebug/xilinx
+if [%AIEBU_BUILD%] == ["aie2"] (
+  set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_FULL=OFF
+) else (
+  set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_FULL=ON
+)
+
 ECHO CMAKEFLAGS=%CMAKEFLAGS%
 
 MKDIR %BUILDDIR%\WDebug
@@ -115,9 +126,10 @@ if [%NOCMAKE%] == [0] (
    IF errorlevel 1 (POPD & exit /B %errorlevel%)
 )
 
-
-cmake --build . --verbose --config Debug --target cpp-assembler-stubs
-IF errorlevel 1 (POPD & exit /B %errorlevel%)
+if not [%AIEBU_BUILD%] == ["aie2"] (
+  cmake --build . --verbose --config Debug --target cpp-assembler-stubs
+  IF errorlevel 1 (POPD & exit /B %errorlevel%)
+)
 
 cmake --build . --verbose --config Debug
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
@@ -135,6 +147,11 @@ REM --------------------------------------------------------------------------
 :ReleaseBuild
 ECHO ====================== Windows Release Build ============================
 set CMAKEFLAGS=%CMAKEFLAGS% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%BUILDDIR%/WRelease/xilinx
+if [%AIEBU_BUILD%] == ["aie2"] (
+  set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_FULL=OFF
+) else (
+  set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_FULL=ON
+)
 ECHO CMAKEFLAGS=%CMAKEFLAGS%
 
 MKDIR %BUILDDIR%\WRelease
@@ -145,8 +162,10 @@ if [%NOCMAKE%] == [0] (
    IF errorlevel 1 (POPD & exit /B %errorlevel%)
 )
 
-cmake --build . --verbose --config Release --target cpp-assembler-stubs
-IF errorlevel 1 (POPD & exit /B %errorlevel%)
+if not [%AIEBU_BUILD%] == ["aie2"] (
+  cmake --build . --verbose --config Release --target cpp-assembler-stubs
+  IF errorlevel 1 (POPD & exit /B %errorlevel%)
+)
 
 cmake --build . --verbose --config Release
 IF errorlevel 1 (POPD & exit /B %errorlevel%)

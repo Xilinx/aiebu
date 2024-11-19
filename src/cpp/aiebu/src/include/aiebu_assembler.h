@@ -30,8 +30,10 @@ class aiebu_assembler {
       blob_instr_prepost,
       blob_instr_transaction,
       blob_control_packet,
+#ifdef AIEBU_FULL
       asm_aie2ps,
       asm_aie2
+#endif
     };
 
   private:

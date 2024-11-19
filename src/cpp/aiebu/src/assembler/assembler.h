@@ -28,8 +28,10 @@ public:
   {
     aie2_transaction_blob,
     aie2_dpu_blob,
+#ifdef AIEBU_FULL
     aie2ps_asm,
     aie2_asm
+#endif
   };
 
   explicit assembler(const elf_type type);

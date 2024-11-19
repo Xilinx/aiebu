@@ -3,7 +3,9 @@
 
 project(tests CXX C)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  add_subdirectory(control-code)
+if (AIEBU_FULL STREQUAL "ON")
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    add_subdirectory(control-code)
+  endif()
 endif()
 add_subdirectory(aie2-ctrlcode)

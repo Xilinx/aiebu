@@ -61,6 +61,7 @@ class target
 
 };
 
+#ifdef AIEBU_FULL
 class target_aie2ps: public target
 {
   public:
@@ -75,6 +76,7 @@ class target_aie2: public target
   virtual void assemble(const sub_cmd_options &_options);
   target_aie2(const std::string& name): target(name, "aie2asm", "aie2 asm assembler") {}
 };
+#endif
 
 class target_aie2blob: public target
 {

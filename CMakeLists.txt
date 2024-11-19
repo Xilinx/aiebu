@@ -45,8 +45,15 @@ endif()
 
 message("-- Using ELFIO from ${AIEBU_ELFIO_SRC_DIR}")
 
-find_program (PYLINT pylint REQUIRED)
-message("-- Pylint path: ${PYLINT}")
+if (AIEBU_FULL STREQUAL "ON")
+  add_compile_options(-DAIEBU_FULL)
+
+  find_program (PYLINT pylint REQUIRED)
+  message("-- Pylint path: ${PYLINT}")
+
+  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+  message("-- Python version: ${Python3_VERSION}")
+endif()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   find_package(PkgConfig REQUIRED)
@@ -54,18 +61,18 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   pkg_check_modules(LIBELF REQUIRED libelf)
   message("-- Libelf version: ${LIBELF_VERSION}")
 
-  find_program (READELF eu-readelf REQUIRED)
-  message("-- Readelf path: ${READELF}")
-
   find_package(OpenSSL REQUIRED)
   message("-- OpenSSL path: ${OPENSSL_LIBRARIES}")
 
   find_library(CRYPTO_LIB libcrypto.a REQUIRED)
   message("-- CRYPTO_LIB path: ${CRYPTO_LIB}")
+
+  if (AIEBU_FULL STREQUAL "ON")
+    find_program (READELF eu-readelf REQUIRED)
+    message("-- Readelf path: ${READELF}")
+  endif()
 endif()
 
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
-message("-- Python version: ${Python3_VERSION}")
 
 if (XRT_CLANG_TIDY STREQUAL "ON")
   find_program(CLANG_TIDY "clang-tidy")
@@ -79,10 +86,13 @@ endif()
 
 enable_testing()
 
-add_subdirectory(src/python)
 add_subdirectory(src/cpp/aiebu)
-add_subdirectory(specification)
-add_subdirectory(scripts)
+
+if (AIEBU_FULL STREQUAL "ON")
+  add_subdirectory(src/python)
+  add_subdirectory(specification)
+  add_subdirectory(scripts)
+endif()
 
 add_subdirectory(lib)
 
