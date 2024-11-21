@@ -13,6 +13,8 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "windows/*")
 endif()
 
+list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "windows/uid_md5.cpp")
+
 if (AIEBU_FULL STREQUAL "OFF")
   list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "aie2ps/*")
   list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "asm/*")
@@ -56,7 +58,7 @@ add_library(aiebu_static STATIC
 target_link_libraries(aiebu xaiengine)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_libraries(aiebu ${CRYPTO_LIB} dl z)
+  target_link_libraries(aiebu dl z)
 else()
   target_link_libraries(aiebu advapi32)
 endif()

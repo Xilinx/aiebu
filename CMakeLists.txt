@@ -61,12 +61,6 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   pkg_check_modules(LIBELF REQUIRED libelf)
   message("-- Libelf version: ${LIBELF_VERSION}")
 
-  find_package(OpenSSL REQUIRED)
-  message("-- OpenSSL path: ${OPENSSL_LIBRARIES}")
-
-  find_library(CRYPTO_LIB libcrypto.a REQUIRED)
-  message("-- CRYPTO_LIB path: ${CRYPTO_LIB}")
-
   if (AIEBU_FULL STREQUAL "ON")
     find_program (READELF eu-readelf REQUIRED)
     message("-- Readelf path: ${READELF}")
