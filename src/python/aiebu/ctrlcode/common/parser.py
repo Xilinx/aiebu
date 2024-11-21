@@ -133,8 +133,37 @@ class EndOfLabel:
 
 class ScratchPad:
     def operate(self, args, parser):
+        content = bytearray()
         args = [x.strip() for x in args.strip().split(',')] if args is not None else []
-        parser.insertscratchpad(args[0], args[1])
+
+        # 2nd arg can be hex/int/filename
+        if args[1].startswith('0x'):
+            size =  int(args[1], 16)
+        elif args[1].isnumeric():
+            size = int(args[1])
+        else:
+            if not self.findandreadfile(args[1], parser.includedirlist, content):
+                raise RuntimeError(f"File {args[1]} not exist\n")
+            size = len(content)
+        parser.insertscratchpad(args[0], size, content)
+
+    def findandreadfile(self, arg, includedirlist, content):
+        if os.path.isabs(arg):
+            if not self.readfile(arg, content):
+                return False
+        for path in includedirlist:
+            path = path + "/" + arg
+            if os.path.isfile(path):
+                self.readfile(path, content)
+                return True
+        return False
+
+    def readfile(self, path, content):
+        if not os.path.isfile(path):
+            return False
+        with open(path, 'rb') as f:
+            content.extend(f.read())
+        return True
 
 class SectionDirective:
     def operate(self, args, parser):
@@ -214,11 +243,10 @@ class Parser:
             self.col[self.current_col].text[self.current_label].append(data)
             self.col[self.current_col].labelpageindex[self.current_label.rsplit('::', 1)[-1] or self.current_label] = 0
 
-    def insertscratchpad(self, name, size):
+    def insertscratchpad(self, name, size, content):
         if self.current_col == None:
             self.setcurrentcol('0')
-        size = int(size, 16) if size.startswith('0x') else int(size)
-        self.col[self.current_col].scratchpad[name] = {"name": name, "size":size, "offset": 0, "base": 0}
+        self.col[self.current_col].scratchpad[name] = {"name": name, "size":size, "offset": 0, "base": 0, "content":content}
 
     def getcoldata(self, col):
         return self.col[col].data

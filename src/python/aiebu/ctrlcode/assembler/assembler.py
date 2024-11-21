@@ -110,18 +110,17 @@ class Assembler:
                 pages += pgs
                 #print("COL:", col, " LABEL:", label, " relative_page_index:", relative_page_index, "numpages:", len(pgs))
                 labelpageindex[label.rsplit('::', 1)[-1] or label] = relative_page_index - len(pgs)
+
+            if len(scratchpad):
+                self.elf_sections[".ctrlbss." + str(col)] = ELF_Section(".ctrlbss." + str(col), Section.DATA)
             for pad in scratchpad:
                 scratchpad[pad]["offset"] = padsize
                 scratchpad[pad]["base"] = PAGE_SIZE * relative_page_index
                 padsize += scratchpad[pad]["size"]
-
-            if len(scratchpad):
-                self.elf_sections[".ctrlbss." + str(col)] = ELF_Section(".ctrlbss." + str(col), Section.DATA)
-            #print("PAD:", padsize)
-            for c in range(padsize):
-                self.elf_sections[".ctrlbss." + str(col)].write_byte(0x00)
-            #print("scratchpad[",col,"]:", scratchpad)
-            #print("labelpageindex[",col,"]:", labelpageindex)
+                if len(scratchpad[pad]["content"]):
+                    self.elf_sections[".ctrlbss." + str(col)].write_bytes(scratchpad[pad]["content"])
+                else:
+                    [self.elf_sections[".ctrlbss." + str(col)].write_byte(0x00) for c in range(scratchpad[pad]["size"])]
 
         # create elfwriter
         if self.target == "aie2ps":

@@ -68,8 +68,8 @@ class Debug:
         self.functions = {}
 
     def addfunction(self, filename, name, high_pc, low_pc, col, pagenum):
-        self.functions[col+name] = Function(filename, name, high_pc, low_pc, col, pagenum)
-        return col+name
+        self.functions[filename+col+name] = Function(filename, name, high_pc, low_pc, col, pagenum)
+        return filename+col+name
 
     def addtextline(self, func, linenumber, high_pc, low_pc, token):
         self.functions[func].addtextline(Line(linenumber, high_pc, low_pc, token))
