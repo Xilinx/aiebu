@@ -82,7 +82,7 @@ install(FILES ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
               ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x2.bin
               ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x4.bin
   DESTINATION ${AIEBU_INSTALL_AIE_LIB_DIR}
-  CONFIGURATIONS Debug Release COMPONENT Runtime
+  CONFIGURATIONS Debug Release COMPONENT ${AIEBU_COMPONENT_PKG}
 )
 
 # For Copy transaction commands and ELF Generation
@@ -152,5 +152,5 @@ add_custom_target(
 
 install(FILES ${GENERATOR_OUT_DIR}/copy_Mem_Tile_to_DDR.bin ${GENERATOR_OUT_DIR}/copy_DDR_to_Mem_Tile.bin
   DESTINATION ${AIEBU_INSTALL_AIE_LIB_DIR}
-  CONFIGURATIONS Debug Release COMPONENT Runtime
+  CONFIGURATIONS Debug Release COMPONENT ${AIEBU_COMPONENT_PKG}
 )

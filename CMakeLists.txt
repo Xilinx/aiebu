@@ -57,6 +57,11 @@ if (NOT (DEFINED AIEBU_AIE_RT_HEADER_DIR))
   set(AIEBU_AIE_RT_HEADER_DIR "${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include")
 endif()
 
+set(AIEBU_COMPONENT_PKG "Runtime")
+if (DEFINED NPU)
+  set(AIEBU_COMPONENT_PKG "${XRT_DEV_COMPONENT}")
+endif()
+
 message("-- Using aie-rt headers from ${AIEBU_AIE_RT_HEADER_DIR}")
 message("-- Using aie-rt build from ${AIEBU_AIE_RT_BIN_DIR}")
 

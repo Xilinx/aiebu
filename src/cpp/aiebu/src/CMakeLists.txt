@@ -68,5 +68,5 @@ install (TARGETS aiebu aiebu_static
 
 install(FILES include/aiebu.h include/aiebu_assembler.h include/aiebu_error.h
   DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}
-  CONFIGURATIONS Debug Release COMPONENT Runtime
+  CONFIGURATIONS Debug Release COMPONENT ${AIEBU_COMPONENT_PKG}
 )
