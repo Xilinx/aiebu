@@ -21,10 +21,6 @@ target_include_directories(
 
 target_link_libraries(${GENERATOR_EXE1} xaiengine aiebu_static)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_libraries(${GENERATOR_EXE1} dl z)
-endif()
-
 # Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
 # when it runs.
 # The copy is not required for Linux but I am copying nevertheless as it does not harm
@@ -102,10 +98,6 @@ target_include_directories(
 )
 
 target_link_libraries(${GENERATOR_EXE2} xaiengine aiebu_static)
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_libraries(${GENERATOR_EXE2} dl z)
-endif()
-
 
 # Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
 # when it runs.

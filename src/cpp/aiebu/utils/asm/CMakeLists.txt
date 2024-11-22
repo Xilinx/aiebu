@@ -35,14 +35,6 @@ target_link_libraries(${ASM_TGT}
   aiebu_static
 )
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_libraries(${ASM_TGT}
-    PRIVATE
-    dl
-    z
-  )
-endif()
-
 target_include_directories(${ASM_TGT} PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/assembler/

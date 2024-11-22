@@ -57,10 +57,9 @@ add_library(aiebu_static STATIC
 
 target_link_libraries(aiebu xaiengine)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_libraries(aiebu dl z)
-else()
+if (MSVC)
   target_link_libraries(aiebu advapi32)
+  target_link_libraries(aiebu_static advapi32)
 endif()
 
 #target_link_libraries(aiebu_static xaiengine)
