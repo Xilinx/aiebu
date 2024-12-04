@@ -145,18 +145,55 @@ namespace aiebu {
       }
   }
   */
+
+  void
+  aie2_blob_preprocessor_input::
+  validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const {
+    // Return if the offset and arg_index are within their respective sizes. 
+    if ((offset <= size) && (arg_index <= MAX_ARG_INDEX)) {
+      return;
+    }
+    std::string errorMessage;
+    if (offset > size ) {
+      errorMessage = std::string("INVALID JSON: Offset(")
+      + std::to_string(offset)
+      + ") is greater than size("
+      + std::to_string(size)
+      + ") for offset Type: "
+      + (type == offset_type::CONTROL_PACKET ? "CONTROL PACKET" : "BUFFER")
+      + " and arg index is "
+      + (arg_index > MAX_ARG_INDEX ? "INVALID = " : "VALID = ")
+      + std::to_string(arg_index) + ". ";
+    }
+    else {
+      errorMessage = std::string("INVALID JSON: arg index (")
+      + std::to_string(arg_index)
+      + ") is greater than Max arg index ="
+      + std::to_string(MAX_ARG_INDEX)
+      + ". ";
+    }
+    throw error(error::error_code::invalid_asm, errorMessage);
+  }
+
   void
   aie2_blob_preprocessor_input::
   extract_coalesed_buffers(const std::string& name,
                            const boost::property_tree::ptree& pt)
   {
+    uint32_t buffer_size = pt.get<uint32_t>("size_in_bytes");
     const auto coalesed_buffers_pt = pt.get_child_optional("coalesed_buffers");
     if (!coalesed_buffers_pt)
       return;
 
     const auto coalesed_buffers = coalesed_buffers_pt.get();
-    for (auto coalesed_buffer : coalesed_buffers)
+    for (auto coalesed_buffer : coalesed_buffers) {
+      uint32_t buffer_offset = pt.get<uint32_t>("offset_in_bytes");
+      uint32_t arg_index = pt.get<uint32_t>("xrt_id");
+      // Check if the buffer offset is within the buffer size
+      validate_json(buffer_offset, buffer_size, arg_index, offset_type::COALESED_BUFFER);
+      // extract control packet patch
       extract_control_packet_patch(name, coalesed_buffer.second);
+    }
   }
 
   void
@@ -173,6 +210,11 @@ namespace aiebu {
     for (auto pat : patchs)
     {
       auto patch = pat.second;
+      uint32_t control_packet_size = m_data[".ctrldata"].size();
+      uint32_t control_packet_offset = patch.get<uint32_t>("offset");
+      uint32_t arg_index = pt.get<uint32_t>("xrt_id");
+      // Check if the control packet offset is within the control packet size
+      validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
       uint32_t offset = patch.get<uint32_t>("offset") - 8;
       add_symbol({name, offset, 0, 0, addend, 0, ctrlData, symbol::patch_schema::control_packet_48});
@@ -226,6 +268,11 @@ namespace aiebu {
     for (auto pat : patchs)
     {
       auto patch = pat.second;
+      uint32_t control_packet_offset = patch.get<uint32_t>("offset");
+      uint32_t control_packet_size = m_data[".ctrldata"].size();
+      uint32_t arg_index = patch.get<uint32_t>("xrt_arg_idx");
+      // check if the offset is less than the size of the control packet
+      validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
       uint32_t offset = patch.get<uint32_t>("offset") - 8;
       const uint32_t addend = patch.get<uint32_t>("bo_offset", 0);
@@ -345,7 +392,7 @@ namespace aiebu {
           loadsequence = loadsequence + 1;
           pm_id = mp_header->PmLoadId;
           if (std::find(pm_id_list.begin(), pm_id_list.end(), pm_id) == pm_id_list.end())
-            throw error(error::error_code::internal_error, "PM id:" + std::to_string(pm_id) + " has no corresponding pm control packet !!!");
+            throw error(error::error_code::invalid_asm, "PM id:" + std::to_string(pm_id) + " has no corresponding pm control packet !!!");
           ptr += sizeof(XAie_PmLoadHdr);
           break;
         }
@@ -357,14 +404,14 @@ namespace aiebu {
         case XAIE_IO_CUSTOM_OP_BEGIN+1: {
           auto hdr = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
           if (loadsequence)
-            throw error(error::error_code::internal_error, "Patch opcode found in PM Load Sequence!!!");
+            throw error(error::error_code::invalid_asm, "Patch opcode found in PM Load Sequence!!!");
           auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
           uint64_t reg = op->regaddr & 0xFFFFFFF0; // regaddr point either to 1st word or 2nd word of BD
           auto it = blockWriteRegOffsetMap.find(reg);
           if ( it == blockWriteRegOffsetMap.end()) {
-            std::cout << "address "<< std::hex <<"0x" << reg << " have no block write opcode !!! removing all patching info" << std::endl;
-            m_sym.clear();
-            return txn_header->NumCols;
+            auto error_msg = boost::format("Invalid Control Code. No block-write opcode"
+            " present before the patch opcode for address 0x%x") % reg;
+            throw error(error::error_code::invalid_asm, error_msg.str());
           }
           uint32_t offset = blockWriteRegOffsetMap[reg].first;
           uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
@@ -392,7 +439,7 @@ namespace aiebu {
           break;
         }
         default:
-          throw error(error::error_code::internal_error, "Invalid txn opcode: " + std::to_string(op_header->Op) + " !!!");
+          throw error(error::error_code::invalid_asm, "Invalid txn opcode: " + std::to_string(op_header->Op) + " !!!");
       }
 
       loadsequence = loadsequence > 0 ? loadsequence-1 : 0;
@@ -462,7 +509,7 @@ namespace aiebu {
           loadsequence = loadsequence + 1;
           pm_id = mp_header->PmLoadId;
           if (std::find(pm_id_list.begin(), pm_id_list.end(), pm_id) == pm_id_list.end())
-            throw error(error::error_code::internal_error, "PM id:" + std::to_string(pm_id) + " has no corresponding pm control packet !!!");
+            throw error(error::error_code::invalid_asm, "PM id:" + std::to_string(pm_id) + " has no corresponding pm control packet !!!");
           ptr += sizeof(XAie_PmLoadHdr);
           break;
         }
@@ -474,14 +521,14 @@ namespace aiebu {
         case XAIE_IO_CUSTOM_OP_DDR_PATCH: {
           auto hdr = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
           if (loadsequence)
-            throw error(error::error_code::internal_error, "Patch opcode found in PM Load Sequence!!!");
+            throw error(error::error_code::invalid_asm, "Patch opcode found in PM Load Sequence!!!");
           auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
           uint64_t reg = op->regaddr & 0xFFFFFFF0; // regaddr point either to 1st word or 2nd word of BD
           auto it = blockWriteRegOffsetMap.find(reg);
           if ( it == blockWriteRegOffsetMap.end()) {
-            std::cout << "address "<< std::hex <<"0x" << reg << " have no block write opcode !!! removing all patching info" << std::endl;
-            m_sym.clear();
-            return txn_header->NumCols;
+            auto error_msg = boost::format("Invalid Control Code. No block-write opcode"
+            " present before the patch opcode for address 0x%x") % reg;
+            throw error(error::error_code::invalid_asm, error_msg.str());
           }
           uint32_t offset = blockWriteRegOffsetMap[reg].first;
           uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
@@ -509,7 +556,7 @@ namespace aiebu {
           break;
         }
         default:
-          throw error(error::error_code::internal_error, "Invalid txn opcode: " + std::to_string(op_header->Op) + " !!!");
+          throw error(error::error_code::invalid_asm, "Invalid txn opcode: " + std::to_string(op_header->Op) + " !!!");
       }
     }
     return txn_header->NumCols;
@@ -637,7 +684,7 @@ namespace aiebu {
 
     auto it = arg2name.find(regId);
     if ( it == arg2name.end() )
-      throw error(error::error_code::internal_error, "Invalid dpu arg:" + std::to_string(regId) + " !!!");
+      throw error(error::error_code::invalid_asm, "Invalid dpu arg:" + std::to_string(regId) + " !!!");
 
     uint32_t offset = static_cast<uint32_t>((pc+1)*4); //point to start of BD
     add_symbol({arg2name[regId], offset, 0, 0, 0, 0, section_name, symbol::patch_schema::shim_dma_48});
@@ -714,7 +761,7 @@ namespace aiebu {
         case OP_RECORD_TIMESTAMP: pc += OP_RECORD_TIMESTAMP_SIZE;
           break;
         default:
-          throw error(error::error_code::internal_error, "Invalid dpu opcode: " + std::to_string(opcode) + " !!!");
+          throw error(error::error_code::invalid_asm, "Invalid dpu opcode: " + std::to_string(opcode) + " !!!");
       }
     }
     return 0;

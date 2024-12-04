@@ -33,10 +33,16 @@ protected:
   constexpr static uint32_t MEM_DMA_BD_NUM = 48;
   constexpr static uint32_t MEM_DMA_BD_SIZE = 0x20; // 8*4bytes
   constexpr static uint32_t byte_in_word = 4;
+  constexpr static uint32_t MAX_ARG_INDEX = 24; // approximated value 24 to limit the number of arguments in XRT kernel call
 
   // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
   // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
   constexpr static uint32_t ARG_OFFSET = 3;
+
+  enum class offset_type {
+    CONTROL_PACKET,
+    COALESED_BUFFER
+  };
 
   enum class register_id {
     MEM_BUFFER_LENGTH,
@@ -59,6 +65,7 @@ protected:
   void extract_control_packet_patch(const std::string& name, const boost::property_tree::ptree& _pt);
   void extract_coalesed_buffers(const std::string& name, const boost::property_tree::ptree& _pt);
   void clear_shimBD_address_bits(std::vector<char>& mc_code, uint32_t offset) const;
+  void validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const;
 public:
   aie2_blob_preprocessor_input() {}
   virtual void set_args(const std::vector<char>& mc_code,
