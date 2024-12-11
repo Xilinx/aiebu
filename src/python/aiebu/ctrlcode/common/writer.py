@@ -140,6 +140,7 @@ class ELFWriter:
             Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_48: pylibelf.elf.R_M32R_24_RELA,
             Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57: pylibelf.elf.R_M32R_NUM,
             Symbol.XrtPatchSchema.xrt_patch_schema_control_packet_48:pylibelf.elf.R_M32R_REL32,
+            Symbol.XrtPatchSchema.xrt_patch_schema_control_packet_57:pylibelf.elf.R_M32R_GOT24,
             Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57_aie4: pylibelf.elf.R_M32R_NUM,
             Symbol.XrtPatchSchema.xrt_patch_schema_unknown: pylibelf.elf.R_M32R_NONE
         }
@@ -307,7 +308,7 @@ class ELFWriter:
         if ("text" in name):
             self.phdr[index].p_flags = pylibelf.elf.PF_R | pylibelf.elf.PF_X
             self.phdr[index].p_align = ELFWriter.AMD_AIE_CTRLCODE_TEXT_ALIGN
-        elif ("data" in name or "bss" in name or "dump" in name):
+        elif ("data" in name or "pad" in name or "dump" in name):
             self.phdr[index].p_flags = pylibelf.elf.PF_R | pylibelf.elf.PF_W
             self.phdr[index].p_align = ELFWriter.AMD_AIE_CTRLCODE_DATA_ALIGN
         else:

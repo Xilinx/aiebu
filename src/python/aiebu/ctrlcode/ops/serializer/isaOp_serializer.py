@@ -68,18 +68,27 @@ class IsaOpSerializer(OpSerializer):
                         val = 0
                     # For opcode is 'apply_offset_57' and arg is 'offset',
                     # if val is 0xFFFF means we need to patch the host address of 1st page of controlcode
-                    # and that is always patched in cert,
-                    # if val is not 0xFFFF, we can do patching in cert or host so add symbol info in elf
-                    if self.op.name == "apply_offset_57" and arg.name == "offset" and val != 0xFFFF:
-                        symbols.append(Symbol(str(val), parse_num_arg(self.args[0], self.state), col, page,
+                    # and we can patch in host and firmware, we send "control-code-X" as symbol name and 0xFFFF in apply_offset_57
+                    # if val == self.state.control_packet_index, we add "control-code-X" as symbol name and 0xFFFF in apply_offset_57
+                    # if val is not 0xFFFF or self.state.control_packet_index, we can do patching in cert or host so add symbol info in elf
+                    #    we send "arg index" as symbol name and arg offset in apply_offset_57
+                    if self.op.name == "apply_offset_57" and arg.name == "offset" :
+                        symbols.append(Symbol(str(val) if (val != self.state.control_packet_index and val != 0xFFFF) else "control-code-"+str(col) ,
+                                              parse_num_arg(self.args[0], self.state), col, page,
                                               Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57 if self.state.target == "aie2ps" else
                                               Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57_aie4))
+                        if val == self.state.control_packet_index:
+                            self.state.controlpacket_shimbd[col] = {self.args[0]: None}
+
                         # arg 0 to 6 and be patched in CERT.
                         # Beyond that its elfloader/host responsibility to patch mandatorily
                         if val > 6:
                             print(f"WARNING: Apply_offset_57 has arg index {val} > 6, Should be mandatorily patched in host!!!")
-                        # val is arg index, to get offset x2
-                        val = val * 2
+                        if val == self.state.control_packet_index:
+                            val = 0xFFFF
+                        elif val != 0xFFFF:
+                            # val is arg index, to get offset x2
+                            val = val * 2
                     result.append(val & 0xFF)
                     result.append((val >> 8) & 0xFF)
                 elif arg.width == 32:

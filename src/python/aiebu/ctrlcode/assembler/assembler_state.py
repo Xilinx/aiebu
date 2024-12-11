@@ -116,7 +116,7 @@ class LocalBarrier:
 
 class AssemblerState:
     """ class to hold state """
-    def __init__(self, target, isa, code, scratchpads, labelpageindex, makeunique):
+    def __init__(self, target, isa, code, scratchpads, labelpageindex, makeunique, control_packet_index, controlpacket_shimbd):
         self.target = target
         self._isa_ops = isa
         self._pos = 0
@@ -133,6 +133,8 @@ class AssemblerState:
         self._scratchpads = scratchpads
         self.labelpageindex = labelpageindex
         self.patch = {}
+        self.control_packet_index = control_packet_index
+        self.controlpacket_shimbd = controlpacket_shimbd
         self.statecreator(makeunique)
 
     def getjobsize(self, jobid):

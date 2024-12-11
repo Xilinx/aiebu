@@ -14,6 +14,7 @@ class Symbol:
         xrt_patch_schema_control_packet_48 = 4
         xrt_patch_schema_shim_dma_48 = 5
         xrt_patch_schema_shim_dma_57_aie4 = 6
+        xrt_patch_schema_control_packet_57 = 7
         xrt_patch_schema_unknown = 8
 
     class XrtPatchBufferType(IntEnum):
@@ -43,6 +44,9 @@ class Symbol:
 
     def getbuftype(self):
         if self._buf_type == None:
+            if self.page_num == "pad":
+                from ctrlcode.common.util import get_pad_section_name
+                return get_pad_section_name(self.col_num, self.page_num)
             from ctrlcode.common.util import get_data_section_name
             return get_data_section_name(self.col_num, self.page_num)
         return self._buf_type

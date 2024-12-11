@@ -29,7 +29,7 @@ def parse_command_line(args):
                       help = "json output map file name")
   parser.add_argument("-o", "--output", dest ='efilename', nargs = 1, required=True,
                       help = "ELF/ASM output file name")
-  parser.add_argument("-I", "--include", dest ='includedir', nargs = '*',
+  parser.add_argument("-I", "--include", dest ='includedir', nargs = '*', action='append',
                       help = "Include directories")
   parser.add_argument("-c", "--control_packet", dest ='ccfile', nargs = 1,
                       help = "control packet file")
@@ -52,7 +52,8 @@ if __name__ == '__main__':
 
   includedir = []
   if argtab.includedir:
-    includedir = includedir + argtab.includedir
+    for path in argtab.includedir:
+      includedir.append(path[0])
 
   #Isaspec is same for aie2ps and aie4
   specdir = "specification.aie2ps"
@@ -61,14 +62,14 @@ if __name__ == '__main__':
   elif argtab.target == "aie2txn" or argtab.target == "aie2dpu" :
     specdir = ""
 
+  patch_info = {}
+  if argtab.patch_info:
+    with open(argtab.patch_info[0]) as f:
+      patch_info = json.load(f)
+
   if argtab.target == "aie2txn" or argtab.target == "aie2dpu" :
     if argtab.disassembler:
       raise RuntimeError(f"Disassembler not supported with {argtab.target}")
-
-    patch_info = {}
-    if argtab.patch_info:
-      with open(argtab.patch_info[0]) as f:
-        patch_info = json.load(f)
 
     ccfile = None
     if argtab.ccfile:
@@ -84,9 +85,6 @@ if __name__ == '__main__':
     if argtab.ccfile:
       raise RuntimeError(f"Invalid option -c with target {argtab.target}")
 
-    if argtab.patch_info:
-      raise RuntimeError(f"Invalid option -p with target {argtab.target}")
-
   yamlres = importlib.resources.files(specdir).joinpath("isa-spec.yaml")
   yamlfile = str(yamlres)
 
@@ -95,7 +93,7 @@ if __name__ == '__main__':
 
   if not argtab.disassembler:
     operation = Assembler(argtab.target, argtab.ifilename[0], argtab.efilename[0], isa.UC_ISA_OPS, includedir,
-                          argtab.mapfilename, argtab.dump)
+                          argtab.mapfilename, patch_info, argtab.dump)
     operation.run()
   else:
     with open(argtab.efilename[0], 'w') as efile:

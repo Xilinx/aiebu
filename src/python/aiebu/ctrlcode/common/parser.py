@@ -175,7 +175,7 @@ class Directive:
     DIRECTIVE = {'.attach_to_group': AttachToGroup(),
                  '.include': Include(),
                  '.endl': EndOfLabel(),
-                 '.setscratchpad': ScratchPad(),
+                 '.setpad': ScratchPad(),
                  '.section': SectionDirective() }
     DIRECTIVE_REGEX = re.compile(r'^([.a-zA-Z0-9_]+)(?:\s+(.+)+)?$')
     def __init__(self, parser):

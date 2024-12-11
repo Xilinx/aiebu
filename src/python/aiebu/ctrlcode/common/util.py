@@ -39,6 +39,9 @@ def get_text_section_name(col_num, page_num):
 def get_data_section_name(col_num, page_num):
     return ".ctrldata." + str(col_num)+ "." + str(page_num)
 
+def get_pad_section_name(col_num, page_num):
+    return ".pad." + str(col_num)
+
 def words_to_bytes(words):
     result = []
     for word in words:

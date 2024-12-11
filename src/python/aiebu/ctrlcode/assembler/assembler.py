@@ -27,7 +27,7 @@ def section_index_callback(buf_type, elf_sections):
 class Assembler:
     """ Assembler class """
     REPO = git.Repo(os.path.dirname(os.path.abspath(__file__)), search_parent_directories=True)
-    def __init__(self, target, ifilename, efilename, isa, includedirlist, mapfilename, isdump=False):
+    def __init__(self, target, ifilename, efilename, isa, includedirlist, mapfilename, patch_info, isdump=False):
         self.target = target
         self.ifilename = ifilename
         self.ifile = open(self.ifilename, 'r')
@@ -40,6 +40,8 @@ class Assembler:
         # Create the symbol list with a dummy symbol. Note that the dummy symbol is needed
         # for various ELF sections which always have a dummy first element.
         self.symbols = [Symbol("", 0, 0, 0)]
+        self.controlpacket_symbols = []
+        self.controlpacket_shimbd = {}
         self._debug = Debug()
         self.isdump = isdump
         self._report = Report(self.symbols, mapfilename, self._debug)
@@ -47,6 +49,8 @@ class Assembler:
         # header[4] == 0x01 means we have more pages
         self.header = [0xFF]*2 + [0x00]*14
         self.elf_sections = {}
+        self.control_packet_index = None
+        self.aiecompiler_json_parser(patch_info)
         if self.target == "aie2ps":
             self.patch_57 = self.aie2ps_patch_57
         elif self.target == "aie4":
@@ -56,6 +60,41 @@ class Assembler:
 
     def __del__(self):
         self.ifile.close()
+
+
+    def extract_coalesed_buffers(self, name, coalesed_buffers):
+        for buf in coalesed_buffers:
+            addend = buf["offset_in_bytes"]
+            print(buf)
+            if "control_packet_patch_locations" in buf:
+                self.extract_control_packet_patch(name, addend, buf["control_packet_patch_locations"])
+            else:
+                print(f"external_buffers:{name} have coalesed_buffers but not control_packet_patch_locations")
+
+    def extract_control_packet_patch(self, name, addend, control_packet_patch_locations):
+        for patch in control_packet_patch_locations:
+            offset = patch["offset"] - 8   # go to start of header
+            #TODO: Json doent have information of col for control packet, its not supported by compiler
+            # so all patching info is default taken for col 0
+            self.controlpacket_symbols.append(Symbol(str(name), offset, 0, "pad", Symbol.XrtPatchSchema.xrt_patch_schema_control_packet_57))
+
+    def aiecompiler_json_parser(self, patch_info):
+        if not patch_info:
+            print("no patch info");
+            return;
+
+        external_buffers = patch_info["external_buffers"]
+        for buf in external_buffers:
+            if external_buffers[buf]["name"] == 'runtime_control_packet':
+                self.control_packet_index = external_buffers[buf]["xrt_id"]
+                continue
+
+            if "coalesed_buffers" in external_buffers[buf]:
+                self.extract_coalesed_buffers(external_buffers[buf]["xrt_id"], external_buffers[buf]["coalesed_buffers"])
+            elif "control_packet_patch_locations" in external_buffers[buf]:
+                self.extract_control_packet_patch(external_buffers[buf]["xrt_id"], 0, external_buffers[buf]["control_packet_patch_locations"])
+            else:
+                print(f"external_buffers:{buf} dont have control_packet_patch_locations and coalesed_buffers")
 
     def alligner(self, page_num, parser_text, parser_data):
         newData = []
@@ -96,6 +135,7 @@ class Assembler:
 
         pages = []
         for col in self._parser.getcollist():
+            self.controlpacket_shimbd[col] = {}
             relative_page_index = 0
             padsize = 0
             labelpageindex = self._parser.getcollabelpageindex(col)
@@ -103,7 +143,7 @@ class Assembler:
             for label in self._parser.gettextlabelsforcol(col):
                 #print("COL:", col, " LABEL:", label)
                 data = self._parser.getcoltextforlabel(col, label) + self._parser.getcoldata(col)
-                state = AssemblerState(self.target, self.isa_ops, data, scratchpad, labelpageindex, True)
+                state = AssemblerState(self.target, self.isa_ops, data, scratchpad, labelpageindex, True, self.control_packet_index, self.controlpacket_shimbd)
                 #print(state)
                 # create pages for 8k (text + data)
                 relative_page_index, pgs = self._pager.pagify(state, col, data, relative_page_index)
@@ -112,15 +152,15 @@ class Assembler:
                 labelpageindex[label.rsplit('::', 1)[-1] or label] = relative_page_index - len(pgs)
 
             if len(scratchpad):
-                self.elf_sections[".ctrlbss." + str(col)] = ELF_Section(".ctrlbss." + str(col), Section.DATA)
+                self.elf_sections[".pad." + str(col)] = ELF_Section(".pad." + str(col), Section.DATA)
             for pad in scratchpad:
                 scratchpad[pad]["offset"] = padsize
                 scratchpad[pad]["base"] = PAGE_SIZE * relative_page_index
                 padsize += scratchpad[pad]["size"]
                 if len(scratchpad[pad]["content"]):
-                    self.elf_sections[".ctrlbss." + str(col)].write_bytes(scratchpad[pad]["content"])
+                    self.elf_sections[".pad." + str(col)].write_bytes(scratchpad[pad]["content"])
                 else:
-                    [self.elf_sections[".ctrlbss." + str(col)].write_byte(0x00) for c in range(scratchpad[pad]["size"])]
+                    [self.elf_sections[".pad." + str(col)].write_byte(0x00) for c in range(scratchpad[pad]["size"])]
 
         # create elfwriter
         if self.target == "aie2ps":
@@ -144,6 +184,30 @@ class Assembler:
                              self.elf_sections[page.get_data_section_name()],
                              page, ooo_page_len_1, ooo_page_len_2)
 
+        # We get a map of bd's as keys and control_paket buffer name. we flip the keys with values,
+        # since we have only one control paket patching multile bd's. we get a map with only one
+        # key(control paket buffer name) holding list of bd's as array.
+        # We only support one ctrlpkt for one column.
+        # Here we add the relative offset of ctrlpkt in .pad section to patching offset coming from external_buffer_id.json
+        cp_patch_count = 0
+        for col in self.controlpacket_shimbd:
+            self.controlpacket_shimbd[col] = {value: [key for key, val in self.controlpacket_shimbd[col].items() if val == value] for value in set(self.controlpacket_shimbd[col].values())}
+            if len(self.controlpacket_shimbd[col]) == 0:
+                continue
+            if len(self.controlpacket_shimbd[col]) > 1:
+                raise RuntimeError(f"Multiple control-packet pad buffer not supported for one col!!!")
+            scratchpad = self._parser.getcolscratchpad(col)
+            ctrlpkt = list(self.controlpacket_shimbd[col].keys())[0]
+            if ctrlpkt not in scratchpad:
+                raise RuntimeError(f"control-packet {ctrlpkt} not found in pad list!!!")
+            ctrlpkt_offset = scratchpad[ctrlpkt]["offset"]
+            for entry in self.controlpacket_symbols:
+                if int(col) == entry.col_num:
+                   self.symbols.append(Symbol(entry.name, entry.offset+ctrlpkt_offset, 0, "pad", Symbol.XrtPatchSchema.xrt_patch_schema_control_packet_57))
+                   cp_patch_count += 1
+
+        if cp_patch_count != len(self.controlpacket_symbols):
+           raise RuntimeError(f"Not All control-packet patching info added in symbols list {len(self.controlpacket_symbols)} != {cp_patch_count}!!!")
         dmap = self._report.generate()
         if self.isdump:
             self.elf_sections[".dump"] = ELF_Section(".dump", Section.DATA)
@@ -173,7 +237,7 @@ class Assembler:
 
         # create state for each page
         pagestate = AssemblerState(self.target, self.isa_ops, page.text + page.data, self._parser.getcolscratchpad(page.col_num),
-                                   self._parser.getcollabelpageindex(page.col_num), False)
+                                   self._parser.getcollabelpageindex(page.col_num), False, self.control_packet_index, self.controlpacket_shimbd)
 
         for byte in page_header:
             text_section.write_byte(byte)
@@ -220,8 +284,9 @@ class Assembler:
                 raise RuntimeError('Invalid operation: {}'.format(token.name))
 
         for spad in pagestate.patch:
-            offset = parse_num_arg(pagestate.patch[spad], pagestate)
-            self.patch_57(text_section, data_section, offset + len(self.header), pagestate.getscratchpadpos(spad));
+            for index in pagestate.patch[spad]:
+                offset = parse_num_arg(index, pagestate)
+                self.patch_57(text_section, data_section, offset + len(self.header), pagestate.getscratchpadpos(spad));
 
         # Padding
         count = PAGE_SIZE - (text_section.tell() + data_section.tell())
