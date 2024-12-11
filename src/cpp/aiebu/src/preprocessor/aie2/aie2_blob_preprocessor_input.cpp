@@ -201,7 +201,7 @@ namespace aiebu {
   extract_control_packet_patch(const std::string& name,
                                const boost::property_tree::ptree& pt)
   {
-    const uint32_t addend = pt.get<uint32_t>("offset_in_bytes", 0);
+    const uint32_t addend = validate_and_return_addend(pt.get<uint64_t>("offset_in_bytes", 0));
     const auto control_packet_patch_pt = pt.get_child_optional("control_packet_patch_locations");
     if (!control_packet_patch_pt)
       return;
@@ -286,7 +286,7 @@ namespace aiebu {
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
       uint32_t offset = patch.get<uint32_t>("offset") - 8;
-      const uint32_t addend = patch.get<uint32_t>("bo_offset", 0);
+      const uint32_t addend = validate_and_return_addend(patch.get<uint64_t>("bo_offset", 0));
       const uint32_t arg = patch.get<uint32_t>("xrt_arg_idx");
       add_symbol({std::to_string(arg + ARG_OFFSET), offset, 0, 0, addend, 0, ctrlData, symbol::patch_schema::control_packet_48});
     }
@@ -315,6 +315,19 @@ namespace aiebu {
     }
   }
 
+
+  uint32_t
+  aie2_blob_preprocessor_input::
+  validate_and_return_addend(uint64_t addend64) const
+  {
+    // we dont support addend greater then 32 bit
+    if (addend64 > MAX_ARGPLUS)
+    {
+      auto error_msg = boost::format("Invalid addend (0x%x) > 32bit found") % addend64;
+      throw error(error::error_code::invalid_asm, error_msg.str());
+    }
+    return static_cast<uint32_t>(addend64);
+  }
 
   // 20 Lower bits
   #define GET_REG(reg) (reg & 0xFFFFF)
@@ -426,10 +439,9 @@ namespace aiebu {
           }
           uint32_t offset = blockWriteRegOffsetMap[reg].first;
           uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
-          uint32_t addend = static_cast<uint32_t>(op->argplus);
           patch_helper_input input = {section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)),
                                       static_cast<uint32_t>(op->argidx + ARG_OFFSET), offset,
-                                      buffer_length_in_bytes, addend};
+                                      buffer_length_in_bytes, op->argplus};
           patch_helper(mc_code, input);
           ptr += hdr->Size;
           break;
@@ -543,10 +555,9 @@ namespace aiebu {
           }
           uint32_t offset = blockWriteRegOffsetMap[reg].first;
           uint64_t buffer_length_in_bytes = blockWriteRegOffsetMap[reg].second;
-          uint32_t addend = static_cast<uint32_t>(op->argplus);
           patch_helper_input input = {section_name, argname, static_cast<uint32_t>(GET_REG(op->regaddr)),
                                       static_cast<uint32_t>(op->argidx + ARG_OFFSET), offset,
-                                      buffer_length_in_bytes, addend};
+                                      buffer_length_in_bytes, op->argplus};
           patch_helper(mc_code, input);
           ptr += hdr->Size;
           break;
@@ -611,7 +622,8 @@ namespace aiebu {
     uint32_t argidx = input.argidx;
     uint32_t offset = input.offset;
     uint64_t buffer_length_in_bytes = input.buffer_length_in_bytes;
-    uint32_t addend = input.addend;
+    uint32_t addend = validate_and_return_addend(input.addend);
+
     std::vector<uint32_t> MEM_BD_ADDRESS;
     for (auto i=0U; i < MEM_DMA_BD_NUM; ++i)
       MEM_BD_ADDRESS.push_back(MEM_DMA_BD0_0 + i * MEM_DMA_BD_SIZE);

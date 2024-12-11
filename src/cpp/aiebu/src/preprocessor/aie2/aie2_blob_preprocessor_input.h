@@ -35,6 +35,8 @@ protected:
   constexpr static uint32_t byte_in_word = 4;
   constexpr static uint32_t MAX_ARG_INDEX = 24; // approximated value 24 to limit the number of arguments in XRT kernel call
 
+  constexpr static uint64_t MAX_ARGPLUS = 0xFFFFFFFF; // Max argplus/addend supported
+
   // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
   // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
   constexpr static uint32_t ARG_OFFSET = 3;
@@ -66,6 +68,7 @@ protected:
   void extract_coalesed_buffers(const std::string& name, const boost::property_tree::ptree& _pt);
   void clear_shimBD_address_bits(std::vector<char>& mc_code, uint32_t offset) const;
   void validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const;
+  uint32_t validate_and_return_addend(uint64_t addend64) const;
 public:
   aie2_blob_preprocessor_input() {}
   virtual void set_args(const std::vector<char>& mc_code,
@@ -123,7 +126,7 @@ protected:
     uint32_t argidx;
     uint32_t offset;
     uint64_t buffer_length_in_bytes;
-    uint32_t addend;
+    uint64_t addend;
   };
   void patch_helper(std::vector<char>& mc_code, const patch_helper_input& input);
   uint32_t process_txn(const char *ptr, std::vector<char>& mc_code, const std::string& section_name, const std::string& argname);
@@ -150,7 +153,6 @@ protected:
       sym.set_size(size);
     }
   }
-
 public:
   virtual void set_args(const std::vector<char>& mc_code,
                         const std::vector<char>& patch_json,

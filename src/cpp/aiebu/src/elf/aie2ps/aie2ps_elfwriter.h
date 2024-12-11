@@ -11,7 +11,7 @@ namespace aiebu {
 class aie2ps_elf_writer: public elf_writer
 {
   constexpr static int ob_abi = 0x40;
-  constexpr static int version = 0x01;
+  constexpr static int version = 0x02;
 public:
   aie2ps_elf_writer(): elf_writer(ob_abi, version)
   { }
