@@ -253,16 +253,27 @@ namespace aiebu {
   aie2_blob_preprocessor_input::
   dmacompiler_json_parser(const boost::property_tree::ptree& pt)
   {
-    const auto pt_ctrl_pkt_patch_info = pt.get_child_optional("ctrl_pkt_patch_info");
-    if (!pt_ctrl_pkt_patch_info)
-      return;
 
     // fixed in dma compiler
     xrt_id_map.insert({0, "3"});
     xrt_id_map.insert({1, "4"});
     xrt_id_map.insert({2, "5"});
     xrt_id_map.insert({3, "6"});
-    xrt_id_map.insert({4, "control-packet"});
+    xrt_id_map.insert({4, "7"});
+
+    const auto pt_ctrl_xrt_arg_idx = pt.get_optional<uint32_t>("ctrl_pkt_xrt_arg_idx");
+    if (pt_ctrl_xrt_arg_idx)
+    {
+      // if "ctrl_pkt_xrt_arg_idx" present make that as controlpacket index
+      xrt_id_map.insert_or_assign(pt_ctrl_xrt_arg_idx.get(), "control-packet");
+    } else {
+      // if "ctrl_pkt_xrt_arg_idx" not present default arg4 is controlpacket
+      xrt_id_map[4] = "control-packet";
+    }
+
+    const auto pt_ctrl_pkt_patch_info = pt.get_child_optional("ctrl_pkt_patch_info");
+    if (!pt_ctrl_pkt_patch_info)
+      return;
 
     const auto patchs = pt_ctrl_pkt_patch_info.get();
     for (auto pat : patchs)
