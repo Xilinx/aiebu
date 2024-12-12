@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
+set(AIEBU_INSTALL_BIN_DIR       "${AIEBU_INSTALL_DIR}/bin")
 set(AIEBU_INSTALL_LIB_DIR       "${AIEBU_INSTALL_DIR}/lib")
 set(AIEBU_INSTALL_INCLUDE_DIR       "${AIEBU_INSTALL_DIR}/include")
 
