@@ -187,32 +187,31 @@ namespace aiebu {
 
     const auto coalesed_buffers = coalesed_buffers_pt.get();
     for (auto coalesed_buffer : coalesed_buffers) {
-      uint32_t buffer_offset = pt.get<uint32_t>("offset_in_bytes");
+      uint32_t buffer_offset = coalesed_buffer.second.get<uint32_t>("offset_in_bytes");
       uint32_t arg_index = pt.get<uint32_t>("xrt_id");
       // Check if the buffer offset is within the buffer size
       validate_json(buffer_offset, buffer_size, arg_index, offset_type::COALESED_BUFFER);
       // extract control packet patch
-      extract_control_packet_patch(name, coalesed_buffer.second);
+      extract_control_packet_patch(name, arg_index, coalesed_buffer.second);
     }
   }
 
   void
   aie2_blob_preprocessor_input::
   extract_control_packet_patch(const std::string& name,
+                               const uint32_t arg_index,
                                const boost::property_tree::ptree& pt)
   {
     const uint32_t addend = validate_and_return_addend(pt.get<uint64_t>("offset_in_bytes", 0));
     const auto control_packet_patch_pt = pt.get_child_optional("control_packet_patch_locations");
     if (!control_packet_patch_pt)
       return;
-
     const auto patchs = control_packet_patch_pt.get();
     for (auto pat : patchs)
     {
       auto patch = pat.second;
       uint32_t control_packet_size = m_data[".ctrldata"].size();
       uint32_t control_packet_offset = patch.get<uint32_t>("offset");
-      uint32_t arg_index = pt.get<uint32_t>("xrt_id");
       // Check if the control packet offset is within the control packet size
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
@@ -233,7 +232,6 @@ namespace aiebu {
     for (auto& external_buffer : external_buffers)
     {
       const auto pt_coalesed_buffers = external_buffer.second.get_child_optional("coalesed_buffers");
-
       // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
       auto arg = external_buffer.second.get<uint32_t>("xrt_id");
       std::string name = std::to_string(arg + ARG_OFFSET);
@@ -245,7 +243,7 @@ namespace aiebu {
       if (pt_coalesed_buffers)
         extract_coalesed_buffers(name, external_buffer.second);
       else
-        extract_control_packet_patch(name, external_buffer.second);
+        extract_control_packet_patch(name, arg, external_buffer.second);
     }
   }
 
@@ -286,7 +284,7 @@ namespace aiebu {
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
       uint32_t offset = patch.get<uint32_t>("offset") - 8;
-      const uint32_t addend = validate_and_return_addend(patch.get<uint64_t>("bo_offset", 0));
+      const uint32_t addend = validate_and_return_addend(patch.get<uint64_t>("bo_offset"));
       const uint32_t arg = patch.get<uint32_t>("xrt_arg_idx");
       add_symbol({std::to_string(arg + ARG_OFFSET), offset, 0, 0, addend, 0, ctrlData, symbol::patch_schema::control_packet_48});
     }
