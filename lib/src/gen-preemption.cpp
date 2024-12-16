@@ -543,8 +543,9 @@ static int generate_tran(uint8_t device, enum PreemptOp type, uint8_t start_col,
     outelffile.write(elf.data(), elf.size());
     outelffile.close();
     as.get_report(std::cout);
-
     XAie_ClearTransaction(&(DevInst));
+    XAie_Finish(&(DevInst));
+    free(txn_ptr);
     return 0;
 }
 

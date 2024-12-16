@@ -9,12 +9,6 @@
 
 namespace aiebu {
 
-// rela->addend have addend info along with schema
-// [0:3] bit are used for schema, [4:31] used for addend
-constexpr uint32_t ADDEND_SHIFT = 4;
-constexpr uint32_t ADDEND_MASK = ~((uint32_t)0) << ADDEND_SHIFT;
-constexpr uint32_t SCHEMA_MASK = ~ADDEND_MASK;
-
 class symbol
 {
 public:
@@ -44,11 +38,11 @@ private:
   std::string m_section_name;
   ELFIO::Elf_Word m_index;
 
-
 public:
 
   symbol(const std::string& name, uint32_t pos, uint32_t colnum, uint32_t pagenum, uint32_t addend,
-         uint64_t size, const std::string& section_name, patch_schema schema=patch_schema::unknown)
+         uint64_t size, const std::string& section_name,
+         patch_schema schema=patch_schema::unknown)
          :m_name(name), m_schema(schema), m_pos(pos), m_colnum(colnum),
           m_pagenum(pagenum), m_addend(addend), m_size(size), m_section_name(section_name)  { }
 
