@@ -132,9 +132,10 @@ class Assembler:
         #print("PRINTING PARSER:", self._parser)
         #for c in self._parser.col:
         #    print(self._parser.col[c])
-
+        col_page_offset = {}
         pages = []
         for col in self._parser.getcollist():
+            col_page_offset[col] = len(pages)
             self.controlpacket_shimbd[col] = {}
             relative_page_index = 0
             padsize = 0
@@ -175,8 +176,8 @@ class Assembler:
             labelpageindex = self._parser.getcollabelpageindex(page.col_num)
             ooo = page.getout_of_order_page()
             assert len(ooo) <= 2
-            ooo_page_len_1 = pages[labelpageindex[ooo[0]]].cur_page_len if len(ooo) else 0
-            ooo_page_len_2 = pages[labelpageindex[ooo[1]]].cur_page_len if (len(ooo) == 2) else 0
+            ooo_page_len_1 = pages[labelpageindex[ooo[0]] + col_page_offset[page.col_num]].cur_page_len if len(ooo) else 0
+            ooo_page_len_2 = pages[labelpageindex[ooo[1]] + col_page_offset[page.col_num]].cur_page_len if (len(ooo) == 2) else 0
 
             self.elf_sections[page.get_text_section_name()] = ELF_Section(page.get_text_section_name(), Section.TEXT)
             self.elf_sections[page.get_data_section_name()] = ELF_Section(page.get_data_section_name(), Section.DATA)
