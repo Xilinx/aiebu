@@ -70,7 +70,7 @@ protected:
   std::vector<std::string> m_libpaths;
   std::map<uint8_t, std::vector<char> > m_ctrlpkt;
   std::string m_output_elffile;
-  bool m_print_report;
+  bool m_print_report = false;
   target_aie2blob(const std::string& exename, const std::string& name, const std::string& description)
     : target(exename, name, description) {}
   bool parseOption(const sub_cmd_options &_options);
