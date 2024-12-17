@@ -43,9 +43,9 @@ install (
 
 install(TARGETS aiebu_static
         EXPORT aiebuTargets
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib
-        RUNTIME DESTINATION bin)
+        ARCHIVE DESTINATION ${AIEBU_INSTALL_DIR}/lib
+        LIBRARY DESTINATION ${AIEBU_INSTALL_DIR}/lib
+        RUNTIME DESTINATION ${AIEBU_INSTALL_DIR}/bin)
 
 install(EXPORT aiebuTargets
         FILE aiebuTargets.cmake
