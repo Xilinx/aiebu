@@ -355,6 +355,7 @@ namespace aiebu {
     std::map<uint64_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
     uint32_t loadsequence = 0;
+    bool pm_exist = false;
     uint8_t pm_id = 0;
 
     ptr += sizeof(XAie_TxnHeader);
@@ -371,7 +372,7 @@ namespace aiebu {
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr));
           auto offset = static_cast<uint32_t>(payload-mc_code.data());
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
-          if (loadsequence > 0)
+          if (loadsequence > 0 && pm_exist)
           {
             uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * byte_in_word;
             patch_helper_input input = {section_name, ctrlpkt_pm + std::to_string(pm_id),
@@ -413,8 +414,13 @@ namespace aiebu {
           loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
           loadsequence = loadsequence + 1;
           pm_id = mp_header->PmLoadId;
+          pm_exist = true;
           if (std::find(pm_id_list.begin(), pm_id_list.end(), pm_id) == pm_id_list.end())
-            throw error(error::error_code::invalid_asm, "PM id:" + std::to_string(pm_id) + " has no corresponding pm control packet !!!");
+          {
+            pm_exist = false;
+            std::cout << "PM id:" << std::hex << (int)pm_id << std::dec
+                      << " has no corresponding pm control packet given by user!!!\n";
+          }
           ptr += sizeof(XAie_PmLoadHdr);
           break;
         }
@@ -425,7 +431,7 @@ namespace aiebu {
         }
         case XAIE_IO_CUSTOM_OP_BEGIN+1: {
           auto hdr = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
-          if (loadsequence)
+          if (loadsequence && pm_exist)
             throw error(error::error_code::invalid_asm, "Patch opcode found in PM Load Sequence!!!");
           auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
           uint64_t reg = op->regaddr & 0xFFFFFFF0; // regaddr point either to 1st word or 2nd word of BD
@@ -474,6 +480,7 @@ namespace aiebu {
     std::map<uint32_t,std::pair<uint32_t, uint64_t>> blockWriteRegOffsetMap;
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
     uint32_t loadsequence = 0;
+    bool pm_exist = false;
     uint8_t pm_id = 0;
 
     ptr += sizeof(XAie_TxnHeader);
@@ -489,7 +496,7 @@ namespace aiebu {
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr_opt));
           auto offset = static_cast<uint32_t>(payload-mc_code.data());
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
-          if (loadsequence > 0)
+          if (loadsequence > 0 && pm_exist)
           {
             uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * byte_in_word;
             patch_helper_input input = {section_name, ctrlpkt_pm + std::to_string(pm_id),
@@ -529,8 +536,13 @@ namespace aiebu {
           loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
           loadsequence = loadsequence + 1;
           pm_id = mp_header->PmLoadId;
+          pm_exist = true;
           if (std::find(pm_id_list.begin(), pm_id_list.end(), pm_id) == pm_id_list.end())
-            throw error(error::error_code::invalid_asm, "PM id:" + std::to_string(pm_id) + " has no corresponding pm control packet !!!");
+          {
+            pm_exist = false;
+            std::cout << "PM id:" << std::hex << (int)pm_id << std::dec
+                      << " has no corresponding pm control packet given by user!!!\n";
+          }
           ptr += sizeof(XAie_PmLoadHdr);
           break;
         }
@@ -541,7 +553,7 @@ namespace aiebu {
         }
         case XAIE_IO_CUSTOM_OP_DDR_PATCH: {
           auto hdr = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
-          if (loadsequence)
+          if (loadsequence && pm_exist)
             throw error(error::error_code::invalid_asm, "Patch opcode found in PM Load Sequence!!!");
           auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
           uint64_t reg = op->regaddr & 0xFFFFFFF0; // regaddr point either to 1st word or 2nd word of BD
