@@ -33,9 +33,9 @@ protected:
   constexpr static uint32_t MEM_DMA_BD_NUM = 48;
   constexpr static uint32_t MEM_DMA_BD_SIZE = 0x20; // 8*4bytes
   constexpr static uint32_t byte_in_word = 4;
-  constexpr static uint32_t MAX_ARG_INDEX = 24; // approximated value 24 to limit the number of arguments in XRT kernel call
+  constexpr static uint32_t MAX_ARG_INDEX = 32; // approximated value 24 to limit the number of arguments in XRT kernel call
 
-  constexpr static uint64_t MAX_ARGPLUS = 0xFFFFFFFF; // Max argplus/addend supported
+  constexpr static uint64_t RANGE_32BIT = 0xFFFFFFFF; // Max value supported in 32bit elf supported
 
   // For transaction buffer flow. In Xclbin kernel argument, actual argument start from 3,
   // 0th is opcode, 1st is instruct buffer, 2nd is instruct buffer size.
@@ -68,7 +68,7 @@ protected:
   void extract_coalesed_buffers(const std::string& name, const boost::property_tree::ptree& _pt);
   void clear_shimBD_address_bits(std::vector<char>& mc_code, uint32_t offset) const;
   void validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const;
-  uint32_t validate_and_return_addend(uint64_t addend64) const;
+  uint32_t get_32_bit_property(const boost::property_tree::ptree& pt, const std::string& property, bool defaultvalue = false) const;
 public:
   aie2_blob_preprocessor_input() {}
   virtual void set_args(const std::vector<char>& mc_code,

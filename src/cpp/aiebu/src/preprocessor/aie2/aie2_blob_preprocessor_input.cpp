@@ -180,15 +180,15 @@ namespace aiebu {
   extract_coalesed_buffers(const std::string& name,
                            const boost::property_tree::ptree& pt)
   {
-    uint32_t buffer_size = pt.get<uint32_t>("size_in_bytes");
+    uint32_t buffer_size = get_32_bit_property(pt, "size_in_bytes");
     const auto coalesed_buffers_pt = pt.get_child_optional("coalesed_buffers");
     if (!coalesed_buffers_pt)
       return;
 
     const auto coalesed_buffers = coalesed_buffers_pt.get();
     for (auto coalesed_buffer : coalesed_buffers) {
-      uint32_t buffer_offset = coalesed_buffer.second.get<uint32_t>("offset_in_bytes");
-      uint32_t arg_index = pt.get<uint32_t>("xrt_id");
+      uint32_t buffer_offset = get_32_bit_property(coalesed_buffer.second, "offset_in_bytes");
+      uint32_t arg_index = get_32_bit_property(pt, "xrt_id");
       // Check if the buffer offset is within the buffer size
       validate_json(buffer_offset, buffer_size, arg_index, offset_type::COALESED_BUFFER);
       // extract control packet patch
@@ -202,7 +202,7 @@ namespace aiebu {
                                const uint32_t arg_index,
                                const boost::property_tree::ptree& pt)
   {
-    const uint32_t addend = validate_and_return_addend(pt.get<uint64_t>("offset_in_bytes", 0));
+    const uint32_t addend = get_32_bit_property(pt, "offset_in_bytes", true);
     const auto control_packet_patch_pt = pt.get_child_optional("control_packet_patch_locations");
     if (!control_packet_patch_pt)
       return;
@@ -211,11 +211,11 @@ namespace aiebu {
     {
       auto patch = pat.second;
       uint32_t control_packet_size = m_data[".ctrldata"].size();
-      uint32_t control_packet_offset = patch.get<uint32_t>("offset");
+      uint32_t control_packet_offset = get_32_bit_property(patch, "offset");
       // Check if the control packet offset is within the control packet size
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
-      uint32_t offset = patch.get<uint32_t>("offset") - 8;
+      uint32_t offset = control_packet_offset - 8;
       add_symbol({name, offset, 0, 0, addend, 0, ctrlData, symbol::patch_schema::control_packet_48});
     }
   }
@@ -233,7 +233,7 @@ namespace aiebu {
     {
       const auto pt_coalesed_buffers = external_buffer.second.get_child_optional("coalesed_buffers");
       // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
-      auto arg = external_buffer.second.get<uint32_t>("xrt_id");
+      auto arg = get_32_bit_property(external_buffer.second, "xrt_id");
       std::string name = std::to_string(arg + ARG_OFFSET);
       if (external_buffer.second.get<bool>("ctrl_pkt_buffer", false))
         xrt_id_map.insert({arg, "control-packet"});
@@ -277,16 +277,15 @@ namespace aiebu {
     for (auto pat : patchs)
     {
       auto patch = pat.second;
-      uint32_t control_packet_offset = patch.get<uint32_t>("offset");
+      uint32_t control_packet_offset = get_32_bit_property(patch, "offset");
       uint32_t control_packet_size = m_data[".ctrldata"].size();
-      uint32_t arg_index = patch.get<uint32_t>("xrt_arg_idx");
+      uint32_t arg_index = get_32_bit_property(patch, "xrt_arg_id");
       // check if the offset is less than the size of the control packet
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
-      uint32_t offset = patch.get<uint32_t>("offset") - 8;
-      const uint32_t addend = validate_and_return_addend(patch.get<uint64_t>("bo_offset"));
-      const uint32_t arg = patch.get<uint32_t>("xrt_arg_idx");
-      add_symbol({std::to_string(arg + ARG_OFFSET), offset, 0, 0, addend, 0, ctrlData, symbol::patch_schema::control_packet_48});
+      uint32_t offset = control_packet_offset - 8;
+      const uint32_t addend = get_32_bit_property(patch, "bo_offset");
+      add_symbol({std::to_string(arg_index + ARG_OFFSET), offset, 0, 0, addend, 0, ctrlData, symbol::patch_schema::control_packet_48});
     }
 
   }
@@ -316,15 +315,20 @@ namespace aiebu {
 
   uint32_t
   aie2_blob_preprocessor_input::
-  validate_and_return_addend(uint64_t addend64) const
+  get_32_bit_property(const boost::property_tree::ptree& pt, const std::string& property, bool defaultvalue) const
   {
-    // we dont support addend greater then 32 bit
-    if (addend64 > MAX_ARGPLUS)
+    uint64_t value = 0;
+    if (defaultvalue)
+      value = pt.get<uint64_t>(property, 0);
+    else
+      value = pt.get<uint64_t>(property);
+    // we dont support property greater then 32 bit
+    if (value > RANGE_32BIT)
     {
-      auto error_msg = boost::format("Invalid addend (0x%x) > 32bit found") % addend64;
+      auto error_msg = boost::format("Invalid %s (0x%x) > 32bit found") % property % value;
       throw error(error::error_code::invalid_asm, error_msg.str());
     }
-    return static_cast<uint32_t>(addend64);
+    return static_cast<uint32_t>(value);
   }
 
   // 20 Lower bits
@@ -375,6 +379,12 @@ namespace aiebu {
           if (loadsequence > 0 && pm_exist)
           {
             uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * byte_in_word;
+            uint64_t pm_size = m_data[".ctrlpkt.pm." + std::to_string(pm_id)].size();
+            if (pm_size < buffer_length_in_bytes) {
+              auto error_msg = boost::format("PM control packet: %d size: %lx is lesser then size in blockwrite: %lx")
+                                             % pm_id % pm_size % buffer_length_in_bytes;
+              throw error(error::error_code::invalid_asm, error_msg.str());
+            }
             patch_helper_input input = {section_name, ctrlpkt_pm + std::to_string(pm_id),
                                         static_cast<uint32_t>(GET_REG(bw_header->RegOff)+ 4),
                                         0, offset, buffer_length_in_bytes, 0};
@@ -411,10 +421,16 @@ namespace aiebu {
         }
         case XAIE_IO_LOAD_PM_START: {
           auto mp_header = (const XAie_PmLoadHdr *)(ptr);
-          loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
-          loadsequence = loadsequence + 1;
           pm_id = mp_header->PmLoadId;
+          loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
+          // loadsequence cannot be zero
+          if (loadsequence == 0) {
+            auto error_msg = boost::format("PM control packet: %d has zero loadsequence") % (int)pm_id;
+            throw error(error::error_code::invalid_asm, error_msg.str());
+          }
+          loadsequence = loadsequence + 1;
           pm_exist = true;
+          // is pm provided in argument list
           if (std::find(pm_id_list.begin(), pm_id_list.end(), pm_id) == pm_id_list.end())
           {
             pm_exist = false;
@@ -431,11 +447,14 @@ namespace aiebu {
         }
         case XAIE_IO_CUSTOM_OP_BEGIN+1: {
           auto hdr = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
+          // patch opcode is allowed in case pm ctrl-pkt is a kernel argument,
+          // but in this case pm ctrl-pkt should not be provided as argument
           if (loadsequence && pm_exist)
             throw error(error::error_code::invalid_asm, "Patch opcode found in PM Load Sequence!!!");
           auto op = reinterpret_cast<const patch_op_t *>(ptr + sizeof(*hdr));
           uint64_t reg = op->regaddr & 0xFFFFFFF0; // regaddr point either to 1st word or 2nd word of BD
           auto it = blockWriteRegOffsetMap.find(reg);
+          // There has to be a block write for each patch opcode
           if ( it == blockWriteRegOffsetMap.end()) {
             auto error_msg = boost::format("Invalid Control Code. No block-write opcode"
             " present before the patch opcode for address 0x%x") % reg;
@@ -499,6 +518,12 @@ namespace aiebu {
           if (loadsequence > 0 && pm_exist)
           {
             uint64_t buffer_length_in_bytes = reinterpret_cast<const uint32_t*>(payload)[0] * byte_in_word;
+            uint64_t pm_size = m_data[".ctrlpkt.pm." + std::to_string(pm_id)].size();
+            if (pm_size < buffer_length_in_bytes) {
+              auto error_msg = boost::format("PM control packet: %d size: %lx is lesser then size in blockwrite: %lx")
+                                             % pm_id % pm_size % buffer_length_in_bytes;
+              throw error(error::error_code::invalid_asm, error_msg.str());
+            }
             patch_helper_input input = {section_name, ctrlpkt_pm + std::to_string(pm_id),
                                         static_cast<uint32_t>(GET_REG(bw_header->RegOff)+ 4),
                                         0, offset, buffer_length_in_bytes, 0};
@@ -533,9 +558,13 @@ namespace aiebu {
         }
         case XAIE_IO_LOAD_PM_START: {
           auto mp_header = (const XAie_PmLoadHdr *)(ptr);
-          loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
-          loadsequence = loadsequence + 1;
           pm_id = mp_header->PmLoadId;
+          loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
+          if (loadsequence == 0) {
+            auto error_msg = boost::format("PM control packet: %d has zero loadsequence") % (int)pm_id;
+            throw error(error::error_code::invalid_asm, error_msg.str());
+          }
+          loadsequence = loadsequence + 1;
           pm_exist = true;
           if (std::find(pm_id_list.begin(), pm_id_list.end(), pm_id) == pm_id_list.end())
           {
@@ -632,8 +661,19 @@ namespace aiebu {
     uint32_t argidx = input.argidx;
     uint32_t offset = input.offset;
     uint64_t buffer_length_in_bytes = input.buffer_length_in_bytes;
-    uint32_t addend = validate_and_return_addend(input.addend);
 
+    if (input.addend > RANGE_32BIT)
+    {
+      auto error_msg = boost::format("Invalid addend (0x%x) > 32bit found") % input.addend;
+      throw error(error::error_code::invalid_asm, error_msg.str());
+    }
+    uint32_t addend = static_cast<uint32_t>(input.addend);
+
+    if (argidx > (MAX_ARG_INDEX + ARG_OFFSET))
+    {
+      auto error_msg = boost::format("Arg index: %d in patch opcode > 32") % argidx;
+      throw error(error::error_code::invalid_asm, error_msg.str());
+    }
     std::vector<uint32_t> MEM_BD_ADDRESS;
     for (auto i=0U; i < MEM_DMA_BD_NUM; ++i)
       MEM_BD_ADDRESS.push_back(MEM_DMA_BD0_0 + i * MEM_DMA_BD_SIZE);
