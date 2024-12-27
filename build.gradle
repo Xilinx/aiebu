@@ -1,0 +1,38 @@
+plugins {
+    id "com.xilinx.infra.core" apply true
+    id "com.xilinx.infra.resources" version '1.0.0' apply true
+    id 'com.dorongold.task-tree' version '1.5' apply true
+    id 'com.jfrog.artifactory' version '4.17.2'
+    id "maven-publish"
+}
+
+allprojects {
+    apply plugin: 'com.xilinx.infra.core'
+    apply plugin: 'com.xilinx.infra.resources'
+    apply plugin: 'com.dorongold.task-tree'
+
+    group = 'com.xilinx.xrt'
+    version = infraCore.getAutoVersion('0.0.1')
+
+    buildDir = "build/${project.name.capitalize()}"
+
+    repositories {
+      mavenLocal()
+    }
+}
+
+
+tasks.register('copyResources', Copy) {
+
+    from("build/Release/opt/xilinx/aiebu") {
+        into "xrt/aiebu"
+    }
+    from("version.txt") {
+      into "xrt/aiebu"
+    }
+    into release.resourceCollections.legacy.files.dir
+}
+release.resourceCollections.legacy.files.builtBy(copyResources)
+
+assemble.dependsOn(":clean")
+assemble.dependsOn(":copyResources")

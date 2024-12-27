@@ -17,6 +17,9 @@ concurrency:
   group: xrt_aiebu_lnx_pipelines
   cancel-in-progress: false
 
+env:
+  BUILD_NUMBER: ${{ github.run_number }}
+
 jobs:
   Linux_Build_and_Test:
     runs-on: [xcosimnow01-XRT_aiebu]
@@ -62,6 +65,20 @@ jobs:
             build/build.sh && \
             chown -R 95777:10115 /home/aiebu"
 
+      - name: create version.txt file
+        run: |
+          touch version.txt
+          echo "git_commit_hash: ${GITHUB_SHA}" >> version.txt
+          echo "branch: ${GITHUB_REF}" >> version.txt
+          echo "date: `date`" >> version.txt
+
+      - name: upload to libs artifactory
+        if: github.event_name != 'pull_request'
+        run: |
+          export JAVA_HOME=/tools/batonroot/rodin/devkits/lnx64/jdk-11.0.16_1/
+          export PATH=/tools/batonroot/rodin/devkits/lnx64/jdk-11.0.16_1/bin:$PATH
+          ./gradlew publishAllPublicationsToLibsReleaseRepository -PcoreRevision=release
+
       - name: Upload Artifact to Artifactory
         run: |
           cd ${GITHUB_WORKSPACE}/build/Release/
@@ -98,7 +115,7 @@ jobs:
             --insecure-tls=true \
             --flat \
             --props "REPO=${GITHUB_REPOSITORY};BRANCH=${GITHUB_REF##*/};RUN_NUMMBER=${GITHUB_RUN_NUMBER};COMMIT_SHA=${GITHUB_SHA};TARGET=${ARTIFACT_DEST}"
-          echo "    LATEST artifact location: https://xcoartifactory/ui/native/${ARTIFACT_LATEST}"
+          echo "    LATEST artifact location: https://xcoartifactory/ui/native/${ARTIFACT_LATEST}"         
 
       - name: Collect Error Logs If Build Failed
         if: failure()

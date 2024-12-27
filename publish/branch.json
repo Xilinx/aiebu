@@ -1,0 +1,92 @@
+{
+    "config": {
+      "failure_email_to": "devops_ops@xilinx.com,coverage_team@xilinx.com,woodsd@xilinx.com",
+      "release": "9999.0.0",
+      "branch": "HEAD",
+      "intended_release" : "2025.1",
+      "p4_branch": "HEAD",
+      "build_tools": {
+        "jafinit": "/tools/xint/prod/bin/jafinit",
+        "python3": "/tools/batonroot/rodin/devkits/lnx64/python-3.6.5/bin/python3",
+        "python2": "/tools/batonroot/rodin/devkits/lnx64/python_rhel6.5-2.7.5/bin/python"
+      },
+      "sync_sites": {
+        "default": [ "xsj", "xir", "xdc", "xhd" ],
+        "default_timeout_minutes": 10
+      },
+      "gradle_plugins": {
+        "com.xilinx.infra.core": "0.5.5",
+        "com.xilinx.infra.locking": "1.2.4",
+        "com.xilinx.infra.build-scan-settings": "0.1.20",
+        "com.xilinx.infra.swig": "1.1.8",
+        "com.xilinx.infra.cpp-library": "2.0.8",
+        "com.xilinx.infra.cpp-resources": "1.0.9",
+        "com.jfrog.artifactory": "4.31.1",
+        "com.dorongold.task-tree": "1.5",
+        "com.xilinx.infra.resources": "1.0.9"
+      },
+      "build_scan": {
+        "level" : "3",
+        "servers" : {
+            "default" : "https://xcok3sgradle01.xilinx.com"
+        }
+      },
+      "stage_dirs": {
+        "default": "/proj/rdi/builds",
+        "component_builds": "/wrk/ci/prod"
+      },
+      "root_dirs": {
+        "default": "/proj/xbuilds",
+        "xco2": "/proj/xbuilds2"
+      },
+      "ci_servers": {
+        "jenkins_default": {
+          "url": "http://xcojenkins4",
+          "credentials": "/home/xbuild/jenkcreds",
+          "label": "xcojenkins4-pool"
+        },
+        "jenkins3": {
+          "url": "http://xcojenkins3:8080",
+          "credentials": "/home/xbuild/jenkcreds",
+          "label": "xcoDockerPool"
+        }
+      },
+      "metric_servers": {
+        "elk_default": {
+          "es_index": "component_builds",
+          "es_server": "http://xcodocker03:9200",
+          "kibana_server": "http://xcodocker03:5601"
+        }
+      },
+      "gradle": {
+        "properties": {
+          "revision": "release"
+        }
+      },
+      "package_servers": {
+        "proxy": "artifactory:5000",
+        "upload": "artifactory"
+      },
+      "artifact_servers": {
+        "local_default": {
+          "url": "/scratch/xilinx_build_dir"
+        },
+        "artifactory_default": {
+          "url": "http://artifactory/artifactory",
+          "fallback-url": "https://xcoartifactory/artifactory",
+          "plugins-url": "https://artifactory/artifactory",
+          "plugins-release-repo": "plugins-release",
+          "plugins-snapshot-repo": "plugins-snapshot",
+          "manifests-url": "https://artifactory/artifactory",
+          "manifests-release-repo" : "manifests-release-local",
+          "manifests-snapshot-repo" : "manifests-snapshot-local",
+          "libs-url": "https://artifactory/artifactory",
+          "libs-cache-repo" : "libs-buildcache",
+          "libs-release-repo" : "libs-release",
+          "libs-wall-repo" : "libs-wall",
+          "libs-snapshot-repo" : "libs-snapshot",
+          "libs-staging-repo" : "libs-staging"
+        }
+      }
+    }
+  }

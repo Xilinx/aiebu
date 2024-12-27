@@ -1,0 +1,35 @@
+import groovy.json.JsonSlurper
+
+pluginManagement {
+    def branch = new JsonSlurper().parseText(new File(rootProject.projectDir, coreBranchFile).text)
+    // This allows us to use the plugins published to the local/xilinx repo
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.version == null) {
+                if (branch.config.gradle_plugins.containsKey((String)requested.id)) {
+                    String artifactId = requested.id.toString().replaceFirst("^${requested.id.namespace}\\.(.*)", '$1')
+                    def coordinate = "${requested.id.namespace}:${artifactId}:${branch.config.gradle_plugins[(String)requested.id]}"
+                    useModule(coordinate)
+                    logger.info("Centralized plugin version '{}' (from {})", coordinate, coreBranchFile)
+                } else {
+                    logger.info("Plugin id '{}' is not centralized (in {})", requested.id, coreBranchFile)
+                }
+            }
+        }
+    }
+    // To resolve plugin dependencies...
+    repositories {
+        mavenCentral()
+        maven {
+            def pluginsUrl = settings.hasProperty('coreUrl') ? settings.coreUrl : branch.config.artifact_servers.artifactory_default.'plugins-url'
+            url = "${pluginsUrl}/${branch.config.artifact_servers.artifactory_default.'plugins-release-repo'}"
+        }
+        maven {
+            def pluginsUrl = settings.hasProperty('coreUrl') ? settings.coreUrl : branch.config.artifact_servers.artifactory_default.'plugins-url'
+            url = "${pluginsUrl}/${branch.config.artifact_servers.artifactory_default.'plugins-snapshot-repo'}"
+        }
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'aiebu'
