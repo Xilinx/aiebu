@@ -60,6 +60,7 @@ protected:
 
   std::map<uint32_t, std::string> xrt_id_map;
   std::vector<uint8_t> pm_id_list;
+  bool haspreempt = false;
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) = 0;
   void aiecompiler_json_parser(const boost::property_tree::ptree& pt);
   void dmacompiler_json_parser(const boost::property_tree::ptree& pt);
@@ -69,13 +70,14 @@ protected:
   void clear_shimBD_address_bits(std::vector<char>& mc_code, uint32_t offset) const;
   void validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const;
   uint32_t get_32_bit_property(const boost::property_tree::ptree& pt, const std::string& property, bool defaultvalue = false) const;
+  void add_preemption_code(uint32_t col);
 public:
   aie2_blob_preprocessor_input() {}
   virtual void set_args(const std::vector<char>& mc_code,
                         const std::vector<char>& patch_json,
                         const std::vector<char>& control_packet,
-                        const std::vector<std::string>& libs,
-                        const std::vector<std::string>& libpaths,
+                        const std::vector<std::string>& /*libs*/,
+                        const std::vector<std::string>& /*libpaths*/,
                         const std::map<uint8_t, std::vector<char> >& ctrlpkt) override
   {
     m_data[".ctrltext"] = mc_code;
@@ -98,19 +100,8 @@ public:
 
     auto col = extractSymbolFromBuffer(m_data[".ctrltext"], ctrlText, "");
 
-    for (const auto& lib: libs)
-    {
-      if (lib == preempt_lib)
-      {
-        m_data[preempt_save] = readfile(findFilePath("preempt_save_stx_4x" + std::to_string(col) + ".bin", libpaths));
-        m_data[preempt_restore] = readfile(findFilePath("preempt_restore_stx_4x" + std::to_string(col) + ".bin", libpaths));
-        extractSymbolFromBuffer(m_data[preempt_save], preempt_save, scratch_pad);
-        extractSymbolFromBuffer(m_data[preempt_restore], preempt_restore, scratch_pad);
-      }
-      else
-        std::cout << "Invalid flag: " << lib << ", ignored !!!" << std::endl;
-    }
-
+    if (haspreempt)
+      add_preemption_code(col);
   }
 };
 

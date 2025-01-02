@@ -3,6 +3,7 @@
 
 set(AIEBU_INSTALL_LIB_DIR       "${AIEBU_INSTALL_DIR}/lib")
 set(AIEBU_INSTALL_INCLUDE_DIR       "${AIEBU_INSTALL_DIR}/include")
+set(GENERATOR_OUT_DIR "${AIEBU_BINARY_DIR}/lib/gen")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,6 +30,8 @@ add_library(aiebu_library_objects OBJECT
   ${AIEBU_CPP_FILES}
   )
 
+add_dependencies(aiebu_library_objects ctrlcodelib)
+
 target_include_directories(aiebu_library_objects PRIVATE
   ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -43,6 +46,7 @@ target_include_directories(aiebu_library_objects PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/assembler
   ${CMAKE_CURRENT_SOURCE_DIR}/elf
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2
+  ${GENERATOR_OUT_DIR}
   ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO/
   ${Boost_INCLUDE_DIRS}
   )

@@ -6,12 +6,18 @@
 #include <cctype>
 #include <iostream>
 #include <fstream>
+#include <vector>
+#include <map>
+#include <cstdint>
+#include <iomanip>
+#include <cstring>
+#include <string>
 
 // AIE Driver headers
 #include "xaiengine.h"
 #include "xaiengine/xaiegbl_params.h"
 
-#include "aiebu_assembler.h"
+//#include "aiebu_assembler.h"
 
 #include "gen-common.h"
 
@@ -446,35 +452,30 @@ static std::string tran_filename(uint8_t device, enum PreemptOp type, uint8_t nc
             filename = "preempt_restore_";
             break;
         default:
-            std::cout << "Error: Invalid PreemptOp type\n";
-            return NULL;
+            throw std::runtime_error("Error: Invalid PreemptOp type\n");
     };
     filename += to_lower_copy(dev_to_str[device]) + "_4x" + std::to_string(ncol) + ".bin";
     return filename;
 }
 
-static int generate_tran(uint8_t device, enum PreemptOp type, uint8_t start_col, uint8_t ncol)
+static std::vector<uint8_t> generate_tran(uint8_t device, enum PreemptOp type, uint8_t start_col, uint8_t ncol)
 {
     int data_sz = (MEMTILE_SIZE_BYTES / sizeof(uint32_t));
     uint8_t XAIE_DEV_GEN, XAIE_NUM_COLS;
-    int ret;
 
     if (device == DEVICE_PHX && ncol == 1 && start_col == 0) {
-        std::cout << "Invalid start column for device type\n";
-        return -1;
+        throw std::runtime_error("Invalid start column for device type\n");
     }
 
     if (device == DEVICE_STX) {
         if (ncol + start_col > XAIE_NUM_COLS_STX) {
-            std::cout << "Invalid number of columns for device type\n";
-            return -1;
+            throw std::runtime_error("Invalid number of columns for device type\n");
         }
         XAIE_NUM_COLS = XAIE_NUM_COLS_STX;
         XAIE_DEV_GEN = XAIE_DEV_GEN_AIE2P;
     } else {
         if (ncol + start_col > XAIE_NUM_COLS_PHX) {
-            std::cout << "Invalid number of columns for device type\n";
-            return -1;
+            throw std::runtime_error("Invalid number of columns for device type\n");
         }
         XAIE_NUM_COLS = XAIE_NUM_COLS_PHX;
         XAIE_DEV_GEN = XAIE_DEV_GEN_AIE2IPU;
@@ -510,21 +511,16 @@ static int generate_tran(uint8_t device, enum PreemptOp type, uint8_t start_col,
     for (uint8_t col = UINT8_C(0); col < ncol; col++) {
         for (auto chan: channels) {
             if (type == PREEMPT_SAVE) {
-                ret = MEM_Tile_Save_Context(&DevInst, size, col, chan);
-                if (ret)
-                    return ret;
+                MEM_Tile_Save_Context(&DevInst, size, col, chan);
             } else {
-                ret = MEM_Tile_Restore_Context(&DevInst, size, col, chan);
-                if (ret)
-                    return ret;
+                MEM_Tile_Restore_Context(&DevInst, size, col, chan);
             }
         }
     }
     completion.data.num_tcts = ncol * nchans;
     completion.data.num_cols = ncol;
     RC = XAie_AddCustomTxnOp(&DevInst, XAIE_IO_CUSTOM_OP_MERGE_SYNC, &completion, sizeof(MergeSync));
-    if (RC != XAIE_OK)
-        return -1;
+    gen_XAie_check(RC);
 
     uint8_t *txn_ptr = XAie_ExportSerializedTransaction_opt(&DevInst, 0, 0);
     XAie_TxnHeader* hdr = (XAie_TxnHeader*)txn_ptr;
@@ -535,6 +531,10 @@ static int generate_tran(uint8_t device, enum PreemptOp type, uint8_t start_col,
     outfile.write(reinterpret_cast<const char *>(txn_ptr), hdr->TxnSize);
     outfile.close();
 
+    std::vector<uint8_t> vec(hdr->TxnSize);
+    std::memcpy(vec.data(), txn_ptr, hdr->TxnSize);
+
+    /*
     static_assert(std::is_same<unsigned char, uint8_t>::value, "uint8_t is not unsigned char");
     std::vector<char> buf1(txn_ptr, txn_ptr + hdr->TxnSize);
     aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::blob_instr_transaction, buf1);
@@ -543,10 +543,46 @@ static int generate_tran(uint8_t device, enum PreemptOp type, uint8_t start_col,
     outelffile.write(elf.data(), elf.size());
     outelffile.close();
     as.get_report(std::cout);
+    */
     XAie_ClearTransaction(&(DevInst));
     XAie_Finish(&(DevInst));
     free(txn_ptr);
-    return 0;
+    return vec;
+}
+
+void generateHeaderFile(const std::map<uint8_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>& stx_save_restore_map, const std::string& headerPath) {
+    std::ofstream headerFile(headerPath);
+    headerFile << "// SPDX-License-Identifier: MIT\n";
+    headerFile << "// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.\n\n";
+    headerFile << "#ifndef AIEBU_STX_PREEMPTION_FILES_H\n#define AIEBU_STX_PREEMPTION_FILES_H\n\n";
+    headerFile << "#include <map>\n#include <vector>\n#include <cstdint>\n\n";
+    headerFile << "const std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> stx_save_restore_map = {\n";
+
+    for (const auto& entry : stx_save_restore_map) {
+        headerFile << "    {" << static_cast<unsigned int>(entry.first) << ", {";
+
+        // Write the first vector (save)
+        headerFile << "{";
+        for (size_t i = 0; i < entry.second.first.size(); ++i) {
+            headerFile << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(entry.second.first[i]);
+            if (i != entry.second.first.size() - 1) {
+                headerFile << ", ";
+            }
+        }
+        headerFile << "}, ";
+
+        // Write the second vector (restore)
+        headerFile << "{";
+        for (size_t i = 0; i < entry.second.second.size(); ++i) {
+            headerFile << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(entry.second.second[i]);
+            if (i != entry.second.second.size() - 1) {
+                headerFile << ", ";
+            }
+        }
+        headerFile << "}}},\n";
+    }
+
+    headerFile << "};\n\n#endif // AIEBU_STX_PREEMPTION_FILES_H\n";
 }
 
 int main(int /* argc */, char** /* argv */)
@@ -556,37 +592,26 @@ int main(int /* argc */, char** /* argv */)
 
     /* STX */
     const uint8_t columns_stx[] = {1, 2, 4, 8};
+    std::map<uint8_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> stx_save_restore_map;
     start_col = 0;
     for (auto ncol : columns_stx) {
-        ret = generate_tran(DEVICE_STX, PREEMPT_SAVE, start_col, ncol);
-        if (ret) {
-            std::cout << "Failed to generate save " << dev_to_str[DEVICE_STX] << " TXN bin for start col: " << std::to_string(start_col) << " ncol: " << std::to_string(ncol)  << "\n";
-            return ret;
-        }
+        std::vector<uint8_t> save = generate_tran(DEVICE_STX, PREEMPT_SAVE, start_col, ncol);
         std::cout << "Successfully generated " << dev_to_str[DEVICE_STX] << " 4x" << std::to_string(ncol) << " save transaction binary!\n";
-        ret = generate_tran(DEVICE_STX, PREEMPT_RESTORE, start_col, ncol);
-        if (ret) {
-            std::cout << "Failed to generate restore " << dev_to_str[DEVICE_STX] << " TXN bin for start col: " << std::to_string(start_col) << " ncol: " << std::to_string(ncol)  << "\n";
-            return ret;
-        }
+        std::vector<uint8_t> restore = generate_tran(DEVICE_STX, PREEMPT_RESTORE, start_col, ncol);
         std::cout << "Successfully generated " << dev_to_str[DEVICE_STX] << " 4x" << std::to_string(ncol) << " restore transaction binary!\n";
+        stx_save_restore_map[ncol] = std::make_pair(std::move(save), std::move(restore));
     }
+
+    //TODO: move the file name to a global CMake macro that can be used by both generator and consumer
+    generateHeaderFile(stx_save_restore_map, "stx_save_restore_map.h");
 
     /* PHX */
     const uint8_t columns_phx[] = {1, 2, 4};
     start_col = 1;
     for (auto ncol : columns_phx) {
-        ret = generate_tran(DEVICE_PHX, PREEMPT_SAVE, start_col, ncol);
-        if (ret) {
-            std::cout << "Failed to generate save " << dev_to_str[DEVICE_PHX] << " TXN bin for start col: " << std::to_string(start_col) << " ncol: " << std::to_string(ncol)  << "\n";
-            return ret;
-        }
+        std::vector<uint8_t> save = generate_tran(DEVICE_PHX, PREEMPT_SAVE, start_col, ncol);
         std::cout << "Successfully generated " << dev_to_str[DEVICE_PHX] << " 4x" << std::to_string(ncol) << " save transaction binary!\n";
-        ret = generate_tran(DEVICE_PHX, PREEMPT_RESTORE, start_col, ncol);
-        if (ret) {
-            std::cout << "Failed to generate restore " << dev_to_str[DEVICE_PHX] << " TXN bin for start col: " << std::to_string(start_col) << " ncol: " << std::to_string(ncol)  << "\n";
-            return ret;
-        }
+        std::vector<uint8_t> restore = generate_tran(DEVICE_PHX, PREEMPT_RESTORE, start_col, ncol);
         std::cout << "Successfully generated " << dev_to_str[DEVICE_PHX] << " 4x" << std::to_string(ncol) << " restore transaction binary!\n";
     }
     return 0;

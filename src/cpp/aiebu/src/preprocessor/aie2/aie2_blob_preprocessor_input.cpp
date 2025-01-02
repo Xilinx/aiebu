@@ -3,8 +3,29 @@
 
 #include "aie2_blob_preprocessor_input.h"
 #include "xaiengine.h"
+#include "stx_save_restore_map.h"
 
 namespace aiebu {
+
+void
+aie2_blob_preprocessor_input::
+add_preemption_code(uint32_t col)
+{
+  if (stx_save_restore_map.count(col) == 0)
+  {
+    auto error_msg = boost::format("Preemption save/restore code for not available for txn buffer with col:(%d)\n") % col;
+    throw error(error::error_code::invalid_asm, error_msg.str());
+  }
+  std::cout << "Save/Restore preemption code added for col" << col << "\n";
+  m_data[preempt_save].resize(stx_save_restore_map.at(col).first.size());
+  std::memcpy(m_data[preempt_save].data(), stx_save_restore_map.at(col).first.data(), stx_save_restore_map.at(col).first.size());
+
+  m_data[preempt_restore].resize(stx_save_restore_map.at(col).second.size());
+  std::memcpy(m_data[preempt_restore].data(), stx_save_restore_map.at(col).second.data(), stx_save_restore_map.at(col).second.size());
+
+  extractSymbolFromBuffer(m_data[preempt_save], preempt_save, scratch_pad);
+  extractSymbolFromBuffer(m_data[preempt_restore], preempt_restore, scratch_pad);
+}
 
 
   /*
@@ -416,6 +437,7 @@ namespace aiebu {
             break;
         }
         case XAIE_IO_PREEMPT: {
+            haspreempt = true;
             ptr += sizeof(XAie_PreemptHdr);
             break;
         }
@@ -553,6 +575,7 @@ namespace aiebu {
             break;
         }
         case XAIE_IO_PREEMPT: {
+            haspreempt = true;
             ptr += sizeof(XAie_PreemptHdr);
             break;
         }

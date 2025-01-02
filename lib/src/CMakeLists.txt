@@ -16,10 +16,9 @@ target_include_directories(
   ${GENERATOR_EXE1}
   PRIVATE
   ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
-  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
 )
 
-target_link_libraries(${GENERATOR_EXE1} xaiengine aiebu_static)
+target_link_libraries(${GENERATOR_EXE1} xaiengine)
 
 # Copy libxaiengine.dll to the working directory for preemption.exe to find the library on Windows
 # when it runs.
@@ -40,8 +39,7 @@ add_custom_command(
          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x2.bin
          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x4.bin
          ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x8.bin
-  COMMAND ${CMAKE_COMMAND} -E echo "Copying $<TARGET_FILE:aiebu> to ${GENERATOR_OUT_DIR}"
-  COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:aiebu>" "${GENERATOR_OUT_DIR}"
+         ${GENERATOR_OUT_DIR}/stx_save_restore_map.h
   COMMAND ${GENERATOR_EXE1}
   DEPENDS ${GENERATOR_EXE1}
   COMMENT "Generating save/restore ctrlcode stubs in directory ${GENERATOR_OUT_DIR}"
@@ -65,6 +63,7 @@ add_custom_target(
           ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x1.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x2.bin
           ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x4.bin
+          ${GENERATOR_OUT_DIR}/stx_save_restore_map.h
 )
 
 install(FILES ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
@@ -81,6 +80,7 @@ install(FILES ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
               ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x1.bin
               ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x2.bin
               ${GENERATOR_OUT_DIR}/preempt_restore_phx_4x4.bin
+              ${GENERATOR_OUT_DIR}/stx_save_restore_map.h
   DESTINATION ${AIEBU_INSTALL_AIE_LIB_DIR}
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )
