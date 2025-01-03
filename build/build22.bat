@@ -134,10 +134,10 @@ if not [%AIEBU_BUILD%] == ["aie2"] (
 cmake --build . --verbose --config Debug
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
-cmake --build . --verbose --config Debug --target run_tests
+cmake --build . --verbose --config Debug --target install
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
-cmake --build . --verbose --config Debug --target install
+cmake --build . --verbose --config Debug --target run_tests
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
 POPD
@@ -170,10 +170,10 @@ if not [%AIEBU_BUILD%] == ["aie2"] (
 cmake --build . --verbose --config Release
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
-cmake --build . --verbose --config Release --target run_tests
+cmake --build . --verbose --config Release --target install
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
-cmake --build . --verbose --config Release --target install
+cmake --build . --verbose --config Release --target run_tests
 IF errorlevel 1 (POPD & exit /B %errorlevel%)
 
 ECHO ====================== Zipping up Installation Build ============================

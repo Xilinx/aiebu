@@ -3,8 +3,8 @@
 
 # Helper CMake script for base64 encode/decode functions
 # You can manually run this script using the following synopsys:
-# A manual command line for reference is following--
 # cmake -P b64.cmake <-e|-d> <input_file> <output_file>
+# Manual command lines for reference are following--
 # e.g. cmake -P b64.cmake -e ctrl_pkt0.bin ctrl_pkt0.b64
 # e.g. cmake -P b64.cmake -d ctrl_pkt0.b64 ctrl_pkt0.bin
 

@@ -35,11 +35,11 @@ function compile {
     cmake $cmakeflags ../../
 
     make -j $CORE VERBOSE=1 DESTDIR=$PWD
-    make -j $CORE VERBOSE=1 DESTDIR=$PWD test
     if [[ $build != "aie2" ]]; then
       make -j $CORE VERBOSE=1 DESTDIR=$PWD isa-spec
     fi
     make -j $CORE VERBOSE=1 DESTDIR=$PWD install
+    make -j $CORE VERBOSE=1 DESTDIR=$PWD test
     if [[ $config == "Release" ]]; then
 	make -j $CORE VERBOSE=1 DESTDIR=$PWD package
     fi
