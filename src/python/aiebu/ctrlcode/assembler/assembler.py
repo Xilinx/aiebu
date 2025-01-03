@@ -246,6 +246,7 @@ class Assembler:
         # serialize text in elf format
         pagestate.section = Section.TEXT
         offset = text_section.tell()
+        fid = None
         for text in page.text:
             token = text.gettoken()
             if token.name in ["start_job", "start_job_deferred"]:

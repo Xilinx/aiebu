@@ -90,7 +90,6 @@ endif()
 
 add_subdirectory(lib)
 
-add_subdirectory(test/cpp_test)
 add_subdirectory(test)
 
 SET(PACKAGE_KIND "TGZ")

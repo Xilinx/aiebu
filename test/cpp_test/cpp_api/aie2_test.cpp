@@ -47,6 +47,7 @@ int main(int argc, char ** argv)
                             txn_buf, control_packet_buf, external_buffer_id_json_buf, {});
   auto e = as.get_elf();
   std::cout << "elf size:" << e.size() << "\n";
+  as.get_report(std::cout);
   std::ofstream output_file("out.elf");
   std::ostream_iterator<char> output_iterator(output_file);
   std::copy(e.begin(), e.end(), output_iterator);

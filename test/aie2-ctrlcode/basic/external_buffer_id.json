@@ -1,0 +1,95 @@
+{
+    "external_buffers": {
+        "buffer0": {
+            "xrt_id": 0,
+            "logical_id": 0,
+            "size_in_bytes": 128,
+            "name": "g_compute_graph.ifm_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 17484,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 18316,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 18892,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 19468,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer1": {
+            "xrt_id": 2,
+            "logical_id": 2,
+            "size_in_bytes": 64,
+            "name": "g_compute_graph.ofm_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 23500,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 23948,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 24140,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 24332,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer2": {
+            "xrt_id": 1,
+            "logical_id": 1,
+            "size_in_bytes": 4096,
+            "name": "g_compute_graph.wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 12,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 17996,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 18572,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 19148,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer3": {
+            "xrt_id": 3,
+            "logical_id": 4294967295,
+            "size_in_bytes": 24448,
+            "ctrl_pkt_buffer": true,
+            "name": "runtime_control_packet"
+        }
+    }
+}
