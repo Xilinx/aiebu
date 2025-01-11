@@ -17,3 +17,7 @@ add_custom_target(aie2basicbins ALL
 add_test(NAME "aie2_basic"
   COMMAND aiebu-asm -r -t aie2txn -c ml_txn.bin -p ctrl_pkt0.bin -j "${CMAKE_CURRENT_SOURCE_DIR}/external_buffer_id.json" -o basic.elf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "aie2_basic_md5sum"
+  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake" "${CMAKE_CURRENT_BINARY_DIR}/basic.elf" "${CMAKE_CURRENT_SOURCE_DIR}/gold.md5"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

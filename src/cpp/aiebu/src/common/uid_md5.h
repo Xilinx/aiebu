@@ -31,9 +31,16 @@ public:
     hasher_copy.get_digest(digest);
 
     std::stringstream md5;
+    // Different boost versions model digest_type differently:
+    // 1. typedef unsigned int(digest_type)[4];
+    // 2. typedef unsigned char digest_type[16];
+    // The code sets the print width to number of chars needed to print the element type
+    // used by digest_type. This results in the same string representation for both cases
+    // which matches with that reported by command line md5sum utility
+
     md5 << std::hex << std::setfill('0');
     for (auto ele : digest) {
-        md5 << ele;
+        md5 << std::setw(sizeof(ele) * 2) << (unsigned int)ele;
     }
     return md5.str();
   }

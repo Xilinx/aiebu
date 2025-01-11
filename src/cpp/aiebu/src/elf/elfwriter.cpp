@@ -7,7 +7,7 @@ namespace aiebu {
 
 ELFIO::section*
 elf_writer::
-add_section(elf_section data)
+add_section(elf_section& data)
 {
   // add section
   ELFIO::section* sec = m_elfio.sections.add(data.get_name());
@@ -29,7 +29,7 @@ add_section(elf_section data)
 
 ELFIO::segment*
 elf_writer::
-add_segment(elf_segment data)
+add_segment(elf_segment& data)
 {
   // add segment
   ELFIO::segment* seg = m_elfio.segments.add();
@@ -221,7 +221,7 @@ add_text_data_section(std::vector<writer>& mwriter, std::vector<symbol>& syms)
 
 std::vector<char>
 elf_writer::
-process(std::vector<writer> mwriter)
+process(std::vector<writer>& mwriter)
 {
   // add sections
   std::vector<symbol> syms;

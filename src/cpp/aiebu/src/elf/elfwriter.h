@@ -75,8 +75,8 @@ protected:
   ELFIO::elfio m_elfio;
   uid_md5 m_uid;
 
-  ELFIO::section* add_section(elf_section data);
-  ELFIO::segment* add_segment(elf_segment data);
+  ELFIO::section* add_section(elf_section& data);
+  ELFIO::segment* add_segment(elf_segment& data);
   ELFIO::string_section_accessor add_dynstr_section();
   void add_dynsym_section(ELFIO::string_section_accessor* stra, std::vector<symbol>& syms);
   void add_reldyn_section(std::vector<symbol>& syms);
@@ -107,7 +107,7 @@ public:
 
   }
 
-  std::vector<char> process(std::vector<writer> mwriter);
+  std::vector<char> process(std::vector<writer>& mwriter);
 
   virtual ~elf_writer() = default;
 

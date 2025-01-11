@@ -5,6 +5,7 @@
 #define _AIEBU_PREPROCESSOR_AIE2_BLOB_PREPROCESSED_OUTPUT_H_
 
 #include <string>
+#include <map>
 #include "symbol.h"
 #include "preprocessed_output.h"
 
@@ -13,7 +14,10 @@ namespace aiebu {
 class aie2_blob_preprocessed_output : public preprocessed_output
 {
 
-  std::unordered_map<std::string, std::vector<uint8_t>> m_data;
+  // Use std::map which forces the same order for keys across all platforms
+  // std::unordered_map was leading to different order of ELF sections causing
+  // ELF binaries produced on Linux and Windows to look different .
+  std::map<std::string, std::vector<uint8_t>> m_data;
   std::vector<symbol> m_sym;
 
 public:
