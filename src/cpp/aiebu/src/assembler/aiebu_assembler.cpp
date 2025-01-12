@@ -50,7 +50,7 @@ aiebu_assembler(buffer_type type,
   else if (type == buffer_type::asm_aie2ps)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_asm);
-    elf_data = a.process(buffer1, libs, libpaths);
+    elf_data = a.process(buffer1, libs, libpaths, patch_json);
   }
 #endif
   else

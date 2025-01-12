@@ -28,10 +28,14 @@ public:
 
   virtual void write_word(uint32_t word);
 
+  virtual uint32_t read_word(offset_type offset) const;
+
+  virtual void write_word_at(offset_type offset, uint32_t word);
+
   virtual offset_type tell() const;
 
   const std::vector<uint8_t>&
-  get_data()
+  get_data() const
   {
     return m_data;
   }

@@ -84,17 +84,6 @@ public:
   std::vector<uint8_t> serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum) override;
 };
 
-class ucDmaShimBd_op_serializer: public op_serializer
-{
-public:
-  ucDmaShimBd_op_serializer(std::shared_ptr<isa_op> opcode, std::vector<std::string> args):op_serializer(opcode, args) {}
-
-  offset_type size(assembler_state& /*state*/) override { return 16; }
-
-  offset_type align() override { return 16; }
-  std::vector<uint8_t> serialize(assembler_state& state, std::vector<symbol>& symbols, uint32_t colnum, pageid_type pagenum) override;
-};
-
 class isa_op : public std::enable_shared_from_this<isa_op>
 {
 protected:
@@ -104,6 +93,7 @@ protected:
 public:
   const std::vector<opArg>& get_args() const { return m_args; }
   uint8_t get_code() const { return m_code; }
+  const std::string& get_code_name() const { return m_opname; }
 
   isa_op(std::string opname, uint8_t code, std::vector<opArg> args):m_opname(opname), m_code(code) {
     for (auto a : args)
@@ -124,8 +114,6 @@ public:
       return std::make_shared<align_op_serializer>(get_shared_ptr(), args);
     else if (!m_opname.compare("uc_dma_bd"))
       return std::make_shared<ucDmaBd_op_serializer>(get_shared_ptr(), args);
-    else if (!m_opname.compare("uc_dma_bd_shim"))
-      return std::make_shared<ucDmaShimBd_op_serializer>(get_shared_ptr(), args);
     else
       return std::make_shared<isa_op_serializer>(get_shared_ptr(), args);
   }

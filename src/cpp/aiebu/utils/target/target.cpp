@@ -201,6 +201,8 @@ target_aie2ps::assemble(const sub_cmd_options &_options)
 {
   std::string output_elffile;
   std::string input_file;
+  std::string external_buffers_file;
+  std::vector<std::string> libpaths;
 
   cxxopts::Options all_options("Target aie2ps Options", m_description);
 
@@ -208,6 +210,8 @@ target_aie2ps::assemble(const sub_cmd_options &_options)
     all_options.add_options()
             ("outputelf,o", "ELF output file name", cxxopts::value<decltype(output_elffile)>())
             ("asm,c", "ASM File", cxxopts::value<decltype(input_file)>())
+            ("j,json", "control packet Patching json file", cxxopts::value<decltype(external_buffers_file)>())
+            ("L,libpath", "libs path", cxxopts::value<decltype(libpaths)>())
             ("help,h", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
     ;
 
@@ -232,6 +236,13 @@ target_aie2ps::assemble(const sub_cmd_options &_options)
     {
       throw std::runtime_error("the option '--asm' is required but missing\n");
     }
+
+    if (result.count("libpath"))
+      libpaths = result["libpath"].as<decltype(libpaths)>();
+
+    if (result.count("json"))
+      external_buffers_file = result["json"].as<decltype(external_buffers_file)>();
+
   }
   catch (const cxxopts::exceptions::exception& e) {
     std::cout << all_options.help({"", "Target aie2ps Options"});
@@ -242,8 +253,13 @@ target_aie2ps::assemble(const sub_cmd_options &_options)
   std::vector<char> asmBuffer;
   readfile(input_file, asmBuffer);
 
+
+  std::vector<char> patch_data_buffer;
+  if (!external_buffers_file.empty())
+    readfile(external_buffers_file, patch_data_buffer);
+
   try {
-    aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::asm_aie2ps, asmBuffer);
+    aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::asm_aie2ps, asmBuffer, {}, libpaths, patch_data_buffer);
     write_elf(as, output_elffile);
   } catch (aiebu::error &ex) {
     auto errMsg = boost::format("Error: %s, code:%d\n") % ex.what() % ex.get_code() ;

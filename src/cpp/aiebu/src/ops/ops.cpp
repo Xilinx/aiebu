@@ -20,7 +20,6 @@ align_op_serializer::size(assembler_state& state)
 {
 
   uint32_t align = std::stoi(m_args[0]);
-  //TODO return alignment
   return ((state.get_pos() % align) > 0 ) ? (align - (state.get_pos() % align)) : 0;
 }
 
@@ -47,9 +46,16 @@ serialize(assembler_state& state, std::vector<symbol>& symbols,
       atype = opArg::optype::CONST;
     } else if (arg.m_type == opArg::optype::JOBSIZE)
     {
-      jobid_type jobid = state.parse_num_arg(m_args[0]);
+      jobid_type jobid = m_args[0];
       sval = std::to_string(state.m_jobmap[jobid]->get_size());
       atype = opArg::optype::CONST;
+    } else if (arg.m_type == opArg::optype::PAGE_ID)
+    {
+      if (state.m_labelpageindex.find(m_args[arg_index].substr(1)) == state.m_labelpageindex.end())
+        throw error(error::error_code::invalid_asm, "Label " + m_args[arg_index].substr(1) + "not present in label list\n");
+      sval = std::to_string(state.m_labelpageindex[m_args[arg_index].substr(1)]);
+      atype = opArg::optype::CONST;
+      ++arg_index;
     } else
     {
       sval = m_args[arg_index];
@@ -66,10 +72,9 @@ serialize(assembler_state& state, std::vector<symbol>& symbols,
       try {
         val = state.parse_num_arg(sval);
       } catch (symbol_exception &s) {
-        //TODO : assert
         symbols.emplace_back(sval, state.get_pos()+(uint32_t)ret.size(),
-                             colnum, pagenum, 0, 0, ".ctrltext_" + std::to_string(colnum)
-                             + "_" + std::to_string(pagenum),
+                             colnum, pagenum, 0, 0, ".ctrltext." + std::to_string(colnum)
+                             + "." + std::to_string(pagenum),
                              symbol::patch_schema::scaler_32);
       }
 
@@ -82,6 +87,37 @@ serialize(assembler_state& state, std::vector<symbol>& symbols,
       {
         if (val == static_cast<uint32_t>(-1))
           val = 0;
+        // For opcode is 'apply_offset_57' and arg is 'offset',
+        // if val is 0xFFFF means we need to patch the host address of 1st page of controlcode
+        // and we can patch in host and firmware, we send "control-code-X" as symbol name and 0xFFFF in apply_offset_57
+        // if val == self.state.control_packet_index, we add "control-code-X" as symbol name and 0xFFFF in apply_offset_57
+        // if val is not 0xFFFF or self.state.control_packet_index, we can do patching in cert or host so add symbol info in elf
+        //    we send "arg index" as symbol name and arg offset in apply_offset_57
+        if (!m_opcode->get_code_name().compare("apply_offset_57") && !arg.get_name().compare("offset"))
+        {
+          if (val == state.m_control_packet_index || val == 0xFFFF)
+            sval = "control-code-" + std::to_string(colnum);
+          symbols.emplace_back(sval, state.parse_num_arg(m_args[0]),
+                               colnum, pagenum, 0, 0, ".ctrltext." + std::to_string(colnum)
+                               + "." + std::to_string(pagenum),
+                               symbol::patch_schema::shim_dma_57);
+
+          if (val == state.m_control_packet_index)
+            state.m_controlpacket_padname = m_args[0];
+
+          // arg 0 to 6 and be patched in CERT.
+          // Beyond that its elfloader/host responsibility to patch mandatorily
+          if (val > 6 && val != 0xFFFF)
+            std::cout <<"WARNING: Apply_offset_57 has arg index " << val << " > 6, Should be mandatorily patched in host!!!\n";
+          if (val == state.m_control_packet_index)
+            val = 0xFFFF;
+          else if (val != 0xFFFF)
+          {
+            // val is arg index, to get offset x2
+            val = val * 2;
+          }
+        }
+
         ret.push_back(val & BYTE_MASK);
         ret.push_back((val >> SECOND_BYTE_SHIFT) & BYTE_MASK);
       } else if (arg.m_width == width_32)
@@ -115,7 +151,14 @@ serialize(assembler_state& state,
   bool ctrl_external  = state.parse_num_arg(m_args[4]) != 0;
   bool ctrl_next_BD  = state.parse_num_arg(m_args[5]) != 0;
   bool ctrl_local_relative = true;
-
+  if (m_args.size() == 7)
+  {
+    auto usymbo = m_args[6].substr(1);
+    if (state.m_scratchpad.find(usymbo) != state.m_scratchpad.end())
+    {
+      state.m_patch[m_args[6]].emplace_back(m_args[2]);
+    }
+  }
   // TODO assert
   uint32_t local_ptr = local_ptr_absolute - state.get_pos();
 
@@ -135,58 +178,6 @@ serialize(assembler_state& state,
   ret.push_back((local_ptr >> FORTH_BYTE_SHIFT) & BYTE_MASK);
 
   ret.push_back((remote_ptr_low >> FIRST_BYTE_SHIFT)& BYTE_MASK);
-  ret.push_back((remote_ptr_low >> SECOND_BYTE_SHIFT) & BYTE_MASK);
-  ret.push_back((remote_ptr_low >> THIRD_BYTE_SHIFT) & BYTE_MASK);
-  ret.push_back((remote_ptr_low >> FORTH_BYTE_SHIFT) & BYTE_MASK);
-
-  ret.push_back((remote_ptr_high >> FIRST_BYTE_SHIFT) & BYTE_MASK);
-  ret.push_back((remote_ptr_high >> SECOND_BYTE_SHIFT) & BYTE_MASK);
-  ret.push_back((remote_ptr_high >> THIRD_BYTE_SHIFT) & BYTE_MASK);
-  ret.push_back((remote_ptr_high >> FORTH_BYTE_SHIFT) & 0x1F);
-
-  return ret;
-}
-
-std::vector<uint8_t>
-ucDmaShimBd_op_serializer::
-serialize(assembler_state& state,
-          std::vector<symbol>& symbols,
-          uint32_t colnum, pageid_type pagenum)
-{
-  //encode ucDmaShimBd
-  std::vector<uint8_t> ret;
-  uint32_t remote_ptr_high = state.parse_num_arg(m_args[0]);
-  uint32_t remote_ptr_low  = state.parse_num_arg(m_args[1]);
-  uint32_t local_ptr_absolute  = state.parse_num_arg(m_args[2]);
-  uint32_t size  = state.parse_num_arg(m_args[3]);
-  bool ctrl_external  = state.parse_num_arg(m_args[4]) != 0;
-  bool ctrl_next_BD  = state.parse_num_arg(m_args[5]) != 0;
-  bool ctrl_local_relative = true;
-  
-  // TODO assert
-  uint32_t local_ptr = local_ptr_absolute - state.get_pos();
-  //TODO ADD symbol
-  symbols.emplace_back(symbol(m_args[6],local_ptr_absolute, colnum, pagenum, 0, 0,
-                              ".ctrldata_" + std::to_string(colnum) + "_"
-                              + std::to_string(pagenum),
-                              symbol::patch_schema::shim_dma_57  ));
-  //TODO assert
-
-  ret.push_back(size & BYTE_MASK);
-  ret.push_back((size >> SECOND_BYTE_SHIFT) & 0x7F);
-  uint8_t val = 0;
-  val = val | (ctrl_next_BD ? 0x1 : 0x0);
-  val = val | (ctrl_external  ? 0x2 : 0x0);
-  val = val | (ctrl_local_relative  ? 0x4 : 0x0);
-  ret.push_back(val);
-  ret.push_back(pad);
-
-  ret.push_back((local_ptr >> FIRST_BYTE_SHIFT) & BYTE_MASK);
-  ret.push_back((local_ptr >> SECOND_BYTE_SHIFT) & BYTE_MASK);
-  ret.push_back((local_ptr >> THIRD_BYTE_SHIFT) & BYTE_MASK);
-  ret.push_back((local_ptr >> FORTH_BYTE_SHIFT) & BYTE_MASK);
-
-  ret.push_back((remote_ptr_low >> FIRST_BYTE_SHIFT) & BYTE_MASK);
   ret.push_back((remote_ptr_low >> SECOND_BYTE_SHIFT) & BYTE_MASK);
   ret.push_back((remote_ptr_low >> THIRD_BYTE_SHIFT) & BYTE_MASK);
   ret.push_back((remote_ptr_low >> FORTH_BYTE_SHIFT) & BYTE_MASK);

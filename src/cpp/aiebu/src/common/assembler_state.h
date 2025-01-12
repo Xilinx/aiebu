@@ -106,19 +106,60 @@ public:
 class assembler_state
 {
   offset_type m_pos = 0;
+  inline std::string gen_label_name(bool makeunique, const std::shared_ptr<asm_data> data)
+  {
+    return makeunique ? data->get_file() + ":" + data->get_operation()->get_name() : data->get_operation()->get_name();
+  }
+
+  inline std::string gen_job_name(bool makeunique, const std::shared_ptr<asm_data> data)
+  {
+    return makeunique ? data->get_file() + ":" + data->get_operation()->get_args()[0] : data->get_operation()->get_args()[0];
+  }
+
+  inline std::string gen_eop_name(uint32_t eopnum)
+  {
+    return EOP_ID + std::to_string(eopnum);
+  }
+
+  struct ActionId {
+    uint32_t actor_start; //offset in string
+    uint32_t base_actor_offset; //base channel
+  };
+
+  const std::unordered_map<std::string, ActionId> actor_id = {
+    {"mm2s", {5, 6}},
+    {"s2mm", {5, 0}},
+    {"tile_mm2s", {10, 6}},
+    {"tile_s2mm", {10, 0}},
+    {"shim_mm2s", {10, 6}},
+    {"shim_s2mm", {10, 0}},
+    {"mem_mm2s", {9, 6}},
+    {"mem_s2mm", {9, 0}}
+  };
+
+  uint32_t get_actor(const std::string& prefix, const std::string& s) const
+  {
+    uint32_t actor = std::stoi(s.substr(actor_id.at(prefix).actor_start));
+    return actor_id.at(prefix).base_actor_offset + actor;
+  }
 public:
   std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> m_isa;
   std::vector<std::shared_ptr<asm_data>>& m_data;
   std::vector<jobid_type> m_jobids;
-  std::unordered_map<jobid_type, std::shared_ptr<job>> m_jobmap;
-  std::unordered_map<std::string, std::shared_ptr<label>> m_labelmap; 
-  std::unordered_map<barrierid_type, std::vector<jobid_type>> m_localbarriermap;
-  std::unordered_map<jobid_type, std::vector<jobid_type>> m_joblaunchmap;
+  std::map<jobid_type, std::shared_ptr<job>> m_jobmap;
+  std::map<std::string, std::shared_ptr<label>> m_labelmap;
+  std::map<barrierid_type, std::vector<jobid_type>> m_localbarriermap;
+  std::map<jobid_type, std::vector<jobid_type>> m_joblaunchmap;
+  std::map<std::string, std::shared_ptr<scratchpad_info>>& m_scratchpad;
+  std::map<std::string, std::vector<std::string>> m_patch;
+  std::map<std::string, uint32_t>& m_labelpageindex;
+  uint32_t m_control_packet_index;
+  std::string m_controlpacket_padname;
 
-
-  assembler_state(std::shared_ptr<std::map<std::string,
-                  std::shared_ptr<isa_op>>> isa,
-                  std::vector<std::shared_ptr<asm_data>>& data);
+  assembler_state(std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> isa,
+                  std::vector<std::shared_ptr<asm_data>>& data,
+                  std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
+                  std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index, bool makeunique);
 
   HEADER_ACCESS_GET_SET(offset_type, pos);
 
@@ -128,9 +169,14 @@ public:
     return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
   }
 
+  bool containscratchpads(const std::string& label) const
+  {
+    return (m_scratchpad.find(label) != m_scratchpad.end());
+  }
+
   uint32_t parse_num_arg(const std::string& str);
 
-  void process();
+  void process(bool makeunique);
 
   const std::vector<jobid_type> get_job_list() const
   {
@@ -140,10 +186,20 @@ public:
       m_jobmap.begin(),
       m_jobmap.end(),
       std::back_inserter(keys),
-      [](const std::unordered_map<jobid_type, std::shared_ptr<job>>::value_type &pair){return pair.first;});
+      [](const std::map<jobid_type, std::shared_ptr<job>>::value_type &pair){return pair.first;});
     return keys;
   }
-
+  const std::vector<std::string> get_label_list() const
+  {
+    // get list of jobs
+    std::vector<std::string> keys;
+    std::transform(
+      m_labelmap.begin(),
+      m_labelmap.end(),
+      std::back_inserter(keys),
+      [](const std::map<std::string, std::shared_ptr<label>>::value_type &pair){return pair.first;});
+    return keys;
+  }
 };
 
 }

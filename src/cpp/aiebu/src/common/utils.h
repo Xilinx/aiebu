@@ -10,6 +10,7 @@
 #include <cassert>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <sstream>
 #include <vector>
 #include "aiebu_error.h"
@@ -20,13 +21,13 @@
 #define THIRD_BYTE_SHIFT 16
 #define FORTH_BYTE_SHIFT 24
 
-using jobid_type = int32_t;
+using jobid_type = std::string;
 using barrierid_type = uint32_t;
 using offset_type = uint32_t;
 using pageid_type = uint32_t;
 constexpr pageid_type NO_PAGE = -1;
-constexpr jobid_type EOF_ID = -2;
-constexpr  jobid_type EOP_ID = -3;
+const static jobid_type EOF_ID("EOF");
+const static jobid_type EOP_ID("EOP");
 constexpr offset_type PAGE_SIZE = 8192;
 constexpr int HEX_BASE = 16;
 
@@ -48,6 +49,10 @@ namespace aiebu {
     {                                         \
         return m_##FNAME;                     \
     }
+
+
+inline uint8_t low_8(uint32_t num) { return (num >> FIRST_BYTE_SHIFT ) & BYTE_MASK; }
+inline uint8_t high_8(uint32_t num) { return (num >> SECOND_BYTE_SHIFT) & BYTE_MASK; }
 
 inline uint32_t parse_register(const std::string& str)
 {
@@ -126,6 +131,12 @@ inline std::vector<std::string> splitoption(const char* data, char delimiter = '
     tokens.push_back(token);
   }
   return tokens;
+}
+
+inline std::string get_pagelabel(const std::string& label)
+{
+  auto val = splitoption(label.c_str(), ':');
+  return val[val.size() -1];
 }
 
 // Custom stream buffer that reads from a vector<char>

@@ -21,6 +21,7 @@ public:
     control_packet_48 = 4,
     shim_dma_48 = 5,
     shim_dma_57_aie4 = 6,
+    control_packet_57 = 7,
     unknown = 8,
   };
 
@@ -61,6 +62,7 @@ public:
   HEADER_ACCESS_GET_SET(std::string, section_name);
   HEADER_ACCESS_GET_SET(ELFIO::Elf_Word, index);
   HEADER_ACCESS_GET_SET(uint64_t, size);
+  HEADER_ACCESS_GET_SET(uint32_t, colnum);
 };
 }
 #endif //_AIEBU_COMMOM_SYMBOL_H_
