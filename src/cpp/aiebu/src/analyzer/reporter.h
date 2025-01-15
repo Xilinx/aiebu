@@ -13,7 +13,7 @@ namespace aiebu {
     class reporter {
     private:
         ELFIO::elfio my_elf_reader;
-    public:
+    protected:
         inline bool is_ctrldata(const std::string& name) const
         {
           return !name.compare(".ctrldata");
@@ -23,10 +23,11 @@ namespace aiebu {
         {
           return !name.substr(0,8).compare(".ctrlpkt");
         }
+    public:
         reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& elf_data);
         void elf_summary(std::ostream &stream) const;
         void ctrlcode_summary(std::ostream &stream) const;
-        void ctrlcode_detail_summary(std::ostream &stream) const;
+        void ctrlcode_detail_summary(const std::filesystem::path &root) const;
     };
 }
 

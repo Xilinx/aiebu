@@ -47,7 +47,7 @@ namespace aiebu {
         }
     }
 
-    void reporter::ctrlcode_detail_summary(std::ostream &stream) const
+    void reporter::ctrlcode_detail_summary(const std::filesystem::path &root) const
     {
         ELFIO::Elf_Half sec_num = my_elf_reader.sections.size();
         for ( int i = 0; i < sec_num; ++i ) {
@@ -57,10 +57,15 @@ namespace aiebu {
             // for aie2 ".ctrldata" contain control packet and ".ctrlpkt-pm-N" contain
             // pm control packet which cannot be decoded
             if (psec->get_type() != ELFIO::SHT_PROGBITS || is_ctrldata(psec->get_name())
-                || is_pm_ctrlpkt(psec->get_name()))
+               || is_pm_ctrlpkt(psec->get_name()))
                 continue;
 
-            stream << "  [" << i << "] " << psec->get_name() << "\t"
+            // Write out the ctrlcode in rudimentary ASM format
+            std::filesystem::path file(root);
+            file += psec->get_name();
+            file += ".asm";
+            std::ofstream stream(file);
+            stream << ";  [" << i << "] " << psec->get_name() << "\t"
                    << psec->get_size() << std::endl;
 
             transaction tprint(psec->get_data(), psec->get_size());

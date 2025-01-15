@@ -85,16 +85,16 @@ asm_parser::
 parse_lines(const std::vector<char>& data, std::string& file)
 {
   //parse asm code
-  std::regex COMMENT_REGEX("^;(.*)$");
-  std::regex LABEL_REGEX("^([a-zA-Z0-9_]+)\\:$");
-  std::regex OP_REGEX("^([.a-zA-Z0-9_]+)(?:\\s+(.+)+)?$");
-  std::regex DIRCETIVE_REGEX(".^([a-zA-Z0-9_]+)(?:\\s+(.+)+)?$");
-
+  const std::regex COMMENT_REGEX("^;(.*)$");
+  const std::regex LABEL_REGEX("^([a-zA-Z0-9_]+)\\:$");
+  const std::regex OP_REGEX("^([.a-zA-Z0-9_]+)(?:\\s+(.+)+)?$");
+  const std::regex DIRCETIVE_REGEX(".^([a-zA-Z0-9_]+)(?:\\s+(.+)+)?$");
 
   std::string str(data.begin(), data.end());
   std::istringstream isstr(str);
   std::string line;
   uint32_t linenumber = 0;
+
   while (std::getline(isstr, line)) {
     line = trim(line);
     if(line.empty())
@@ -117,6 +117,13 @@ parse_lines(const std::vector<char>& data, std::string& file)
     if (operate_directive(line))
     {
       ++linenumber;
+
+//      std::regex_match(line, sm, OP_REGEX);
+//      m_current_col = std::stoi(sm[2].str());
+      // Initialize empty m_col, it helps when .attach_to_group is immediately followed
+      // by another .attach_to_group. This use case is relevant for aie2asm flow where
+      // this directive is used to determine column range for a ctrlcode
+//      m_col[m_current_col] = std::vector<std::shared_ptr<asm_data>>();
       continue;
     }
 
@@ -141,9 +148,9 @@ parse_lines(const std::vector<char>& data, std::string& file)
       if (!sm[1].str().compare("EOF"))
         isdata = true;
     }
-
     ++linenumber;
   }
+
 }
 
 void
@@ -166,7 +173,7 @@ operate(std::shared_ptr<asm_parser> parserptr, const std::smatch& sm)
     m_parserptr->set_data_state(false);
   else if (is_data_section(args[0]))
     m_parserptr->set_data_state(true);
-  else 
+  else
     std::cout << "section directive with unknown section found:" << args[0] << std::endl;
 }
 

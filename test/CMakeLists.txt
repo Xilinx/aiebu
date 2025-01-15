@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2023 Advanced Micro Devices, Inc.
+# Copyright (C) 2023-2025 Advanced Micro Devices, Inc.
 
 project(tests CXX C)
 

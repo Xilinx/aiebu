@@ -26,7 +26,6 @@ modernize-*,
 
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
-AnalyzeTemporaryDtors: false
 FormatStyle:     none
 User:            sonals
 CheckOptions:

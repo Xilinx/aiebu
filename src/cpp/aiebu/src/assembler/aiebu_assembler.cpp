@@ -46,6 +46,11 @@ aiebu_assembler(buffer_type type,
     aiebu::assembler a(assembler::elf_type::aie2_transaction_blob);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
   }
+  else if (type == buffer_type::asm_aie2)
+  {
+    aiebu::assembler a(assembler::elf_type::aie2_asm);
+    elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
+  }
 #ifdef AIEBU_FULL
   else if (type == buffer_type::asm_aie2ps)
   {
@@ -53,8 +58,9 @@ aiebu_assembler(buffer_type type,
     elf_data = a.process(buffer1, libs, libpaths, patch_json);
   }
 #endif
-  else
+  else {
     throw error(error::error_code::invalid_buffer_type, "Buffer_type not supported !!!");
+  }
 }
 
 std::vector<char>
@@ -72,9 +78,15 @@ get_report(std::ostream &stream) const
     reporter rep(_type, elf_data);
     rep.elf_summary(stream);
     rep.ctrlcode_summary(stream);
-    rep.ctrlcode_detail_summary(stream);
 }
 
+void
+aiebu_assembler::
+disassemble(const std::filesystem::path &root) const
+{
+    reporter rep(_type, elf_data);
+    rep.ctrlcode_detail_summary(root);
+}
 }
 
 DRIVER_DLLESPEC

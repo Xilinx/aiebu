@@ -52,7 +52,7 @@ public:
   }
 
   const std::string& get_name() const { return m_name; }
-  const std::vector<std::string>& get_args() { return m_args; }
+  const std::vector<std::string>& get_args() const { return m_args; }
 };
 
 class asm_parser;
@@ -167,6 +167,7 @@ class asm_data
   std::string m_file;
 
 public:
+  asm_data() = default;
   asm_data(std::shared_ptr<operation> op, operation_type optype,
            code_section sec, uint64_t size, uint32_t pgnum,
            uint32_t ln, std::string line, std::string file)
@@ -193,7 +194,7 @@ public:
   bool isLabel() { return m_optype == operation_type::label; }
   bool isOpcode() { return m_optype == operation_type::op; }
   std::shared_ptr<operation> get_operation() { return m_op; }
-  
+
 };
 
 class section_asmdata
@@ -270,7 +271,6 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   const std::vector<std::string>& m_include_list;
 
 public:
-
   asm_parser(const std::vector<char>& data, const std::vector<std::string>& include_list):m_data(data), m_include_list(include_list)
   {
     isdata = false;
@@ -292,9 +292,12 @@ public:
   col_data& get_col_asmdata(uint32_t colnum);
 
   void parse_lines();
+
   void parse_lines(const std::vector<char>& data, std::string& file);
 
-  void set_current_col(int col) { m_current_col = col; }
+  void set_current_col(int col) { m_current_col = col;
+    m_col[m_current_col] = col_data();
+  }
 
   std::map<std::string, uint32_t>& getcollabelpageindex(int col) { return m_col[col].get_labelpageindex(); }
 

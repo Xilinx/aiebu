@@ -70,27 +70,24 @@ class target_aie2ps: public target
   target_aie2ps(const std::string& name): target(name, "aie2ps", "aie2ps asm assembler") {}
 };
 
-class target_aie2: public target
-{
-  public:
-  virtual void assemble(const sub_cmd_options &_options);
-  target_aie2(const std::string& name): target(name, "aie2asm", "aie2 asm assembler") {}
-};
 #endif
 
 class target_aie2blob: public target
 {
   protected:
-    std::vector<char> m_transaction_buffer;
-    std::vector<char> m_control_packet_buffer;
-    std::vector<char> m_patch_data_buffer;
-    std::vector<std::string> m_libs;
-    std::vector<std::string> m_libpaths;
-    std::map<uint8_t, std::vector<char> > m_ctrlpkt;
-    std::string m_output_elffile;
-    bool m_print_report = false;
-    target_aie2blob(const std::string& exename, const std::string& name, const std::string& description)
-      : target(exename, name, description) {}
+  std::string m_transaction_file;
+  std::string m_controlpkt_file;
+  std::string m_external_buffers_file;
+  std::vector<char> m_transaction_buffer;
+  std::vector<char> m_control_packet_buffer;
+  std::vector<char> m_patch_data_buffer;
+  std::vector<std::string> m_libs;
+  std::vector<std::string> m_libpaths;
+  std::map<uint8_t, std::vector<char> > m_ctrlpkt;
+  std::string m_output_elffile;
+  bool m_print_report = false;
+  target_aie2blob(const std::string& exename, const std::string& name, const std::string& description)
+    : target(exename, name, description) {}
   bool parseOption(const sub_cmd_options &_options);
 
   std::map<uint8_t, std::vector<char> >
@@ -100,16 +97,24 @@ class target_aie2blob: public target
 class target_aie2blob_transaction: public target_aie2blob
 {
   public:
-  target_aie2blob_transaction(const std::string& name)
-    : target_aie2blob(name, "aie2txn", "aie2 txn blob assembler") {}
+  target_aie2blob_transaction(const std::string& exename, const std::string& name = "aie2txn",
+                              const std::string& description = "aie2 txn blob assembler")
+    : target_aie2blob(exename, name, description) {}
   virtual void assemble(const sub_cmd_options &_options);
+};
+
+class target_aie2: public target_aie2blob_transaction
+{
+  public:
+  virtual void assemble(const sub_cmd_options &_options);
+  target_aie2(const std::string& exename): target_aie2blob_transaction(exename, "aie2asm", "aie2 asm assembler") {}
 };
 
 class target_aie2blob_dpu: public target_aie2blob
 {
   public:
-  target_aie2blob_dpu(const std::string& name)
-    : target_aie2blob(name, "aie2dpu", "aie2 dpu blob assembler") {}
+  target_aie2blob_dpu(const std::string& exename)
+    : target_aie2blob(exename, "aie2dpu", "aie2 dpu blob assembler") {}
   virtual void assemble(const sub_cmd_options &_options);
 };
 

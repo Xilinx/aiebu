@@ -7,12 +7,15 @@
 #include <map>
 #include "symbol.h"
 #include "utils.h"
-#include "aiebu_assembler.h"
 #include "preprocessor_input.h"
 #include <boost/format.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 namespace aiebu {
+
+class aie2_isa_op_factory_base;
+class aie2_isa_op;
+class operation;
 
 class aie2_blob_preprocessor_input : public preprocessor_input
 {
@@ -72,7 +75,7 @@ protected:
   uint32_t get_32_bit_property(const boost::property_tree::ptree& pt, const std::string& property, bool defaultvalue = false) const;
   void add_preemption_code(uint32_t col);
 public:
-  aie2_blob_preprocessor_input() {}
+  aie2_blob_preprocessor_input() = default;
   virtual void set_args(const std::vector<char>& mc_code,
                         const std::vector<char>& patch_json,
                         const std::vector<char>& control_packet,
@@ -224,5 +227,42 @@ protected:
   virtual uint32_t extractSymbolFromBuffer(std::vector<char>& mc_code, const std::string& section_name, const std::string& argname) override;
 };
 
+/*
+ * aie2_isa_op_factory definition is required here for the m_mnemonic_table ctor/dtor to be
+ * visible to the compiler in places where only this header file is included and an instance
+ * of aie2_asm_preprocessor_input is created.
+ */
+class aie2_isa_op_factory_base {
+public:
+  aie2_isa_op_factory_base() = default;
+  virtual std::unique_ptr<aie2_isa_op> create_aie2_isa_op(const std::vector<std::string>& args) const = 0;
+  virtual ~aie2_isa_op_factory_base() = default;
+};
+
+/*
+ * This class encodes the ASM version of aie2 ctlrcode into binary
+ */
+class aie2_asm_preprocessor_input : public aie2_blob_transaction_preprocessor_input
+{
+private:
+  std::vector<char> encode(const std::vector<char>& mc_asm_code);
+  std::map<std::string, std::unique_ptr<aie2_isa_op_factory_base>> m_mnemonic_table;
+
+protected:
+  std::unique_ptr<aie2_isa_op> assemble_operation(std::shared_ptr<operation> op);
+
+public:
+  aie2_asm_preprocessor_input();
+  void set_args(const std::vector<char>& mc_asm_code,
+                const std::vector<char>& patch_json,
+                const std::vector<char>& control_packet,
+                const std::vector<std::string>& libs,
+                const std::vector<std::string>& libpaths,
+                const std::map<uint8_t, std::vector<char> >& ctrlpkt) override
+  {
+    const std::vector<char> mc_code = encode(mc_asm_code);
+    aie2_blob_transaction_preprocessor_input::set_args(mc_code, patch_json, control_packet, libs, libpaths, ctrlpkt);
+  }
+};
 }
 #endif //_AIEBU_PREPROCESSOR_AIE2_BLOB_PREPROCESSOR_INPUT_H_

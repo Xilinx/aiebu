@@ -2,8 +2,6 @@
 // Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
 #include <iomanip>
-#include <map>
-#include <fstream>
 #include <iostream>
 #include <string>
 #include <cstring>
@@ -19,6 +17,8 @@
 struct transaction::implementation {
 private:
     static constexpr unsigned int field_width = 32;
+    static const std::string preempt_code_table[];
+
     static inline std::ostream& op_format(std::ostream& strm) {
         strm << std::setw(field_width) << std::left;
         return strm;
@@ -227,7 +227,7 @@ private:
 
     size_t stringify_w32(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto w_hdr = (const XAie_Write32Hdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_WRITE, " << "@0x" << std::hex << w_hdr->RegOff << ", 0x" << w_hdr->Value
+        ss_ops_ << op_format << "XAIE_IO_WRITE " << "@0x" << std::hex << w_hdr->RegOff << ", 0x" << w_hdr->Value
                 << std::endl;
         return w_hdr->Size;
     }
@@ -239,7 +239,7 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*bw_header);
         u32 *Payload = (u32 *)curr;
-        ss_ops_ << op_format << "XAIE_IO_BLOCKWRITE, " << "@0x" << std::hex << bw_header->RegOff;
+        ss_ops_ << op_format << "XAIE_IO_BLOCKWRITE " << "@0x" << std::hex << bw_header->RegOff;
         for (u32 i = 0; i < Size; i++) {
             ss_ops_ << ", 0x" << std::hex << *Payload;
             Payload++;
@@ -250,41 +250,41 @@ private:
 
     size_t stringify_mw32(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mw_header = (const XAie_MaskWrite32Hdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_MASKWRITE, " << "@0x" << std::hex << mw_header->RegOff << ", 0x" << mw_header->Mask
+        ss_ops_ << op_format << "XAIE_IO_MASKWRITE " << "@0x" << std::hex << mw_header->RegOff << ", 0x" << mw_header->Mask
                 << ", 0x" << mw_header->Value << std::endl;
         return mw_header->Size;
     }
 
     size_t stringify_mp32(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_MaskPoll32Hdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
+        ss_ops_ << op_format << "XAIE_IO_MASKPOLL " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
                 << ", 0x" << mp_header->Value << std::endl;
         return mp_header->Size;
     }
 
     size_t stringify_mp32_busy(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_MaskPoll32Hdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY, " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
+        ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
                 << ", 0x" << mp_header->Value << std::endl;
         return mp_header->Size;
     }
 
     size_t stringify_noop(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         (void)ptr;
-        ss_ops_ << op_format << "XAIE_IO_NOOP, " << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_NOOP " << std::endl;
         return sizeof(XAie_NoOpHdr);
     }
 
     size_t stringify_preempt(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_PreemptHdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_PREEMPT, " << "@0x" << mp_header->Preempt_level << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_PREEMPT " << preempt_code_table[mp_header->Preempt_level] << std::endl;
         return sizeof(XAie_PreemptHdr);
     }
 
     size_t stringify_pmload(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_PmLoadHdr *)(ptr);
         uint32_t loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
-        ss_ops_ << op_format << "XAIE_IO_LOAD_PM_START, " << "0x" <<  std::hex << loadsequence << ", 0x" << mp_header->PmLoadId << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_LOAD_PM_START " << "0x" <<  std::hex << loadsequence << ", 0x" << mp_header->PmLoadId << std::endl;
         return sizeof(XAie_PmLoadHdr);
     }
 
@@ -297,7 +297,7 @@ private:
     size_t stringify_patchop(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto hdr = (const XAie_CustomOpHdr *)(ptr);
         u32 size = hdr->Size;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_DDR_PATCH, ";
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_DDR_PATCH ";
         const char *curr = (const char *)ptr;
         curr += sizeof(*hdr);
         auto op = (const patch_op_t *)curr;
@@ -350,7 +350,7 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*bw_header);
         u32 *Payload = (u32 *)curr;
-        ss_ops_ << op_format << "XAIE_IO_BLOCKWRITE, " << "@0x" << std::hex << bw_header->RegOff;
+        ss_ops_ << op_format << "XAIE_IO_BLOCKWRITE " << "@0x" << std::hex << bw_header->RegOff;
         for (u32 i = 0; i < Size; i++) {
             ss_ops_ << ", 0x" << std::hex << *Payload;
             Payload++;
@@ -361,48 +361,48 @@ private:
 
     size_t stringify_mw32_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mw_header = (const XAie_MaskWrite32Hdr_opt *)(ptr);
-ss_ops_ << op_format << "XAIE_IO_MASKWRITE, " << "@0x" << std::hex << mw_header->RegOff << ", 0x" << mw_header->Mask
+ss_ops_ << op_format << "XAIE_IO_MASKWRITE " << "@0x" << std::hex << mw_header->RegOff << ", 0x" << mw_header->Mask
                 << ", 0x" << mw_header->Value << std::endl;
         return sizeof(XAie_MaskWrite32Hdr_opt);
     }
 
     size_t stringify_mp32_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_MaskPoll32Hdr_opt *)(ptr);
-ss_ops_ << op_format << "XAIE_IO_MASKPOLL, " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
+ss_ops_ << op_format << "XAIE_IO_MASKPOLL " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
                 << ", 0x" << mp_header->Value << std::endl;
         return sizeof(XAie_MaskPoll32Hdr_opt);
     }
 
     size_t stringify_mp32_busy_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_MaskPoll32Hdr_opt *)(ptr);
-ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY, " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
+ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
                 << ", 0x" << mp_header->Value << std::endl;
         return sizeof(XAie_MaskPoll32Hdr_opt);
     }
 
     size_t stringify_noop_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         (void)ptr;
-        ss_ops_ << op_format << "XAIE_IO_NOOP, " << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_NOOP " << std::endl;
         return sizeof(XAie_NoOpHdr);
     }
 
     size_t stringify_preempt_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_PreemptHdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_PREEMPT, " << "@0x" << std::hex << (uint32_t)mp_header->Preempt_level << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_PREEMPT " << preempt_code_table[mp_header->Preempt_level] << std::endl;
         return sizeof(XAie_PreemptHdr);
     }
 
     size_t stringify_pmload_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_PmLoadHdr *)(ptr);
         uint32_t loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
-        ss_ops_ << op_format << "XAIE_IO_LOAD_PM_START, " << "0x" <<  std::hex << loadsequence << ", 0x" << mp_header->PmLoadId << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_LOAD_PM_START " << "0x" <<  std::hex << loadsequence << ", 0x" << mp_header->PmLoadId << std::endl;
         return sizeof(XAie_PmLoadHdr);
     }
 
     size_t stringify_patchop_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto hdr = (const XAie_CustomOpHdr_opt *)(ptr);
         u32 size = hdr->Size;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_DDR_PATCH, ";
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_DDR_PATCH ";
         const char *curr = (const char *)ptr;
         curr += sizeof(*hdr);
         auto op = (const patch_op_t *)curr;
@@ -441,6 +441,16 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY, " << "@0x" << std::hex << mp_hea
         auto ptr = txn_.data() + sizeof(*Hdr);
 
         std::stringstream ss;
+
+        ss << std::endl;
+        // Generate .attach_to_group directive in a sequence for all the columns this
+        // ctrlcode is for. This information is later harvested to determine how many
+        // columns this code is for when we attempt to assemble this ASM file and need
+        // to populate XAie_TxnHeader.
+
+        for (unsigned int i = 0; i < Hdr->NumCols; i++)
+            ss << "    " << ".attach_to_group " << i << std::endl;
+        ss << std::endl;
 
         for (auto i = 0U; i < num_ops; i++) {
             const auto op_hdr = (const XAie_OpHdr *)ptr;
@@ -502,6 +512,10 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY, " << "@0x" << std::hex << mp_hea
         auto ptr = txn_.data() + sizeof(*Hdr);
 
         std::stringstream ss;
+        for (unsigned int i = 0; i < Hdr->NumCols; i++)
+            ss << "    " << ".attach_to_group " << i << std::endl;
+        ss << std::endl;
+
         for (auto i = 0U; i < num_ops; i++) {
             const auto op_hdr = (const XAie_OpHdr_opt *)ptr;
             size_t size = 0;
@@ -570,6 +584,13 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY, " << "@0x" << std::hex << mp_hea
         }
     }
 };
+
+const std::string transaction::implementation::preempt_code_table[] = {
+      "NOOP",
+      "MEM_TILE",
+      "AIE_TILE",
+      "AIE_REGISTERS",
+      "INVALID"};
 
 transaction::transaction(const char *txn, uint64_t size) : impl(std::make_shared<transaction::implementation>(txn, size)) {}
 

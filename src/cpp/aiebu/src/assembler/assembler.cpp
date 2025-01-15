@@ -3,6 +3,7 @@
 
 #include "assembler.h"
 #include "aie2_blob_preprocessor.h"
+#include "aie2_asm_preprocessor.h"
 #include "aie2_blob_encoder.h"
 #include "aie2_blob_elfwriter.h"
 
@@ -17,7 +18,6 @@
 #include "preprocessor.h"
 #include "encoder.h"
 #include "elfwriter.h"
-#include "preprocessor_input.h"
 
 namespace aiebu {
 
@@ -37,6 +37,14 @@ assembler(const elf_type type)
     m_elfwriter = std::make_unique<aie2_blob_elf_writer>();
     m_ppi = std::make_shared<aie2_blob_transaction_preprocessor_input>();
   }
+  else if (type == elf_type::aie2_asm)  {
+    m_preprocessor = std::make_unique<aie2_asm_preprocessor>();
+    // Reuse encoder and elfwriter flow from the aie2 blob as they do not
+    // see the ASM but instead see the same binary aie2 blob.
+    m_enoder = std::make_unique<aie2_blob_encoder>();
+    m_elfwriter = std::make_unique<aie2_blob_elf_writer>();
+    m_ppi = std::make_shared<aie2_asm_preprocessor_input>();
+  }
 #ifdef AIEBU_FULL
   else if (type == elf_type::aie2ps_asm)
   {
@@ -46,8 +54,9 @@ assembler(const elf_type type)
     m_ppi = std::make_shared<aie2ps_preprocessor_input>();
   }
 #endif
-  else
+  else {
     throw error(error::error_code::invalid_buffer_type ,"Invalid elf type!!!");
+  }
 }
 
 std::vector<char>

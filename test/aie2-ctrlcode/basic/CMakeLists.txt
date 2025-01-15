@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2024 Advanced Micro Devices, Inc.
+# Copyright (C) 2024-2025 Advanced Micro Devices, Inc.
 
 add_custom_command(OUTPUT ml_txn.bin ctrl_pkt0.bin
   COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake" -d "${CMAKE_CURRENT_SOURCE_DIR}/ml_txn.b64" ml_txn.bin
@@ -15,7 +15,18 @@ add_custom_target(aie2basicbins ALL
 
 
 add_test(NAME "aie2_basic"
-  COMMAND aiebu-asm -r -t aie2txn -c ml_txn.bin -p ctrl_pkt0.bin -j "${CMAKE_CURRENT_SOURCE_DIR}/external_buffer_id.json" -o basic.elf
+  COMMAND aiebu-asm -r -t aie2txn -c ml_txn.bin -p ctrl_pkt0.bin -j "${CMAKE_CURRENT_SOURCE_DIR}/external_buffer_id.json" -o basic.elf)
+
+add_test(NAME "aie2-basic1"
+  COMMAND aiebu-asm -r -t aie2asm -c "${CMAKE_CURRENT_SOURCE_DIR}/ml_txn.ctrltext.asm" -p ctrl_pkt0.bin -j "${CMAKE_CURRENT_SOURCE_DIR}/external_buffer_id.json" -o ctrl-packet1.elf
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "aie2-basic2"
+  COMMAND aiebu-asm -r -t aie2asm -c "ctrl-packet1.ctrltext.asm" -p ctrl_pkt0.bin -j "${CMAKE_CURRENT_SOURCE_DIR}/external_buffer_id.json" -o ctrl-packet2.elf
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "aie2-basic_compare"
+  COMMAND ${CMAKE_COMMAND} -E compare_files ctrl-packet1.ctrltext.asm ctrl-packet2.ctrltext.asm
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "aie2_basic_md5sum"

@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <vector>
 #include <iostream>
+#include <filesystem>
 #include <map>
 
 #if defined(_WIN32)
@@ -32,8 +33,8 @@ class aiebu_assembler {
       blob_control_packet,
 #ifdef AIEBU_FULL
       asm_aie2ps,
-      asm_aie2
 #endif
+      asm_aie2
     };
 
   private:
@@ -109,6 +110,10 @@ class aiebu_assembler {
     void
     DRIVER_DLLESPEC
     get_report(std::ostream &stream) const;
+
+    void
+    DRIVER_DLLESPEC
+    disassemble(const std::filesystem::path &root) const;
 };
 
 } //namespace aiebu

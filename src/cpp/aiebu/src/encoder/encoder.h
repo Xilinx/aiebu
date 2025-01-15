@@ -14,11 +14,11 @@ namespace aiebu {
 class encoder
 {
 public:
-  encoder() {}
+  encoder() = default;
 
   virtual std::vector<writer>
   process(std::shared_ptr<preprocessed_output> input) = 0;
-  virtual ~encoder() {}
+  virtual ~encoder() = default;
 };
 
 }
