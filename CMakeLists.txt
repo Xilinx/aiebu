@@ -36,6 +36,9 @@ else()
   endif()
 endif()
 
+include (cmake/settings.cmake)
+
+message("-- CMAKE_SYSTEM=${CMAKE_SYSTEM}")
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 
 # If this repository is used as a submodule, the parent repository may set the
@@ -69,23 +72,6 @@ message("-- Using ELFIO from ${AIEBU_ELFIO_SRC_DIR}")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  find_package(OpenSSL REQUIRED)
-  message("-- OpenSSL path: ${OPENSSL_LIBRARIES}")
-
-  find_library(CRYPTO_LIB_STATIC libcrypto.a)
-  if (CRYPTO_LIB_STATIC)
-    message("-- aiebu static building enabled")
-    set(AIEBU_UTIL_LINK_STATIC TRUE)
-  else()
-    message("-- aiebu static building disabled")
-    set(AIEBU_UTIL_LINK_STATIC FALSE)
-  endif()
-endif()
-
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
-message("-- Python version: ${Python3_VERSION}")
-
 if (XRT_CLANG_TIDY STREQUAL "ON")
   find_program(CLANG_TIDY "clang-tidy")
   if(NOT CLANG_TIDY)
@@ -115,6 +101,7 @@ if (NOT(DEFINED XRT_SOURCE_DIR))
   SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AMD XDNA binutils package")
   SET(CPACK_RESOURCE_FILE_LICENSE "${AIEBU_SOURCE_DIR}/LICENSE")
 
+  include (cmake/findpackage.cmake)
   INCLUDE(CPack)
 else()
   message("-- Skipping private cpack of AIEBU since compiling as a submodule")

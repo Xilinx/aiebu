@@ -111,8 +111,7 @@ add_reldyn_section(std::vector<symbol>& syms)
   // Create relocation table writer
   ELFIO::relocation_section_accessor rela( m_elfio, rel_sec );
   for (auto & sym : syms) {
-      rela.add_entry(sym.get_pos(), sym.get_index(), (unsigned char)ELFIO::R_X86_64_32,
-                     (((ELFIO::Elf_Sxword)sym.get_schema() & SCHEMA_MASK) | ((sym.get_addend() << ADDEND_SHIFT) & ADDEND_MASK)));
+      rela.add_entry(sym.get_pos(), sym.get_index(), (unsigned char)sym.get_schema(), (ELFIO::Elf_Sxword)sym.get_addend());
   }
 }
 

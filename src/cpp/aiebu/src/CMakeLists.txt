@@ -10,8 +10,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE AIEBU_CPP_FILES "*.cpp")
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "windows/*")
+list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "windows/uid_md5.cpp")
+
+if (AIEBU_FULL STREQUAL "OFF")
+  list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "aie2ps/*")
+  list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "asm/*")
 endif()
 
 message("-- AIEBU_CPP_FILES: ${AIEBU_CPP_FILES}")
@@ -47,15 +50,25 @@ add_library(aiebu_static STATIC
   $<TARGET_OBJECTS:aiebu_library_objects>
   )
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_libraries(aiebu crypto dl z pthread)
-  target_link_libraries(aiebu_static crypto dl z pthread)
-else()
+target_link_libraries(aiebu xaiengine)
+
+if (MSVC)
   target_link_libraries(aiebu advapi32)
+  target_link_libraries(aiebu_static advapi32)
 endif()
 
-target_link_libraries(aiebu xaiengine)
 #target_link_libraries(aiebu_static xaiengine)
+
+if (AIEBU_FULL STREQUAL "ON")
+  target_include_directories(aiebu_library_objects PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2ps
+    ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
+    ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
+    ${CMAKE_CURRENT_BINARY_DIR}/../../../python/
+  )
+
+  add_dependencies(aiebu_library_objects cpp-assembler-stubs)
+endif()
 
 install (TARGETS aiebu
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}

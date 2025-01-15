@@ -22,8 +22,7 @@ Build Dependencies
 
  * cmake 3.21 or above
  * c++17 compiler
- * Boost
- * Openssl (linux only)
+ * Boost >=  1.70
  * ELFIO (included as submodule)
  * aie-rt (included as submodule)
 
