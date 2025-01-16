@@ -78,7 +78,13 @@ if (XRT_CLANG_TIDY STREQUAL "ON")
   endif()
 endif()
 
-enable_testing()
+if (AIEBU_GIT_SUBMODULE)
+  enable_testing()
+else()
+  # This enables valgrind but we should not include (CTest) when we are a submodule
+  # as it may conflict with configurations of the parent project
+  include (CTest)
+endif()
 
 add_subdirectory(src/cpp/aiebu)
 

@@ -30,3 +30,6 @@ add_test(NAME "aie2_cpp_4x4"
 add_test(NAME "aie2_cpp_4x8"
   COMMAND ${AIE2_TESTNAME} "${AIEBU_BINARY_DIR}/lib/gen/preempt_restore_stx_4x8.bin"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+set_tests_properties("aie2_cpp_4x4" PROPERTIES LABELS memcheck)
+set_tests_properties("aie2_cpp_4x8" PROPERTIES LABELS memcheck)

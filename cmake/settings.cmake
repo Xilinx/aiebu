@@ -10,6 +10,25 @@ set(AIEBU_VERSION_RELEASE 202510)
 SET(AIEBU_VERSION_MAJOR 1)
 SET(AIEBU_VERSION_MINOR 0)
 
+# Standard code snippet to identify parent project if we are a submodule
+set(AIEBU_GIT_SUBMODULE FALSE)
+
+find_package(Git)
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --show-superproject-working-tree
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_SUPERPROJECT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+
+  if(GIT_SUPERPROJECT)
+    message("-- Building AIEBU as a submodule of ${GIT_SUPERPROJECT}")
+    set(AIEBU_GIT_SUBMODULE TRUE)
+  endif()
+endif()
+
 set(AIEBU_SPECIFICATION_INSTALL_DIR "aiebu/share/specification")
 
 if (DEFINED ENV{AIEBU_VERSION_PATCH})

@@ -40,6 +40,7 @@ function compile {
     fi
     make -j $CORE VERBOSE=1 DESTDIR=$PWD install
     make -j $CORE VERBOSE=1 DESTDIR=$PWD test
+    make -j $CORE VERBOSE=1 DESTDIR=$PWD test ARGS="-L memcheck -T memcheck"
     if [[ $config == "Release" ]]; then
 	make -j $CORE VERBOSE=1 DESTDIR=$PWD package
     fi

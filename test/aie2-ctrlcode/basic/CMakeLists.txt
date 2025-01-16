@@ -13,22 +13,29 @@ add_custom_command(OUTPUT ml_txn.bin ctrl_pkt0.bin
 add_custom_target(aie2basicbins ALL
   DEPENDS ml_txn.bin ctrl_pkt0.bin)
 
-
-add_test(NAME "aie2_basic"
+# Assemble a ctrlcode txn binary, a ctrlpkt and associated JSON to ELF
+add_test(NAME "aie2_basic_txn"
   COMMAND aiebu-asm -r -t aie2txn -c ml_txn.bin -p ctrl_pkt0.bin -j "${CMAKE_CURRENT_SOURCE_DIR}/external_buffer_id.json" -o basic.elf)
 
-add_test(NAME "aie2-basic1"
+# Assemble a ctrlcode ASM text, a ctrlpkt and associated JSON to ELF
+add_test(NAME "aie2_basic_asm"
   COMMAND aiebu-asm -r -t aie2asm -c "${CMAKE_CURRENT_SOURCE_DIR}/ml_txn.ctrltext.asm" -p ctrl_pkt0.bin -j "${CMAKE_CURRENT_SOURCE_DIR}/external_buffer_id.json" -o ctrl-packet1.elf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-add_test(NAME "aie2-basic2"
+# Compile a ctrlcode ASM text to binary and then decompile it into ASM text
+add_test(NAME "aie2_basic_asm_redo"
   COMMAND aiebu-asm -r -t aie2asm -c "ctrl-packet1.ctrltext.asm" -p ctrl_pkt0.bin -j "${CMAKE_CURRENT_SOURCE_DIR}/external_buffer_id.json" -o ctrl-packet2.elf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-add_test(NAME "aie2-basic_compare"
+# Compile the original ctrlcode ASM text to decompiled ASM text
+add_test(NAME "aie2_basic_asm_compare"
   COMMAND ${CMAKE_COMMAND} -E compare_files ctrl-packet1.ctrltext.asm ctrl-packet2.ctrltext.asm
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-add_test(NAME "aie2_basic_md5sum"
+# Compare the md5sum of ELF generated in aie2_basic_txn test with that of the golden file
+add_test(NAME "aie2_basic_txn_md5sum"
   COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake" "${CMAKE_CURRENT_BINARY_DIR}/basic.elf" "${CMAKE_CURRENT_SOURCE_DIR}/gold.md5"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+set_tests_properties("aie2_basic_txn" PROPERTIES LABELS memcheck)
+set_tests_properties("aie2_basic_asm" PROPERTIES LABELS memcheck)
