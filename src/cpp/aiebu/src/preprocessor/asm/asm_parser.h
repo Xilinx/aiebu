@@ -9,6 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <stack>
 #include <regex>
 #include <map>
 #include <unordered_map>
@@ -265,7 +266,7 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::unordered_map<uint32_t, col_data> m_col;
   const std::vector<char> &m_data;
   std::map<std::string, std::shared_ptr<directive>> directive_list;
-  bool isdata = false;
+  std::stack<bool> isdatastack;
   std::string m_current_label = "default";
   int m_current_col = -1;
   const std::vector<std::string>& m_include_list;
@@ -273,15 +274,35 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
 public:
   asm_parser(const std::vector<char>& data, const std::vector<std::string>& include_list):m_data(data), m_include_list(include_list)
   {
-    isdata = false;
+    set_data_state(false);
     m_current_col = -1;
   }
 
-  void set_data_state(bool state) { isdata = state; }
+  void set_data_state(bool state) { isdatastack.push(state); }
+
+  void pop_data_state() { isdatastack.pop();}
+
+  bool get_data_state() const { return isdatastack.top();}
 
   const std::vector<std::string>& get_include_list() const { return m_include_list; }
 
   std::string get_current_label() const { return m_current_label; }
+
+  std::string top_label() const
+  {
+    std::vector<std::string> labels = splitoption(m_current_label.c_str(), ':');
+    if (labels.size() == 0)
+      throw error(error::error_code::internal_error, "invalid current label:" + m_current_label);
+    return labels[labels.size() - 1];
+  }
+
+  void pop_label()
+  {
+    size_t pos = m_current_label.rfind(':');
+    if (pos != std::string::npos) {
+        m_current_label =  m_current_label.substr(0, pos);
+    }
+  }
 
   void set_current_label(std::string& label) { m_current_label = label; }
 

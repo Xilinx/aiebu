@@ -21,7 +21,7 @@ insert_col_asmdata(std::shared_ptr<asm_data> data)
   if (label_data.find(m_current_label) == label_data.end())
     label_data[m_current_label] = section_asmdata();
 
-  if (isdata)
+  if (get_data_state())
     label_data[m_current_label].data.emplace_back(data);
   else
     label_data[m_current_label].text.emplace_back(data);
@@ -105,13 +105,6 @@ parse_lines(const std::vector<char>& data, std::string& file)
 
     std::smatch sm;
 
-    // handle attach_to_group directive for col number
-    //if (line.rfind(".attach_to_group") == 0)
-    //{
-    //  std::regex_match(line, sm, OP_REGEX);
-    //  m_current_col = std::stoi(sm[2].str());
-    //  continue;
-    //}
     // Check for Directive
     std::regex_match(line, sm, DIRCETIVE_REGEX);
     if (operate_directive(line))
@@ -131,7 +124,7 @@ parse_lines(const std::vector<char>& data, std::string& file)
     std::regex_match(line, sm, LABEL_REGEX);
     if (sm.size())
     {
-      if (!isdata)
+      if (!get_data_state())
         m_current_label = m_current_label + ":" + sm[1].str();
       else
         insert_col_asmdata(std::make_shared<asm_data>(std::make_shared<operation>(sm[1].str(), ""),
@@ -146,7 +139,7 @@ parse_lines(const std::vector<char>& data, std::string& file)
                                                     operation_type::op, code_section::unknown, 0, (uint32_t)-1,
                                                     linenumber, line, file));
       if (!sm[1].str().compare("EOF"))
-        isdata = true;
+        set_data_state(true);
     }
     ++linenumber;
   }
@@ -160,6 +153,11 @@ operate(std::shared_ptr<asm_parser> parserptr, const std::smatch& sm)
   m_parserptr = parserptr;
   if (sm.size() < 3)
     throw error(error::error_code::invalid_asm, "Invalid attach_to_group directive argument\n");
+
+  // dummy eof added if col change happens before eof
+  m_parserptr->insert_col_asmdata(std::make_shared<asm_data>(std::make_shared<operation>("eof", ""),
+                                                    operation_type::op, code_section::unknown, 0, (uint32_t)-1,
+                                                    0, "eof", "default"));
   m_parserptr->set_current_col(std::stoi(sm[2].str()));
 }
 
@@ -192,6 +190,7 @@ read_include_file(std::string filename)
   auto data = std::vector<char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
   m_parserptr->parse_lines(data, filename);
   file.close();
+  m_parserptr->pop_data_state();
   return true;
 }
 
@@ -227,17 +226,13 @@ end_of_label_directive::
 operate(std::shared_ptr<asm_parser> parserptr, const std::smatch& sm)
 {
   m_parserptr = parserptr;
-  std::vector<std::string> labels = splitoption(m_parserptr->get_current_label().c_str(), ':');
-  if (labels.size() == 0)
-    throw error(error::error_code::internal_error, "invalid current label:" + m_parserptr->get_current_label());
-  if (labels.size() >= 2)
-    m_parserptr->set_current_label(labels[labels.size() - 2]);
-  else
-    m_parserptr->set_current_label(labels[labels.size() - 1]);
+
+  std::string label = m_parserptr->top_label();
+  m_parserptr->pop_label();
 
   std::vector<std::string> args = splitoption(sm[2].str().c_str(), ',');
-  if (labels[labels.size() - 1].compare(args[0]))
-    throw error(error::error_code::internal_error, "endl label missmatch");
+  if (label.compare(args[0]))
+    throw error(error::error_code::internal_error, "endl label missmatch (" + label + " != " + args[0] + ")\n");
 }
 
 void
