@@ -30,6 +30,7 @@ public:
     for (auto a : args)
       m_args.emplace_back(a);
   }
+  virtual ~op_serializer() = default;
 
   const std::vector<std::string>& get_args() const { return m_args; }
 

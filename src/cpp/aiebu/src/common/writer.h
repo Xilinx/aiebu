@@ -23,6 +23,7 @@ class writer
 public:
   writer(const std::string name, code_section type, std::vector<uint8_t>& data): m_name(name), m_type(type), m_data(std::move(data)) {}
   writer(const std::string name, code_section type): m_name(name), m_type(type) {}
+  virtual ~writer() = default;
 
   virtual void write_byte(uint8_t byte);
 

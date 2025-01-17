@@ -63,6 +63,7 @@ public:
   HEADER_ACCESS_GET_SET(ELFIO::Elf_Word, index);
   HEADER_ACCESS_GET_SET(uint64_t, size);
   HEADER_ACCESS_GET_SET(uint32_t, colnum);
+  HEADER_ACCESS_GET_SET(uint32_t, pagenum);
 };
 }
 #endif //_AIEBU_COMMOM_SYMBOL_H_
