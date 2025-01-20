@@ -109,7 +109,7 @@ GOTO:EOF
 REM --------------------------------------------------------------------------
 :DebugBuild
 echo ====================== Windows Debug Build ============================
-set CMAKEFLAGS=%CMAKEFLAGS% -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=%BUILDDIR%/WDebug/xilinx
+set CMAKEFLAGS=%CMAKEFLAGS% -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=%BUILDDIR%/WDebug
 if [%AIEBU_BUILD%] == ["aie2"] (
   set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_FULL=OFF
 ) else (
@@ -146,7 +146,7 @@ GOTO:EOF
 REM --------------------------------------------------------------------------
 :ReleaseBuild
 ECHO ====================== Windows Release Build ============================
-set CMAKEFLAGS=%CMAKEFLAGS% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%BUILDDIR%/WRelease/xilinx
+set CMAKEFLAGS=%CMAKEFLAGS% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%BUILDDIR%/WRelease
 if [%AIEBU_BUILD%] == ["aie2"] (
   set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_FULL=OFF
 ) else (

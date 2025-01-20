@@ -30,7 +30,7 @@ foreach(TGT ${TGT_LIST})
     target_link_options(${TGT} PRIVATE "-static")
   endif()
 
-  if (MSVC)
+  if (MSVC AND (NOT (AIEBU_MSVC_LEGACY_LINKING)))
     # Hybrid linking on Windows
     target_compile_options(${TGT}
       PRIVATE

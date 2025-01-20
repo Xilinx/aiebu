@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
+set(AIEBU_INSTALL_BIN_DIR       "${AIEBU_INSTALL_DIR}/bin")
 set(AIEBU_INSTALL_LIB_DIR       "${AIEBU_INSTALL_DIR}/lib")
 set(AIEBU_INSTALL_INCLUDE_DIR       "${AIEBU_INSTALL_DIR}/include")
 set(GENERATOR_OUT_DIR "${AIEBU_BINARY_DIR}/lib/gen")
@@ -33,7 +34,7 @@ add_library(aiebu_library_objects OBJECT
 add_dependencies(aiebu_library_objects ctrlcodelib)
 
 target_include_directories(aiebu_library_objects PRIVATE
-  ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
+  ${AIEBU_AIE_RT_HEADER_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2
@@ -41,7 +42,6 @@ target_include_directories(aiebu_library_objects PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2
   ${CMAKE_CURRENT_SOURCE_DIR}/common
   ${CMAKE_CURRENT_SOURCE_DIR}/ops
-  ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include
   ${CMAKE_CURRENT_SOURCE_DIR}/analyzer
   ${CMAKE_CURRENT_SOURCE_DIR}/assembler
   ${CMAKE_CURRENT_SOURCE_DIR}/elf
@@ -91,7 +91,9 @@ install (TARGETS aiebu aiebu_static
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}
 )
 
-install(FILES include/aiebu.h include/aiebu_assembler.h include/aiebu_error.h
+install(
+  FILES
+  include/aiebu.h include/aiebu_assembler.h include/aiebu_error.h
   DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )

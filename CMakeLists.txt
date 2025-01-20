@@ -8,7 +8,7 @@ project(AIEBU HOMEPAGE_URL https://gitenterprise.xilinx.com/XRT/aiebu)
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(CMAKE_INSTALL_PREFIX "/opt/xilinx")
 else()
-  set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/xilinx" CACHE PATH "..." FORCE)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/xilinx" CACHE PATH "..." FORCE)
 endif()
 
 
@@ -16,6 +16,10 @@ include (cmake/settings.cmake)
 
 message("-- CMAKE_SYSTEM=${CMAKE_SYSTEM}")
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
+
+# This flag is set to enable legacy linking in windows
+# If this is not set, aiebu will have hybrid linking
+message("-- AIEBU_MSVC_LEGACY_LINKING=${AIEBU_MSVC_LEGACY_LINKING}")
 
 # If this repository is used as a submodule, the parent repository may set the
 # following variables in CMake to make aiebu point to the parents copy of ELFIO

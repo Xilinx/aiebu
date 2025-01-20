@@ -9,12 +9,14 @@ find_package(Boost REQUIRED)
 if (MSVC)
   add_compile_options(/WX /W2)
   # Use Hybrid linking on Windows
-  add_compile_options($<$<CONFIG:Debug>:/MTd>
-                      $<$<CONFIG:Release>:/MT>)
-  add_link_options($<$<CONFIG:Debug>:/NODEFAULTLIB:libucrtd.lib>
-                   $<$<CONFIG:Debug>:/DEFAULTLIB:ucrtd.lib>
-                   $<$<CONFIG:Release>:/NODEFAULTLIB:libucrt.lib>
-                   $<$<CONFIG:Release>:/DEFAULTLIB:ucrt.lib>)
+  if (NOT (AIEBU_MSVC_LEGACY_LINKING))
+    add_compile_options($<$<CONFIG:Debug>:/MTd>
+                        $<$<CONFIG:Release>:/MT>)
+    add_link_options($<$<CONFIG:Debug>:/NODEFAULTLIB:libucrtd.lib>
+                     $<$<CONFIG:Debug>:/DEFAULTLIB:ucrtd.lib>
+                     $<$<CONFIG:Release>:/NODEFAULTLIB:libucrt.lib>
+                     $<$<CONFIG:Release>:/DEFAULTLIB:ucrt.lib>)
+  endif()
 else()
   add_compile_options(-Wall -Wextra -Werror)
 endif()

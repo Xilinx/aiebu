@@ -7,8 +7,10 @@ if (${AIEBU_AIE_RT_BIN_DIR} STREQUAL ${AIEBU_BINARY_DIR})
   if (MSVC)
 #    message("-- Suppressing warnings in aie-rt")
 #    add_compile_options(/WX- /D_CRT_SECURE_NO_WARNINGS)
-     add_compile_options($<$<CONFIG:Debug>:/MTd>
-                         $<$<CONFIG:Release>:/MT>)
+     if (NOT (AIEBU_MSVC_LEGACY_LINKING))
+       add_compile_options($<$<CONFIG:Debug>:/MTd>
+                           $<$<CONFIG:Release>:/MT>)
+    endif()
   endif()
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     add_compile_options("-Wno-error=unused-parameter")
