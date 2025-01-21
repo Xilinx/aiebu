@@ -118,9 +118,6 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
   page_header[10] =  low_8(lpage.get_in_order_page_len());  // Lower 8 bit of in_order_page_len
   page_header[11] =  high_8(lpage.get_in_order_page_len()); // Higher 8 bit of in_order_page_len
 
-  if (lpage.get_islastpage())
-    page_header[4] = 0x0;
-
   auto pagenum = lpage.get_pagenum();
   auto colnum = lpage.get_colnum();
   // create state
