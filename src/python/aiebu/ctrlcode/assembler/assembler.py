@@ -39,7 +39,7 @@ class Assembler:
         self._pager = Pager(PAGE_SIZE)
         # Create the symbol list with a dummy symbol. Note that the dummy symbol is needed
         # for various ELF sections which always have a dummy first element.
-        self.symbols = [Symbol("", 0, 0, 0)]
+        self.symbols = []
         self.controlpacket_symbols = []
         self.controlpacket_shimbd = {}
         self._debug = Debug()
@@ -134,6 +134,7 @@ class Assembler:
         #    print(self._parser.col[c])
         col_page_offset = {}
         pages = []
+        self.symbols.append(Symbol("", 0, list(self._parser.getcollist())[0], 0))
         for col in self._parser.getcollist():
             col_page_offset[col] = len(pages)
             self.controlpacket_shimbd[col] = {}
