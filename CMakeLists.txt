@@ -5,10 +5,12 @@ cmake_minimum_required(VERSION 3.18.0)
 
 project(AIEBU HOMEPAGE_URL https://gitenterprise.xilinx.com/XRT/aiebu)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(CMAKE_INSTALL_PREFIX "/opt/xilinx")
-else()
-  set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/xilinx" CACHE PATH "..." FORCE)
+if (NOT(AIEBU_GIT_SUBMODULE))
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set(CMAKE_INSTALL_PREFIX "/opt/xilinx")
+  else()
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/xilinx" CACHE PATH "..." FORCE)
+  endif()
 endif()
 
 
