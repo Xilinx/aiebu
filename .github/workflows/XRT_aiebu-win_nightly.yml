@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   Windows_Build_and_Test:
-    runs-on: [xcoemgvm224003-XRT_aiebu]
+    runs-on: [xcoengvm224003-XRT_aiebu]
 
     steps:
       - uses: actions/checkout@v3
