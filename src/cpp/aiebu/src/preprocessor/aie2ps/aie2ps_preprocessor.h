@@ -68,8 +68,17 @@ public:
         auto &ooo = page.getout_of_order_page();
         if (ooo.size() > 2)
           throw error(error::error_code::invalid_asm, "Only 2 out of order branching supported\n");
-        auto ooo_page_len_1 = ooo.size() ? pages[label_page_index[get_pagelabel(ooo[0])]].get_cur_page_len() : 0;
-        auto ooo_page_len_2 = (ooo.size() == 2) ? pages[label_page_index[get_pagelabel(ooo[1])]].get_cur_page_len() : 0;
+
+        if (ooo.size() == 2)
+          if (label_page_index.find(get_pagelabel(ooo[1])) == label_page_index.end())
+            throw error(error::error_code::invalid_asm, "Label " + get_pagelabel(ooo[1]) + " not present in col:" + std::to_string(col) + "\n");
+
+        if (ooo.size() == 1)
+          if (label_page_index.find(get_pagelabel(ooo[0])) == label_page_index.end())
+            throw error(error::error_code::invalid_asm, "Label " + get_pagelabel(ooo[0]) + " not present in col:" + std::to_string(col) + "\n");
+
+        auto ooo_page_len_1 = ooo.size() ? pages[label_page_index.at(get_pagelabel(ooo[0]))].get_cur_page_len() : 0;
+        auto ooo_page_len_2 = (ooo.size() == 2) ? pages[label_page_index.at(get_pagelabel(ooo[1]))].get_cur_page_len() : 0;
         page.set_ooo_page_len(ooo_page_len_1,ooo_page_len_2);
       }
       toutput->set_coldata(col, pages, scratchpad, label_page_index, tinput->get_control_packet_index());

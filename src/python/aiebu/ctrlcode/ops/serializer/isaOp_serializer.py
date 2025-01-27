@@ -77,8 +77,11 @@ class IsaOpSerializer(OpSerializer):
                                               parse_num_arg(self.args[0], self.state), col, page,
                                               Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57 if self.state.target == "aie2ps" else
                                               Symbol.XrtPatchSchema.xrt_patch_schema_shim_dma_57_aie4))
-                        if val == self.state.control_packet_index:
-                            self.state.controlpacket_shimbd[col] = {self.args[0]: None}
+
+                        if val == self.state.control_packet_index and arg.name == "offset" and len(self.args) == 4:
+                            if (not (self.state.controlpacket[col] == None) and not (self.state.controlpacket[col] == self.args[3][1:])):
+                                raise RuntimeError(f"Multiple control-packet pad buffer not supported for one col!!!")
+                            self.state.controlpacket[col] = self.args[3][1:]
 
                         # arg 0 to 6 and be patched in CERT.
                         # Beyond that its elfloader/host responsibility to patch mandatorily
@@ -89,6 +92,14 @@ class IsaOpSerializer(OpSerializer):
                         elif val != 0xFFFF:
                             # val is arg index, to get offset x2
                             val = val * 2
+
+                        if arg.name == "offset" and len(self.args) == 4:
+                            ursymbo = self.args[3][1:]
+                            if self.state.containscratchpads(ursymbo):
+                                if ursymbo not in self.state.patch:
+                                    self.state.patch[ursymbo] = []
+                                self.state.patch[ursymbo].append(self.args[0])
+
                     result.append(val & 0xFF)
                     result.append((val >> 8) & 0xFF)
                 elif arg.width == 32:

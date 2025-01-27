@@ -252,14 +252,14 @@ add_scratchpad(std::string& name, std::string& str) {
   str = trim(str);
   if (std::all_of(str.begin(), str.end(), ::isdigit)) {
     std::vector<char> empty_vector;
-    m_parserptr->insert_scratchpad(name, convert2int(str), empty_vector);
+    m_parserptr->insert_scratchpad(name, convert2int(str) * WORD_SIZE, empty_vector);
     return;
   }
   // Check if the string is a hexadecimal number
   std::regex hex_regex("0[xX][0-9a-fA-F]+");
   if (std::regex_match(str, hex_regex)) {
     std::vector<char> empty_vector;
-    m_parserptr->insert_scratchpad(name, convert2int(str), empty_vector);
+    m_parserptr->insert_scratchpad(name, convert2int(str) * WORD_SIZE, empty_vector);
     return;
   }
 

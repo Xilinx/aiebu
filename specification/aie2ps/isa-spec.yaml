@@ -307,6 +307,8 @@ operations:
       The location of the `num_entries` buffer descriptors should be given in a table stored
       at `table_ptr`. One entry in the table is a set of Shim DMA BDs. If there are multiple entries in the table,
       those set of BDS have to be contiguous.
+      4th optional arg in APPLY_OFFSET_57, specifies the pad buffer to hold blob for control packet, or save/restore
+      L2 as scratchpad. It is a string starting with @
       Example:
       ```
         # non-contiguous BDs
@@ -351,6 +353,34 @@ operations:
         WORD              0x80000000
         WORD              0x00000000
         # 2nd set BDs
+        WORD              0x00000080
+        WORD              0x00020000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x80000000
+        WORD              0x00000000
+
+        # patch scratchpad to BDs
+        .setpad ctrl_pkt ctrlpkt.bin
+        .setpad tile_pad 0x100
+        APPLY_OFFSET_57     @mem21_bd0, 1, 3, @ctrl_pkt
+        APPLY_OFFSET_57     @mem21_bd1, 1, 0xFFFF, @tile_pad
+        # ...
+        ALIGN             4
+      mem21_bd0:
+        WORD              0x00000080
+        WORD              0x00020000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x00000000
+        WORD              0x80000000
+        WORD              0x00000000
+      mem21_bd1:
         WORD              0x00000080
         WORD              0x00020000
         WORD              0x00000000
@@ -705,6 +735,25 @@ directives:
       WAIT_TCTS           TILE_0_1, MM2S_0, 1
       END_JOB
       EOF
+      ...
+      ```
+  - mnemonic: .setpad
+    brief: This directive is used to declare a buffer.
+    arguments:
+      - name: buffer size/path to buffer blob
+        type: integer/string
+    description: |
+      Provides a method to specify buffer/buffer blob. If an immediate number is passed
+      as arg, the number is size in word. There will be a buffer declared with that size
+      and initialized as all 0s. If a file is passed as arg, there will be a buffer with
+      the size of the file declared and initialized with contents in the file.
+      `.setpad <buffer size>  or .setpad <buffer file path> `
+      All the buffers declared with this directive will be in .pad.<colnum> section in the elf.
+      Example:
+      ```
+      ...
+      .setpad 0x100
+      .setpad ctrlpkt.bin
       ...
       ```
 macro_defines:

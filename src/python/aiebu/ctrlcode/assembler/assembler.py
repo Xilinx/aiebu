@@ -41,7 +41,7 @@ class Assembler:
         # for various ELF sections which always have a dummy first element.
         self.symbols = []
         self.controlpacket_symbols = []
-        self.controlpacket_shimbd = {}
+        self.controlpacket = {}
         self._debug = Debug()
         self.isdump = isdump
         self._report = Report(self.symbols, mapfilename, self._debug)
@@ -137,7 +137,7 @@ class Assembler:
         self.symbols.append(Symbol("", 0, list(self._parser.getcollist())[0], 0))
         for col in self._parser.getcollist():
             col_page_offset[col] = len(pages)
-            self.controlpacket_shimbd[col] = {}
+            self.controlpacket[col] = None
             relative_page_index = 0
             padsize = 0
             labelpageindex = self._parser.getcollabelpageindex(col)
@@ -145,7 +145,7 @@ class Assembler:
             for label in self._parser.gettextlabelsforcol(col):
                 #print("COL:", col, " LABEL:", label)
                 data = self._parser.getcoltextforlabel(col, label) + self._parser.getcoldata(col)
-                state = AssemblerState(self.target, self.isa_ops, data, scratchpad, labelpageindex, True, self.control_packet_index, self.controlpacket_shimbd)
+                state = AssemblerState(self.target, self.isa_ops, data, scratchpad, labelpageindex, True, self.control_packet_index, self.controlpacket)
                 #print(state)
                 # create pages for 8k (text + data)
                 relative_page_index, pgs = self._pager.pagify(state, col, data, relative_page_index)
@@ -186,20 +186,14 @@ class Assembler:
                              self.elf_sections[page.get_data_section_name()],
                              page, ooo_page_len_1, ooo_page_len_2)
 
-        # We get a map of bd's as keys and control_paket buffer name. we flip the keys with values,
-        # since we have only one control paket patching multile bd's. we get a map with only one
-        # key(control paket buffer name) holding list of bd's as array.
         # We only support one ctrlpkt for one column.
         # Here we add the relative offset of ctrlpkt in .pad section to patching offset coming from external_buffer_id.json
         cp_patch_count = 0
-        for col in self.controlpacket_shimbd:
-            self.controlpacket_shimbd[col] = {value: [key for key, val in self.controlpacket_shimbd[col].items() if val == value] for value in set(self.controlpacket_shimbd[col].values())}
-            if len(self.controlpacket_shimbd[col]) == 0:
-                continue
-            if len(self.controlpacket_shimbd[col]) > 1:
-                raise RuntimeError(f"Multiple control-packet pad buffer not supported for one col!!!")
+        for col in self.controlpacket:
             scratchpad = self._parser.getcolscratchpad(col)
-            ctrlpkt = list(self.controlpacket_shimbd[col].keys())[0]
+            ctrlpkt = self.controlpacket[col]
+            if ctrlpkt == None:
+               continue
             if ctrlpkt not in scratchpad:
                 raise RuntimeError(f"control-packet {ctrlpkt} not found in pad list!!!")
             ctrlpkt_offset = scratchpad[ctrlpkt]["offset"]
@@ -239,7 +233,7 @@ class Assembler:
 
         # create state for each page
         pagestate = AssemblerState(self.target, self.isa_ops, page.text + page.data, self._parser.getcolscratchpad(page.col_num),
-                                   self._parser.getcollabelpageindex(page.col_num), False, self.control_packet_index, self.controlpacket_shimbd)
+                                   self._parser.getcollabelpageindex(page.col_num), False, self.control_packet_index, self.controlpacket)
 
         for byte in page_header:
             text_section.write_byte(byte)

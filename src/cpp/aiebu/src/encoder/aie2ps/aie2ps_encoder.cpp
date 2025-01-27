@@ -31,6 +31,9 @@ fill_control_packet_symbols(writer& padwriter,const uint32_t col,const std::stri
                             std::vector<symbol>& syms,
                             const std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpads)
 {
+  if (controlpacket_padname.empty())
+    return;
+
   if (scratchpads.find(controlpacket_padname) == scratchpads.end())
     throw error(error::error_code::invalid_asm, "controlpacket padname " +
                  controlpacket_padname + " not present in scratchpads\n");
@@ -191,7 +194,7 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
   twriter.push_back(textwriter);
   twriter.push_back(datawriter);
 
-  return findKey(page_state.m_patch, page_state.m_controlpacket_padname);
+  return page_state.m_controlpacket_padname;
   // TODO add size and generate report
 }
 

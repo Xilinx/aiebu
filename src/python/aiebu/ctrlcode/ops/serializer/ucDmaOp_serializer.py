@@ -29,14 +29,6 @@ class UcDmaOpSerializer(OpSerializer):
         ctrl_next_BD = parse_num_arg(self.args[5], self.state) != 0
         ctrl_local_relative = True
 
-        if len(self.args) == 7:
-            ursymbo = self.args[6][1:]
-            if self.state.containscratchpads(ursymbo):
-                if ursymbo not in self.state.patch:
-                    self.state.patch[ursymbo] = []
-                self.state.patch[ursymbo].append(self.args[2])
-                self.state.controlpacket_shimbd[col][self.args[2]] = ursymbo
-
         assert local_ptr_absolute > self.state.getpos(), "uC DMA local ptr has to be located after the DMA definition!"
         local_ptr = local_ptr_absolute - self.state.getpos()
 

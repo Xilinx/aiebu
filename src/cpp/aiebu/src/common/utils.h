@@ -30,7 +30,7 @@ const static jobid_type EOF_ID("EOF");
 const static jobid_type EOP_ID("EOP");
 constexpr offset_type PAGE_SIZE = 8192;
 constexpr int HEX_BASE = 16;
-
+constexpr int WORD_SIZE = 4;
 
 namespace aiebu {
 
@@ -135,6 +135,8 @@ inline std::vector<std::string> splitoption(const char* data, char delimiter = '
 
 inline std::string get_pagelabel(const std::string& label)
 {
+  if (label.empty())
+    return "";
   auto val = splitoption(label.c_str(), ':');
   return val[val.size() -1];
 }

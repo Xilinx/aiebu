@@ -102,8 +102,8 @@ serialize(assembler_state& state, std::vector<symbol>& symbols,
                                + "." + std::to_string(pagenum),
                                symbol::patch_schema::shim_dma_57);
 
-          if (val == state.m_control_packet_index)
-            state.m_controlpacket_padname = m_args[0];
+          if (val == state.m_control_packet_index && !arg.get_name().compare("offset") && m_args.size() == 4)
+            state.m_controlpacket_padname = m_args[3];
 
           // arg 0 to 6 and be patched in CERT.
           // Beyond that its elfloader/host responsibility to patch mandatorily
@@ -116,6 +116,16 @@ serialize(assembler_state& state, std::vector<symbol>& symbols,
             // val is arg index, to get offset x2
             val = val * 2;
           }
+
+          if (!arg.get_name().compare("offset") && m_args.size() == 4)
+          {
+            auto usymbo = m_args[3].substr(1);
+            if (state.m_scratchpad.find(usymbo) != state.m_scratchpad.end())
+            {
+              state.m_patch[m_args[3]].emplace_back(m_args[0]);
+            }
+          }
+
         }
 
         ret.push_back(val & BYTE_MASK);
@@ -151,14 +161,7 @@ serialize(assembler_state& state,
   bool ctrl_external  = state.parse_num_arg(m_args[4]) != 0;
   bool ctrl_next_BD  = state.parse_num_arg(m_args[5]) != 0;
   bool ctrl_local_relative = true;
-  if (m_args.size() == 7)
-  {
-    auto usymbo = m_args[6].substr(1);
-    if (state.m_scratchpad.find(usymbo) != state.m_scratchpad.end())
-    {
-      state.m_patch[m_args[6]].emplace_back(m_args[2]);
-    }
-  }
+
   // TODO assert
   uint32_t local_ptr = local_ptr_absolute - state.get_pos();
 
