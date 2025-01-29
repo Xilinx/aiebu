@@ -178,10 +178,10 @@ uint32_t assembler_state::parse_num_arg(const std::string& str) {
     return (((col & col_mask) << col_shift) | (row & row_mask));
   } else if (str.rfind("0x") == 0)
   { //parse hex string
-    return std::stol(str.substr(2), nullptr , HEX_BASE);
+    return std::stoul(str.substr(2), nullptr , HEX_BASE);
   } else if (is_number(str))
   { //parse numeric string
-    return std::stol(str);
+    return std::stoul(str);
   } else
     throw symbol_exception();
 }

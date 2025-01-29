@@ -289,7 +289,7 @@ bool
 pad_directive::
 read_pad_file(std::string& name, std::string& filename)
 {
-  std::ifstream file(filename);
+  std::ifstream file(filename, std::ios::in | std::ios::binary);
   if (!file.is_open()) {
     return false;
   }

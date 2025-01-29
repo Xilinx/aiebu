@@ -1,0 +1,947 @@
+{
+    "external_buffers": {
+        "buffer0": {
+            "xrt_id": 10,
+            "logical_id": 9,
+            "size_in_bytes": 64,
+            "name": "compute_graph.Layer_10_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 136152,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer1": {
+            "xrt_id": 11,
+            "logical_id": 10,
+            "size_in_bytes": 86016,
+            "name": "compute_graph.Layer_11_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 148344,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer2": {
+            "xrt_id": 12,
+            "logical_id": 11,
+            "size_in_bytes": 19456,
+            "name": "compute_graph.Layer_12_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 161352,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer3": {
+            "xrt_id": 13,
+            "logical_id": 12,
+            "size_in_bytes": 64,
+            "name": "compute_graph.Layer_13_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 175104,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer4": {
+            "xrt_id": 14,
+            "logical_id": 13,
+            "size_in_bytes": 78336,
+            "name": "compute_graph.Layer_14_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 187296,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer5": {
+            "xrt_id": 15,
+            "logical_id": 14,
+            "size_in_bytes": 17920,
+            "name": "compute_graph.Layer_15_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 200232,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer6": {
+            "xrt_id": 16,
+            "logical_id": 15,
+            "size_in_bytes": 193536,
+            "name": "compute_graph.Layer_16_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 211680,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer7": {
+            "xrt_id": 17,
+            "logical_id": 16,
+            "size_in_bytes": 26880,
+            "name": "compute_graph.Layer_17_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 224568,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer8": {
+            "xrt_id": 18,
+            "logical_id": 17,
+            "size_in_bytes": 64,
+            "name": "compute_graph.Layer_18_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 238320,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer9": {
+            "xrt_id": 19,
+            "logical_id": 18,
+            "size_in_bytes": 193536,
+            "name": "compute_graph.Layer_19_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 251040,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer10": {
+            "xrt_id": 0,
+            "logical_id": 0,
+            "size_in_bytes": 5376,
+            "name": "compute_graph.Layer_1_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 10344,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer11": {
+            "xrt_id": 20,
+            "logical_id": 19,
+            "size_in_bytes": 26880,
+            "name": "compute_graph.Layer_20_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 263928,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer12": {
+            "xrt_id": 21,
+            "logical_id": 20,
+            "size_in_bytes": 64,
+            "name": "compute_graph.Layer_21_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 277680,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer13": {
+            "xrt_id": 22,
+            "logical_id": 21,
+            "size_in_bytes": 193536,
+            "name": "compute_graph.Layer_22_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 290400,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer14": {
+            "xrt_id": 23,
+            "logical_id": 22,
+            "size_in_bytes": 26880,
+            "name": "compute_graph.Layer_23_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 303288,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer15": {
+            "xrt_id": 24,
+            "logical_id": 23,
+            "size_in_bytes": 64,
+            "name": "compute_graph.Layer_24_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 317040,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer16": {
+            "xrt_id": 25,
+            "logical_id": 24,
+            "size_in_bytes": 193536,
+            "name": "compute_graph.Layer_25_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 329760,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer17": {
+            "xrt_id": 26,
+            "logical_id": 25,
+            "size_in_bytes": 26880,
+            "name": "compute_graph.Layer_26_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 342648,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer18": {
+            "xrt_id": 27,
+            "logical_id": 26,
+            "size_in_bytes": 64,
+            "name": "compute_graph.Layer_27_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 356400,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer19": {
+            "xrt_id": 28,
+            "logical_id": 27,
+            "size_in_bytes": 21760,
+            "name": "compute_graph.Layer_28_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 369120,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer20": {
+            "xrt_id": 1,
+            "logical_id": 1,
+            "size_in_bytes": 43008,
+            "name": "compute_graph.Layer_2_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 23352,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer21": {
+            "xrt_id": 2,
+            "logical_id": 2,
+            "size_in_bytes": 8448,
+            "name": "compute_graph.Layer_3_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 41472,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer22": {
+            "xrt_id": 4,
+            "logical_id": 3,
+            "size_in_bytes": 32256,
+            "name": "compute_graph.Layer_4_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 54216,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer23": {
+            "xrt_id": 5,
+            "logical_id": 4,
+            "size_in_bytes": 8448,
+            "name": "compute_graph.Layer_5_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 72336,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer24": {
+            "xrt_id": 6,
+            "logical_id": 5,
+            "size_in_bytes": 48384,
+            "name": "compute_graph.Layer_6_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 85080,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer25": {
+            "xrt_id": 7,
+            "logical_id": 6,
+            "size_in_bytes": 14592,
+            "name": "compute_graph.Layer_7_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 97944,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer26": {
+            "xrt_id": 8,
+            "logical_id": 7,
+            "size_in_bytes": 86016,
+            "name": "compute_graph.Layer_8_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 109392,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer27": {
+            "xrt_id": 9,
+            "logical_id": 8,
+            "size_in_bytes": 19456,
+            "name": "compute_graph.Layer_9_wts_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 122400,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer28": {
+            "xrt_id": 29,
+            "logical_id": 28,
+            "size_in_bytes": 230400,
+            "name": "compute_graph.ifm_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 10284,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer29": {
+            "xrt_id": 39,
+            "logical_id": 38,
+            "size_in_bytes": 115200,
+            "name": "compute_graph.l2l3_10_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 148068,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 148284,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 175044,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer30": {
+            "xrt_id": 40,
+            "logical_id": 39,
+            "size_in_bytes": 921600,
+            "name": "compute_graph.l2l3_11_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 160956,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 161016,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 161292,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer31": {
+            "xrt_id": 41,
+            "logical_id": 40,
+            "size_in_bytes": 115200,
+            "name": "compute_graph.l2l3_12_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 174828,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 175332,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer32": {
+            "xrt_id": 42,
+            "logical_id": 41,
+            "size_in_bytes": 115200,
+            "name": "compute_graph.l2l3_13_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 187020,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 187236,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer33": {
+            "xrt_id": 43,
+            "logical_id": 42,
+            "size_in_bytes": 230400,
+            "name": "compute_graph.l2l3_14_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 199956,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 200172,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer34": {
+            "xrt_id": 44,
+            "logical_id": 43,
+            "size_in_bytes": 43200,
+            "name": "compute_graph.l2l3_15_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 211404,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 211620,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 238260,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer35": {
+            "xrt_id": 45,
+            "logical_id": 44,
+            "size_in_bytes": 345600,
+            "name": "compute_graph.l2l3_16_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 224292,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 224508,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer36": {
+            "xrt_id": 46,
+            "logical_id": 45,
+            "size_in_bytes": 43200,
+            "name": "compute_graph.l2l3_17_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 238044,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 238548,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer37": {
+            "xrt_id": 47,
+            "logical_id": 46,
+            "size_in_bytes": 43200,
+            "name": "compute_graph.l2l3_18_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 250764,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 250980,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 277620,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer38": {
+            "xrt_id": 48,
+            "logical_id": 47,
+            "size_in_bytes": 345600,
+            "name": "compute_graph.l2l3_19_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 263652,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 263868,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer39": {
+            "xrt_id": 30,
+            "logical_id": 29,
+            "size_in_bytes": 460800,
+            "name": "compute_graph.l2l3_1_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 22956,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 23016,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 23292,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer40": {
+            "xrt_id": 49,
+            "logical_id": 48,
+            "size_in_bytes": 43200,
+            "name": "compute_graph.l2l3_20_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 277404,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 277908,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer41": {
+            "xrt_id": 50,
+            "logical_id": 49,
+            "size_in_bytes": 43200,
+            "name": "compute_graph.l2l3_21_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 290124,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 290340,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 316980,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer42": {
+            "xrt_id": 51,
+            "logical_id": 50,
+            "size_in_bytes": 345600,
+            "name": "compute_graph.l2l3_22_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 303012,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 303228,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer43": {
+            "xrt_id": 52,
+            "logical_id": 51,
+            "size_in_bytes": 43200,
+            "name": "compute_graph.l2l3_23_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 316764,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 317268,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer44": {
+            "xrt_id": 53,
+            "logical_id": 52,
+            "size_in_bytes": 43200,
+            "name": "compute_graph.l2l3_24_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 329484,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 329700,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 356340,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer45": {
+            "xrt_id": 54,
+            "logical_id": 53,
+            "size_in_bytes": 345600,
+            "name": "compute_graph.l2l3_25_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 342372,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 342588,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer46": {
+            "xrt_id": 55,
+            "logical_id": 54,
+            "size_in_bytes": 43200,
+            "name": "compute_graph.l2l3_26_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 356124,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 356628,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer47": {
+            "xrt_id": 56,
+            "logical_id": 55,
+            "size_in_bytes": 43200,
+            "name": "compute_graph.l2l3_27_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 368844,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 369060,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer48": {
+            "xrt_id": 31,
+            "logical_id": 30,
+            "size_in_bytes": 1382400,
+            "name": "compute_graph.l2l3_2_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 23676,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 23736,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 41412,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer49": {
+            "xrt_id": 32,
+            "logical_id": 31,
+            "size_in_bytes": 345600,
+            "name": "compute_graph.l2l3_3_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 41892,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 54156,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer50": {
+            "xrt_id": 33,
+            "logical_id": 32,
+            "size_in_bytes": 1382400,
+            "name": "compute_graph.l2l3_4_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 54540,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 54600,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 72276,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer51": {
+            "xrt_id": 34,
+            "logical_id": 33,
+            "size_in_bytes": 345600,
+            "name": "compute_graph.l2l3_5_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 72756,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 85020,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer52": {
+            "xrt_id": 35,
+            "logical_id": 34,
+            "size_in_bytes": 691200,
+            "name": "compute_graph.l2l3_6_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 97548,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 97608,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 97884,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer53": {
+            "xrt_id": 36,
+            "logical_id": 35,
+            "size_in_bytes": 115200,
+            "name": "compute_graph.l2l3_7_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 109116,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 109332,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 136092,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer54": {
+            "xrt_id": 37,
+            "logical_id": 36,
+            "size_in_bytes": 921600,
+            "name": "compute_graph.l2l3_8_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 122004,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 122064,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 122340,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer55": {
+            "xrt_id": 38,
+            "logical_id": 37,
+            "size_in_bytes": 115200,
+            "name": "compute_graph.l2l3_9_spill",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 135876,
+                    "size": 6,
+                    "operation": "read_add_write"
+                },
+                {
+                    "offset": 136380,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer56": {
+            "xrt_id": 57,
+            "logical_id": 56,
+            "size_in_bytes": 345600,
+            "name": "compute_graph.ofm_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 370884,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+        "buffer57": {
+            "xrt_id": 3,
+            "logical_id": 4294967295,
+            "size_in_bytes": 370992,
+            "ctrl_pkt_buffer": true,
+            "name": "runtime_control_packet"
+        }
+    }
+}
