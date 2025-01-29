@@ -159,6 +159,7 @@ operate(std::shared_ptr<asm_parser> parserptr, const std::smatch& sm)
                                                     operation_type::op, code_section::unknown, 0, (uint32_t)-1,
                                                     0, "eof", "default"));
   m_parserptr->set_current_col(std::stoi(sm[2].str()));
+  m_parserptr->set_data_state(false);
 }
 
 void
