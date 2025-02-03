@@ -32,8 +32,8 @@ int main(int argc, char ** argv)
 
   if (argc > 2) {
     // Reading control_pack and external_buffer_id_json
-    std::ifstream input(argv[2], std::ios::binary);
-    std::copy(std::istreambuf_iterator<char>(input),
+    std::ifstream input0(argv[2], std::ios::binary);
+    std::copy(std::istreambuf_iterator<char>(input0),
               std::istreambuf_iterator<char>( ),
               std::back_inserter(control_packet_buf));
 

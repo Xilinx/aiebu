@@ -37,7 +37,8 @@ foreach(TGT ${TGT_LIST})
       PRIVATE
       /MT$<$<CONFIG:Debug>:d>  # static linking with the CRT
       )
-    target_link_options(
+    target_link_options(${TGT}
+      PRIVATE
       /NODEFAULTLIB:libucrt$<$<CONFIG:Debug>:d>.lib  # Hybrid CRT
       /DEFAULTLIB:ucrt$<$<CONFIG:Debug>:d>.lib       # Hybrid CRT
       )
