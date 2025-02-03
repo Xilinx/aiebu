@@ -10,4 +10,10 @@ if (AIEBU_FULL STREQUAL "ON")
 endif()
 add_subdirectory(aie2-ctrlcode)
 add_subdirectory(cpp_test)
-add_subdirectory(cmake-test)
+
+
+# Whomever added this test, please make it work when
+# AIEBU is built as a submodule from XRT
+if (NOT AIEBU_SUBMODULE)
+  add_subdirectory(cmake-test)
+endif()

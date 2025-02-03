@@ -587,17 +587,15 @@ void generateHeaderFile(const std::map<uint8_t, std::pair<std::vector<uint8_t>, 
 
 int main(int /* argc */, char** /* argv */)
 {
-    uint8_t start_col;
-    int ret;
-
+  try {
     /* STX */
     const uint8_t columns_stx[] = {1, 2, 4, 8};
     std::map<uint8_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> stx_save_restore_map;
-    start_col = 0;
+    constexpr uint8_t start_col_stx = 0;
     for (auto ncol : columns_stx) {
-        std::vector<uint8_t> save = generate_tran(DEVICE_STX, PREEMPT_SAVE, start_col, ncol);
+        std::vector<uint8_t> save = generate_tran(DEVICE_STX, PREEMPT_SAVE, start_col_stx, ncol);
         std::cout << "Successfully generated " << dev_to_str[DEVICE_STX] << " 4x" << std::to_string(ncol) << " save transaction binary!\n";
-        std::vector<uint8_t> restore = generate_tran(DEVICE_STX, PREEMPT_RESTORE, start_col, ncol);
+        std::vector<uint8_t> restore = generate_tran(DEVICE_STX, PREEMPT_RESTORE, start_col_stx, ncol);
         std::cout << "Successfully generated " << dev_to_str[DEVICE_STX] << " 4x" << std::to_string(ncol) << " restore transaction binary!\n";
         stx_save_restore_map[ncol] = std::make_pair(std::move(save), std::move(restore));
     }
@@ -607,12 +605,21 @@ int main(int /* argc */, char** /* argv */)
 
     /* PHX */
     const uint8_t columns_phx[] = {1, 2, 4};
-    start_col = 1;
+    constexpr uint8_t start_col_phx = 1;
     for (auto ncol : columns_phx) {
-        std::vector<uint8_t> save = generate_tran(DEVICE_PHX, PREEMPT_SAVE, start_col, ncol);
+        std::vector<uint8_t> save = generate_tran(DEVICE_PHX, PREEMPT_SAVE, start_col_phx, ncol);
         std::cout << "Successfully generated " << dev_to_str[DEVICE_PHX] << " 4x" << std::to_string(ncol) << " save transaction binary!\n";
-        std::vector<uint8_t> restore = generate_tran(DEVICE_PHX, PREEMPT_RESTORE, start_col, ncol);
+        std::vector<uint8_t> restore = generate_tran(DEVICE_PHX, PREEMPT_RESTORE, start_col_phx, ncol);
         std::cout << "Successfully generated " << dev_to_str[DEVICE_PHX] << " 4x" << std::to_string(ncol) << " restore transaction binary!\n";
     }
     return 0;
+  }
+  catch (const std::exception& ex) {
+    std::cerr << "Error: " << ex.what() << "\n";
+  }
+  catch (...) {
+    std::cerr << "Unknow error\n";
+  }
+
+  return 1;
 }

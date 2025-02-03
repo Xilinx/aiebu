@@ -17,18 +17,18 @@ int main(int argc, char **argv)
   if (argc != 2 && argc != 4)
     usage_exit();
 
-  char* txn_buf;
-  char* control_packet_buf;
-  char* external_buffer_id_json_buf;
-  char* elf_buf;
+  char* txn_buf = NULL;
+  char* control_packet_buf = NULL;
+  char* external_buffer_id_json_buf = NULL;
+  char* elf_buf = NULL;
 
   size_t txn_buf_size, control_packet_buf_size = 0, external_buffer_id_json_buf_size = 0, elf_buf_size;
 
-  txn_buf = aiebu_ReadFile(argv[1], (long *)&txn_buf_size);
+  txn_buf = aiebu_ReadFile(argv[1], &txn_buf_size);
   if (argc > 2)
   {
-    control_packet_buf = aiebu_ReadFile(argv[2], (long *)&control_packet_buf_size);
-    external_buffer_id_json_buf = aiebu_ReadFile(argv[3], (long *)&external_buffer_id_json_buf_size);
+    control_packet_buf = aiebu_ReadFile(argv[2], &control_packet_buf_size);
+    external_buffer_id_json_buf = aiebu_ReadFile(argv[3], &external_buffer_id_json_buf_size);
   }
 
   elf_buf_size = aiebu_assembler_get_elf(aiebu_assembler_buffer_type_blob_instr_transaction,
