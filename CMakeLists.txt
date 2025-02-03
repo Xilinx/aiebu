@@ -15,6 +15,7 @@ endif()
 
 
 include (cmake/settings.cmake)
+include (cmake/utils.cmake)
 
 message("-- CMAKE_SYSTEM=${CMAKE_SYSTEM}")
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
