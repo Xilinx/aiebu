@@ -37,7 +37,9 @@ char* aiebu_ReadFile(char *name, size_t *s)
   }
 
   //Read file contents into buffer
-  fread(buffer, fileLen, 1, file);
+  if (fread(buffer, fileLen, 1, file) != fileLen)
+    printf("Unexpected number of bytes read\n");
+
   fclose(file);
   return buffer;
 }

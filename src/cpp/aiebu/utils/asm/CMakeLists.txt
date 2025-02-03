@@ -28,18 +28,19 @@ foreach(TGT ${TGT_LIST})
   if ((${CMAKE_SYSTEM_NAME} STREQUAL "Linux") AND (${TGT} STREQUAL "aiebu-asm"))
     # Static linking on Linux
     target_link_options(${TGT} PRIVATE "-static")
+    set_target_properties(${ASM_TGT} PROPERTIES INSTALL_RPATH "" BUILD_RPATH "")
   endif()
 
   if (MSVC AND (NOT (AIEBU_MSVC_LEGACY_LINKING)))
     # Hybrid linking on Windows
     target_compile_options(${TGT}
       PRIVATE
-      $<$<CONFIG:Debug>:/MTd>
-      $<$<CONFIG:Release>:/MT>)
-    add_link_options($<$<CONFIG:Debug>:/NODEFAULTLIB:libucrtd.lib>
-      $<$<CONFIG:Debug>:/DEFAULTLIB:ucrtd.lib>
-      $<$<CONFIG:Release>:/NODEFAULTLIB:libucrt.lib>
-      $<$<CONFIG:Release>:/DEFAULTLIB:ucrt.lib>)
+      /MT$<$<CONFIG:Debug>:d>  # static linking with the CRT
+      )
+    target_link_options(
+      /NODEFAULTLIB:libucrt$<$<CONFIG:Debug>:d>.lib  # Hybrid CRT
+      /DEFAULTLIB:ucrt$<$<CONFIG:Debug>:d>.lib       # Hybrid CRT
+      )
   endif()
 
   target_link_libraries(${TGT}
