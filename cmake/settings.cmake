@@ -40,3 +40,8 @@ endif(DEFINED $ENV{AIEBU_VERSION_PATCH})
 # Also update cache to set version for external plug-in .so
 set(AIEBU_SOVERSION ${AIEBU_VERSION_MAJOR} CACHE INTERNAL "")
 set(AIEBU_VERSION_STRING ${AIEBU_VERSION_MAJOR}.${AIEBU_VERSION_MINOR}.${AIEBU_VERSION_PATCH} CACHE INTERNAL "")
+
+# Some later versions of boost spews warnings form property_tree
+# Default embedded boost is 1.74.0 which does spew warnings so
+# making this defined global
+add_compile_options("-DBOOST_BIND_GLOBAL_PLACEHOLDERS")
