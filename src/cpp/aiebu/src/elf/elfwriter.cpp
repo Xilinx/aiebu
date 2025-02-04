@@ -150,7 +150,7 @@ add_dynamic_section_segment()
 
 void
 elf_writer::
-add_note(ELFIO::Elf_Word type, std::string name, std::string dec)
+add_note(ELFIO::Elf_Word type, const std::string& name, const std::string& dec)
 {
   ELFIO::section* note_sec = m_elfio.sections.add( name.c_str() );
   note_sec->set_type( ELFIO::SHT_NOTE );

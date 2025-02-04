@@ -33,13 +33,19 @@ enum class operation_type: uint8_t
   op = 2,
 };
 
+// Start defining regexs required for parsing aie2asm
+
+const std::string HEX_RE("[[:space:]]*(0[xX][[:xdigit:]]+)[[:space:]]*");
+const std::string L_BRACK_RE("[[:space:]]*\\([[:space:]]*");
+const std::string R_BRACK_RE("[[:space:]]*\\)[[:space:]]*");
+
 class operation
 {
   std::string m_name;
   std::vector<std::string> m_args;
 public:
 
-  operation(std::string name, std::string sargs): m_name(name)
+  operation(const std::string& name, std::string sargs): m_name(name)
   {
     std::transform(m_name.begin(), m_name.end(), m_name.begin(), ::tolower);
     std::transform(sargs.begin(), sargs.end(), sargs.begin(), ::tolower);
@@ -49,7 +55,6 @@ public:
     while (std::getline(ss, s, ' ')) {
         m_args.emplace_back(s.substr(0, s.find_last_not_of(",")+1));
     }
-
   }
 
   const std::string& get_name() const { return m_name; }

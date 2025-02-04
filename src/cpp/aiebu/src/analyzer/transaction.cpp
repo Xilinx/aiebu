@@ -9,15 +9,26 @@
 #include <array>
 #include <sstream>
 
+// Parts of the code here originally based on
 // https://gitenterprise.xilinx.com/tsiddaga/dynamic_op_dispatch/blob/main/include/transaction.hpp
 
 #include "xaiengine.h"
 #include "transaction.hpp"
 
+namespace {
+static const std::array<std::string_view, 5> preempt_code_table{"NOOP",
+                                                                "MEM_TILE",
+                                                                "AIE_TILE",
+                                                                "AIE_REGISTERS",
+                                                                "INVALID"};
+
+constexpr uint8_t MAJOR_VER = 1;
+constexpr uint8_t MINOR_VER = 0;
+}
+
 struct transaction::implementation {
 private:
     static constexpr unsigned int field_width = 32;
-    static const std::string preempt_code_table[];
 
     static inline std::ostream& op_format(std::ostream& strm) {
         strm << std::setw(field_width) << std::left;
@@ -92,8 +103,6 @@ public:
     }
 
 private:
-    #define MAJOR_VER 1
-    #define MINOR_VER 0
 
     template <std::size_t N>
     void count_tnx(const uint8_t *ptr, std::array<unsigned int, N> &op_count) const {
@@ -132,6 +141,10 @@ private:
             }
             case XAIE_IO_PREEMPT: {
                 ptr += sizeof(XAie_PreemptHdr);
+                break;
+            }
+            case XAIE_IO_LOADPDI: {
+                ptr += sizeof(XAie_LoadPdiHdr);
                 break;
             }
             case XAIE_IO_LOAD_PM_START: {
@@ -187,6 +200,10 @@ private:
             }
             case XAIE_IO_PREEMPT: {
                 ptr += sizeof(XAie_PreemptHdr);
+                break;
+            }
+            case XAIE_IO_LOADPDI: {
+                ptr += sizeof(XAie_LoadPdiHdr);
                 break;
             }
             case XAIE_IO_LOAD_PM_START: {
@@ -279,6 +296,13 @@ private:
         auto mp_header = (const XAie_PreemptHdr *)(ptr);
         ss_ops_ << op_format << "XAIE_IO_PREEMPT " << preempt_code_table[mp_header->Preempt_level] << std::endl;
         return sizeof(XAie_PreemptHdr);
+    }
+
+    size_t stringify_loadpdi(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
+        auto mp_header = (const XAie_LoadPdiHdr *)(ptr);
+        ss_ops_ << op_format << "XAIE_IO_LOADPDI " << "0x" <<  std::hex << mp_header->PdiId << ", 0x" <<
+                   mp_header->PdiSize << "0x" << mp_header->PdiAddress << std::endl;
+        return sizeof(XAie_LoadPdiHdr);
     }
 
     size_t stringify_pmload(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
@@ -392,6 +416,13 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
         return sizeof(XAie_PreemptHdr);
     }
 
+    size_t stringify_loadpdi_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
+        auto mp_header = (const XAie_LoadPdiHdr *)(ptr);
+        ss_ops_ << op_format << "XAIE_IO_LOADPDI " << "0x" <<  std::hex << mp_header->PdiId << ", 0x" <<
+                   mp_header->PdiSize << "0x" << mp_header->PdiAddress << std::endl;
+        return sizeof(XAie_LoadPdiHdr);
+    }
+
     size_t stringify_pmload_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_PmLoadHdr *)(ptr);
         uint32_t loadsequence = mp_header->LoadSequenceCount[2] << 16 | mp_header->LoadSequenceCount[1] << 8 | mp_header->LoadSequenceCount[0];
@@ -477,6 +508,9 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
             case XAIE_IO_PREEMPT:
                 size = stringify_preempt(op_hdr, ss);
                 break;
+            case XAIE_IO_LOADPDI:
+                size = stringify_loadpdi(op_hdr, ss);
+                break;
             case XAIE_IO_LOAD_PM_START:
                 size = stringify_pmload(op_hdr, ss);
                 break;
@@ -541,6 +575,9 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
             case XAIE_IO_PREEMPT:
                 size = stringify_preempt_opt(op_hdr, ss);
                 break;
+            case XAIE_IO_LOADPDI:
+                size = stringify_loadpdi_opt(op_hdr, ss);
+                break;
             case XAIE_IO_LOAD_PM_START:
                 size = stringify_pmload_opt(op_hdr, ss);
                 break;
@@ -584,13 +621,6 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
         }
     }
 };
-
-const std::string transaction::implementation::preempt_code_table[] = {
-      "NOOP",
-      "MEM_TILE",
-      "AIE_TILE",
-      "AIE_REGISTERS",
-      "INVALID"};
 
 transaction::transaction(const char *txn, uint64_t size) : impl(std::make_shared<transaction::implementation>(txn, size)) {}
 
