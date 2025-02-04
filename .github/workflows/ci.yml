@@ -3,6 +3,7 @@ name: CMake Build
 on:
   pull_request:
     types: [opened, synchronize]
+    branches: main-ge
 
   workflow_dispatch:  
 
