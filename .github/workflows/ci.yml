@@ -40,3 +40,7 @@ jobs:
     - name: Build
       run: |
         cmake --build ${{github.workspace}}/build/Release --config Release
+
+    - name: Test
+      run: |
+        cmake --build ${{github.workspace}}/build/Release --config Release --target test
