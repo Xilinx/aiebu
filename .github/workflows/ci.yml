@@ -1,0 +1,41 @@
+name: CMake Build
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+  workflow_dispatch:  
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        # os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout AIEBU
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pkg-config libelf-dev libboost-dev
+
+    - name: Install Dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install pkgconfig  
+
+    - name: Configure CMake
+      run: |
+        cmake -B ${{github.workspace}}/build/Release -DAIEBU_FULL=OFF -DCMAKE_BUILD_TYPE=Release 
+
+    - name: Build
+      run: |
+        cmake --build ${{github.workspace}}/build/Release --config Release
