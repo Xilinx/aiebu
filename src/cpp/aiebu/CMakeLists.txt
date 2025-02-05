@@ -1,11 +1,5 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
-
-set(Boost_USE_STATIC_LIBS ON)
-INCLUDE (FindBoost)
-message("-- Boost version: ${Boost_VERSION}")
-find_package(Boost REQUIRED)
-
 if (MSVC)
   add_compile_options(/WX /W2)
   # Use Hybrid linking on Windows
