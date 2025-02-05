@@ -13,6 +13,10 @@ if (NOT(AIEBU_GIT_SUBMODULE))
   endif()
 endif()
 
+set(Boost_USE_STATIC_LIBS ON)
+INCLUDE (FindBoost)
+message("-- Boost version: ${Boost_VERSION}")
+find_package(Boost REQUIRED)
 
 include (cmake/settings.cmake)
 include (cmake/utils.cmake)
@@ -102,7 +106,6 @@ if (AIEBU_FULL STREQUAL "ON")
 endif()
 
 add_subdirectory(lib)
-
 add_subdirectory(test)
 
 SET(PACKAGE_KIND "TGZ")
