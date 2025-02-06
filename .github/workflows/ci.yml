@@ -5,7 +5,11 @@ on:
     types: [opened, synchronize]
     branches: main-ge
 
-  workflow_dispatch:  
+  workflow_dispatch:
+
+# see binary-caching-github-actions-cache
+env:
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
 jobs:
   build:
@@ -22,20 +26,27 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install Dependencies (Linux)
+    # See binary caching with github actions
+    - name: Export GitHub Actions cache environment variables
+      uses: actions/github-script@v7
+      with:
+        script: |
+          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+    - name: Install Dependencies (Linux) and configure CMake
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y pkg-config libelf-dev libboost-dev
+        cmake -B ${{github.workspace}}/build/Release -DAIEBU_FULL=OFF -DCMAKE_BUILD_TYPE=Release 
 
-    - name: Install Dependencies (Windows)
+    - name: Install Dependencies (Windows) and configure CMake
       if: runner.os == 'Windows'
       run: |
-        choco install pkgconfig  
-
-    - name: Configure CMake
-      run: |
-        cmake -B ${{github.workspace}}/build/Release -DAIEBU_FULL=OFF -DCMAKE_BUILD_TYPE=Release 
+        vcpkg integrate install
+        vcpkg install boost-format boost-uuid boost-interprocess boost-algorithm boost-property-tree boost-headers --triplet=x64-windows
+        cmake -B ${{github.workspace}}/build/Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DAIEBU_FULL=OFF -DCMAKE_BUILD_TYPE=Release 
 
     - name: Build
       run: |
