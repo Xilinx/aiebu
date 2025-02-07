@@ -3,7 +3,7 @@
   (tab-width . 2)
   (c-basic-offset . 2)
   (c-file-style . "stroustrup")
-  (fill-column . 120)
+  (fill-column . 80)
   (eval . (progn
 	    (c-set-offset 'innamespace '0)
 	    (c-set-offset 'inline-open '0)))

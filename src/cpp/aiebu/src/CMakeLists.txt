@@ -18,6 +18,12 @@ add_library(aiebu_library_objects OBJECT
 target_include_directories(aiebu_library_objects
   PRIVATE
   ${AIEBU_AIE_RT_HEADER_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${Boost_INCLUDE_DIRS}
+  ${AIEBU_BINARY_DIR}/lib
+  ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO
+
+  # The following should be spelled out in code
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2
@@ -30,8 +36,6 @@ target_include_directories(aiebu_library_objects
   ${CMAKE_CURRENT_SOURCE_DIR}/elf
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2
   ${AIEBU_BINARY_DIR}/lib/gen
-  ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO/
-  ${Boost_INCLUDE_DIRS}
   )
 
 set_target_properties(aiebu_library_objects PROPERTIES
