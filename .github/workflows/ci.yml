@@ -51,7 +51,12 @@ jobs:
       run: |
         cmake --build ${{github.workspace}}/build/Release --config Release
 
-    - name: Test
+    - name: Test (Linux)
       if: runner.os == 'Linux'
       run: |
         cmake --build ${{github.workspace}}/build/Release --config Release --target test
+
+    - name: Test (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake --build ${{github.workspace}}/build/Release --config Release --target run_tests
