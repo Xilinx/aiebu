@@ -1,39 +1,22 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
-
-set(AIEBU_INSTALL_BIN_DIR       "${AIEBU_INSTALL_DIR}/bin")
-set(AIEBU_INSTALL_LIB_DIR       "${AIEBU_INSTALL_DIR}/lib")
-set(AIEBU_INSTALL_INCLUDE_DIR       "${AIEBU_INSTALL_DIR}/include")
-set(GENERATOR_OUT_DIR "${AIEBU_BINARY_DIR}/lib/gen")
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-file(GLOB_RECURSE AIEBU_CPP_FILES "*.cpp")
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "windows/*")
-endif()
-
-list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "windows/uid_md5.cpp")
-
-if (AIEBU_FULL STREQUAL "OFF")
-  list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "/aie2ps/*")
-  list(FILTER AIEBU_CPP_FILES EXCLUDE REGEX "/pager.cpp")
-endif()
-
-message("-- AIEBU_CPP_FILES: ${AIEBU_CPP_FILES}")
-
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
+# Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 add_library(aiebu_library_objects OBJECT
-  ${AIEBU_CPP_FILES}
+  analyzer/reporter.cpp
+  analyzer/transaction.cpp
+  assembler/aiebu_assembler.cpp
+  assembler/assembler.cpp
+  common/aiebu_error.cpp
+  common/writer.cpp
+  common/assembler_state.cpp
+  elf/elfwriter.cpp
+  preprocessor/aie2/aie2_blob_preprocessor_input.cpp
+  preprocessor/aie2/aie2_asm_preprocessor_input.cpp
+  preprocessor/asm/asm_parser.cpp
+  ops/ops.cpp
   )
 
-add_dependencies(aiebu_library_objects ctrlcodelib)
-
-target_include_directories(aiebu_library_objects PRIVATE
+target_include_directories(aiebu_library_objects
+  PRIVATE
   ${AIEBU_AIE_RT_HEADER_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor
@@ -46,10 +29,34 @@ target_include_directories(aiebu_library_objects PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/assembler
   ${CMAKE_CURRENT_SOURCE_DIR}/elf
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2
-  ${GENERATOR_OUT_DIR}
+  ${AIEBU_BINARY_DIR}/lib/gen
   ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO/
   ${Boost_INCLUDE_DIRS}
   )
+
+set_target_properties(aiebu_library_objects PROPERTIES
+  CXX_VISIBILITY_PRESET hidden
+  POSITION_INDEPENDENT_CODE ON
+  )
+
+add_dependencies(aiebu_library_objects ctrlcodelib)
+
+if (AIEBU_FULL STREQUAL "ON")
+  target_sources(aiebu_library_objects
+    PRIVATE
+    encoder/aie2ps/aie2ps_encoder.cpp
+    preprocessor/aie2ps/aie2ps_preprocessor_input.cpp
+    preprocessor/asm/pager.cpp
+    )
+  target_include_directories(aiebu_library_objects
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2ps
+    ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
+    ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
+    ${CMAKE_CURRENT_BINARY_DIR}/../../../python/
+    )
+  add_dependencies(aiebu_library_objects cpp-assembler-stubs)
+endif()
 
 add_library(aiebu SHARED
   $<TARGET_OBJECTS:aiebu_library_objects>
@@ -66,21 +73,6 @@ if (MSVC)
   target_link_libraries(aiebu_static advapi32)
 endif()
 
-#target_link_libraries(aiebu_static xaiengine)
-
-
-if (AIEBU_FULL STREQUAL "ON")
-  target_include_directories(aiebu_library_objects PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2ps
-    ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
-    ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
-    ${CMAKE_CURRENT_BINARY_DIR}/../../../python/
-  )
-
-  add_dependencies(aiebu_library_objects cpp-assembler-stubs)
-endif()
-
-
 install (TARGETS aiebu
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}
   RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
@@ -91,9 +83,10 @@ install (TARGETS aiebu aiebu_static
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}
 )
 
-install(
-  FILES
-  include/aiebu.h include/aiebu_assembler.h include/aiebu_error.h
+install(FILES
+  include/aiebu.h
+  include/aiebu_assembler.h
+  include/aiebu_error.h
   DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )
