@@ -83,7 +83,7 @@ protected:
   void add_dynamic_section_segment();
   std::vector<char> finalize();
   void add_text_data_section(std::vector<writer>& mwriter, std::vector<symbol>& syms);
-  void add_note(ELFIO::Elf_Word type, std::string name, std::string dec);
+  void add_note(ELFIO::Elf_Word type, const std::string& name, const std::string& dec);
 
 public:
 
