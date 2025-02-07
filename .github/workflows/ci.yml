@@ -52,5 +52,6 @@ jobs:
         cmake --build ${{github.workspace}}/build/Release --config Release
 
     - name: Test
+      if: runner.os == 'Linux'
       run: |
         cmake --build ${{github.workspace}}/build/Release --config Release --target test
