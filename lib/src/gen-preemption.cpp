@@ -493,7 +493,7 @@ static std::vector<uint8_t> generate_tran(uint8_t device, enum PreemptOp type, u
         XAIE_MEM_TILE_NUM_ROWS,
         XAIE_AIE_TILE_ROW_START,
         XAIE_AIE_TILE_NUM_ROWS,
-        {0}
+        {}
     };
 
     XAie_InstDeclare(DevInst, &ConfigPtr);
@@ -505,7 +505,7 @@ static std::vector<uint8_t> generate_tran(uint8_t device, enum PreemptOp type, u
     const uint8_t channels[] = {0, 1};
     uint8_t nchans = sizeof(channels) / sizeof(channels[0]);
     uint32_t size = data_sz / nchans;
-    MergeSync completion = {0};
+    MergeSync completion {};
     AieRC RC;
 
     for (uint8_t col = UINT8_C(0); col < ncol; col++) {

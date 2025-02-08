@@ -32,8 +32,21 @@ file(REMOVE "${CMAKE_ARGV4}")
 execute_process(
   COMMAND ${DEPENDS_TOOL} ${DEPENDS_TOOL_SWITCH1} ${DEPENDS_TOOL_SWITCH2} ${CMAKE_ARGV3}
   OUTPUT_VARIABLE DEPENDS_OUT
-)
+  )
 
-message("${CMAKE_ARGV3}:\n${DEPENDS_OUT}")
+# For static executables DEPENDS_OUT is empty, here we make
+# sure the files has at least one line output
 file(WRITE ${CMAKE_ARGV4} "${CMAKE_ARGV3}:\n")
 file(APPEND ${CMAKE_ARGV4} "${DEPENDS_OUT}")
+
+# Fail if there are dynamic dependencies
+# This check only works on Linux
+if (DEPENDS_OUT MATCHES "=>")
+  message(FATAL_ERROR "Dynamic dependencies found for ${CMAKE_ARGV3}:\n${DEPENDS_OUT}")
+else()
+  message(STATUS "No dynamic dependencies found")
+endif()
+
+if (WIN32)
+  message("${CMAKE_ARGV3}:\n${DEPENDS_OUT}")
+endif()

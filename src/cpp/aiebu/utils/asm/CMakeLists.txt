@@ -1,77 +1,48 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+add_library(aiebu_asm_objects OBJECT
+  asm.cpp
+  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target/target.cpp
+  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/common/utils.cpp
+  )
 
-set(GENERATOR_OUT_DIR "${AIEBU_BINARY_DIR}/lib/gen")
-set(AIEBU_INSTALL_BINARY_DIR "${AIEBU_INSTALL_DIR}/bin/")
-set(ASM_TGT "aiebu-asm")
-list(APPEND TGT_LIST ${ASM_TGT})
+target_include_directories(aiebu_asm_objects
+  PRIVATE
+  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src
+  ${Boost_INCLUDE_DIRS}
+
+  # these should be spelled out in source code
+  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
+  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/assembler
+  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/common
+  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target
+  ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include
+  )
+
+add_executable(aiebu-asm $<TARGET_OBJECTS:aiebu_asm_objects>)
+target_link_libraries(aiebu-asm PRIVATE aiebu_static)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_link_options(aiebu-asm PRIVATE "-static")
+  set_target_properties(aiebu-asm PROPERTIES INSTALL_RPATH "" BUILD_RPATH "")
+
   # Create a dynamically linked executable. aiebu-asm-dyn, on Linux for running
   # valgrind, etc. This binary is not released for deployment but only used for
-  # internal testing. Note that valgrind known to report many glibc related errors
-  # when running with fully statically linked executables, hence the dynamically
-  # linked binary for testing
-  set(ASM_TGT_DYN "aiebu-asm-dyn")
-  list(APPEND TGT_LIST ${ASM_TGT_DYN})
+  # internal testing. Note that valgrind known to report many glibc related
+  # errors when running with fully statically linked executables, hence the
+  # dynamically linked binary for testing
+  add_executable(aiebu-asm-dyn $<TARGET_OBJECTS:aiebu_asm_objects>)
+  target_link_libraries(aiebu-asm-dyn PRIVATE aiebu_static)
 endif()
 
-set(TARGET_DEPENDS_LIST_FILE "${ASM_TGT}_depends.txt")
-
-foreach(TGT ${TGT_LIST})
-  add_executable(${TGT}
-    asm.cpp
-    ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target/target.cpp
-    ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/common/utils.cpp
+# This custom target fails if aiebu-asm has any dynamic dependencies
+add_custom_target(check_dynamic_deps ALL
+  COMMAND ${CMAKE_COMMAND} -E echo "Checking for dynamic dependencies ..."
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/depends.cmake" $<TARGET_FILE:aiebu-asm> aiebu-asm_depends.txt
+  DEPENDS aiebu-asm
   )
 
-  if ((${CMAKE_SYSTEM_NAME} STREQUAL "Linux") AND (${TGT} STREQUAL "aiebu-asm"))
-    # Static linking on Linux
-    target_link_options(${TGT} PRIVATE "-static")
-    set_target_properties(${ASM_TGT} PROPERTIES INSTALL_RPATH "" BUILD_RPATH "")
-  endif()
-
-  if (MSVC AND (NOT (AIEBU_MSVC_LEGACY_LINKING)))
-    # Hybrid linking on Windows
-    target_compile_options(${TGT}
-      PRIVATE
-      /MT$<$<CONFIG:Debug>:d>  # static linking with the CRT
-      )
-    target_link_options(${TGT}
-      PRIVATE
-      /NODEFAULTLIB:libucrt$<$<CONFIG:Debug>:d>.lib  # Hybrid CRT
-      /DEFAULTLIB:ucrt$<$<CONFIG:Debug>:d>.lib       # Hybrid CRT
-      )
-  endif()
-
-  target_link_libraries(${TGT}
-    PRIVATE
-    aiebu_static
-  )
-
-  target_include_directories(${TGT} PRIVATE
-    ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
-    ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/assembler/
-    ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/common/
-    ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target/
-    ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include/
-    ${Boost_INCLUDE_DIRS}
-  )
-endforeach()
-
-add_custom_command(
-  OUTPUT "${TARGET_DEPENDS_LIST_FILE}"
-  COMMAND "${CMAKE_COMMAND}" -P "${AIEBU_SOURCE_DIR}/cmake/depends.cmake" $<TARGET_FILE:${ASM_TGT}> "${TARGET_DEPENDS_LIST_FILE}"
-  DEPENDS ${ASM_TGT}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-add_custom_target(
-  dependencylist ALL
-  DEPENDS ${TARGET_DEPENDS_LIST_FILE}
-)
-
-install(TARGETS ${ASM_TGT}
-  RUNTIME DESTINATION ${AIEBU_INSTALL_BINARY_DIR}
+install(TARGETS aiebu-asm
+  RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )

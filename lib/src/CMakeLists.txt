@@ -12,6 +12,11 @@ file(MAKE_DIRECTORY ${GENERATOR_OUT_DIR})
 
 add_executable(${GENERATOR_EXE1} gen-preemption.cpp)
 
+# Argh, many folks don't know the difference between {0} and {}
+if (NOT MSVC)
+  target_compile_options(${GENERATOR_EXE1} PRIVATE -Wno-missing-field-initializers)
+endif()
+
 target_include_directories(
   ${GENERATOR_EXE1}
   PRIVATE
@@ -89,6 +94,11 @@ install(FILES ${GENERATOR_OUT_DIR}/preempt_restore_stx_4x1.bin
 set(GENERATOR_EXE2 "copy")
 
 add_executable(${GENERATOR_EXE2} gen-copy.cpp)
+
+# Argh, many folks don't know the difference between {0} and {}
+if (NOT MSVC)
+  target_compile_options(${GENERATOR_EXE2} PRIVATE -Wno-missing-field-initializers)
+endif()
 
 target_include_directories(
   ${GENERATOR_EXE2}

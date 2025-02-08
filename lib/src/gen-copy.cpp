@@ -214,7 +214,7 @@ static void generate_tran_and_elf(const std::string &filename, int type)
                 XAIE_MEM_TILE_NUM_ROWS,
                 XAIE_AIE_TILE_ROW_START,
                 XAIE_AIE_TILE_NUM_ROWS,
-                {0}
+                {}
         };
 
         // Declare and initialize device instance
