@@ -49,15 +49,21 @@ jobs:
         vcpkg install boost-format boost-uuid boost-interprocess boost-algorithm boost-property-tree boost-headers --triplet=x64-windows
         python -m pip install --upgrade pip
         pip install pymal jinja2 Markdown pylint colorama gitPython wrapt
-        cmake -B ${{github.workspace}}/build/Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DAIEBU_FULL=ON -DCMAKE_BUILD_TYPE=Release
+        cmake -B ${{github.workspace}}/build/Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DAIEBU_FULL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/Release
 
     - name: Build
       run: |
         cmake --build ${{github.workspace}}/build/Release --config Release
 
-    - name: Install
+    - name: Install (Linux)
+      if: runner.os == 'Linux'
       run: |
-        cmake --install build/Release --config Release --prefix build/Release
+        make -C ${{github.workspace}}/build/Release DESTDIR=${{github.workspace}}/build/Release install
+
+    - name: Install (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake --build ${{github.workspace}}/build/Release --config Release --target install
 
     - name: Test (Linux)
       if: runner.os == 'Linux'
