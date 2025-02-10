@@ -57,9 +57,7 @@ jobs:
 
     - name: Install
       run: |
-        env:
-          DESTDIR: ${{ github.workspace }}/build/Release
-        cmake --build ${{github.workspace}}/build/Release --config Release --target install
+        cmake --install build/Release --config Release --prefix build/Release
 
     - name: Test (Linux)
       if: runner.os == 'Linux'
