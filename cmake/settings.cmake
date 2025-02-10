@@ -63,6 +63,7 @@ set(AIEBU_INSTALL_LIB_DIR           "${AIEBU_INSTALL_DIR}/lib")
 set(AIEBU_INSTALL_INCLUDE_DIR       "${AIEBU_INSTALL_DIR}/include")
 set(AIEBU_PYTHON_INSTALL_DIR        "${AIEBU_INSTALL_DIR}/lib/python3")
 set(AIEBU_SPECIFICATION_INSTALL_DIR "${AIEBU_INSTALL_DIR}/share/specification")
+set(AIEBU_GEN_DIR                   "${AIEBU_BINARY_DIR}/lib/gen")
 
 # If this repository is used as a submodule, the parent repository may
 # set the following variables in CMake to make aiebu point to the
