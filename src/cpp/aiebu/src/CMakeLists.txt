@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 
-if(NOT SPEC_TOOL_DEPS_DOWNLOADED)
+if(NOT SPEC_TOOL_DEPS_MARKDOWN_DOWNLOADED)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     execute_process(
       COMMAND wget -q -O markdown_graphviz_svg.py https://raw.githubusercontent.com/Tanami/markdown-graphviz-svg/master/markdown_graphviz_svg.py
@@ -13,7 +13,7 @@ if(NOT SPEC_TOOL_DEPS_DOWNLOADED)
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       )
   endif()
-  set(SPEC_TOOL_DEPS_DOWNLOADED TRUE CACHE BOOL "spec_tool.py dependencies downloaded" FORCE)
+  set(SPEC_TOOL_DEPS_MARKDOWN_DOWNLOADED TRUE CACHE BOOL "spec_tool.py dependencies downloaded" FORCE)
 endif()
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/aie2ps)
