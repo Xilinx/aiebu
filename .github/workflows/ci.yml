@@ -39,7 +39,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y pkg-config libelf-dev libboost-dev pylint elfutils
         python -m pip install --upgrade pip
-        pip install pymal jinja2 Markdown pylint colorama gitPython wrapt
+        pip install pyyaml jinja2 Markdown pylint colorama gitPython wrapt
         cmake -B ${{github.workspace}}/build/Release -DAIEBU_FULL=ON -DCMAKE_BUILD_TYPE=Release
 
     - name: Install Dependencies (Windows) and configure CMake
@@ -48,7 +48,7 @@ jobs:
         vcpkg integrate install
         vcpkg install boost-format boost-uuid boost-interprocess boost-algorithm boost-property-tree boost-headers --triplet=x64-windows
         python -m pip install --upgrade pip
-        pip install pymal jinja2 Markdown pylint colorama gitPython wrapt
+        pip install pyyaml jinja2 Markdown pylint colorama gitPython wrapt
         cmake -B ${{github.workspace}}/build/Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DAIEBU_FULL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/Release
 
     - name: Build
