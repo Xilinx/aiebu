@@ -66,17 +66,12 @@ jobs:
         -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
         -DAIEBU_FULL=ON `
         -DCMAKE_BUILD_TYPE=Release `
-        -DPython3_EXECUTABLE=${{ env.PYTHON_EXECUTABLE }} `
-        -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/Release
+        -DPython3_EXECUTABLE=${{ env.PYTHON_EXECUTABLE }}
 
     - name: Build
       run: |
         cmake --build ${{github.workspace}}/build/Release --config Release
-
-    - name: Install (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        cmake --build ${{github.workspace}}/build/Release --target install -- DESTDIR=${{github.workspace}}/build/Release
+        cmake --build ${{github.workspace}}/build/Release --target install
 
     - name: Test (Linux)
       if: runner.os == 'Linux'

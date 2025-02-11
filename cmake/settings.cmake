@@ -46,13 +46,16 @@ endif()
 ################################################################
 # Install directories
 ################################################################
-if (NOT(AIEBU_GIT_SUBMODULE))
+if (NOT AIEBU_GIT_SUBMODULE AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(CMAKE_INSTALL_PREFIX "/opt/xilinx")
+    set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/opt/xilinx" CACHE PATH "..." FORCE)
   else()
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/xilinx" CACHE PATH "..." FORCE)
+    set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/xilinx" CACHE PATH "..." FORCE)
   endif()
+  message("-- Install prefix is default initialized to ${CMAKE_INSTALL_PREFIX}")
 endif()
+
+message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 
 set(AIEBU_INSTALL_DIR "aiebu")
 set(AIEBU_INSTALL_BIN_DIR           "${AIEBU_INSTALL_DIR}/bin")
