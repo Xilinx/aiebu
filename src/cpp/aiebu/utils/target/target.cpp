@@ -4,6 +4,8 @@
 #include <iostream>
 #include <boost/format.hpp>
 
+#include <cxxopts.hpp>
+
 #include "target.h"
 #include "utils.h"
 

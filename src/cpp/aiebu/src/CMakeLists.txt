@@ -131,6 +131,7 @@ add_library(aiebu_library_objects OBJECT
   common/aiebu_error.cpp
   common/writer.cpp
   common/assembler_state.cpp
+  common/utils.cpp
   elf/elfwriter.cpp
   preprocessor/aie2/aie2_blob_preprocessor_input.cpp
   preprocessor/aie2/aie2_asm_preprocessor_input.cpp

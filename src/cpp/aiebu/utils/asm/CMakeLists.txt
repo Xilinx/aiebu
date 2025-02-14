@@ -3,7 +3,6 @@
 add_library(aiebu_asm_objects OBJECT
   asm.cpp
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target/target.cpp
-  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/common/utils.cpp
   )
 
 target_include_directories(aiebu_asm_objects
@@ -14,7 +13,7 @@ target_include_directories(aiebu_asm_objects
   # these should be spelled out in source code
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/assembler
-  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/common
+  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/common
   ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target
   ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include
   )
