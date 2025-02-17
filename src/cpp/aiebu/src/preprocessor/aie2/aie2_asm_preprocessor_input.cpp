@@ -127,7 +127,7 @@ public:
 
     auto op = reinterpret_cast<XAie_Write32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
-    op->Value = static_cast<uint32_t>(std::stoul(args[1], nullptr, hexbase));
+    op->Value = to_uinteger<uint32_t>(args[1]);
     op->Size = sizeof(XAie_Write32Hdr);
   }
 
@@ -155,7 +155,7 @@ public:
     // Capture the extended values
     auto values = get_extended_storage<unsigned int>();
     for (unsigned int i = 0; idx < args.size(); idx++, i++)
-      values[i] = static_cast<uint32_t>(std::stoul(args[idx], nullptr, hexbase));
+      values[i] = to_uinteger<uint32_t>(args[idx]);
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
@@ -173,8 +173,8 @@ public:
 
     auto op = reinterpret_cast<XAie_MaskWrite32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
-    op->Value = static_cast<uint32_t>(std::stoul(args[1], nullptr, hexbase));
-    op->Mask = static_cast<uint32_t>(std::stoul(args[2], nullptr, hexbase));
+    op->Value = to_uinteger<uint32_t>(args[1]);
+    op->Mask = to_uinteger<uint32_t>(args[2]);
     op->Size = sizeof(XAie_Write32Hdr);
   }
 
@@ -195,8 +195,8 @@ public:
 
     auto op = reinterpret_cast<XAie_MaskPoll32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
-    op->Mask = static_cast<uint32_t>(std::stoul(args[idx++], nullptr, hexbase));
-    op->Value = static_cast<uint32_t>(std::stoul(args[idx++], nullptr, hexbase));
+    op->Mask = to_uinteger<uint32_t>(args[idx++]);
+    op->Value = to_uinteger<uint32_t>(args[idx++]);
     op->Size = sizeof(XAie_MaskPoll32Hdr);
   }
 
@@ -244,8 +244,8 @@ public:
     initialize_OpHdr();
 
     auto op = reinterpret_cast<XAie_LoadPdiHdr *>(m_op);
-    op->PdiId = static_cast<uint16_t>(std::stoul(args[0], nullptr, hexbase));
-    op->PdiSize = static_cast<uint16_t>(std::stoul(args[1], nullptr, 0));
+    op->PdiId = to_uinteger<uint16_t>(args[0]);
+    op->PdiSize = to_uinteger<uint16_t>(args[1]);
     op->PdiAddress = to_uinteger<uint64_t>(args[2]);
   }
 
@@ -263,11 +263,11 @@ public:
     initialize_OpHdr();
 
     auto op = reinterpret_cast<XAie_PmLoadHdr *>(m_op);
-    const auto load_seq = static_cast<uint32_t>(std::stoul(args[0], nullptr, hexbase));
+    const auto load_seq = to_uinteger<uint32_t>(args[0]);
     for (unsigned int i = 0; i < 3; i++) {
       op->LoadSequenceCount[i] = static_cast<uint8_t>((load_seq >> i) & 0xff);
     }
-    op->PmLoadId = static_cast<uint32_t>(std::stoul(args[1]));
+    op->PmLoadId = to_uinteger<uint32_t>(args[1]);
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
@@ -287,8 +287,8 @@ public:
     op->Size = m_size;
 
     auto values = get_extended_storage<tct_op_t>();
-    values->word = static_cast<uint32_t>(std::stoul(args[0], nullptr, hexbase));
-    values->config = static_cast<uint32_t>(std::stoul(args[1], nullptr, hexbase));
+    values->word = to_uinteger<uint32_t>(args[0]);
+    values->config = to_uinteger<uint32_t>(args[1]);
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
