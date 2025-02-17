@@ -9,11 +9,11 @@
 
 namespace aiebu {
 static const std::map<fragment, const char *> fragment_table = {
-  {fragment::BEGIN_ANCHOR_RE, "^"},
-  {fragment::END_ANCHOR_RE, "$"},
-  {fragment::HEX_RE, "[[:space:]]*(0[xX][[:xdigit:]]+)[[:space:]]*"},
-  {fragment::L_BRACK_RE, "[[:space:]]*\\([[:space:]]*"},
-  {fragment::R_BRACK_RE, "[[:space:]]*\\)[[:space:]]*"},
+  {fragment::begin_anchor_re, "^"},
+  {fragment::end_anchor_re, "$"},
+  {fragment::hex_re, "[[:space:]]*(0[xX][[:xdigit:]]+)[[:space:]]*"},
+  {fragment::l_brack_re, "[[:space:]]*\\([[:space:]]*"},
+  {fragment::r_brack_re, "[[:space:]]*\\)[[:space:]]*"},
 };
 
 std::regex

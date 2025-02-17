@@ -164,27 +164,27 @@ vector_of_string_to_vector_of_char(const std::vector<std::string>& args)
 }
 
 enum class fragment{
-  BEGIN_ANCHOR_RE,
-  END_ANCHOR_RE,
-  HEX_RE,
-  L_BRACK_RE,
-  R_BRACK_RE,
+  begin_anchor_re,
+  end_anchor_re,
+  hex_re,
+  l_brack_re,
+  r_brack_re,
 };
 
 std::regex get_regex(const std::vector<fragment>& pattern);
 
 constexpr unsigned hexbase = 0x10;
 
-template <typename IntType>
-IntType
+template <typename UIntType>
+UIntType
 to_uinteger(const std::string& token) {
-  const unsigned long long result = (std::is_same<IntType, uint64_t>::value) ? std::stoull(token, nullptr, 0) :
+  const unsigned long long result = (std::is_same<UIntType, uint64_t>::value) ? std::stoull(token, nullptr, 0) :
     std::stoul(token, nullptr, 0);
-  auto max = std::numeric_limits<IntType>::max();
+  auto max = std::numeric_limits<UIntType>::max();
   if (result > max)
     throw error(error::error_code::invalid_asm, "Value " + token + " is out of range");
 
-  return static_cast<IntType>(result);
+  return static_cast<UIntType>(result);
 }
 
 }
