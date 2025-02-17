@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
 cmake_minimum_required(VERSION 3.18.0)
-project(AIEBU HOMEPAGE_URL https://gitenterprise.xilinx.com/XRT/aiebu)
+project(AIEBU HOMEPAGE_URL https://github.com/Xilinx/aiebu)
 
 include(cmake/settings.cmake)
 

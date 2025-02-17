@@ -34,15 +34,15 @@ function compile {
 
     cmake $cmakeflags ../../
 
-    make -j $CORE VERBOSE=1 DESTDIR=$PWD
+    make -j $CORE VERBOSE=1
     if [[ $build != "aie2" ]]; then
-      make -j $CORE VERBOSE=1 DESTDIR=$PWD isa-spec
+      make -j $CORE VERBOSE=1 isa-spec
     fi
-    make -j $CORE VERBOSE=1 DESTDIR=$PWD install
-    make -j $CORE VERBOSE=1 DESTDIR=$PWD test
-    make -j $CORE VERBOSE=1 DESTDIR=$PWD test ARGS="-L memcheck -T memcheck"
+    make -j $CORE VERBOSE=1 install
+    make -j $CORE VERBOSE=1 test
+    make -j $CORE VERBOSE=1 test ARGS="-L memcheck -T memcheck"
     if [[ $config == "Release" ]]; then
-	make -j $CORE VERBOSE=1 DESTDIR=$PWD package
+	make -j $CORE VERBOSE=1 package
     fi
 }
 
