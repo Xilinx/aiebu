@@ -9,14 +9,12 @@
 
 namespace aiebu {
 static const std::map<fragment, const char *> fragment_table = {
+  {fragment::BEGIN_ANCHOR_RE, "^"},
+  {fragment::END_ANCHOR_RE, "$"},
   {fragment::HEX_RE, "[[:space:]]*(0[xX][[:xdigit:]]+)[[:space:]]*"},
   {fragment::L_BRACK_RE, "[[:space:]]*\\([[:space:]]*"},
   {fragment::R_BRACK_RE, "[[:space:]]*\\)[[:space:]]*"},
 };
-
-const std::string HEX_RE("[[:space:]]*(0[xX][[:xdigit:]]+)[[:space:]]*");
-const std::string L_BRACK_RE("[[:space:]]*\\([[:space:]]*");
-const std::string R_BRACK_RE("[[:space:]]*\\)[[:space:]]*");
 
 std::regex
 get_regex(const std::vector<fragment>& pattern)
@@ -27,5 +25,6 @@ get_regex(const std::vector<fragment>& pattern)
   }
   return std::regex(composite);
 }
+
 
 }

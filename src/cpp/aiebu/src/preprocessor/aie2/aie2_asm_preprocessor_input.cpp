@@ -12,8 +12,6 @@
 
 namespace aiebu {
 
-constexpr unsigned hexbase = 0x10;
-
 class aie2_isa_op;
 
 const std::map<std::string, XAie_Preempt_level> preempt_level_table = {
@@ -94,9 +92,9 @@ public:
     m_op = nullptr;
   }
 
-  aie2_isa_op(aie2_isa_op&& o)  noexcept : m_code(o.m_code),
-                                 m_op(o.m_op),
-                                 m_size(o.m_size) {
+  aie2_isa_op(aie2_isa_op&& o) noexcept : m_code(o.m_code),
+                                          m_op(o.m_op),
+                                          m_size(o.m_size) {
     o.m_op = nullptr;
     o.m_size = 0;
   }
@@ -128,7 +126,7 @@ public:
     initialize_OpHdr();
 
     auto op = reinterpret_cast<XAie_Write32Hdr *>(m_op);
-    op->RegOff = std::stoull(regoff, nullptr, hexbase);
+    op->RegOff = to_int<uint64_t>(regoff);
     op->Value = static_cast<uint32_t>(std::stoul(args[1], nullptr, hexbase));
     op->Size = sizeof(XAie_Write32Hdr);
   }
@@ -152,7 +150,7 @@ public:
     initialize_OpHdr();
 
     auto op = reinterpret_cast<XAie_BlockWrite32Hdr *>(m_op);
-    op->RegOff = std::stoull(regoff, nullptr, hexbase);
+    op->RegOff = to_int<uint64_t>(regoff);
     op->Size = m_size;
     // Capture the extended values
     auto values = get_extended_storage<unsigned int>();
@@ -174,7 +172,7 @@ public:
     std::string regoff = args[0].substr(1);
 
     auto op = reinterpret_cast<XAie_MaskWrite32Hdr *>(m_op);
-    op->RegOff = std::stoull(regoff, nullptr, hexbase);
+    op->RegOff = to_int<uint64_t>(regoff);
     op->Value = static_cast<uint32_t>(std::stoul(args[1], nullptr, hexbase));
     op->Mask = static_cast<uint32_t>(std::stoul(args[2], nullptr, hexbase));
     op->Size = sizeof(XAie_Write32Hdr);
@@ -196,7 +194,7 @@ public:
     const std::string regoff = args[idx++].substr(1);
 
     auto op = reinterpret_cast<XAie_MaskPoll32Hdr *>(m_op);
-    op->RegOff = std::stoull(regoff, nullptr, hexbase);
+    op->RegOff = to_int<uint64_t>(regoff);
     op->Mask = static_cast<uint32_t>(std::stoul(args[idx++], nullptr, hexbase));
     op->Value = static_cast<uint32_t>(std::stoul(args[idx++], nullptr, hexbase));
     op->Size = sizeof(XAie_MaskPoll32Hdr);
@@ -248,7 +246,7 @@ public:
     auto op = reinterpret_cast<XAie_LoadPdiHdr *>(m_op);
     op->PdiId = static_cast<uint16_t>(std::stoul(args[0], nullptr, hexbase));
     op->PdiSize = static_cast<uint16_t>(std::stoul(args[1], nullptr, 0));
-    op->PdiAddress = static_cast<uint64_t>(std::stoull(args[2], nullptr, hexbase));
+    op->PdiAddress = to_int<uint64_t>(args[2]);
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
@@ -311,9 +309,9 @@ public:
     auto values = get_extended_storage<patch_op_t>();
 
     const std::string regoff = args[0].substr(1);
-    values->regaddr = std::stoull(regoff, nullptr, hexbase);
-    values->argidx = std::stoull(args[1], nullptr, hexbase);
-    values->argplus = std::stoull(args[2], nullptr, hexbase);
+    values->regaddr = to_int<uint64_t>(regoff);
+    values->argidx = to_int<uint64_t>(args[1]);
+    values->argplus = to_int<uint64_t>(args[2]);
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {

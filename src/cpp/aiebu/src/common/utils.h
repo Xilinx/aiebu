@@ -164,12 +164,26 @@ vector_of_string_to_vector_of_char(const std::vector<std::string>& args)
 }
 
 enum class fragment{
+  BEGIN_ANCHOR_RE,
+  END_ANCHOR_RE,
   HEX_RE,
   L_BRACK_RE,
-  R_BRACK_RE
+  R_BRACK_RE,
 };
 
 std::regex get_regex(const std::vector<fragment>& pattern);
+
+constexpr unsigned hexbase = 0x10;
+
+template <typename INTT> INTT to_int(const std::string &token) {
+  const unsigned long long result = (std::is_same<INTT, uint64_t>::value) ? std::stoull(token, nullptr, hexbase) :
+    std::stoul(token, nullptr, hexbase);
+  INTT max = 0;
+  max = ~max;
+  if (result > max)
+    throw error(error::error_code::invalid_asm, "Value " + token + " is out of range");
+  return static_cast<INTT>(result);
+}
 
 }
 #endif // _AIEBU_COMMOM_UTILS_H_
