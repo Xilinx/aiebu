@@ -175,7 +175,7 @@ std::regex get_regex(const std::vector<fragment>& pattern);
 
 constexpr unsigned hexbase = 0x10;
 
-template <typename INTT> INTT to_int(const std::string &token) {
+template <typename INTT> INTT to_uinteger(const std::string& token) {
   const unsigned long long result = (std::is_same<INTT, uint64_t>::value) ? std::stoull(token, nullptr, hexbase) :
     std::stoul(token, nullptr, hexbase);
   INTT max = 0;

@@ -126,7 +126,7 @@ public:
     initialize_OpHdr();
 
     auto op = reinterpret_cast<XAie_Write32Hdr *>(m_op);
-    op->RegOff = to_int<uint64_t>(regoff);
+    op->RegOff = to_uinteger<uint64_t>(regoff);
     op->Value = static_cast<uint32_t>(std::stoul(args[1], nullptr, hexbase));
     op->Size = sizeof(XAie_Write32Hdr);
   }
@@ -150,7 +150,7 @@ public:
     initialize_OpHdr();
 
     auto op = reinterpret_cast<XAie_BlockWrite32Hdr *>(m_op);
-    op->RegOff = to_int<uint64_t>(regoff);
+    op->RegOff = to_uinteger<uint64_t>(regoff);
     op->Size = m_size;
     // Capture the extended values
     auto values = get_extended_storage<unsigned int>();
@@ -172,7 +172,7 @@ public:
     std::string regoff = args[0].substr(1);
 
     auto op = reinterpret_cast<XAie_MaskWrite32Hdr *>(m_op);
-    op->RegOff = to_int<uint64_t>(regoff);
+    op->RegOff = to_uinteger<uint64_t>(regoff);
     op->Value = static_cast<uint32_t>(std::stoul(args[1], nullptr, hexbase));
     op->Mask = static_cast<uint32_t>(std::stoul(args[2], nullptr, hexbase));
     op->Size = sizeof(XAie_Write32Hdr);
@@ -194,7 +194,7 @@ public:
     const std::string regoff = args[idx++].substr(1);
 
     auto op = reinterpret_cast<XAie_MaskPoll32Hdr *>(m_op);
-    op->RegOff = to_int<uint64_t>(regoff);
+    op->RegOff = to_uinteger<uint64_t>(regoff);
     op->Mask = static_cast<uint32_t>(std::stoul(args[idx++], nullptr, hexbase));
     op->Value = static_cast<uint32_t>(std::stoul(args[idx++], nullptr, hexbase));
     op->Size = sizeof(XAie_MaskPoll32Hdr);
@@ -246,7 +246,7 @@ public:
     auto op = reinterpret_cast<XAie_LoadPdiHdr *>(m_op);
     op->PdiId = static_cast<uint16_t>(std::stoul(args[0], nullptr, hexbase));
     op->PdiSize = static_cast<uint16_t>(std::stoul(args[1], nullptr, 0));
-    op->PdiAddress = to_int<uint64_t>(args[2]);
+    op->PdiAddress = to_uinteger<uint64_t>(args[2]);
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
@@ -309,9 +309,9 @@ public:
     auto values = get_extended_storage<patch_op_t>();
 
     const std::string regoff = args[0].substr(1);
-    values->regaddr = to_int<uint64_t>(regoff);
-    values->argidx = to_int<uint64_t>(args[1]);
-    values->argplus = to_int<uint64_t>(args[2]);
+    values->regaddr = to_uinteger<uint64_t>(regoff);
+    values->argidx = to_uinteger<uint64_t>(args[1]);
+    values->argplus = to_uinteger<uint64_t>(args[2]);
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
