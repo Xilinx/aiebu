@@ -180,8 +180,7 @@ IntType
 to_uinteger(const std::string& token) {
   const unsigned long long result = (std::is_same<IntType, uint64_t>::value) ? std::stoull(token, nullptr, 0) :
     std::stoul(token, nullptr, 0);
-  IntType max = 0;
-  max = ~max;
+  auto max = std::numeric_limits<IntType>::max();
   if (result > max)
     throw error(error::error_code::invalid_asm, "Value " + token + " is out of range");
 
