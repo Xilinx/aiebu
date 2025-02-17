@@ -175,14 +175,17 @@ std::regex get_regex(const std::vector<fragment>& pattern);
 
 constexpr unsigned hexbase = 0x10;
 
-template <typename INTT> INTT to_uinteger(const std::string& token) {
-  const unsigned long long result = (std::is_same<INTT, uint64_t>::value) ? std::stoull(token, nullptr, hexbase) :
-    std::stoul(token, nullptr, hexbase);
-  INTT max = 0;
+template <typename IntType>
+IntType
+to_uinteger(const std::string& token) {
+  const unsigned long long result = (std::is_same<IntType, uint64_t>::value) ? std::stoull(token, nullptr, 0) :
+    std::stoul(token, nullptr, 0);
+  IntType max = 0;
   max = ~max;
   if (result > max)
     throw error(error::error_code::invalid_asm, "Value " + token + " is out of range");
-  return static_cast<INTT>(result);
+
+  return static_cast<IntType>(result);
 }
 
 }
