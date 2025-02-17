@@ -55,9 +55,9 @@ private:
    * It is populated by the derived class as some operations are variable sized.
    */
   size_t m_size = 0;
+  const XAie_TxnOpcode m_code;
 
 protected:
-  const XAie_TxnOpcode m_code;
   XAie_OpHdr *m_op =  nullptr;
 
 protected:
@@ -372,10 +372,8 @@ std::unique_ptr<aie2_isa_op> aie2_asm_preprocessor_input::assemble_operation(std
   std::transform(name.begin(), name.end(), name.begin(), ::toupper);
   auto iter  = m_mnemonic_table.find(name);
 
-  if (iter == m_mnemonic_table.end()) {
-    const std::string msg = "Invalid opcode " + op->get_name();
-    throw error(error::error_code::invalid_asm, msg);
-  }
+  if (iter == m_mnemonic_table.end())
+    throw error(error::error_code::invalid_asm, "Invalid opcode " + op->get_name());
 
   /* Look up the matching factory and construct the aie2_isa_op */
   return iter->second->create_aie2_isa_op(op->get_args());;

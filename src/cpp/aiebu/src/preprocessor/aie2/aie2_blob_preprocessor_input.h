@@ -235,8 +235,13 @@ protected:
 class aie2_isa_op_factory_base {
 public:
   aie2_isa_op_factory_base() = default;
-  virtual std::unique_ptr<aie2_isa_op> create_aie2_isa_op(const std::vector<std::string>& args) const = 0;
+  [[nodiscard]] virtual std::unique_ptr<aie2_isa_op> create_aie2_isa_op(const std::vector<std::string>& args) const = 0;
   virtual ~aie2_isa_op_factory_base() = default;
+
+  aie2_isa_op_factory_base(aie2_isa_op_factory_base&& o) = delete;
+  aie2_isa_op_factory_base(const aie2_isa_op_factory_base& temp_obj) = delete;
+  aie2_isa_op_factory_base& operator=(const aie2_isa_op_factory_base& temp_obj) = delete;
+  aie2_isa_op_factory_base& operator=(const aie2_isa_op_factory_base&& temp_obj) = delete;
 };
 
 /*
