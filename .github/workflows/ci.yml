@@ -6,6 +6,10 @@ on:
     types: [opened, synchronize]
     branches: main-ge
 
+  schedule:
+    # Run workflow night at 5 AM UTC (10PM PST)
+    - cron: '0 5 * * *'
+
   workflow_dispatch:
 
 # see binary-caching-github-actions-cache
@@ -102,9 +106,10 @@ jobs:
         path: ${{github.workspace}}/build/Release/AIEBU-*-Linux.tar.gz
 
     - name: Upload (Windows)
-      if: runner.os == 'Linux' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+      if: runner.os == 'Windows' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
       uses: actions/upload-artifact@v4
       with:
         name: aiebu_release_windows
         path: ${{github.workspace}}/build/Release/AIEBU-*-win64.zip
         retention-days: 7
+        
