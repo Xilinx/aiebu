@@ -83,3 +83,13 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         cmake --build ${{github.workspace}}/build/Release --config Release --target run_tests
+
+    - name: Package (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cpack -G TGZ -B ${{github.workspace}}/build/Release -C Release --config build/Release/CPackConfig.cmake
+
+    - name: Package (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cpack -G ZIP -B ${{github.workspace}}/build/Release -C Release --config build/Release/CPackConfig.cmake
