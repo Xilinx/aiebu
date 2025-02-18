@@ -6,6 +6,7 @@
 
 #include "aie2_blob_preprocessor_input.h"
 #include "asm/asm_parser.h"
+#include "utils.h"
 
 #include "xaiengine.h"
 #include "xaiengine/xaiegbl.h"
@@ -130,7 +131,7 @@ class XAIE_IO_WRITE_op : public aie2_isa_op {
 public:
   explicit XAIE_IO_WRITE_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_WRITE)
   {
-    // e.g. XAIE_IO_WRITE,                  @0x801d214, 0x30005
+    // e.g. XAIE_IO_WRITE                  @0x801d214, 0x30005
     operand_count_check(args, 2);
     std::string regoff = args[0].substr(1);
     initialize_OpHdr(sizeof(XAie_Write32Hdr));
@@ -151,7 +152,15 @@ class XAIE_IO_BLOCKWRITE_op : public aie2_isa_op {
 public:
   explicit XAIE_IO_BLOCKWRITE_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_BLOCKWRITE)
   {
-    // e.g. XAIE_IO_BLOCKWRITE,             @0x801d060, 0x3, 0x0, 0x0, 0x0, 0x80000000, 0x2000000, 0x100007, 0x2000000
+    // e.g. XAIE_IO_BLOCKWRITE             @0x801d060, [8]
+    // [0] 0x3
+    // [1] 0x0
+    // [2] 0x0
+    // [3] 0x0
+    // [4] 0x80000000
+    // [5] 0x2000000
+    // [6] 0x100007
+    // [7] 0x2000000
     operand_count_check(args, 2);
     unsigned idx = 0;
     std::string regoff = args[idx++].substr(1);
@@ -194,16 +203,29 @@ public:
 class XAIE_IO_MASKPOLL_op : public aie2_isa_op {
 public:
   explicit XAIE_IO_MASKPOLL_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_MASKPOLL) {
-    // e.g. XAIE_IO_MASKPOLL,               @0x801d228, 0x78003c, 0x0
-    operand_count_check(args, 3);
+    // e.g. XAIE_IO_MASKPOLL,               @0x801d228, 0x78003c()==0x0
+    operand_count_check(args, 2);
     initialize_OpHdr(sizeof(XAie_MaskPoll32Hdr));
     unsigned idx = 0;
     const std::string regoff = args[idx++].substr(1);
 
     auto op = reinterpret_cast<XAie_MaskPoll32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
-    op->Mask = to_uinteger<uint32_t>(args[idx++]);
-    op->Value = to_uinteger<uint32_t>(args[idx++]);
+
+    const std::regex mask_poll_regex = get_regex({fragment::begin_anchor_re, fragment::hex_re, fragment::l_brack_re,
+        fragment::r_brack_re, fragment::equal_re, fragment::hex_re, fragment::end_anchor_re});
+
+//    const std::regex mask_poll_regex("^" + HEX_RE + L_BRACK_RE + R_BRACK_RE + "==" + HEX_RE + "$");
+    std::smatch matches;
+    if (!std::regex_match(args[idx], matches, mask_poll_regex))
+        throw error(error::error_code::invalid_asm, args[idx]);
+
+    if (matches.size() != 3)
+        throw error(error::error_code::invalid_asm, args[idx]);
+
+
+    op->Mask = to_uinteger<uint32_t>(matches[1]);
+    op->Value = to_uinteger<uint32_t>(matches[2]);
     op->Size = get_op_size();
   }
 
@@ -215,6 +237,7 @@ public:
 
 class XAIE_IO_NOOP_op : public aie2_isa_op {
 public:
+  // e.g. XAIE_IO_NOOP
   explicit XAIE_IO_NOOP_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_NOOP) {
     operand_count_check(args, 0);
     initialize_OpHdr(sizeof(XAie_NoOpHdr));
@@ -227,6 +250,7 @@ public:
 
 class XAIE_IO_PREEMPT_op : public aie2_isa_op {
 public:
+  // e.g. XAIE_IO_PREEMPT MEM_TILE
   explicit XAIE_IO_PREEMPT_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_PREEMPT) {
     operand_count_check(args, 1);
     initialize_OpHdr(sizeof(XAie_PreemptHdr));
@@ -363,6 +387,7 @@ aie2_asm_preprocessor_input::aie2_asm_preprocessor_input() {
   m_mnemonic_table.emplace("XAIE_IO_PREEMPT", std::make_unique<aie2_isa_op_factory<XAIE_IO_PREEMPT_op>>());
   m_mnemonic_table.emplace("XAIE_IO_LOADPDI", std::make_unique<aie2_isa_op_factory<XAIE_IO_LOADPDI_op>>());
   m_mnemonic_table.emplace("XAIE_IO_LOAD_PM_START", std::make_unique<aie2_isa_op_factory<XAIE_IO_LOAD_PM_START_op>>());
+  m_mnemonic_table.emplace("XAIE_IO_CUSTOM_OP_TCT", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_TCT_op>>());
   m_mnemonic_table.emplace("XAIE_IO_CUSTOM_OP_DDR_PATCH", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_DDR_PATCH_op>>());
 }
 

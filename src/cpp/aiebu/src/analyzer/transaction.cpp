@@ -275,14 +275,14 @@ private:
     size_t stringify_mp32(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_MaskPoll32Hdr *)(ptr);
         ss_ops_ << op_format << "XAIE_IO_MASKPOLL " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
-                << ", 0x" << mp_header->Value << std::endl;
+                << "()==0x" << mp_header->Value << std::endl;
         return mp_header->Size;
     }
 
     size_t stringify_mp32_busy(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_MaskPoll32Hdr *)(ptr);
         ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
-                << ", 0x" << mp_header->Value << std::endl;
+                << "()==0x" << mp_header->Value << std::endl;
         return mp_header->Size;
     }
 
@@ -393,14 +393,14 @@ ss_ops_ << op_format << "XAIE_IO_MASKWRITE " << "@0x" << std::hex << mw_header->
     size_t stringify_mp32_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_MaskPoll32Hdr_opt *)(ptr);
 ss_ops_ << op_format << "XAIE_IO_MASKPOLL " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
-                << ", 0x" << mp_header->Value << std::endl;
+                << "()==0x" << mp_header->Value << std::endl;
         return sizeof(XAie_MaskPoll32Hdr_opt);
     }
 
     size_t stringify_mp32_busy_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_MaskPoll32Hdr_opt *)(ptr);
 ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_header->RegOff << ", 0x" << mp_header->Mask
-                << ", 0x" << mp_header->Value << std::endl;
+                << "()==0x" << mp_header->Value << std::endl;
         return sizeof(XAie_MaskPoll32Hdr_opt);
     }
 
