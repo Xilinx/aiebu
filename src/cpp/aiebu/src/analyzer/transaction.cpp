@@ -268,7 +268,7 @@ private:
     size_t stringify_mw32(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mw_header = (const XAie_MaskWrite32Hdr *)(ptr);
         ss_ops_ << op_format << "XAIE_IO_MASKWRITE " << "@0x" << std::hex << mw_header->RegOff << ", 0x" << mw_header->Mask
-                << ", 0x" << mw_header->Value << std::endl;
+                << "(), 0x" << mw_header->Value << std::endl;
         return mw_header->Size;
     }
 
@@ -386,7 +386,7 @@ private:
     size_t stringify_mw32_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mw_header = (const XAie_MaskWrite32Hdr_opt *)(ptr);
 ss_ops_ << op_format << "XAIE_IO_MASKWRITE " << "@0x" << std::hex << mw_header->RegOff << ", 0x" << mw_header->Mask
-                << ", 0x" << mw_header->Value << std::endl;
+                << "(), 0x" << mw_header->Value << std::endl;
         return sizeof(XAie_MaskWrite32Hdr_opt);
     }
 
