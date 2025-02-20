@@ -126,7 +126,7 @@ public:
     return m_size;
   }
 
-  [[nodiscard]] virtual unsigned get_outstanding_operand_count() const {
+  [[nodiscard]] virtual unsigned get_outstanding_extended_operand_count() const {
     return 0;
   }
 
@@ -158,11 +158,11 @@ public:
 
 class XAIE_IO_BLOCKWRITE_op : public aie2_isa_op {
 private:
-  unsigned int operand_count = 0;
+  unsigned int outstanding_extended_operand_count = 0;
 
-  unsigned get_extended_operand_index() const {
+  [[nodiscard]] unsigned get_extended_operand_index() const {
     size_t ex_op_size = get_op_size() - get_op_base_size();
-    return ex_op_size - sizeof(uint32_t) * operand_count;
+    return ex_op_size - sizeof(uint32_t) * outstanding_extended_operand_count;
   }
 
 public:
@@ -182,28 +182,37 @@ public:
     std::string regoff = args[idx++].substr(1);
     // Determine the total size including extended storage by counting the number of writes
     initialize_OpHdr(sizeof(XAie_BlockWrite32Hdr) + sizeof(uint32_t) * (args.size() - idx));
-    operand_count = args.size() - idx;
+    outstanding_extended_operand_count = args.size() - idx;
 
     auto op = reinterpret_cast<XAie_BlockWrite32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
     op->Size = get_op_size();
     // Capture the extended values
     auto values = get_extended_storage<unsigned int>();
-    for (unsigned int i = 0; idx < args.size(); idx++, i++)
+    for (unsigned int i = 0; idx < args.size(); idx++, i++) {
       values[i] = to_uinteger<uint32_t>(args[idx]);
+      outstanding_extended_operand_count--;
+    }
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
     return sizeof(XAie_BlockWrite32Hdr);
   }
 
-  [[nodiscard]] unsigned get_outstanding_operand_count() const override {
-    return operand_count;
+  [[nodiscard]] unsigned get_outstanding_extended_operand_count() const override {
+    return outstanding_extended_operand_count;
+  }
+
+  [[nodiscard]] unsigned get_total_extended_operand_count() const {
+    return (get_op_size() - get_op_base_size()) / sizeof(uint32_t);
   }
 
   void process_outstanding_operand(const std::vector<std::string>& args) override {
+    if (outstanding_extended_operand_count == 0)
+      throw error(error::error_code::invalid_asm, "This instance of " + get_mnemonic() + " cannot have more than " + std::to_string(get_total_extended_operand_count()) + " operands");
     auto values = get_extended_storage<unsigned int>();
     values[get_extended_operand_index()] = to_uinteger<uint32_t>(args[1]);
+    outstanding_extended_operand_count--;
   }
 };
 
@@ -468,7 +477,9 @@ aie2_asm_preprocessor_input::encode(const std::vector<char>& mc_asm_code) {
   if (labels.size() != 1)
     throw error(error::error_code::invalid_asm, "aie2 ctrlcode should have only one label");
   for (auto line : coldata.get_label_asmdata(labels.front())) {
-    if (isa_op_list.size() && isa_op_list.back()->get_outstanding_operand_count()) {
+    // If the previous recorded operation is expecting extension operations continue
+    // populating the previous operation.
+    if (isa_op_list.size() && isa_op_list.back()->get_outstanding_extended_operand_count()) {
       isa_op_list.back()->process_outstanding_operand(line->get_operation()->get_args());
       continue;
     }
