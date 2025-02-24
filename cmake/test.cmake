@@ -7,4 +7,5 @@ else()
   # are a submodule as it may conflict with configurations of the
   # parent project
   include (CTest)
+  set(CMAKE_CTEST_ARGUMENTS "--output-on-failure")
 endif()

@@ -42,12 +42,12 @@ install (
 #  )
 
 install(TARGETS aiebu_static
-        EXPORT aiebuTargets
+        EXPORT aiebu-targets
         ARCHIVE DESTINATION ${AIEBU_INSTALL_DIR}/lib
         LIBRARY DESTINATION ${AIEBU_INSTALL_DIR}/lib
         RUNTIME DESTINATION ${AIEBU_INSTALL_DIR}/bin)
 
-install(EXPORT aiebuTargets
-        FILE aiebuTargets.cmake
+install(EXPORT aiebu-targets
+        FILE aiebu-targets.cmake
         NAMESPACE AIEBU::
         DESTINATION ${AIEBU_INSTALL_DIR}/share/cmake/${PROJECT_NAME})

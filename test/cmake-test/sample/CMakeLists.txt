@@ -12,26 +12,21 @@ set(CMAKE_CXX_STANDARD 17)
 
 if (MSVC)
   add_compile_options(/WX /W2)
-  # Use Hybrid linking on Windows
   if (NOT (AIEBU_MSVC_LEGACY_LINKING))
-    add_compile_options($<$<CONFIG:Debug>:/MTd>
-                        $<$<CONFIG:Release>:/MT>)
-    add_link_options($<$<CONFIG:Debug>:/NODEFAULTLIB:libucrtd.lib>
-                     $<$<CONFIG:Debug>:/DEFAULTLIB:ucrtd.lib>
-                     $<$<CONFIG:Release>:/NODEFAULTLIB:libucrt.lib>
-                     $<$<CONFIG:Release>:/DEFAULTLIB:ucrt.lib>)
+    add_compile_options(/MT$<$<CONFIG:Debug>:d>  # static linking with the CRT
+      )
+    add_link_options(
+      /NODEFAULTLIB:libucrt$<$<CONFIG:Debug>:d>.lib  # Hybrid CRT
+      /DEFAULTLIB:ucrt$<$<CONFIG:Debug>:d>.lib       # Hybrid
+      )
   endif()
 else()
   add_compile_options(-Wall -Wextra -Werror)
 endif()
 
 add_executable(aiebu-client aie2_test.cpp)
-
-target_link_directories(aiebu-client PRIVATE ${AIEBU_LINK_DIRS})
-
-target_link_libraries(aiebu-client PRIVATE AIEBU::aiebu_static)
-
 target_include_directories(aiebu-client PRIVATE ${AIEBU_INCLUDE_DIRS})
+target_link_libraries(aiebu-client PRIVATE AIEBU::aiebu_static)
 
 add_custom_target(aiebuclientrun ALL
   COMMAND "aiebu-client" "-h"
