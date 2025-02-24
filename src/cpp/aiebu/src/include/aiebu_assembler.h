@@ -26,7 +26,7 @@ class aiebu_assembler {
 
   public:
 
-    enum class DRIVER_DLLESPEC buffer_type {
+    enum class buffer_type {
       blob_instr_dpu,
       blob_instr_prepost,
       blob_instr_transaction,
