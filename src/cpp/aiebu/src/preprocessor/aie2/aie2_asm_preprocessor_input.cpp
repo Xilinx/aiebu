@@ -24,24 +24,24 @@ const std::map<std::string, XAie_Preempt_level> preempt_level_table = { //NOLINT
 };
 
 const std::map<XAie_TxnOpcode, std::string> opcode_table = { //NOLINT
-    {XAIE_IO_WRITE,                   "XAIE_IO_WRITE"},
-    {XAIE_IO_BLOCKWRITE,              "XAIE_IO_BLOCKWRITE"},
-    {XAIE_IO_MASKWRITE,               "XAIE_IO_MASKWRITE"},
-    {XAIE_IO_MASKPOLL,                "XAIE_IO_MASKPOLL"},
-    {XAIE_IO_NOOP,                    "XAIE_IO_NOOP"},
-    {XAIE_IO_PREEMPT,                 "XAIE_IO_PREEMPT"},
-    {XAIE_IO_MASKPOLL_BUSY,           "XAIE_IO_MASKPOLL_BUSY"},
-    {XAIE_IO_LOADPDI,                 "XAIE_IO_LOADPDI"},
-    {XAIE_IO_LOAD_PM_START,           "XAIE_IO_LOAD_PM_START"},
-    {XAIE_CONFIG_SHIMDMA_BD,          "XAIE_CONFIG_SHIMDMA_BD"},
-    {XAIE_CONFIG_SHIMDMA_DMABUF_BD,  "XAIE_CONFIG_SHIMDMA_DMABUF_BD"},
-    {XAIE_IO_CUSTOM_OP_TCT,          "XAIE_IO_CUSTOM_OP_TCT"},
-    {XAIE_IO_CUSTOM_OP_DDR_PATCH,    "XAIE_IO_CUSTOM_OP_DDR_PATCH"},
-    {XAIE_IO_CUSTOM_OP_READ_REGS,    "XAIE_IO_CUSTOM_OP_READ_REGS"},
-    {XAIE_IO_CUSTOM_OP_RECORD_TIMER, "XAIE_IO_CUSTOM_OP_RECORD_TIMER"},
-    {XAIE_IO_CUSTOM_OP_MERGE_SYNC,   "XAIE_IO_CUSTOM_OP_MERGE_SYNC"},
-    {XAIE_IO_CUSTOM_OP_NEXT,         "XAIE_IO_CUSTOM_OP_NEXT"},
-    {XAIE_IO_LOAD_PM_END_INTERNAL,   "XAIE_IO_LOAD_PM_END_INTERNAL"}
+    {XAIE_IO_WRITE,                   "xaie_io_write"},
+    {XAIE_IO_BLOCKWRITE,              "xaie_io_blockwrite"},
+    {XAIE_IO_MASKWRITE,               "xaie_io_maskwrite"},
+    {XAIE_IO_MASKPOLL,                "xaie_io_maskpoll"},
+    {XAIE_IO_NOOP,                    "xaie_io_noop"},
+    {XAIE_IO_PREEMPT,                 "xaie_io_preempt"},
+    {XAIE_IO_MASKPOLL_BUSY,           "xaie_io_maskpoll_busy"},
+    {XAIE_IO_LOADPDI,                 "xaie_io_loadpdi"},
+    {XAIE_IO_LOAD_PM_START,           "xaie_io_load_pm_start"},
+    {XAIE_CONFIG_SHIMDMA_BD,          "xaie_config_shimdma_bd"},
+    {XAIE_CONFIG_SHIMDMA_DMABUF_BD,  "xaie_config_shimdma_dmabuf_bd"},
+    {XAIE_IO_CUSTOM_OP_TCT,          "xaie_io_custom_op_tct"},
+    {XAIE_IO_CUSTOM_OP_DDR_PATCH,    "xaie_io_custom_op_ddr_patch"},
+    {XAIE_IO_CUSTOM_OP_READ_REGS,    "xaie_io_custom_op_read_regs"},
+    {XAIE_IO_CUSTOM_OP_RECORD_TIMER, "xaie_io_custom_op_record_timer"},
+    {XAIE_IO_CUSTOM_OP_MERGE_SYNC,   "xaie_io_custom_op_merge_sync"},
+    {XAIE_IO_CUSTOM_OP_NEXT,         "xaie_io_custom_op_next"},
+    {XAIE_IO_LOAD_PM_END_INTERNAL,   "xaie_io_load_pm_end_internal"}
 };
 
 /*
@@ -126,11 +126,11 @@ public:
     return m_size;
   }
 
-  [[nodiscard]] virtual unsigned get_outstanding_extended_operand_count() const {
+  [[nodiscard]] virtual unsigned get_outstanding_ext_op_count() const {
     return 0;
   }
 
-  virtual void process_outstanding_extended_operand(const std::shared_ptr<operation>& op) {
+  virtual void process_outstanding_ext_op(const std::shared_ptr<operation> op) {
     const std::vector<std::string>& args = op->get_args();
     throw error(error::error_code::internal_error, opcode_table.at(m_code) + "does not require extended operands" + args[0]);
   }
@@ -170,32 +170,20 @@ public:
   explicit XAIE_IO_BLOCKWRITE_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_BLOCKWRITE)
   {
     // e.g. XAIE_IO_BLOCKWRITE             @0x801d060, [8]
-    // [0] 0x3
-    // [1] 0x0
-    // [2] 0x0
-    // [3] 0x0
-    // [4] 0x80000000
-    // [5] 0x2000000
-    // [6] 0x100007
-    // [7] 0x2000000
+    //      XAIE_IO_BLOCKWRITE.0           0x6
+    //      XAIE_IO_BLOCKWRITE.1           0x0
+    //      XAIE_IO_BLOCKWRITE.2           0x0
+    //      XAIE_IO_BLOCKWRITE.3           0x0
+    //      XAIE_IO_BLOCKWRITE.4           0x80000000
+    //      XAIE_IO_BLOCKWRITE.5           0x2000000
+    //      XAIE_IO_BLOCKWRITE.6           0x300007
+    //      XAIE_IO_BLOCKWRITE.7           0x2000000
+
     operand_count_check(args, 2);
     unsigned idx = 0;
     std::string regoff = args[idx++].substr(1);
     // Determine the total size including extended storage by counting the number of writes
-#if 0
-    outstanding_extended_operand_count = args.size() - idx;
-    initialize_OpHdr(sizeof(XAie_BlockWrite32Hdr) + sizeof(uint32_t) * outstanding_extended_operand_count);
 
-    auto op = reinterpret_cast<XAie_BlockWrite32Hdr *>(m_op);
-    op->RegOff = to_uinteger<uint64_t>(regoff);
-    op->Size = get_op_size();
-    // Capture the extended values
-    auto values = get_extended_storage<unsigned int>();
-    for (unsigned int i = 0; idx < args.size(); idx++, i++) {
-      values[i] = to_uinteger<uint32_t>(args[idx]);
-      outstanding_extended_operand_count--;
-    }
-#else
     const std::regex index_regex = get_regex({fragment::index_re});
 
     std::smatch matches;
@@ -211,14 +199,13 @@ public:
     auto op = reinterpret_cast<XAie_BlockWrite32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
     op->Size = get_op_size();
-#endif
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
     return sizeof(XAie_BlockWrite32Hdr);
   }
 
-  [[nodiscard]] unsigned get_outstanding_extended_operand_count() const override {
+  [[nodiscard]] unsigned get_outstanding_ext_op_count() const override {
     return outstanding_extended_operand_count;
   }
 
@@ -226,7 +213,7 @@ public:
     return (get_op_size() - get_op_base_size()) / sizeof(uint32_t);
   }
 
-  void process_outstanding_extended_operand(const std::shared_ptr<operation>& op) override {
+  void process_outstanding_ext_op(const std::shared_ptr<operation> op) override {
     if (outstanding_extended_operand_count == 0)
       throw error(error::error_code::invalid_asm, "This instance of " + get_mnemonic() + " cannot have more than " + std::to_string(get_total_extended_operand_count()) + " operands");
 
@@ -235,10 +222,7 @@ public:
     base += ".";
     base += std::to_string(get_extended_operand_index());
 
-    std::string name = op->get_name();
-    std::transform(name.begin(), name.end(), name.begin(), ::toupper);
-
-    if (base.compare(name))
+    if (base.compare(op->get_name()))
       throw error(error::error_code::invalid_asm, "Invalid operand " + op->get_name());
 
     auto values = get_extended_storage<unsigned int>();
@@ -464,24 +448,22 @@ const std::map<std::string, std::unique_ptr<aie2_isa_op_factory>> mnemonic_table
  * const but I ran into linker problems documented above.
  */
 aie2_asm_preprocessor_input::aie2_asm_preprocessor_input() {
-  m_mnemonic_table.emplace("XAIE_IO_WRITE", std::make_unique<aie2_isa_op_factory<XAIE_IO_WRITE_op>>());
-  m_mnemonic_table.emplace("XAIE_IO_BLOCKWRITE", std::make_unique<aie2_isa_op_factory<XAIE_IO_BLOCKWRITE_op>>());
-  m_mnemonic_table.emplace("XAIE_IO_MASKWRITE", std::make_unique<aie2_isa_op_factory<XAIE_IO_MASKWRITE_op>>());
-  m_mnemonic_table.emplace("XAIE_IO_MASKPOLL", std::make_unique<aie2_isa_op_factory<XAIE_IO_MASKPOLL_op>>());
-  m_mnemonic_table.emplace("XAIE_IO_MASKPOLL_BUSY", std::make_unique<aie2_isa_op_factory<XAIE_IO_MASKPOLL_BUSY_op>>());
-  m_mnemonic_table.emplace("XAIE_IO_NOOP", std::make_unique<aie2_isa_op_factory<XAIE_IO_NOOP_op>>());
-  m_mnemonic_table.emplace("XAIE_IO_PREEMPT", std::make_unique<aie2_isa_op_factory<XAIE_IO_PREEMPT_op>>());
-  m_mnemonic_table.emplace("XAIE_IO_LOADPDI", std::make_unique<aie2_isa_op_factory<XAIE_IO_LOADPDI_op>>());
-  m_mnemonic_table.emplace("XAIE_IO_LOAD_PM_START", std::make_unique<aie2_isa_op_factory<XAIE_IO_LOAD_PM_START_op>>());
-  m_mnemonic_table.emplace("XAIE_IO_CUSTOM_OP_TCT", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_TCT_op>>());
-  m_mnemonic_table.emplace("XAIE_IO_CUSTOM_OP_DDR_PATCH", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_DDR_PATCH_op>>());
+  m_mnemonic_table.emplace("xaie_io_write", std::make_unique<aie2_isa_op_factory<XAIE_IO_WRITE_op>>());
+  m_mnemonic_table.emplace("xaie_io_blockwrite", std::make_unique<aie2_isa_op_factory<XAIE_IO_BLOCKWRITE_op>>());
+  m_mnemonic_table.emplace("xaie_io_maskwrite", std::make_unique<aie2_isa_op_factory<XAIE_IO_MASKWRITE_op>>());
+  m_mnemonic_table.emplace("xaie_io_maskpoll", std::make_unique<aie2_isa_op_factory<XAIE_IO_MASKPOLL_op>>());
+  m_mnemonic_table.emplace("xaie_io_maskpoll_busy", std::make_unique<aie2_isa_op_factory<XAIE_IO_MASKPOLL_BUSY_op>>());
+  m_mnemonic_table.emplace("xaie_io_noop", std::make_unique<aie2_isa_op_factory<XAIE_IO_NOOP_op>>());
+  m_mnemonic_table.emplace("xaie_io_preempt", std::make_unique<aie2_isa_op_factory<XAIE_IO_PREEMPT_op>>());
+  m_mnemonic_table.emplace("xaie_io_loadpdi", std::make_unique<aie2_isa_op_factory<XAIE_IO_LOADPDI_op>>());
+  m_mnemonic_table.emplace("xaie_io_load_pm_start", std::make_unique<aie2_isa_op_factory<XAIE_IO_LOAD_PM_START_op>>());
+  m_mnemonic_table.emplace("xaie_io_custom_op_tct", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_TCT_op>>());
+  m_mnemonic_table.emplace("xaie_io_custom_op_ddr_patch", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_DDR_PATCH_op>>());
 }
 
 std::unique_ptr<aie2_isa_op> aie2_asm_preprocessor_input::assemble_operation(std::shared_ptr<operation> op)
 {
-  std::string name = op->get_name();
-  std::transform(name.begin(), name.end(), name.begin(), ::toupper);
-  auto iter  = m_mnemonic_table.find(name);
+  auto iter  = m_mnemonic_table.find(op->get_name());
 
   if (iter == m_mnemonic_table.end())
     throw error(error::error_code::invalid_asm, "Invalid opcode " + op->get_name());
@@ -510,8 +492,8 @@ aie2_asm_preprocessor_input::encode(const std::vector<char>& mc_asm_code) {
   for (auto line : coldata.get_label_asmdata(labels.front())) {
     // If the previous recorded operation is expecting extension operations continue
     // populating the previous operation.
-    if (isa_op_list.size() && isa_op_list.back()->get_outstanding_extended_operand_count()) {
-      isa_op_list.back()->process_outstanding_extended_operand(line->get_operation());
+    if (isa_op_list.size() && isa_op_list.back()->get_outstanding_ext_op_count()) {
+      isa_op_list.back()->process_outstanding_ext_op(line->get_operation());
       continue;
     }
     std::unique_ptr<aie2_isa_op> isa_op = assemble_operation(line->get_operation());
