@@ -15,7 +15,7 @@ namespace aiebu {
 
 class aie2_isa_op;
 
-const std::map<std::string, XAie_Preempt_level> preempt_level_table = {
+const std::map<std::string, XAie_Preempt_level> preempt_level_table = { //NOLINT
     {"NOOP",          NOOP},
     {"MEM_TILE",      MEM_TILE},
     {"AIE_TILE",      AIE_TILE},
@@ -23,7 +23,7 @@ const std::map<std::string, XAie_Preempt_level> preempt_level_table = {
     {"INVALID",       INVALID},
 };
 
-const std::map<XAie_TxnOpcode, std::string> opcode_table = {
+const std::map<XAie_TxnOpcode, std::string> opcode_table = { //NOLINT
     {XAIE_IO_WRITE,                   "XAIE_IO_WRITE"},
     {XAIE_IO_BLOCKWRITE,              "XAIE_IO_BLOCKWRITE"},
     {XAIE_IO_MASKWRITE,               "XAIE_IO_MASKWRITE"},
@@ -130,7 +130,8 @@ public:
     return 0;
   }
 
-  virtual void process_outstanding_operand(const std::vector<std::string>& args) {
+  virtual void process_outstanding_extended_operand(const std::shared_ptr<operation>& op) {
+    const std::vector<std::string>& args = op->get_args();
     throw error(error::error_code::internal_error, opcode_table.at(m_code) + "does not require extended operands" + args[0]);
   }
 };
@@ -162,7 +163,7 @@ private:
 
   [[nodiscard]] unsigned get_extended_operand_index() const {
     size_t ex_op_size = get_op_size() - get_op_base_size();
-    return ex_op_size - sizeof(uint32_t) * outstanding_extended_operand_count;
+    return ex_op_size / sizeof(uint32_t) - outstanding_extended_operand_count;
   }
 
 public:
@@ -181,8 +182,9 @@ public:
     unsigned idx = 0;
     std::string regoff = args[idx++].substr(1);
     // Determine the total size including extended storage by counting the number of writes
-    initialize_OpHdr(sizeof(XAie_BlockWrite32Hdr) + sizeof(uint32_t) * (args.size() - idx));
+#if 0
     outstanding_extended_operand_count = args.size() - idx;
+    initialize_OpHdr(sizeof(XAie_BlockWrite32Hdr) + sizeof(uint32_t) * outstanding_extended_operand_count);
 
     auto op = reinterpret_cast<XAie_BlockWrite32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
@@ -193,6 +195,23 @@ public:
       values[i] = to_uinteger<uint32_t>(args[idx]);
       outstanding_extended_operand_count--;
     }
+#else
+    const std::regex index_regex = get_regex({fragment::index_re});
+
+    std::smatch matches;
+    if (!std::regex_match(args[idx], matches, index_regex))
+        throw error(error::error_code::invalid_asm, args[idx]);
+
+    if (matches.size() != 2)
+        throw error(error::error_code::invalid_asm, args[1]);
+
+    outstanding_extended_operand_count = to_uinteger<uint32_t>(matches[1]);
+    initialize_OpHdr(sizeof(XAie_BlockWrite32Hdr) +
+                     sizeof(uint32_t) * outstanding_extended_operand_count);
+    auto op = reinterpret_cast<XAie_BlockWrite32Hdr *>(m_op);
+    op->RegOff = to_uinteger<uint64_t>(regoff);
+    op->Size = get_op_size();
+#endif
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
@@ -207,11 +226,23 @@ public:
     return (get_op_size() - get_op_base_size()) / sizeof(uint32_t);
   }
 
-  void process_outstanding_operand(const std::vector<std::string>& args) override {
+  void process_outstanding_extended_operand(const std::shared_ptr<operation>& op) override {
     if (outstanding_extended_operand_count == 0)
       throw error(error::error_code::invalid_asm, "This instance of " + get_mnemonic() + " cannot have more than " + std::to_string(get_total_extended_operand_count()) + " operands");
+
+    const std::vector<std::string>& args = op->get_args();
+    std::string base = opcode_table.at(XAIE_IO_BLOCKWRITE);
+    base += ".";
+    base += std::to_string(get_extended_operand_index());
+
+    std::string name = op->get_name();
+    std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+
+    if (base.compare(name))
+      throw error(error::error_code::invalid_asm, "Invalid operand " + op->get_name());
+
     auto values = get_extended_storage<unsigned int>();
-    values[get_extended_operand_index()] = to_uinteger<uint32_t>(args[1]);
+    values[get_extended_operand_index()] = to_uinteger<uint32_t>(args[0]);
     outstanding_extended_operand_count--;
   }
 };
@@ -480,7 +511,7 @@ aie2_asm_preprocessor_input::encode(const std::vector<char>& mc_asm_code) {
     // If the previous recorded operation is expecting extension operations continue
     // populating the previous operation.
     if (isa_op_list.size() && isa_op_list.back()->get_outstanding_extended_operand_count()) {
-      isa_op_list.back()->process_outstanding_operand(line->get_operation()->get_args());
+      isa_op_list.back()->process_outstanding_extended_operand(line->get_operation());
       continue;
     }
     std::unique_ptr<aie2_isa_op> isa_op = assemble_operation(line->get_operation());

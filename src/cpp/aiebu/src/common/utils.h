@@ -170,6 +170,7 @@ enum class fragment{
   l_brack_re,
   r_brack_re,
   equal_re,
+  index_re,
 };
 
 std::regex get_regex(const std::vector<fragment>& pattern);

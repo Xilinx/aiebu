@@ -256,12 +256,12 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*bw_header);
         u32 *Payload = (u32 *)curr;
-        ss_ops_ << op_format << "XAIE_IO_BLOCKWRITE " << "@0x" << std::hex << bw_header->RegOff;
+        ss_ops_ << op_format << "XAIE_IO_BLOCKWRITE " << "@0x" << std::hex << bw_header->RegOff << ", [" <<
+          Size << "]" << std::endl;
         for (u32 i = 0; i < Size; i++) {
-            ss_ops_ << ", 0x" << std::hex << *Payload;
+            ss_ops_ << op_format << ("XAIE_IO_BLOCKWRITE." + std::to_string(i)) << "0x" << std::hex << *Payload << std::endl;
             Payload++;
         }
-        ss_ops_ << std::endl;
         return bw_size;
     }
 
@@ -374,12 +374,12 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*bw_header);
         u32 *Payload = (u32 *)curr;
-        ss_ops_ << op_format << "XAIE_IO_BLOCKWRITE " << "@0x" << std::hex << bw_header->RegOff;
+        ss_ops_ << op_format << "XAIE_IO_BLOCKWRITE " << "@0x" << std::hex << bw_header->RegOff << ", [" <<
+            Size << "]" << std::endl;
         for (u32 i = 0; i < Size; i++) {
-            ss_ops_ << ", 0x" << std::hex << *Payload;
+            ss_ops_ << op_format << ("XAIE_IO_BLOCKWRITE." + std::to_string(i)) << "0x" << std::hex << *Payload << std::endl;
             Payload++;
         }
-        ss_ops_ << std::endl;
         return bw_size;
     }
 
