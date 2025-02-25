@@ -1,0 +1,1508 @@
+<html>
+  <head>
+    <title>AIE Control-Code ISA</title>
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #f5f5f5;
+      }
+      main {
+        display: flex;
+        flex-flow: column;
+        margin: 4em auto;
+        max-width: 1200px;
+        background-color: #fff;
+        box-shadow: 0.5em 0.5em 0.5em rgba(0, 0, 0, 0.1);
+      }
+      .docs {
+        display: flex;
+        flex-direction: row-reverse;
+        flex-grow: 1;
+      }
+      .title {
+        border-bottom: 1px solid #ccc;
+        padding: 0.5em 2em;
+        display: flex;
+        align-items: center;
+      }
+      .logo {
+        height: 2em;
+        display: block;
+      }
+      .title h1 {
+        display: block;
+        flex-grow: 1;
+      }
+      .sidebar {
+        border-left: 1px solid #ccc;
+        background-color: #eee;
+      }
+      .toc-outer {
+        position: sticky;
+        top: 1em;
+        padding: 0.5em;
+      }
+      .contents {
+        flex-grow: 1;
+        padding: 0.5em 0.5em;
+      }
+      .contents table {
+        border: 1px solid #ddd;
+      }
+      .contents th {
+        background-color: #eee;
+      }
+      .contents th, .contents td {
+        padding: 0.5em;
+      }
+      .contents pre {
+        background-color: #f8f8f8;
+        padding: 1em;
+      }
+      .contents h1:not(:first-child) {
+        margin-top: 1.5em;
+      }
+      .contents h2 {
+        margin-top: 1.5em;
+      }
+      .contents img {
+        max-width: 90%;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="title">
+        <h1>AIE Control-Code ISA</h1>
+        <img class="logo" src="data:image/png;base64,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" alt="" />
+      </div>
+      <div class="docs">
+        <div class="sidebar">
+          <div class="toc-outer">
+            <div class="toc">
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#control-code-sequence">Control-Code Sequence</a></li>
+<li><a href="#alignment">Alignment</a></li>
+<li><a href="#endianness">Endianness</a></li>
+<li><a href="#control-code-pages">Control-Code Pages</a></li>
+<li><a href="#control-code-structure">Control-Code Structure</a></li>
+<li><a href="#tile-and-actor-ids">Tile and actor IDs</a></li>
+<li><a href="#binary-format">Binary Format</a></li>
+<li><a href="#data-types">Data Types</a><ul>
+<li><a href="#opcode">opcode</a></li>
+<li><a href="#register">register</a></li>
+<li><a href="#barrier">barrier</a></li>
+<li><a href="#const">const</a></li>
+<li><a href="#page_id">page_id</a></li>
+<li><a href="#pad">pad</a></li>
+<li><a href="#jobsize">jobsize</a></li>
+</ul>
+</li>
+<li><a href="#operations">Operations</a><ul>
+<li><a href="#start_job-0x00">START_JOB (0x00)</a></li>
+<li><a href="#start_job_deferred-0x17">START_JOB_DEFERRED (0x17)</a></li>
+<li><a href="#launch_job-0x18">LAUNCH_JOB (0x18)</a></li>
+<li><a href="#uc_dma_write_des-0x01">UC_DMA_WRITE_DES (0x01)</a></li>
+<li><a href="#wait_uc_dma-0x02">WAIT_UC_DMA (0x02)</a></li>
+<li><a href="#mask_write_32-0x03">MASK_WRITE_32 (0x03)</a></li>
+<li><a href="#write_32-0x05">WRITE_32 (0x05)</a></li>
+<li><a href="#wait_tcts-0x06">WAIT_TCTS (0x06)</a></li>
+<li><a href="#end_job-0x07">END_JOB (0x07)</a></li>
+<li><a href="#yield-0x08">YIELD (0x08)</a></li>
+<li><a href="#uc_dma_write_des_sync-0x09">UC_DMA_WRITE_DES_SYNC (0x09)</a></li>
+<li><a href="#write_32_d-0x0b">WRITE_32_D (0x0b)</a></li>
+<li><a href="#read_32-0x0c">READ_32 (0x0c)</a></li>
+<li><a href="#read_32_d-0x0d">READ_32_D (0x0d)</a></li>
+<li><a href="#apply_offset_57-0x0e">APPLY_OFFSET_57 (0x0e)</a></li>
+<li><a href="#add-0x0f">ADD (0x0f)</a></li>
+<li><a href="#mov-0x10">MOV (0x10)</a></li>
+<li><a href="#local_barrier-0x11">LOCAL_BARRIER (0x11)</a></li>
+<li><a href="#remote_barrier-0x12">REMOTE_BARRIER (0x12)</a></li>
+<li><a href="#eof-0xff">EOF (0xff)</a></li>
+<li><a href="#poll_32-0x13">POLL_32 (0x13)</a></li>
+<li><a href="#mask_poll_32-0x14">MASK_POLL_32 (0x14)</a></li>
+<li><a href="#trace-0x15">TRACE (0x15)</a></li>
+<li><a href="#nop-0x16">NOP (0x16)</a></li>
+<li><a href="#preemption_checkpoint-0x19">PREEMPTION_CHECKPOINT (0x19)</a></li>
+<li><a href="#load_pdi-0x1a">LOAD_PDI (0x1a)</a></li>
+<li><a href="#load_last_pdi-0x1b">LOAD_LAST_PDI (0x1b)</a></li>
+<li><a href="#save_timestamps-0x1c">SAVE_TIMESTAMPS (0x1c)</a></li>
+</ul>
+</li>
+<li><a href="#directives">Directives</a><ul>
+<li><a href="#long">.long</a></li>
+<li><a href="#align">.align</a></li>
+<li><a href="#section">.section</a></li>
+<li><a href="#include">.include</a></li>
+<li><a href="#eop">.eop</a></li>
+<li><a href="#attach_to_group">.attach_to_group</a></li>
+<li><a href="#setpad">.setpad</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+          </div>
+        </div>
+        <div class="contents">
+          <h1 id="introduction">Introduction</h1>
+<p>This document outlines the specification of the <em>ctrlcode</em> ISA which serves as the instruction set
+interpreted by the <em>CERT</em> <em>VM</em> also referred to as <em>job-runner</em> in this document. The <em>job-runner</em>
+is hosted on top of a Baremetal OS which runs on top of Microblaze uController. The whole stack is called CERT.</p>
+<div><svg width="496pt" height="228pt"
+ viewBox="0.00 0.00 496.00 228.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 224)">
+<title>cert_stack</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-224 492,-224 492,4 -4,4"/>
+<text text-anchor="middle" x="244" y="-7.8" font-family="Courier New" font-size="14.00">Application Context</text>
+<g id="clust1" class="cluster">
+<title>cluster_0</title>
+<polygon fill="none" stroke="blue" points="8,-31 8,-212 480,-212 480,-31 8,-31"/>
+<text text-anchor="middle" x="244" y="-196.8" font-family="Courier New" font-size="14.00">CERT Array</text>
+</g>
+<!-- CtrlCode -->
+<g id="node1" class="node">
+<title>CtrlCode</title>
+<polygon fill="none" stroke="black" points="300.5,-75 229.5,-75 229.5,-79 217.5,-79 217.5,-39 300.5,-39 300.5,-75"/>
+<polyline fill="none" stroke="black" points="217.5,-75 229.5,-75 "/>
+<text text-anchor="middle" x="259" y="-53.3" font-family="Courier New" font-size="14.00">CtrlCode</text>
+</g>
+<!-- structcert0 -->
+<g id="node2" class="node">
+<title>structcert0</title>
+<polygon fill="none" stroke="black" points="356,-111.5 356,-180.5 472,-180.5 472,-111.5 356,-111.5"/>
+<text text-anchor="middle" x="414" y="-165.3" font-family="Courier New" font-size="14.00">Job&#45;Runner</text>
+<polyline fill="none" stroke="black" points="356,-157.5 472,-157.5 "/>
+<text text-anchor="middle" x="414" y="-142.3" font-family="Courier New" font-size="14.00">Baremetal OS</text>
+<polyline fill="none" stroke="black" points="356,-134.5 472,-134.5 "/>
+<text text-anchor="middle" x="414" y="-119.3" font-family="Courier New" font-size="14.00">uController</text>
+</g>
+<!-- structcert0&#45;&gt;CtrlCode -->
+<g id="edge1" class="edge">
+<title>structcert0&#45;&gt;CtrlCode</title>
+<path fill="none" stroke="black" d="M355.84,-112.36C336.68,-101.6 315.83,-89.9 298.4,-80.11"/>
+<polygon fill="black" stroke="black" points="300.05,-77.03 289.62,-75.19 296.63,-83.13 300.05,-77.03"/>
+</g>
+<!-- structcert2 -->
+<g id="node3" class="node">
+<title>structcert2</title>
+<polygon fill="none" stroke="black" points="284,-111.5 284,-180.5 338,-180.5 338,-111.5 284,-111.5"/>
+<text text-anchor="middle" x="311" y="-165.3" font-family="Courier New" font-size="14.00"> </text>
+<polyline fill="none" stroke="black" points="284,-157.5 338,-157.5 "/>
+<text text-anchor="middle" x="311" y="-142.3" font-family="Courier New" font-size="14.00">...</text>
+<polyline fill="none" stroke="black" points="284,-134.5 338,-134.5 "/>
+<text text-anchor="middle" x="311" y="-119.3" font-family="Courier New" font-size="14.00"> </text>
+</g>
+<!-- structcert2&#45;&gt;CtrlCode -->
+<g id="edge3" class="edge">
+<title>structcert2&#45;&gt;CtrlCode</title>
+<path fill="none" stroke="black" d="M290.75,-111.11C285.39,-102.14 279.68,-92.6 274.61,-84.11"/>
+<polygon fill="black" stroke="black" points="277.53,-82.18 269.4,-75.4 271.52,-85.78 277.53,-82.18"/>
+</g>
+<!-- structcert1 -->
+<g id="node4" class="node">
+<title>structcert1</title>
+<polygon fill="none" stroke="black" points="150,-111.5 150,-180.5 266,-180.5 266,-111.5 150,-111.5"/>
+<text text-anchor="middle" x="208" y="-165.3" font-family="Courier New" font-size="14.00">Job&#45;Runner</text>
+<polyline fill="none" stroke="black" points="150,-157.5 266,-157.5 "/>
+<text text-anchor="middle" x="208" y="-142.3" font-family="Courier New" font-size="14.00">Baremetal OS</text>
+<polyline fill="none" stroke="black" points="150,-134.5 266,-134.5 "/>
+<text text-anchor="middle" x="208" y="-119.3" font-family="Courier New" font-size="14.00">uController</text>
+</g>
+<!-- structcert1&#45;&gt;CtrlCode -->
+<g id="edge2" class="edge">
+<title>structcert1&#45;&gt;CtrlCode</title>
+<path fill="none" stroke="black" d="M227.86,-111.11C233.12,-102.14 238.72,-92.6 243.69,-84.11"/>
+<polygon fill="black" stroke="black" points="246.76,-85.79 248.8,-75.4 240.73,-82.25 246.76,-85.79"/>
+</g>
+<!-- structcertn -->
+<g id="node5" class="node">
+<title>structcertn</title>
+<polygon fill="none" stroke="black" points="16,-111.5 16,-180.5 132,-180.5 132,-111.5 16,-111.5"/>
+<text text-anchor="middle" x="74" y="-165.3" font-family="Courier New" font-size="14.00">Job&#45;Runner</text>
+<polyline fill="none" stroke="black" points="16,-157.5 132,-157.5 "/>
+<text text-anchor="middle" x="74" y="-142.3" font-family="Courier New" font-size="14.00">Baremetal OS</text>
+<polyline fill="none" stroke="black" points="16,-134.5 132,-134.5 "/>
+<text text-anchor="middle" x="74" y="-119.3" font-family="Courier New" font-size="14.00">uController</text>
+</g>
+<!-- structcertn&#45;&gt;CtrlCode -->
+<g id="edge4" class="edge">
+<title>structcertn&#45;&gt;CtrlCode</title>
+<path fill="none" stroke="black" d="M132.02,-115.34C135.05,-113.86 138.06,-112.41 141,-111 163.68,-100.16 189.09,-88.67 210.5,-79.16"/>
+<polygon fill="black" stroke="black" points="211.99,-82.33 219.72,-75.08 209.16,-75.93 211.99,-82.33"/>
+</g>
+</g>
+</svg>
+</div>
+<h1 id="control-code-sequence">Control-Code Sequence</h1>
+<p>The control-code is a sequence of opcodes along with operands, organized as <em>jobs</em> which run in a
+pseudo-parallel fashion using cooperative multi-tasking.</p>
+<p>Each job is stack-less and has a private set of 8 working registers <code>r0</code>..<code>r7</code> which can be used as input
+and output operands.</p>
+<p>The sequence of jobs can be followed by user-defined custom data, e.g. configuration data which is to be
+transferred via the uC-DMA.</p>
+<div><svg width="708pt" height="85pt"
+ viewBox="0.00 0.00 708.20 85.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 81)">
+<title>control_code_structure</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-81 704.2,-81 704.2,4 -4,4"/>
+<!-- begin -->
+<g id="node1" class="node">
+<title>begin</title>
+<ellipse fill="black" stroke="black" cx="1.8" cy="-18" rx="1.8" ry="1.8"/>
+</g>
+<!-- START_JOB -->
+<g id="node3" class="node">
+<title>START_JOB</title>
+<path fill="none" stroke="black" d="M227.6,-36C227.6,-36 51.6,-36 51.6,-36 45.6,-36 39.6,-30 39.6,-24 39.6,-24 39.6,-12 39.6,-12 39.6,-6 45.6,0 51.6,0 51.6,0 227.6,0 227.6,0 233.6,0 239.6,-6 239.6,-12 239.6,-12 239.6,-24 239.6,-24 239.6,-30 233.6,-36 227.6,-36"/>
+<text text-anchor="middle" x="139.6" y="-14.3" font-family="Times,serif" font-size="14.00">START_JOB(_DEFERRED)</text>
+</g>
+<!-- begin&#45;&gt;START_JOB -->
+<g id="edge1" class="edge">
+<title>begin&#45;&gt;START_JOB</title>
+<path fill="none" stroke="black" d="M3.67,-18C6.54,-18 16.31,-18 29.36,-18"/>
+<polygon fill="black" stroke="black" points="29.4,-21.5 39.4,-18 29.4,-14.5 29.4,-21.5"/>
+</g>
+<!-- end -->
+<g id="node2" class="node">
+<title>end</title>
+<ellipse fill="black" stroke="black" cx="698.4" cy="-18" rx="1.8" ry="1.8"/>
+</g>
+<!-- operation -->
+<g id="node4" class="node">
+<title>operation</title>
+<path fill="none" stroke="black" d="M348.6,-59C348.6,-59 287.6,-59 287.6,-59 281.6,-59 275.6,-53 275.6,-47 275.6,-47 275.6,-35 275.6,-35 275.6,-29 281.6,-23 287.6,-23 287.6,-23 348.6,-23 348.6,-23 354.6,-23 360.6,-29 360.6,-35 360.6,-35 360.6,-47 360.6,-47 360.6,-53 354.6,-59 348.6,-59"/>
+<text text-anchor="middle" x="318.1" y="-37.3" font-family="Times,serif" font-size="14.00">operation</text>
+</g>
+<!-- START_JOB&#45;&gt;operation -->
+<g id="edge2" class="edge">
+<title>START_JOB&#45;&gt;operation</title>
+<path fill="none" stroke="black" d="M239.68,-30.91C248.52,-32.06 257.22,-33.2 265.4,-34.26"/>
+<polygon fill="black" stroke="black" points="265.1,-37.75 275.47,-35.57 266,-30.81 265.1,-37.75"/>
+</g>
+<!-- operation&#45;&gt;operation -->
+<g id="edge3" class="edge">
+<title>operation&#45;&gt;operation</title>
+<path fill="none" stroke="black" d="M296.39,-59.15C293.05,-68.54 300.29,-77 318.1,-77 328.95,-77 335.88,-73.86 338.88,-69.28"/>
+<polygon fill="black" stroke="black" points="342.38,-69.43 339.81,-59.15 335.41,-68.79 342.38,-69.43"/>
+</g>
+<!-- END_JOB -->
+<g id="node5" class="node">
+<title>END_JOB</title>
+<path fill="none" stroke="black" d="M468.6,-36C468.6,-36 408.6,-36 408.6,-36 402.6,-36 396.6,-30 396.6,-24 396.6,-24 396.6,-12 396.6,-12 396.6,-6 402.6,0 408.6,0 408.6,0 468.6,0 468.6,0 474.6,0 480.6,-6 480.6,-12 480.6,-12 480.6,-24 480.6,-24 480.6,-30 474.6,-36 468.6,-36"/>
+<text text-anchor="middle" x="438.6" y="-14.3" font-family="Times,serif" font-size="14.00">END_JOB</text>
+</g>
+<!-- operation&#45;&gt;END_JOB -->
+<g id="edge4" class="edge">
+<title>operation&#45;&gt;END_JOB</title>
+<path fill="none" stroke="black" d="M360.88,-32.89C369.21,-31.27 378.05,-29.56 386.65,-27.89"/>
+<polygon fill="black" stroke="black" points="387.45,-31.3 396.6,-25.96 386.11,-24.43 387.45,-31.3"/>
+</g>
+<!-- END_JOB&#45;&gt;START_JOB -->
+<g id="edge5" class="edge">
+<title>END_JOB&#45;&gt;START_JOB</title>
+<path fill="none" stroke="black" d="M396.46,-15.47C384.86,-14.86 372.24,-14.3 360.6,-14 324.63,-13.07 285.34,-13.36 250.05,-14.11"/>
+<polygon fill="black" stroke="black" points="249.64,-10.62 239.72,-14.34 249.8,-17.61 249.64,-10.62"/>
+</g>
+<!-- EOF -->
+<g id="node6" class="node">
+<title>EOF</title>
+<path fill="none" stroke="black" d="M558.6,-36C558.6,-36 528.6,-36 528.6,-36 522.6,-36 516.6,-30 516.6,-24 516.6,-24 516.6,-12 516.6,-12 516.6,-6 522.6,0 528.6,0 528.6,0 558.6,0 558.6,0 564.6,0 570.6,-6 570.6,-12 570.6,-12 570.6,-24 570.6,-24 570.6,-30 564.6,-36 558.6,-36"/>
+<text text-anchor="middle" x="543.6" y="-14.3" font-family="Times,serif" font-size="14.00">EOF</text>
+</g>
+<!-- END_JOB&#45;&gt;EOF -->
+<g id="edge6" class="edge">
+<title>END_JOB&#45;&gt;EOF</title>
+<path fill="none" stroke="black" d="M480.6,-18C489.12,-18 498.05,-18 506.38,-18"/>
+<polygon fill="black" stroke="black" points="506.55,-21.5 516.55,-18 506.55,-14.5 506.55,-21.5"/>
+</g>
+<!-- data -->
+<g id="node7" class="node">
+<title>data</title>
+<path fill="none" stroke="black" d="M648.6,-36C648.6,-36 618.6,-36 618.6,-36 612.6,-36 606.6,-30 606.6,-24 606.6,-24 606.6,-12 606.6,-12 606.6,-6 612.6,0 618.6,0 618.6,0 648.6,0 648.6,0 654.6,0 660.6,-6 660.6,-12 660.6,-12 660.6,-24 660.6,-24 660.6,-30 654.6,-36 648.6,-36"/>
+<text text-anchor="middle" x="633.6" y="-14.3" font-family="Times,serif" font-size="14.00">data</text>
+</g>
+<!-- EOF&#45;&gt;data -->
+<g id="edge7" class="edge">
+<title>EOF&#45;&gt;data</title>
+<path fill="none" stroke="black" d="M571,-18C578.99,-18 587.91,-18 596.42,-18"/>
+<polygon fill="black" stroke="black" points="596.52,-21.5 606.52,-18 596.52,-14.5 596.52,-21.5"/>
+</g>
+<!-- data&#45;&gt;end -->
+<g id="edge9" class="edge">
+<title>data&#45;&gt;end</title>
+<path fill="none" stroke="black" d="M660.87,-18C669.81,-18 679.32,-18 686.4,-18"/>
+<polygon fill="black" stroke="black" points="686.54,-21.5 696.54,-18 686.54,-14.5 686.54,-21.5"/>
+</g>
+<!-- data&#45;&gt;data -->
+<g id="edge8" class="edge">
+<title>data&#45;&gt;data</title>
+<path fill="none" stroke="black" d="M622.02,-36.15C620.24,-45.54 624.1,-54 633.6,-54 639.39,-54 643.08,-50.86 644.68,-46.28"/>
+<polygon fill="black" stroke="black" points="648.19,-46.31 645.18,-36.15 641.19,-45.97 648.19,-46.31"/>
+</g>
+</g>
+</svg>
+</div>
+<h1 id="alignment">Alignment</h1>
+<p>All operands have to be naturally aligned, i.e. 16-bit numbers may only start on 16-bit boundaries and
+32-bit numbers may only start on 32-bit boundaries.</p>
+<p>The size of an operation, i.e. the opcode followed by all operands, should be a multiple of 32 bits.</p>
+<p>To achieve the required alignment, padding operands can be used.</p>
+<h1 id="endianness">Endianness</h1>
+<p>All numbers are encoded in little-endian order.</p>
+<h1 id="control-code-pages">Control-Code Pages</h1>
+<p>Control-code is organized as a series of pages which are paged-in to the shared Data Memory (sDM) by the uC-DMA in
+a ping-pong fashion. A page cannot have a barrier or lock dependency on a following page, although backward
+dependency should work. Page boundary is hinted by the <code>.eop</code> <a href="#directives">directive</a>.</p>
+<h1 id="control-code-structure">Control-Code Structure</h1>
+<p>TODO: Describe START_JOB / END_JOB etc, state diagram?</p>
+<h1 id="tile-and-actor-ids">Tile and actor IDs</h1>
+<p>t.b.d.</p>
+<h1 id="binary-format">Binary Format</h1>
+<p>Control-code asm files are assembled into standard 32-bit ELF binary files. The file is organized into <a href="#directives">sections</a>.
+A section's column number and page number tells CERT which column's sDM the section should be loaded on. The page number
+is used for cooperative paging using a ping-pong scheme.</p>
+<div><svg width="247pt" height="300pt"
+ viewBox="0.00 0.00 247.00 300.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 296)">
+<title>cert_stack</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-296 243,-296 243,4 -4,4"/>
+<text text-anchor="middle" x="119.5" y="-22.8" font-family="Courier New" font-size="14.00">Column 0 with three pages</text>
+<text text-anchor="middle" x="119.5" y="-7.8" font-family="Courier New" font-size="14.00"> and column 1 with one page</text>
+<!-- structcert0 -->
+<g id="node1" class="node">
+<title>structcert0</title>
+<polygon fill="none" stroke="black" points="57.5,-38.5 57.5,-291.5 181.5,-291.5 181.5,-38.5 57.5,-38.5"/>
+<text text-anchor="middle" x="119.5" y="-276.3" font-family="Courier New" font-size="14.00">ELF Header</text>
+<polyline fill="none" stroke="black" points="57.5,-268.5 181.5,-268.5 "/>
+<text text-anchor="middle" x="119.5" y="-253.3" font-family="Courier New" font-size="14.00">.ctrltext.0.0</text>
+<polyline fill="none" stroke="black" points="57.5,-245.5 181.5,-245.5 "/>
+<text text-anchor="middle" x="119.5" y="-230.3" font-family="Courier New" font-size="14.00">.ctrldata.0.0</text>
+<polyline fill="none" stroke="black" points="57.5,-222.5 181.5,-222.5 "/>
+<text text-anchor="middle" x="119.5" y="-207.3" font-family="Courier New" font-size="14.00">.ctrltext.0.1</text>
+<polyline fill="none" stroke="black" points="57.5,-199.5 181.5,-199.5 "/>
+<text text-anchor="middle" x="119.5" y="-184.3" font-family="Courier New" font-size="14.00">.ctrldata.0.1</text>
+<polyline fill="none" stroke="black" points="57.5,-176.5 181.5,-176.5 "/>
+<text text-anchor="middle" x="119.5" y="-161.3" font-family="Courier New" font-size="14.00">.ctrltext.0.2</text>
+<polyline fill="none" stroke="black" points="57.5,-153.5 181.5,-153.5 "/>
+<text text-anchor="middle" x="119.5" y="-138.3" font-family="Courier New" font-size="14.00">.ctrldata.0.2</text>
+<polyline fill="none" stroke="black" points="57.5,-130.5 181.5,-130.5 "/>
+<text text-anchor="middle" x="119.5" y="-115.3" font-family="Courier New" font-size="14.00">.ctrltext.1.0</text>
+<polyline fill="none" stroke="black" points="57.5,-107.5 181.5,-107.5 "/>
+<text text-anchor="middle" x="119.5" y="-92.3" font-family="Courier New" font-size="14.00">.ctrldata.1.0</text>
+<polyline fill="none" stroke="black" points="57.5,-84.5 181.5,-84.5 "/>
+<text text-anchor="middle" x="119.5" y="-69.3" font-family="Courier New" font-size="14.00">.shstrtab</text>
+<polyline fill="none" stroke="black" points="57.5,-61.5 181.5,-61.5 "/>
+<text text-anchor="middle" x="119.5" y="-46.3" font-family="Courier New" font-size="14.00">.dynsym</text>
+</g>
+</g>
+</svg>
+</div>
+<h1 id="data-types">Data Types</h1>
+<h2 id="opcode">opcode</h2>
+<p>8-bit unsigned integer containing a unique identifier for the operation.</p>
+<h2 id="register">register</h2>
+<p>8-bit unsigned integer 0..23 used to reference <em>job-runner</em> registers <code>r0..r23</code>.
+Register <code>r0..r7</code> are local registers which are private to each job.
+Register <code>r8..r23</code> are global registers which are shared among all the jobs.
+Global registers <code>r8..r23</code> also have alias name <code>g0..g15</code></p>
+<h2 id="barrier">barrier</h2>
+<p>8-bit unsigned integer used to reference barriers provided by <em>job-runner</em>.
+There are 2 types of barrier provided, local_barrier and remote_barrier.
+Barrier <code>lb0..lb15</code>, which essentially are integer 0..15, are local barriers
+which are used for synchronization across jobs running in same <em>job-runner</em>.
+Barrier <code>rb0..rb63</code>, which essentially are integer 1..64, are remote barriers
+which are used for synchronization across jobs running on different <em>job-runner</em>.</p>
+<h2 id="const">const</h2>
+<p>Constant number. The width is specified per-operand and should be 8, 16 or 32 bit.</p>
+<h2 id="page_id">page_id</h2>
+<p>16 bit constant number to specify a label which is from the page <code>page_id</code>. This type is used
+to tell the assembler the label is not resolved in current page</p>
+<h2 id="pad">pad</h2>
+<p>Used for padding / alignment purposes. The value is always set to zero.
+In human-readable representations (asm file), padding operands are omitted from the operand list.</p>
+<h2 id="jobsize">jobsize</h2>
+<p>16-bit unsigned integer containing the size of the job (<code>START_JOB</code> until <code>END_JOB</code>), automatically
+calculated and filled by the assembler.
+In human-readable representations (asm file), this operand is omitted from the operand list.</p>
+<h1 id="operations">Operations</h1>
+<h2 id="start_job-0x00">START_JOB (0x00)</h2>
+<p>Indicates the start of a new job.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x00</th>
+<th>-</th>
+<th>job_id</th>
+<th>size</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td>jobsize (16b)</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>Indicates the start of a new job and creates a new entry in the job table,
+if not done yet.
+The job size is auto-calculated and inserted by the assembler and not supplied
+explicitly by the user.</p>
+<h2 id="start_job_deferred-0x17">START_JOB_DEFERRED (0x17)</h2>
+<p>Indicates the start of a new deferred job.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x17</th>
+<th>-</th>
+<th>job_id</th>
+<th>size</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td>jobsize (16b)</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>Same as START_JOB, but does not schedule the job yet. The new job can be
+launched manually via LAUNCH_JOB.</p>
+<h2 id="launch_job-0x18">LAUNCH_JOB (0x18)</h2>
+<p>Launches a deferred job.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x18</th>
+<th>-</th>
+<th>job_id</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p>Launch / schedule a job created with START_JOB_DEFERRED.
+This operation might only be called once per job. Launching the same job multiple
+times is undefined behavior.
+The newly launched job will be first scheduled for the next scheduling cycle and
+the current job will continue to run until encountering a blocking operation.</p>
+<h2 id="uc_dma_write_des-0x01">UC_DMA_WRITE_DES (0x01)</h2>
+<p>Enqueues a DM2MM uC-DMA transfer and returns a wait handle for it.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x01</th>
+<th>-</th>
+<th>wait_handle</th>
+<th>-</th>
+<th>descriptor_ptr</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>register (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>Enqueues a DM2MM uC-DMA transfer with the given pointer used as the start
+BD. The pointer is relative to the data section of the control page.
+In case the DM2MM queue is full, the job will pre-empt and retried in the
+next scheduling cycle, i.e. the job will be blocked until there is space available
+in the queue.
+In case enqueueing is successful, the operation returns immediately without
+waiting for the DMA transfer to finish. A wait handle is returned in the
+register specified in <code>wait_handle</code>. This handle can be used to wait for the
+DMA transfer to finish via the <code>WAIT_UC_DMA</code> operation.</p>
+<h2 id="wait_uc_dma-0x02">WAIT_UC_DMA (0x02)</h2>
+<p>Waits for the specified uC-DMA wait handle to finish.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x02</th>
+<th>-</th>
+<th>wait_handle</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>register (8b)</td>
+<td>pad (8b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p>Waits for the wait handle stored in the register specified in <code>wait_handle</code> to
+finish.
+If the associated uC-DMA transfer is already finished when this operation is
+called, the operation returns immediately. Otherwise, the operation will yield
+control to a different job and the job will not be re-scheduled until the transfer
+has finished.</p>
+<h2 id="mask_write_32-0x03">MASK_WRITE_32 (0x03)</h2>
+<p>Writes a constant value with masked bits to a constant AXI-MM address.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x03</th>
+<th>-</th>
+<th>-</th>
+<th>address</th>
+<th>mask</th>
+<th>value</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td>const (32b)</td>
+<td>const (32b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">16B</td>
+</tr>
+</tbody>
+</table>
+<p>This operation is RMW. Those unmasked bits at the address are unchanged before
+and after the operation. The RMW itself is not atomic, so there would be potential
+race condition if multiple uC run this opcode towards same address.</p>
+<h2 id="write_32-0x05">WRITE_32 (0x05)</h2>
+<p>Writes a constant value to a constant AXI-MM address.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x05</th>
+<th>-</th>
+<th>-</th>
+<th>address</th>
+<th>value</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td>const (32b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">12B</td>
+</tr>
+</tbody>
+</table>
+<p>The constant value is written to a constant AXI-MM address. The write is performed
+via the uC's AXI-MM store port and does not involve the uC-DMA.
+This operation is synchronous, i.e. it is guaranteed that the write has been executed
+completely when this operation finishes.</p>
+<h2 id="wait_tcts-0x06">WAIT_TCTS (0x06)</h2>
+<p>Wait for tcts for the shim/mem DMA tasks.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x06</th>
+<th>-</th>
+<th>tile_id</th>
+<th>actor_id</th>
+<th>-</th>
+<th>target_tcts</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td>const (8b)</td>
+<td>pad (8b)</td>
+<td>const (8b)</td>
+<td>pad (8b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>Wait for <code>target_tcts</code> number of tcts for tasks enqueued on a shim or mem DMA channel.
+Tasks can be enqueued through <code>WRITE_32</code> and/or <code>UC_DMA_WRITE_DES/UC_DMA_WRITE_DES_SYNC</code>
+In case the number of TCTs haven't all been arrived yet when this operation is executed,
+the current job will be blocked until all the TCT arrive. The runtime will proceed with
+execution of other (non-blocked) jobs during that time.
+Use this operation only for tasks which have TCTs enabled and where the TCTs are
+routed to arrive at the uC executing this operation.
+Note that tasks can be enqueued from any jobs, but only one job can call WAIT_TCTS. And
+waiting for more tcts than enqueued will hang the job forever</p>
+<h2 id="end_job-0x07">END_JOB (0x07)</h2>
+<p>Indicates the end of the current job.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x07</th>
+<th>-</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p>Indicates the end of a job started with <code>START_JOB</code>. After <code>END_JOB</code>, the only
+valid operations are <code>START_JOB</code> and <code>EOF</code>.</p>
+<h2 id="yield-0x08">YIELD (0x08)</h2>
+<p>Yields to another job.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x08</th>
+<th>-</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p>Tells the scheduler to perform a context switch to the next available job. The
+current job will be re-scheduled in the next scheduling cycle.</p>
+<h2 id="uc_dma_write_des_sync-0x09">UC_DMA_WRITE_DES_SYNC (0x09)</h2>
+<p>Enqueues a DM2MM uC-DMA transfer and waits for it to finish.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x09</th>
+<th>-</th>
+<th>descriptor_ptr</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p>Convenience operation which combines <code>UC_DMA_WRITE_DES</code> and <code>WAIT_UC_DMA</code>, i.e. enqueues the uC-DMA BD
+at <code>descriptor_ptr</code> and waits until the uC-DMA finishes processing that BD.</p>
+<h2 id="write_32_d-0x0b">WRITE_32_D (0x0b)</h2>
+<p>Writes a constant value or a value from a register to an AXI-MM address which is constant or comes from a register.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x0b</th>
+<th>-</th>
+<th>flags</th>
+<th>-</th>
+<th>address</th>
+<th>value</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (8b)</td>
+<td>pad (8b)</td>
+<td>const (32b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">12B</td>
+</tr>
+</tbody>
+</table>
+<p>Dynamic version of <code>WRITE_32</code>. The flags arg is used to tell whether address/value are immediate
+or a register number.
+| bit 0 | bit 1 |
+| ---  | --- |
+| 1 : address is immediate | 1 : value is immediate |
+| 0 : address is register number. The write address is in this register | 0 : value is register number. The write value is in this register |</p>
+<h2 id="read_32-0x0c">READ_32 (0x0c)</h2>
+<p>Reads the value of a constant AXI-MM address and stores it in a register.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x0c</th>
+<th>-</th>
+<th>value</th>
+<th>-</th>
+<th>address</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>register (8b)</td>
+<td>pad (8b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>The value of the constant AXI-MM address in <code>address</code> is read and put into
+destination register <code>value</code>. The read is performed via the uC's AXI-MM store port and
+does not involve the uC-DMA.
+This operation is synchronous, i.e. it is guaranteed that the read has been executed
+completely when this operation finishes.</p>
+<h2 id="read_32_d-0x0d">READ_32_D (0x0d)</h2>
+<p>Reads the value of an AXI-MM address stored in a register and stores it in a register.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x0d</th>
+<th>-</th>
+<th>address</th>
+<th>value</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>register (8b)</td>
+<td>register (8b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p>The value of the AXI-MM address loaded from register <code>address</code> is read and put into
+destination register <code>value</code>. The read is performed via the uC's AXI-MM store port and
+does not involve the uC-DMA.
+This operation is synchronous, i.e. it is guaranteed that the read has been executed
+completely when this operation finishes.</p>
+<h2 id="apply_offset_57-0x0e">APPLY_OFFSET_57 (0x0e)</h2>
+<p>Applies an offset to one or more shim DMA BD base address fields. (Version for 57-bit base addresses.)</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x0e</th>
+<th>-</th>
+<th>table_ptr</th>
+<th>num_entries</th>
+<th>offset</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td>const (16b)</td>
+<td>const (16b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>Patches the base address of <code>num_entries</code> Shim DMA buffer descriptors by adding the offset
+loaded from 'offset' and 'offset+1' in argument list.
+if the offset is 0xFFFF, the offset added is the host address of 1st page of control code
+The location of the <code>num_entries</code> buffer descriptors should be given in a table stored
+at <code>table_ptr</code>. One entry in the table is a set of Shim DMA BDs. If there are multiple entries in the table,
+those set of BDS have to be contiguous.
+4th optional arg in APPLY_OFFSET_57, specifies the pad buffer to hold blob for control packet, or save/restore
+L2 as scratchpad. It is a string starting with @
+Example:</p>
+<pre><code>  # non-contiguous BDs
+  APPLY_OFFSET_57     @mem21_bd0, 1, 0xffff
+  APPLY_OFFSET_57     @mem31_bd0, 1, 0xffff
+  # ...
+  ALIGN             4
+mem21_bd0:
+  WORD              0x00000080
+  WORD              0x00020000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x80000000
+  WORD              0x00000000
+  ALIGN             4
+mem31_bd0:
+  WORD              0x00000080
+  WORD              0x00020000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x80000000
+  WORD              0x00000000
+  # contiguous BDs
+  APPLY_OFFSET_57     @mem41_bd0, 2, 0xffff
+  # ...
+  ALIGN             4
+mem41_bd0:
+  # 1st set BDs
+  WORD              0x00000080
+  WORD              0x00020000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x80000000
+  WORD              0x00000000
+  # 2nd set BDs
+  WORD              0x00000080
+  WORD              0x00020000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x80000000
+  WORD              0x00000000
+
+  # patch scratchpad to BDs
+  .setpad ctrl_pkt ctrlpkt.bin
+  .setpad tile_pad 0x100
+  APPLY_OFFSET_57     @mem21_bd0, 1, 3, @ctrl_pkt
+  APPLY_OFFSET_57     @mem21_bd1, 1, 0xFFFF, @tile_pad
+  # ...
+  ALIGN             4
+mem21_bd0:
+  WORD              0x00000080
+  WORD              0x00020000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x80000000
+  WORD              0x00000000
+mem21_bd1:
+  WORD              0x00000080
+  WORD              0x00020000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x00000000
+  WORD              0x80000000
+  WORD              0x00000000
+</code></pre>
+<p>The patching using this operation needs be done <em>before</em> programming the Shim DMA buffer
+descriptors via the uC-DMA.</p>
+<h2 id="add-0x0f">ADD (0x0f)</h2>
+<p>Adds <code>value</code> to the content of register <code>dest</code>.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x0f</th>
+<th>-</th>
+<th>dest</th>
+<th>-</th>
+<th>value</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>register (8b)</td>
+<td>pad (8b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>The value stored in register <code>dest</code> is loaded, then <code>value</code> is added to it and the result is
+stored in the <code>dest</code> register.</p>
+<h2 id="mov-0x10">MOV (0x10)</h2>
+<p>Moves <code>value</code> to register <code>dest</code>.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x10</th>
+<th>-</th>
+<th>dest</th>
+<th>-</th>
+<th>value</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>register (8b)</td>
+<td>pad (8b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>Stores the constant <code>value</code> in the register <code>dest</code>.</p>
+<h2 id="local_barrier-0x11">LOCAL_BARRIER (0x11)</h2>
+<p>Local barrier used to synchronize multiple jobs.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x11</th>
+<th>-</th>
+<th>local_barrier_id</th>
+<th>num_participants</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>barrier (8b)</td>
+<td>const (8b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p><code>local_barrier_id</code> indicates a barrier resource that is used to synchronize <code>num_participants</code>
+number of jobs. <em>All</em> participating jobs must reach this barrier before any participating job
+can move forward. A job which executes this instruction is blocked till the barrier matures.</p>
+<h2 id="remote_barrier-0x12">REMOTE_BARRIER (0x12)</h2>
+<p>Remote barrier used to synchronize multiple columns.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x12</th>
+<th>-</th>
+<th>remote_barrier_id</th>
+<th>-</th>
+<th>party_mask</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>barrier (8b)</td>
+<td>pad (8b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p><code>remote_barrier_id</code> indicates a barrier resource that is used to synchronize jobs in different
+columns. <em>All</em> participating jobs must reach this barrier before any participating job can move forward.
+A job which executes this instruction is blocked till the barrier matures. <code>party_mask</code> is the bit map of
+participant columns, where each column takes the bit corresponding to its column index. For any specific
+remote barrier, only one job in a column can participate in.</p>
+<h2 id="eof-0xff">EOF (0xff)</h2>
+<p>Indicates the end of the operation sequence.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0xff</th>
+<th>-</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p><code>EOF</code> must follow the last <code>END_JOB</code> instruction in a page and tells the
+runtime <em>job-runner</em> to stop parsing the code any further.</p>
+<h2 id="poll_32-0x13">POLL_32 (0x13)</h2>
+<p>Poll read address until the response equals value.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x13</th>
+<th>-</th>
+<th>-</th>
+<th>address</th>
+<th>value</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td>const (32b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">12B</td>
+</tr>
+</tbody>
+</table>
+<p>This poll is a busy poll. When it is used to check the occur of an event,
+e.g. DMA completion, it is way more expensive compared to the event trigger
+implementation, aka TCT.
+Note that the poll will block the current job, but other jobs will continue
+to execute.</p>
+<h2 id="mask_poll_32-0x14">MASK_POLL_32 (0x14)</h2>
+<p>Poll read address until the response equals value after mask applied.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x14</th>
+<th>-</th>
+<th>-</th>
+<th>address</th>
+<th>mask</th>
+<th>value</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td>const (32b)</td>
+<td>const (32b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">16B</td>
+</tr>
+</tbody>
+</table>
+<p>This poll is busy poll. When it is used to check the occur of an event,
+e.g. DMA completion, it is way more expensive compared to the event trigger
+implementation, aka, TCT</p>
+<h2 id="trace-0x15">TRACE (0x15)</h2>
+<p>Collect trace info at opcode boundary</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x15</th>
+<th>-</th>
+<th>info</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p>This opcode is used for dynamic tracing purpose. Dynamic means, without
+control code change, trace probe can be placed at any place dynamically
+in control code to collect the trace info when the job runs there.
+This opcode should not be used in user control code.
+Operand <code>info</code> is encoded as following,
+| bit 0-10 | bit 11-15 |
+| ---  | --- |
+| <code>address</code> | <code>type</code> |
+In order to use this, for each trace probe that is inserted at a target opcode,
+user needs to create a control body, and replace the first 4 bytes of the target
+opcode binary with the binary of this opcode before the control code is loaded
+to CERT. Control body of all trace probes should be loaded to CERT first as well.
+In each of the control body, the first word is the replaced binary, following
+words are <code>type</code> dependent, eg. room for trace data that will be collected.
+The trace probe control body locates in sDM. Once collected,
+those data will be moved out to host ddr.
+There are amount of sDM preserved for dynamic tracing purpose. The operand <code>address</code>
+is the offset in word of address of trace probe control body within the preserved SDM
+Operand <code>type</code> defines the trace probe types.
+| type name | value |
+| ---  | --- |
+| timestamp | 0 |
+| count | 1 |
+| ... | ... |
+So far only timestamp is supported.
+For timestamp, There are 3 word fields in control body,
+| word 0 | word 1 | word 2 |
+| ---  | --- | --- |
+| original replaced assembly | high 32 bit timestamp | low 32 bit timestamp |</p>
+<h2 id="nop-0x16">NOP (0x16)</h2>
+<p>No-op (no operation) instruction.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x16</th>
+<th>-</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p>NOP instruction is ignored by the <em>job-runner</em>. NOP instructions may be used for benchmarking
+the <em>job-runner</em> performance and for inserting small delays. Calling this operation may yield
+control to another job.</p>
+<h2 id="preemption_checkpoint-0x19">PREEMPTION_CHECKPOINT (0x19)</h2>
+<p>save/restore context of an inference at preemption point in control code</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x19</th>
+<th>-</th>
+<th>id</th>
+<th>save_control_code_offset</th>
+<th>restore_control_code_offset</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td>page_id (16b)</td>
+<td>page_id (16b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>If the control code supports preemption, there will be preemption points inserted in it. <code>id</code> specifies the preemption
+point index. We assume all aie cores are stateless, so at each preemption point, we only need to save/restore contents
+in memtile. <code>save_control_code_offset</code> specifies a relative address in unit of page to the 1st page of the control code,
+and this address is where the <code>SAVE</code> control code resides. <code>restore_control_code_offset</code> specifies a relative address in
+unit of page to the 1st page of control code, and this address is where the <code>RESTORE</code> control code resides. The opcode
+can determine whether preemption is required, and if required, it can also distinguish whether it is to <code>SAVE</code> or to
+<code>RESTORE</code>, and run the <code>SAVE</code> or <code>RESTORE</code> control code accordingly.
+In multi-uc case, for each preemption point id, the control code of each uc should have this opcode with same <code>id</code>.</p>
+<h2 id="load_pdi-0x1a">LOAD_PDI (0x1a)</h2>
+<p>load pdi</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x1a</th>
+<th>-</th>
+<th>pdi_id</th>
+<th>pdi_host_addr_offset</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td>page_id (16b)</td>
+<td style="text-align: right;">6B</td>
+</tr>
+</tbody>
+</table>
+<p>pdi itself is also a piece of control code. It can be loaded by other control code at anywhere anytime.
+<code>pdi_id</code> is an elf wide unique id and specifies an unique pdi. consecutive loading of same pdi results in following
+loading skipped by the uC. <code>pdi_host_addr_offset</code> specifies a relative address in unit of page to the 1st page of
+the control code and is where the pdi control code resides</p>
+<h2 id="load_last_pdi-0x1b">LOAD_LAST_PDI (0x1b)</h2>
+<p>load last loaded pdi</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x1b</th>
+<th>-</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">4B</td>
+</tr>
+</tbody>
+</table>
+<p>Used in preemption restore case. The info (pdi id and location in host ddr) of the pdi last time loaded is saved
+in firmware. During restore (after a context switch), the last loaded pdi will be loaded with this opcode</p>
+<h2 id="save_timestamps-0x1c">SAVE_TIMESTAMPS (0x1c)</h2>
+<p>save the timestamps</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x1c</th>
+<th>-</th>
+<th>-</th>
+<th>unq_id</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>Used to save the time stamps whenever control code encountered this opcode. AIE compiler will also add the unique
+identifier while generating control code. The timestamps will get saved in shared data memory. Whenever the
+allocated shared memory gets fill, CERT should initiate the uc-DMA to transfer data from shared
+data memory to host memory.</p>
+<h1 id="directives">Directives</h1>
+<p>The directive syntax is same as that used by GNU assembler <a href="https://sourceware.org/binutils/docs/as/Pseudo-Ops.html">https://sourceware.org/binutils/docs/as/Pseudo-Ops.html</a>,
+although only the following subset is supported.</p>
+<h2 id="long">.long</h2>
+<p>Specifies a 4 byte integer value.</p>
+<table>
+<thead>
+<tr>
+<th><code>.long</code></th>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>integer</td>
+</tr>
+</tbody>
+</table>
+<p>Specifies 4 byte integer value often used for BDs in ctrldata.
+Example:</p>
+<pre><code>mem21_bd0:
+  .long              0x00000080
+  .long              0x00020000
+  ...
+</code></pre>
+<h2 id="align">.align</h2>
+<p>Specifies a specific aligment for the next ctrlcode fragment.</p>
+<table>
+<thead>
+<tr>
+<th><code>.align</code></th>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>integer</td>
+</tr>
+</tbody>
+</table>
+<p>Specifies a specific alignment defined by the <code>value</code> parameter for the following <code>ctrltext</code> or <code>ctrldata</code>.
+Example:</p>
+<pre><code>  .align           16
+  INPUT_row1_actor11_taskleadin_ucbds:
+    UC_DMA_BD       0, 0x021A05C0, @INPUT_row1_actor11_taskleadin_data0, 8, 0, 1
+    UC_DMA_BD       0, 0x021A065C, @INPUT_row1_actor11_enqueue_0_0, 1, 0, 1
+    UC_DMA_BD       0, 0x021A0000, @INPUT_row1_actor6_taskleadin_data0, 56, 0, 1
+    ...
+</code></pre>
+<h2 id="section">.section</h2>
+<p>Specifies a name for the section with optional flags.</p>
+<table>
+<thead>
+<tr>
+<th><code>.section</code></th>
+<th>name</th>
+<th>flags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>string</td>
+<td>string</td>
+</tr>
+</tbody>
+</table>
+<p>Describes the name of a ctrlcode section and optional flags (A,W,X) for mapping at runtime.
+<code>.ctrltext</code> is used for text sections and <code>.ctrldata</code> is used for data sections. Suffix in the
+form of <code>.&lt;columnnumber&gt;</code> may be used with section names.
+Example:</p>
+<pre><code>.section .ctrltext.2,&quot;ax&quot;
+.align 16
+START_JOB   0x15
+UC_DMA_WRITE_DES_SYNC   @label1
+LOCAL_BARRIER   $lb0, 0xB
+END_JOB
+START_JOB   0x16
+...
+</code></pre>
+<h2 id="include">.include</h2>
+<p>Specifies the name of file that should be included at the point.</p>
+<table>
+<thead>
+<tr>
+<th><code>.include</code></th>
+<th>file</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>string</td>
+</tr>
+</tbody>
+</table>
+<p>Provides a method to organize miltiple asm files which can be combined together to produce a single logical asm file.
+Example:</p>
+<pre><code>...
+.include &quot;resetcode.0.asm&quot;
+.include &quot;corecode.1.asm&quot;
+START_JOB   0x15
+UC_DMA_WRITE_DES_SYNC   @label1
+LOCAL_BARRIER   $lb0, 0xB
+END_JOB
+START_JOB   0x16
+...
+</code></pre>
+<h2 id="eop">.eop</h2>
+<p>Specifies end of page.</p>
+<table>
+<thead>
+<tr>
+<th><code>.eop</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>Provides a method to specify end of page.
+Example:</p>
+<pre><code>...
+START_JOB   0x15
+UC_DMA_WRITE_DES_SYNC   @label1
+LOCAL_BARRIER   $lb0, 0xB
+END_JOB
+.eop
+START_JOB   0x16
+...
+</code></pre>
+<h2 id="attach_to_group">.attach_to_group</h2>
+<p>Specifies the column number for the following sections.</p>
+<table>
+<thead>
+<tr>
+<th><code>.attach_to_group</code></th>
+<th>column number</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>integer</td>
+</tr>
+</tbody>
+</table>
+<p>Provides a method to bind the following sections to a specific column. Multiple
+such directives may be used in a file each with a different column number. The
+assembler uses this directive to generate sections names like <code>.ctrltext.&lt;columnnumber&gt;</code>
+and <code>.ctrldata.&lt;columnnumber&gt;</code>
+Example:</p>
+<pre><code>...
+.attach_to_group 0
+START_JOB 0
+READ_32             $r0, 0x2100000
+WRITE_32_D          2, 0x4100000, 0
+REMOTE_BARRIER      $rb0, 0x6
+END_JOB
+EOF
+.attach_to_group 1
+START_JOB 0
+uC_DMA_WRITE_DES    $r0, @uc_dma_bd0
+WAIT_uC_DMA         $r0
+LOCAL_BARRIER       $lb0, 2
+END_JOB
+START_JOB 1
+LOCAL_BARRIER       $lb0, 2
+WRITE_32            0x01A0634, 0x80000000
+WAIT_TCTS           TILE_0_1, MM2S_0, 1
+END_JOB
+EOF
+...
+</code></pre>
+<h2 id="setpad">.setpad</h2>
+<p>This directive is used to declare a buffer.</p>
+<table>
+<thead>
+<tr>
+<th><code>.setpad</code></th>
+<th>buffer size/path to buffer blob</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>integer/string</td>
+</tr>
+</tbody>
+</table>
+<p>Provides a method to specify buffer/buffer blob. If an immediate number is passed
+as arg, the number is size in word. There will be a buffer declared with that size
+and initialized as all 0s. If a file is passed as arg, there will be a buffer with
+the size of the file declared and initialized with contents in the file.
+<code>.setpad &lt;buffer size&gt;  or .setpad &lt;buffer file path&gt;</code>
+All the buffers declared with this directive will be in .pad.<colnum> section in the elf.
+Example:</p>
+<pre><code>...
+.setpad 0x100
+.setpad ctrlpkt.bin
+...
+</code></pre>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

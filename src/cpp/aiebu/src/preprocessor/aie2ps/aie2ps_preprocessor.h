@@ -11,7 +11,7 @@
 #include "asm/pager.h"
 #include "aie2ps_preprocessor_input.h"
 #include "aie2ps_preprocessed_output.h"
-#include "aie2ps/isa.h"
+#include "specification/aie2ps/isa.h"
 
 namespace aiebu {
 

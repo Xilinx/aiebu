@@ -9,9 +9,10 @@ add_subdirectory(src/cpp/aiebu)
 
 if (AIEBU_FULL STREQUAL "ON")
   add_subdirectory(src/python)
-  add_subdirectory(specification)
   add_subdirectory(scripts)
 endif()
+
+add_subdirectory(specification)
 
 add_subdirectory(lib)
 add_subdirectory(test)

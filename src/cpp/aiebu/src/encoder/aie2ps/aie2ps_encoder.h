@@ -10,7 +10,7 @@
 #include "writer.h"
 #include "aie2ps_preprocessed_output.h"
 #include "ops.h"
-#include "aie2ps/isa.h"
+#include "specification/aie2ps/isa.h"
 
 namespace aiebu {
 

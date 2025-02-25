@@ -1,0 +1,89 @@
+/* SPDX-License-Identifier: MIT */
+/*
+ * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ */
+
+#ifndef _ISA_STUBS_H_
+#define _ISA_STUBS_H_
+
+// macro define
+
+//uc dma bd length
+#define UC_DMA_BD_SIZE 0x10
+//task page size
+#define TASK_PAGE_SIZE 0x2000
+//task page header length
+#define PAGE_HEADER_SIZE 0x10
+//alignment of data section in a page
+#define DATA_SECTION_ALIGNMENT 0x10
+//minimum length of an ucdma
+#define UC_DMA_WORD_LEN 0x04
+//flag to indicate, bd is patched in host
+#define HOST_PATCH_ADDR_FLAG 0xdeadbeef
+//flag to indicate, patching control code base address
+#define PATCH_CONTROL_CODE_FLAG 0xffff
+
+// Op codes
+
+#define ISA_OPCODE_START_JOB 0x00
+#define ISA_OPCODE_START_JOB_DEFERRED 0x17
+#define ISA_OPCODE_LAUNCH_JOB 0x18
+#define ISA_OPCODE_UC_DMA_WRITE_DES 0x01
+#define ISA_OPCODE_WAIT_UC_DMA 0x02
+#define ISA_OPCODE_MASK_WRITE_32 0x03
+#define ISA_OPCODE_WRITE_32 0x05
+#define ISA_OPCODE_WAIT_TCTS 0x06
+#define ISA_OPCODE_END_JOB 0x07
+#define ISA_OPCODE_YIELD 0x08
+#define ISA_OPCODE_UC_DMA_WRITE_DES_SYNC 0x09
+#define ISA_OPCODE_WRITE_32_D 0x0b
+#define ISA_OPCODE_READ_32 0x0c
+#define ISA_OPCODE_READ_32_D 0x0d
+#define ISA_OPCODE_APPLY_OFFSET_57 0x0e
+#define ISA_OPCODE_ADD 0x0f
+#define ISA_OPCODE_MOV 0x10
+#define ISA_OPCODE_LOCAL_BARRIER 0x11
+#define ISA_OPCODE_REMOTE_BARRIER 0x12
+#define ISA_OPCODE_EOF 0xff
+#define ISA_OPCODE_POLL_32 0x13
+#define ISA_OPCODE_MASK_POLL_32 0x14
+#define ISA_OPCODE_TRACE 0x15
+#define ISA_OPCODE_NOP 0x16
+#define ISA_OPCODE_PREEMPTION_CHECKPOINT 0x19
+#define ISA_OPCODE_LOAD_PDI 0x1a
+#define ISA_OPCODE_LOAD_LAST_PDI 0x1b
+#define ISA_OPCODE_SAVE_TIMESTAMPS 0x1c
+
+
+// Operation sizes
+
+#define ISA_OPSIZE_START_JOB 0x08
+#define ISA_OPSIZE_START_JOB_DEFERRED 0x08
+#define ISA_OPSIZE_LAUNCH_JOB 0x04
+#define ISA_OPSIZE_UC_DMA_WRITE_DES 0x08
+#define ISA_OPSIZE_WAIT_UC_DMA 0x04
+#define ISA_OPSIZE_MASK_WRITE_32 0x10
+#define ISA_OPSIZE_WRITE_32 0x0c
+#define ISA_OPSIZE_WAIT_TCTS 0x08
+#define ISA_OPSIZE_END_JOB 0x04
+#define ISA_OPSIZE_YIELD 0x04
+#define ISA_OPSIZE_UC_DMA_WRITE_DES_SYNC 0x04
+#define ISA_OPSIZE_WRITE_32_D 0x0c
+#define ISA_OPSIZE_READ_32 0x08
+#define ISA_OPSIZE_READ_32_D 0x04
+#define ISA_OPSIZE_APPLY_OFFSET_57 0x08
+#define ISA_OPSIZE_ADD 0x08
+#define ISA_OPSIZE_MOV 0x08
+#define ISA_OPSIZE_LOCAL_BARRIER 0x04
+#define ISA_OPSIZE_REMOTE_BARRIER 0x08
+#define ISA_OPSIZE_EOF 0x04
+#define ISA_OPSIZE_POLL_32 0x0c
+#define ISA_OPSIZE_MASK_POLL_32 0x10
+#define ISA_OPSIZE_TRACE 0x04
+#define ISA_OPSIZE_NOP 0x04
+#define ISA_OPSIZE_PREEMPTION_CHECKPOINT 0x08
+#define ISA_OPSIZE_LOAD_PDI 0x06
+#define ISA_OPSIZE_LOAD_LAST_PDI 0x04
+#define ISA_OPSIZE_SAVE_TIMESTAMPS 0x08
+
+#endif
