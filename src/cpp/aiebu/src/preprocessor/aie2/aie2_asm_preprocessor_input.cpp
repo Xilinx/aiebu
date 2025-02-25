@@ -126,13 +126,14 @@ public:
     return m_size;
   }
 
-  [[nodiscard]] virtual unsigned get_outstanding_ext_op_count() const {
+  [[nodiscard]] virtual unsigned int outstanding_ext_op_count() const {
     return 0;
   }
 
   virtual void process_outstanding_ext_op(const std::shared_ptr<operation> op) {
     const std::vector<std::string>& args = op->get_args();
-    throw error(error::error_code::internal_error, opcode_table.at(m_code) + "does not require extended operands" + args[0]);
+    throw error(error::error_code::internal_error, opcode_table.at(m_code) +
+                    " does not require extended operands" + args[0]);
   }
 };
 
@@ -161,7 +162,7 @@ class XAIE_IO_BLOCKWRITE_op : public aie2_isa_op {
 private:
   unsigned int outstanding_extended_operand_count = 0;
 
-  [[nodiscard]] unsigned get_extended_operand_index() const {
+  [[nodiscard]] unsigned int get_extended_operand_index() const {
     size_t ex_op_size = get_op_size() - get_op_base_size();
     return ex_op_size / sizeof(uint32_t) - outstanding_extended_operand_count;
   }
@@ -180,7 +181,7 @@ public:
     //      XAIE_IO_BLOCKWRITE.7           0x2000000
 
     operand_count_check(args, 2);
-    unsigned idx = 0;
+    unsigned int idx = 0;
     std::string regoff = args[idx++].substr(1);
     // Determine the total size including extended storage by counting the number of writes
 
@@ -196,6 +197,7 @@ public:
     outstanding_extended_operand_count = to_uinteger<uint32_t>(matches[1]);
     initialize_OpHdr(sizeof(XAie_BlockWrite32Hdr) +
                      sizeof(uint32_t) * outstanding_extended_operand_count);
+
     auto op = reinterpret_cast<XAie_BlockWrite32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
     op->Size = get_op_size();
@@ -205,17 +207,18 @@ public:
     return sizeof(XAie_BlockWrite32Hdr);
   }
 
-  [[nodiscard]] unsigned get_outstanding_ext_op_count() const override {
+  [[nodiscard]] unsigned int outstanding_ext_op_count() const override {
     return outstanding_extended_operand_count;
   }
 
-  [[nodiscard]] unsigned get_total_extended_operand_count() const {
+  [[nodiscard]] unsigned int total_extended_operand_count() const {
     return (get_op_size() - get_op_base_size()) / sizeof(uint32_t);
   }
 
   void process_outstanding_ext_op(const std::shared_ptr<operation> op) override {
     if (outstanding_extended_operand_count == 0)
-      throw error(error::error_code::invalid_asm, "This instance of " + get_mnemonic() + " cannot have more than " + std::to_string(get_total_extended_operand_count()) + " operands");
+      throw error(error::error_code::invalid_asm, "This instance of " + get_mnemonic() +
+                      " cannot have more than " + std::to_string(total_extended_operand_count()) + " operands");
 
     const std::vector<std::string>& args = op->get_args();
     std::string base = opcode_table.at(XAIE_IO_BLOCKWRITE);
@@ -263,11 +266,12 @@ public:
 
 class XAIE_IO_MASKPOLL_op : public aie2_isa_op {
 public:
-  explicit XAIE_IO_MASKPOLL_op(const std::vector<std::string>& args, XAie_TxnOpcode code = XAIE_IO_MASKPOLL) : aie2_isa_op(code) {
+  explicit XAIE_IO_MASKPOLL_op(const std::vector<std::string> &args,
+                               XAie_TxnOpcode code = XAIE_IO_MASKPOLL) : aie2_isa_op(code) {
     // e.g. XAIE_IO_MASKPOLL,               @0x801d228, 0x78003c()==0x0
     operand_count_check(args, 2);
     initialize_OpHdr(sizeof(XAie_MaskPoll32Hdr));
-    unsigned idx = 0;
+    unsigned int idx = 0;
     const std::string regoff = args[idx++].substr(1);
 
     auto op = reinterpret_cast<XAie_MaskPoll32Hdr *>(m_op);
@@ -298,7 +302,8 @@ public:
 class XAIE_IO_MASKPOLL_BUSY_op : public XAIE_IO_MASKPOLL_op {
 public:
   /* Only difference from XAIE_IO_MASKPOLL_op is the code */
-  explicit XAIE_IO_MASKPOLL_BUSY_op(const std::vector<std::string>& args) : XAIE_IO_MASKPOLL_op(args, XAIE_IO_MASKPOLL_BUSY) {
+  explicit XAIE_IO_MASKPOLL_BUSY_op(const std::vector<std::string> &args)
+      : XAIE_IO_MASKPOLL_op(args, XAIE_IO_MASKPOLL_BUSY) {
     // e.g. XAIE_IO_MASKPOLL_BUSY               @0x801d228, 0x78003c()==0x0
   }
 };
@@ -354,7 +359,8 @@ public:
 
 class XAIE_IO_LOAD_PM_START_op : public aie2_isa_op {
 public:
-  explicit XAIE_IO_LOAD_PM_START_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_LOAD_PM_START) {
+  explicit XAIE_IO_LOAD_PM_START_op(const std::vector<std::string> &args)
+      : aie2_isa_op(XAIE_IO_LOAD_PM_START) {
     operand_count_check(args, 2);
     initialize_OpHdr(sizeof(XAie_PmLoadHdr));
 
@@ -394,7 +400,8 @@ public:
 
 class XAIE_IO_CUSTOM_OP_DDR_PATCH_op : public aie2_isa_op {
 public:
-  explicit XAIE_IO_CUSTOM_OP_DDR_PATCH_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_CUSTOM_OP_DDR_PATCH) {
+  explicit XAIE_IO_CUSTOM_OP_DDR_PATCH_op(const std::vector<std::string> &args)
+      : aie2_isa_op(XAIE_IO_CUSTOM_OP_DDR_PATCH) {
     operand_count_check(args, 1);
     initialize_OpHdr(sizeof(XAie_CustomOpHdr) + sizeof(patch_op_t));
 
@@ -492,7 +499,7 @@ aie2_asm_preprocessor_input::encode(const std::vector<char>& mc_asm_code) {
   for (auto line : coldata.get_label_asmdata(labels.front())) {
     // If the previous recorded operation is expecting extension operations continue
     // populating the previous operation.
-    if (isa_op_list.size() && isa_op_list.back()->get_outstanding_ext_op_count()) {
+    if (isa_op_list.size() && isa_op_list.back()->outstanding_ext_op_count()) {
       isa_op_list.back()->process_outstanding_ext_op(line->get_operation());
       continue;
     }
