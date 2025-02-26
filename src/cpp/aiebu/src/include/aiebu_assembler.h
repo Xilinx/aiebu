@@ -31,9 +31,7 @@ class aiebu_assembler {
       blob_instr_prepost,
       blob_instr_transaction,
       blob_control_packet,
-#ifdef AIEBU_FULL
       asm_aie2ps,
-#endif
       asm_aie2
     };
 

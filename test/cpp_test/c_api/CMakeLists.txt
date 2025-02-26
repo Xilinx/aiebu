@@ -16,13 +16,11 @@ target_link_libraries(${AIE2_TESTNAME}
 
 target_include_directories(${AIE2_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include)
 
-if (AIEBU_FULL STREQUAL "ON")
-  set(AIE2PS_TESTNAME "aie2ps_c.out")
-  add_executable(${AIE2PS_TESTNAME} aie2ps_test.c)
-  target_link_libraries(${AIE2PS_TESTNAME}
-    PRIVATE
-    aiebu_static
-    )
+set(AIE2PS_TESTNAME "aie2ps_c.out")
+add_executable(${AIE2PS_TESTNAME} aie2ps_test.c)
+target_link_libraries(${AIE2PS_TESTNAME}
+  PRIVATE
+  aiebu_static
+  )
 
-  target_include_directories(${AIE2PS_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include)
-endif()
+target_include_directories(${AIE2PS_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include)

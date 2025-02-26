@@ -46,7 +46,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyyaml jinja2 Markdown pylint colorama gitPython wrapt
         cmake -B ${{github.workspace}}/build/Release \
-        -DAIEBU_FULL=ON \
         -DCMAKE_BUILD_TYPE=Release
 
     - name: Save Python Path for ise with CMake
@@ -69,7 +68,6 @@ jobs:
         # configure cmake specifying path to python
         cmake -B ${{github.workspace}}/build/Release `
         -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
-        -DAIEBU_FULL=ON `
         -DCMAKE_BUILD_TYPE=Release `
         -DPython3_EXECUTABLE=${{ env.PYTHON_EXECUTABLE }}
 

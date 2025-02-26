@@ -6,12 +6,9 @@
 #include "aie2_asm_preprocessor.h"
 #include "aie2_blob_encoder.h"
 #include "aie2_blob_elfwriter.h"
-
-#ifdef AIEBU_FULL
 #include "aie2ps_preprocessor.h"
 #include "aie2ps_encoder.h"
 #include "aie2ps_elfwriter.h"
-#endif
 
 #include "aiebu_error.h"
 
@@ -45,7 +42,6 @@ assembler(const elf_type type)
     m_elfwriter = std::make_unique<aie2_blob_elf_writer>();
     m_ppi = std::make_shared<aie2_asm_preprocessor_input>();
   }
-#ifdef AIEBU_FULL
   else if (type == elf_type::aie2ps_asm)
   {
     m_preprocessor = std::make_unique<aie2ps_preprocessor>();
@@ -53,7 +49,6 @@ assembler(const elf_type type)
     m_elfwriter = std::make_unique<aie2ps_elf_writer>();
     m_ppi = std::make_shared<aie2ps_preprocessor_input>();
   }
-#endif
   else {
     throw error(error::error_code::invalid_buffer_type ,"Invalid elf type!!!");
   }

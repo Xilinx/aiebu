@@ -47,21 +47,19 @@ set_target_properties(aiebu_library_objects PROPERTIES
 
 add_dependencies(aiebu_library_objects ctrlcodelib)
 
-if (AIEBU_FULL STREQUAL "ON")
-  target_sources(aiebu_library_objects
-    PRIVATE
-    encoder/aie2ps/aie2ps_encoder.cpp
-    preprocessor/aie2ps/aie2ps_preprocessor_input.cpp
-    preprocessor/asm/pager.cpp
-    )
-  target_include_directories(aiebu_library_objects
-    PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2ps
-    ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
-    ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
-    ${CMAKE_CURRENT_BINARY_DIR}
-    )
-endif()
+target_sources(aiebu_library_objects
+  PRIVATE
+  encoder/aie2ps/aie2ps_encoder.cpp
+  preprocessor/aie2ps/aie2ps_preprocessor_input.cpp
+  preprocessor/asm/pager.cpp
+  )
+target_include_directories(aiebu_library_objects
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2ps
+  ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
+  ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
+  ${CMAKE_CURRENT_BINARY_DIR}
+  )
 
 add_library(aiebu SHARED
   $<TARGET_OBJECTS:aiebu_library_objects>

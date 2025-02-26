@@ -3,10 +3,8 @@
 
 project(tests CXX C)
 
-if (AIEBU_FULL STREQUAL "ON")
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    add_subdirectory(aie2ps-ctrlcode)
-  endif()
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_subdirectory(aie2ps-ctrlcode)
 endif()
 add_subdirectory(aie2-ctrlcode)
 add_subdirectory(cpp_test)

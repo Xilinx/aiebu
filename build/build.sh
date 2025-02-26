@@ -20,12 +20,6 @@ function compile {
     local build=$2
     local cmakeflags="-DCMAKE_BUILD_TYPE=$config"
 
-    if [[ $build == "aie2" ]]; then
-      cmakeflags="$cmakeflags -DAIEBU_FULL=OFF"
-    else
-      cmakeflags="$cmakeflags -DAIEBU_FULL=ON"
-    fi
-
     mkdir -p $config
     cd $config
     if [[ $config == "Debug" ]]; then
@@ -35,9 +29,6 @@ function compile {
     cmake $cmakeflags ../../
 
     make -j $CORE VERBOSE=1
-    if [[ $build != "aie2" ]]; then
-      make -j $CORE VERBOSE=1 isa-spec
-    fi
     make -j $CORE VERBOSE=1 install
     make -j $CORE VERBOSE=1 test
     make -j $CORE VERBOSE=1 test ARGS="-L memcheck -T memcheck"

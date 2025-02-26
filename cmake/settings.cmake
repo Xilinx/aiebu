@@ -94,10 +94,6 @@ message("-- Using ELFIO from ${AIEBU_ELFIO_SRC_DIR}")
 ################################################################
 # Global compile options
 ################################################################
-if (AIEBU_FULL STREQUAL "ON")
-  add_compile_options(-DAIEBU_FULL)
-endif()
-
 if (MSVC)
   include(cmake/windows.cmake)
 else()

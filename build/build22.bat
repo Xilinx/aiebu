@@ -110,11 +110,6 @@ REM --------------------------------------------------------------------------
 :DebugBuild
 echo ====================== Windows Debug Build ============================
 set CMAKEFLAGS=%CMAKEFLAGS% -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=%BUILDDIR%/WDebug
-if [%AIEBU_BUILD%] == ["aie2"] (
-  set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_FULL=OFF
-) else (
-  set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_FULL=ON
-)
 
 ECHO CMAKEFLAGS=%CMAKEFLAGS%
 
@@ -147,11 +142,6 @@ REM --------------------------------------------------------------------------
 :ReleaseBuild
 ECHO ====================== Windows Release Build ============================
 set CMAKEFLAGS=%CMAKEFLAGS% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%BUILDDIR%/WRelease
-if [%AIEBU_BUILD%] == ["aie2"] (
-  set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_FULL=OFF
-) else (
-  set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_FULL=ON
-)
 ECHO CMAKEFLAGS=%CMAKEFLAGS%
 
 MKDIR %BUILDDIR%\WRelease
@@ -160,11 +150,6 @@ PUSHD %BUILDDIR%\WRelease
 if [%NOCMAKE%] == [0] (
    cmake -G "Visual Studio 17 2022" %CMAKEFLAGS% ../../
    IF errorlevel 1 (POPD & exit /B %errorlevel%)
-)
-
-if not [%AIEBU_BUILD%] == ["aie2"] (
-  cmake --build . --verbose --config Release --target cpp-assembler-stubs
-  IF errorlevel 1 (POPD & exit /B %errorlevel%)
 )
 
 cmake --build . --verbose --config Release

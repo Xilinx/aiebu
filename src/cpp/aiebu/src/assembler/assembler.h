@@ -28,9 +28,7 @@ public:
   {
     aie2_transaction_blob,
     aie2_dpu_blob,
-#ifdef AIEBU_FULL
     aie2ps_asm,
-#endif
     aie2_asm
   };
 
