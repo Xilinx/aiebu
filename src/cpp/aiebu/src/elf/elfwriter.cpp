@@ -150,22 +150,22 @@ add_dynamic_section_segment()
 
 void
 elf_writer::
-add_note(ELFIO::Elf_Word type, const std::string& name, const std::string& dec)
+add_note(ELFIO::Elf_Word type, const std::string& name, const std::vector<char>& dec)
 {
   ELFIO::section* note_sec = m_elfio.sections.add( name.c_str() );
   note_sec->set_type( ELFIO::SHT_NOTE );
   note_sec->set_addr_align( 1 );
 
   ELFIO::note_section_accessor note_writer( m_elfio, note_sec );
-  note_writer.add_note( type, "XRT", dec.c_str(), dec.size() );
+  note_writer.add_note( type, "XRT", dec.data(), dec.size() );
 }
 
 std::vector<char>
 elf_writer::
 finalize()
 {
-  std::cout << "UID:" << m_uid.calculate() << "\n";
   add_note(NT_XRT_UID, ".note.xrt.UID", m_uid.calculate());
+  std::cout << "UID:" << m_uid.str() << "\n";
   std::stringstream stream;
   stream << std::noskipws;
   //m_elfio.save( "hello_32" );
