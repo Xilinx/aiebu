@@ -183,38 +183,38 @@ add_text_data_section(std::vector<writer>& mwriter, std::vector<symbol>& syms)
 {
   for(auto buffer : mwriter)
   {
-    if(buffer.get_data().size())
+    if (buffer.get_data().size() == 0)
+      continue;
+
+    m_uid.update(buffer.get_data());
+    elf_section sec_data;
+    sec_data.set_name(buffer.get_name());
+    sec_data.set_type(ELFIO::SHT_PROGBITS);
+    if (buffer.get_type() == code_section::text)
+      sec_data.set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_EXECINSTR);
+    else
+      sec_data.set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_WRITE);
+    sec_data.set_align(align);
+    sec_data.set_buffer(buffer.get_data());
+    sec_data.set_link("");
+
+    elf_segment seg_data;
+    seg_data.set_type(ELFIO::PT_LOAD);
+    if (buffer.get_type() == code_section::text)
+      seg_data.set_flags(ELFIO::PF_X | ELFIO::PF_R);
+    else
+      seg_data.set_flags(ELFIO::PF_W | ELFIO::PF_R);
+    seg_data.set_vaddr(0x0);
+    seg_data.set_paddr(0x0);
+    seg_data.set_link(buffer.get_name());
+    seg_data.set_align(text_align);
+
+    add_section(sec_data);
+    add_segment(seg_data);
+    if (buffer.hassymbols())
     {
-      m_uid.update(buffer.get_data());
-      elf_section sec_data;
-      sec_data.set_name(buffer.get_name());
-      sec_data.set_type(ELFIO::SHT_PROGBITS);
-      if (buffer.get_type() == code_section::text)
-        sec_data.set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_EXECINSTR);
-      else
-        sec_data.set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_WRITE);
-      sec_data.set_align(align);
-      sec_data.set_buffer(buffer.get_data());
-      sec_data.set_link("");
-
-      elf_segment seg_data;
-      seg_data.set_type(ELFIO::PT_LOAD);
-      if (buffer.get_type() == code_section::text)
-        seg_data.set_flags(ELFIO::PF_X | ELFIO::PF_R);
-      else
-        seg_data.set_flags(ELFIO::PF_W | ELFIO::PF_R);
-      seg_data.set_vaddr(0x0);
-      seg_data.set_paddr(0x0);
-      seg_data.set_link(buffer.get_name());
-      seg_data.set_align(text_align);
-
-      add_section(sec_data);
-      add_segment(seg_data);
-      if (buffer.hassymbols())
-      {
-        auto lsyms = buffer.get_symbols();
-        syms.insert(syms.end(), lsyms.begin(), lsyms.end());
-      }
+      auto lsyms = buffer.get_symbols();
+      syms.insert(syms.end(), lsyms.begin(), lsyms.end());
     }
   }
 }
