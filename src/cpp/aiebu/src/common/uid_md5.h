@@ -5,7 +5,6 @@
 #define _AIEBU_COMMON_UID_MD5_H_
 
 #include <vector>
-#include <iostream>
 #include <boost/uuid/detail/md5.hpp>
 #include <boost/algorithm/hex.hpp>
 
@@ -57,12 +56,10 @@ public:
   [[nodiscard]] std::string str() const {
     std::stringstream md5;
 
-    std::cout << std::hex << std::setfill('0');
     md5 << std::hex << std::setfill('0');
     for (auto ele : sig) {
       auto c = (unsigned char)ele;
       md5 << std::setw(sizeof(ele) * 2) << (unsigned int)c;
-      std::cout << std::setw(sizeof(ele) * 2) << (unsigned int)c << "\n";
     }
     return md5.str();
   }
