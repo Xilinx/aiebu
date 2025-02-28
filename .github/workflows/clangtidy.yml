@@ -25,12 +25,12 @@ jobs:
       #uses: ZedThree/clang-tidy-review@v0.20.1
       uses: stsoe/clang-tidy-review@6d2aee59f56cf41f32baa4123cc636fff8ef4eb7
       with:
+        token: ${{ secrets.PR_COMMENTS }}
         build_dir: build/Release
         apt_packages: pkg-config,libelf-dev,libboost-dev,pylint,elfutils
-        cmake: cmake -B build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        cmake_command: cmake -B build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
         # disable default checks and rely on closest .clangtidy
         clang_tidy_checks: ''
-        token: ${{ secrets.PR_COMMENTS }}
 
     # If there are any comments, fail the check
     - if: ${{ failure() && steps.clang-tidy.conclusion == 'failure' }}
