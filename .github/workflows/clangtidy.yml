@@ -30,7 +30,7 @@ jobs:
         cmake: cmake -B build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
         # disable default checks and rely on closest .clangtidy
         clang_tidy_checks: ''
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.PR_COMMENTS }}
 
     # If there are any comments, fail the check
     - if: ${{ failure() && steps.clang-tidy.conclusion == 'failure' }}
