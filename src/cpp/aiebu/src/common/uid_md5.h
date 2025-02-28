@@ -32,25 +32,28 @@ public:
 
     hasher_copy.get_digest(digest);
     std::memcpy(sig.data(), digest, md5_size);
+
+    constexpr size_t element_size = sizeof(digest[0]);
+
+    if (element_size == 1)
+      return sig;
+
+    // Different boost versions model digest_type differently:
+    // 1. typedef unsigned int(digest_type)[4];
+    // 2. typedef unsigned char digest_type[16];
+    // For case 1. the following code swaps the bytes of each integer in
+    // the signature. This solves the little endian issue of integer bytes
+    // stored in the reverse order than in which they are printed.
+
+    std::vector<char>::iterator tcurr = sig.begin();
+    std::vector<char>::iterator final = sig.end();
+    while (tcurr < final) {
+        std::vector<char>::iterator tend = tcurr + element_size;
+        std::reverse(tcurr, tend);
+        tcurr = tend;
+    }
+
     return sig;
-
-    /*
-        std::stringstream md5;
-        // Different boost versions model digest_type differently:
-        // 1. typedef unsigned int(digest_type)[4];
-        // 2. typedef unsigned char digest_type[16];
-        // The code sets the print width to number of chars needed to print the
-    element type
-        // used by digest_type. This results in the same string representation
-    for both cases
-        // which matches with that reported by command line md5sum utility
-
-        md5 << std::hex << std::setfill('0');
-        for (auto ele : digest) {
-          md5 << std::setw(sizeof(ele) * 2) << (unsigned int)ele;
-        }
-        return md5.str();
-    */
   }
 
   [[nodiscard]] std::string str() const {
