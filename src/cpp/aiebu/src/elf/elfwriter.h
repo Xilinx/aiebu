@@ -29,8 +29,6 @@ class elf_section
   int m_type;
   int m_flags;
   int m_version;
-  uint64_t m_size;
-  uint64_t m_offset;
   uint64_t m_align;
   int m_info;
   std::string m_link;
@@ -40,8 +38,6 @@ public:
   HEADER_ACCESS_GET_SET(int, version);
   HEADER_ACCESS_GET_SET(int, flags);
   HEADER_ACCESS_GET_SET(int, info);
-  HEADER_ACCESS_GET_SET(uint64_t, size);
-  HEADER_ACCESS_GET_SET(uint64_t, offset);
   HEADER_ACCESS_GET_SET(uint64_t, align);
   HEADER_ACCESS_GET_SET(std::vector<uint8_t>,  buffer);
   HEADER_ACCESS_GET_SET(std::string, link);
@@ -54,8 +50,8 @@ class elf_segment
   int m_flags;
   uint64_t m_vaddr = 0x0;
   uint64_t m_paddr = 0x0;
-  int m_filesz;
-  int m_memsz;
+  int m_filesz = 0;
+  int m_memsz = 0;
   uint64_t m_align;
   std::string m_link;
 public:
@@ -75,14 +71,14 @@ protected:
   ELFIO::elfio m_elfio;
   uid_md5 m_uid;
 
-  ELFIO::section* add_section(elf_section& data);
-  ELFIO::segment* add_segment(elf_segment& data);
+  ELFIO::section* add_section(const elf_section& data);
+  ELFIO::segment* add_segment(const elf_segment& data);
   ELFIO::string_section_accessor add_dynstr_section();
   void add_dynsym_section(ELFIO::string_section_accessor* stra, std::vector<symbol>& syms);
   void add_reldyn_section(std::vector<symbol>& syms);
   void add_dynamic_section_segment();
   std::vector<char> finalize();
-  void add_text_data_section(std::vector<writer>& mwriter, std::vector<symbol>& syms);
+  void add_text_data_section(const std::vector<writer>& mwriter, std::vector<symbol>& syms);
   void add_note(ELFIO::Elf_Word type, const std::string& name, const std::vector<char>& dec);
 
 public:

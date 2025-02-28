@@ -7,17 +7,17 @@ namespace aiebu {
 
 ELFIO::section*
 elf_writer::
-add_section(elf_section& data)
+add_section(const elf_section& data)
 {
   // add section
   ELFIO::section* sec = m_elfio.sections.add(data.get_name());
   sec->set_type(data.get_type());
   sec->set_flags(data.get_flags());
   sec->set_addr_align(data.get_align());
-  std::vector<uint8_t> buf = data.get_buffer();
+  const std::vector<uint8_t> buf = data.get_buffer();
 
   if(buf.size())
-    sec->set_data(reinterpret_cast<char*>(buf.data()), static_cast<ELFIO::Elf_Word>(buf.size()));
+    sec->set_data(reinterpret_cast<const char*>(buf.data()), static_cast<ELFIO::Elf_Word>(buf.size()));
   //sec->set_info( data.get_info() );
   if (!data.get_link().empty())
   {
@@ -29,7 +29,7 @@ add_section(elf_section& data)
 
 ELFIO::segment*
 elf_writer::
-add_segment(elf_segment& data)
+add_segment(const elf_segment& data)
 {
   // add segment
   ELFIO::segment* seg = m_elfio.segments.add();
@@ -179,7 +179,7 @@ finalize()
 
 void
 elf_writer::
-add_text_data_section(std::vector<writer>& mwriter, std::vector<symbol>& syms)
+add_text_data_section(const std::vector<writer>& mwriter, std::vector<symbol>& syms)
 {
   for(auto buffer : mwriter)
   {

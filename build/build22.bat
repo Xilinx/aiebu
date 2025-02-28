@@ -60,7 +60,7 @@ IF DEFINED MSVC_PARALLEL_JOBS ( SET LOCAL_MSVC_PARALLEL_JOBS=%MSVC_PARALLEL_JOBS
   ) else (
     echo Unknown option: %1
     goto Help
-  )))))))))
+  ))))))))))
   shift
   goto parseArgs
 
