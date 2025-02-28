@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
+name: Clang-Tidy Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: main-ge
+    
+  workflow_dispatch:
+
+jobs:
+  clangtidy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Fetch base branch
+      run: |
+        git fetch origin ${{ github.base_ref }}
+
+    - name: Install clang-tidy
+      run: |
+        sudo apt install -y clang-tidy
+
+    - name: Build and generate compile_commands.json
+      run: |
+        cmake -B build/Release \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DCMAKE_INSTALL_PREFIX=build/Release
+        cmake --build build/Release --config Release
+
+    - name: Run clang-tidy
+      run: |
+        git diff -U0 origin/${{ github.base_ref }}...HEAD | \
+        clang-tidy-diff -p1 -path build -export-fixes build/Release/clang-tidy-fixes.yml
+
+    - name: Post clang-tidy comments
+      #uses: ZedThree/clang-tidy-review@v0.20.1
+      uses: stsoe/clang-tidy-review@6d2aee59f56cf41f32baa4123cc636fff8ef4eb7
+      with:
+        build_dir: build/Release
+        # disable default checks and rely on closest .clangtidy
+        clang_tidy_checks: ''
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # If there are any comments, fail the check
+    - if: ${{ failure() && steps.clang-tidy.conclusion == 'failure' }}
+      run: exit 1

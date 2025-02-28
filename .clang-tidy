@@ -7,23 +7,28 @@
 # clang-tidy looks for .clang-tidy file walking up the source directory structure to identify which checks to run
 # One can customize checks in specific source directories by placing custom .clang-tidy in those source directories
 Checks: '
+readability-const-return-type,
 clang-diagnostic-*,
 clang-analyzer-*,
 cert-*,
 bugprone-*,
+-bugprone-empty-catch,
 clang-analyzer-*,
 concurrency-*,
 cppcoreguidelines-*,
 hicpp-*,
 -hicpp-no-array-decay,
 -hicpp-signed-bitwise,
+-hicpp-named-parameter,
 modernize-*,
 -modernize-use-trailing-return-type,
+-modernize-use-nodiscard,
 -cppcoreguidelines-pro-bounds-pointer-arithmetic,
 -cppcoreguidelines-pro-type-union-access,
 -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
 -cppcoreguidelines-pro-type-reinterpret-cast,
 -cppcoreguidelines-pro-bounds-constant-array-index,
+-llvmlibc-*
 '
 
 WarningsAsErrors: ''
@@ -95,6 +100,10 @@ CheckOptions:
     value:           '0'
   - key:             bugprone-too-small-loop-variable.MagnitudeBitsUpperLimit
     value:           '16'
+  - key:             bugprone-easily-swappable-parameters.NamePrefixSuffixSilenceDissimilarityTreshold
+    value:           '1'
+  - key:             bugprone-easily-swappable-parameters.MinimumLength
+    value:	     '3'
   - key:             bugprone-unhandled-self-assignment.WarnOnlyIfThisHasSuspiciousField
     value:           '1'
   - key:             bugprone-unused-return-value.CheckedFunctions
@@ -117,6 +126,8 @@ CheckOptions:
     value:           llvm
   - key:             cert-oop54-cpp.WarnOnlyIfThisHasSuspiciousField
     value:           '0'
+  - key:             cppcoreguidelines-avoid-non-const-global-variables.AllowInternalLinkage
+    value:           '1'
   - key:             cppcoreguidelines-avoid-magic-numbers.IgnoredFloatingPointValues
     value:           '1.0;100.0;'
   - key:             cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues
