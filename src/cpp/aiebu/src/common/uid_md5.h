@@ -45,10 +45,10 @@ public:
     // the signature. This solves the little endian issue of integer bytes
     // stored in the reverse order than in which they are printed.
 
-    std::vector<char>::iterator tcurr = sig.begin();
-    std::vector<char>::iterator final = sig.end();
-    while (tcurr < final) {
-        std::vector<char>::iterator tend = tcurr + element_size;
+    auto tcurr = sig.begin();
+    auto done = sig.end();
+    while (tcurr < done) {
+        auto tend = tcurr + element_size;
         std::reverse(tcurr, tend);
         tcurr = tend;
     }
