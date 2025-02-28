@@ -18,6 +18,7 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
+        token: ${{ secrets.WORKFLOW_PAT }}
     - name: Fetch base branch
       run: |
         git fetch origin ${{ github.base_ref }}
@@ -26,7 +27,7 @@ jobs:
       #uses: ZedThree/clang-tidy-review@v0.20.1
       uses: stsoe/clang-tidy-review@6d2aee59f56cf41f32baa4123cc636fff8ef4eb7
       with:
-        token: ${{ secrets.PR_COMMENTS }}
+        token: ${{ secrets.WORKFLOW_PAT }}
         build_dir: build/Release
         apt_packages: pkg-config,libelf-dev,libboost-dev,pylint,elfutils
         cmake_command: cmake -B build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
