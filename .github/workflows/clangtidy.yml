@@ -26,7 +26,7 @@ jobs:
       uses: stsoe/clang-tidy-review@6d2aee59f56cf41f32baa4123cc636fff8ef4eb7
       with:
         build_dir: build/Release
-        apt_packages: pkg-config libelf-dev libboost-dev pylint elfutils
+        apt_packages: pkg-config,libelf-dev,libboost-dev,pylint,elfutils
         cmake: cmake -B build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
         # disable default checks and rely on closest .clangtidy
         clang_tidy_checks: ''
