@@ -19,6 +19,7 @@ jobs:
         submodules: recursive
         fetch-depth: 0
         token: ${{ secrets.WORKFLOW_PAT }}
+        
     - name: Fetch base branch
       run: |
         git fetch origin ${{ github.base_ref }}
