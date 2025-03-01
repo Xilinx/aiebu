@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+add_subdirectory(utils)
+
 add_library(aiebu_library_objects OBJECT
   analyzer/reporter.cpp
   analyzer/transaction.cpp
@@ -26,7 +28,7 @@ target_include_directories(aiebu_library_objects
   ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO
 
   # The following should be spelled out in code
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/aiebu
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2
   ${CMAKE_CURRENT_SOURCE_DIR}/encoder
@@ -87,9 +89,9 @@ install (TARGETS aiebu aiebu_static
 )
 
 install(FILES
-  include/aiebu.h
-  include/aiebu_assembler.h
-  include/aiebu_error.h
+  include/aiebu/aiebu.h
+  include/aiebu/aiebu_assembler.h
+  include/aiebu/aiebu_error.h
   DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )

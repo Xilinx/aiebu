@@ -5,7 +5,7 @@ project(AIEBU HOMEPAGE_URL https://github.com/Xilinx/aiebu VERSION 1.0)
 
 include(cmake/settings.cmake)
 
-add_subdirectory(src/cpp/aiebu)
+add_subdirectory(src/cpp)
 
 add_subdirectory(specification)
 

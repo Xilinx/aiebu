@@ -2,19 +2,19 @@
 # Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
 add_library(aiebu_asm_objects OBJECT
   asm.cpp
-  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target/target.cpp
+  ${AIEBU_SOURCE_DIR}/src/cpp/utils/target/target.cpp
   )
 
 target_include_directories(aiebu_asm_objects
   PRIVATE
-  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src
+  ${AIEBU_SOURCE_DIR}/src/cpp
   ${Boost_INCLUDE_DIRS}
 
   # these should be spelled out in source code
-  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
-  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/assembler
-  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/common
-  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/utils/target
+  ${AIEBU_SOURCE_DIR}/src/cpp/include/aiebu
+  ${AIEBU_SOURCE_DIR}/src/cpp/assembler
+  ${AIEBU_SOURCE_DIR}/src/cpp/common
+  ${AIEBU_SOURCE_DIR}/src/cpp/utils/target
   ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include
   )
 
