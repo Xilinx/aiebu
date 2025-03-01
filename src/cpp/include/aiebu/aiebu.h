@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
-#ifndef _AIEBU_H_
-#define _AIEBU_H_
+#ifndef AIEBU_H_
+#define AIEBU_H_
 
 #ifdef __cplusplus
 extern "C" {

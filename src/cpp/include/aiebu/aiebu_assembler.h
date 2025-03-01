@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
-#ifndef _AIEBU_ASSEMBLER_H_
-#define _AIEBU_ASSEMBLER_H_
+#ifndef AIEBU_ASSEMBLER_H_
+#define AIEBU_ASSEMBLER_H_
 
 #include <string>
 #include <cstdint>
@@ -36,7 +36,7 @@ class aiebu_assembler {
     };
 
   private:
-    const buffer_type _type;
+    buffer_type m_type;
 
   public:
     /*

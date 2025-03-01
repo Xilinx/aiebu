@@ -34,7 +34,7 @@ aiebu_assembler(buffer_type type,
                 const std::vector<char>& patch_json,
                 const std::vector<std::string>& libs,
                 const std::vector<std::string>& libpaths,
-                const std::map<uint32_t, std::vector<char> >& ctrlpkt) : _type(type)
+                const std::map<uint32_t, std::vector<char> >& ctrlpkt) : m_type(type)
 {
   if (type == buffer_type::blob_instr_dpu)
   {
@@ -73,7 +73,7 @@ void
 aiebu_assembler::
 get_report(std::ostream &stream) const
 {
-    reporter rep(_type, elf_data);
+    reporter rep(m_type, elf_data);
     rep.elf_summary(stream);
     rep.ctrlcode_summary(stream);
 }
@@ -82,7 +82,7 @@ void
 aiebu_assembler::
 disassemble(const std::filesystem::path &root) const
 {
-    reporter rep(_type, elf_data);
+    reporter rep(m_type, elf_data);
     rep.ctrlcode_detail_summary(root);
 }
 }
