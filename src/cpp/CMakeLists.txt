@@ -63,27 +63,15 @@ target_include_directories(aiebu_library_objects
   ${CMAKE_CURRENT_BINARY_DIR}
   )
 
-add_library(aiebu SHARED
-  $<TARGET_OBJECTS:aiebu_library_objects>
-  )
-
 add_library(aiebu_static STATIC
   $<TARGET_OBJECTS:aiebu_library_objects>
   )
 
-target_link_libraries(aiebu xaiengine)
-
 if (MSVC)
-  target_link_libraries(aiebu advapi32)
   target_link_libraries(aiebu_static advapi32)
 endif()
 
-install (TARGETS aiebu
-  LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}
-  RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
-)
-
-install (TARGETS aiebu aiebu_static
+install (TARGETS aiebu_static
   ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR}
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}
 )

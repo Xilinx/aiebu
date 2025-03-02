@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 
-#include <map>
-#include <string>
 #include "assembler.h"
 #include "aiebu_assembler.h"
 #include "aiebu.h"
@@ -13,8 +11,10 @@
 #include "encoder.h"
 #include "elfwriter.h"
 #include "preprocessor_input.h"
-
 #include "reporter.h"
+
+#include <map>
+#include <string>
 
 namespace aiebu {
 
@@ -87,7 +87,6 @@ disassemble(const std::filesystem::path &root) const
 }
 }
 
-DRIVER_DLLESPEC
 int
 aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         const char* buffer1,

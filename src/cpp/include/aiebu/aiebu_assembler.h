@@ -1,21 +1,12 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
-
+// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 #ifndef AIEBU_ASSEMBLER_H_
 #define AIEBU_ASSEMBLER_H_
-
-#include <string>
 #include <cstdint>
-#include <vector>
-#include <iostream>
 #include <filesystem>
 #include <map>
-
-#if defined(_WIN32)
-#define DRIVER_DLLESPEC __declspec(dllexport)
-#else
-#define DRIVER_DLLESPEC __attribute__((visibility("default")))
-#endif
+#include <string>
+#include <vector>
 
 namespace aiebu {
 
@@ -62,7 +53,6 @@ class aiebu_assembler {
      * @libpaths       paths to search for libs
      * @ctrlpkt        map of pm id and pm control packet buffer
      */
-     DRIVER_DLLESPEC
      aiebu_assembler(buffer_type type,
                const std::vector<char>& buffer1,
                const std::vector<char>& buffer2,
@@ -82,7 +72,6 @@ class aiebu_assembler {
      * @libpaths       paths to search for libs
      * @patch_json     external_buffer_id json
      */
-    DRIVER_DLLESPEC
     aiebu_assembler(buffer_type type,
               const std::vector<char>& buffer,
               const std::vector<std::string>& libs = {},
@@ -100,20 +89,16 @@ class aiebu_assembler {
      *
      * return: vector of char with elf content
      */
-    [[nodiscard]]
-    DRIVER_DLLESPEC
     std::vector<char>
     get_elf() const;
 
     void
-    DRIVER_DLLESPEC
     get_report(std::ostream &stream) const;
 
     void
-    DRIVER_DLLESPEC
     disassemble(const std::filesystem::path &root) const;
 };
 
 } //namespace aiebu
 
-#endif // _AIEBU_ASSEMBLER_H_
+#endif // AIEBU_ASSEMBLER_H_

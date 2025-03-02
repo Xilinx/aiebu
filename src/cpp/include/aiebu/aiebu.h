@@ -1,20 +1,13 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
-
+// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 #ifndef AIEBU_H_
 #define AIEBU_H_
 
-#ifdef __cplusplus
-extern "C" {
 #include <stddef.h>
-#endif
-
 #include <stdint.h>
 
-#if defined(_WIN32)
-#define DRIVER_DLLESPEC __declspec(dllexport)
-#else
-#define DRIVER_DLLESPEC __attribute__((visibility("default")))
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 enum aiebu_error_code {
@@ -66,7 +59,6 @@ struct pm_ctrlpkt {
  * @ctrlpkt             array of pm_ctrlpkt holding pm buffer and id
  * @ctrlpkt_size        size of ctrlpkt array
  */
-DRIVER_DLLESPEC
 int
 aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         const char* buffer1,
