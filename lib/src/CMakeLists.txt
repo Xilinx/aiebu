@@ -69,7 +69,7 @@ endif()
 target_include_directories(${AIEBU_COPY_EXE}
   PRIVATE
   ${AIEBU_AIE_RT_HEADER_DIR}
-  ${AIEBU_SOURCE_DIR}/src/cpp/aiebu/src/include
+  ${AIEBU_SOURCE_DIR}/src/cpp/include
 )
 
 target_link_libraries(${AIEBU_COPY_EXE} xaiengine aiebu_static)

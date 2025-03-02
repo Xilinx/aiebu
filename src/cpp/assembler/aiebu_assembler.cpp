@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
-
 #include "assembler.h"
-#include "aiebu_assembler.h"
-#include "aiebu.h"
-#include "aiebu_error.h"
-#include "symbol.h"
-#include "utils.h"
-#include "preprocessor.h"
-#include "encoder.h"
 #include "elfwriter.h"
+#include "encoder.h"
+#include "preprocessor.h"
 #include "preprocessor_input.h"
 #include "reporter.h"
+#include "symbol.h"
+#include "utils.h"
+
+#include "aiebu/aiebu.h"
+#include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_error.h"
 
 #include <map>
 #include <string>

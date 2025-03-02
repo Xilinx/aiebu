@@ -20,15 +20,15 @@ add_library(aiebu_library_objects OBJECT
 
 target_include_directories(aiebu_library_objects
   PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${AIEBU_SOURCE_DIR}
   ${AIEBU_AIE_RT_HEADER_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${Boost_INCLUDE_DIRS}
   ${AIEBU_BINARY_DIR}/lib
-  ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO
+  ${Boost_INCLUDE_DIRS}
 
   # The following should be spelled out in code
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/aiebu
+  ${CMAKE_CURRENT_SOURCE_DIR}/ELFIO
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2
   ${CMAKE_CURRENT_SOURCE_DIR}/encoder
@@ -40,6 +40,11 @@ target_include_directories(aiebu_library_objects
   ${CMAKE_CURRENT_SOURCE_DIR}/elf
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2
   ${AIEBU_BINARY_DIR}/lib/gen
+  )
+
+target_compile_definitions(aiebu_library_objects
+  PRIVATE
+  -DAIEBU_EXPORTS
   )
 
 set_target_properties(aiebu_library_objects PROPERTIES
@@ -80,6 +85,15 @@ install(FILES
   include/aiebu/aiebu.h
   include/aiebu/aiebu_assembler.h
   include/aiebu/aiebu_error.h
+  DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}/aiebu
+  CONFIGURATIONS Debug Release COMPONENT Runtime
+)
+
+# Deprecated include path, redirects to aiebu/*.h with warning
+install(FILES
+  include/deprecated/aiebu.h
+  include/deprecated/aiebu_assembler.h
+  include/deprecated/aiebu_error.h
   DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}
   CONFIGURATIONS Debug Release COMPONENT Runtime
 )

@@ -2,7 +2,7 @@
 // Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 #ifndef AIEBU_ERROR_H_
 #define AIEBU_ERROR_H_
-#include "aiebu.h"
+#include "aiebu/aiebu.h"
 
 #include <string>
 #include <system_error>

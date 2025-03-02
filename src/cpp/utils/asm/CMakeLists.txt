@@ -8,10 +8,10 @@ add_library(aiebu_asm_objects OBJECT
 target_include_directories(aiebu_asm_objects
   PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp
+  ${AIEBU_SOURCE_DIR}/src/cpp/include
   ${Boost_INCLUDE_DIRS}
 
   # these should be spelled out in source code
-  ${AIEBU_SOURCE_DIR}/src/cpp/include/aiebu
   ${AIEBU_SOURCE_DIR}/src/cpp/assembler
   ${AIEBU_SOURCE_DIR}/src/cpp/common
   ${AIEBU_SOURCE_DIR}/src/cpp/utils/target

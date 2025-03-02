@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+#ifndef AIEBU_PREPROCESSOR_PREPROCESSOR_INPUT_H_
+#define AIEBU_PREPROCESSOR_PREPROCESSOR_INPUT_H_
 
-#ifndef _AIEBU_PREPROCESSOR_PREPROCESSOR_INPUT_H_
-#define _AIEBU_PREPROCESSOR_PREPROCESSOR_INPUT_H_
+#include "symbol.h"
+#include "aiebu/aiebu_error.h"
 
-#include <vector>
-#include <string>
 #include <algorithm>
 #include <map>
-#include "symbol.h"
-#include "aiebu_error.h"
+#include <vector>
+#include <string>
 
 namespace aiebu {
 
@@ -62,4 +62,4 @@ public:
 };
 
 }
-#endif //_AIEBU_PREPROCESSOR_PREPROCESSOR_INPUT_H_
+#endif // AIEBU_PREPROCESSOR_PREPROCESSOR_INPUT_H_

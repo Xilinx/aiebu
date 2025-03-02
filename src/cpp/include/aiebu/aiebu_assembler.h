@@ -12,7 +12,8 @@ namespace aiebu {
 
 // Assembler Class
 
-class aiebu_assembler {
+class aiebu_assembler
+{
   std::vector<char> elf_data;
 
   public:

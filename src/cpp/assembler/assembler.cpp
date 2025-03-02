@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
-
+// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 #include "assembler.h"
-#include "aie2_blob_preprocessor.h"
+
 #include "aie2_asm_preprocessor.h"
-#include "aie2_blob_encoder.h"
 #include "aie2_blob_elfwriter.h"
-#include "aie2ps_preprocessor.h"
-#include "aie2ps_encoder.h"
+#include "aie2_blob_encoder.h"
+#include "aie2_blob_preprocessor.h"
 #include "aie2ps_elfwriter.h"
-
-#include "aiebu_error.h"
-
-#include "preprocessor.h"
-#include "encoder.h"
+#include "aie2ps_encoder.h"
+#include "aie2ps_preprocessor.h"
 #include "elfwriter.h"
+#include "encoder.h"
+#include "preprocessor.h"
+
+#include "aiebu/aiebu_error.h"
 
 namespace aiebu {
 

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
-
+// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 #include "aie2ps_encoder.h"
-#include "aiebu_error.h"
+
+#include "aiebu/aiebu_error.h"
+
 #include <cassert>
 
 namespace aiebu {

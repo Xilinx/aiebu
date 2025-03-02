@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+#include "asm_parser.h"
 
-#include "asm/asm_parser.h"
-#include "aiebu_error.h"
+#include "aiebu/aiebu_error.h"
+
+#include <iostream>
 
 namespace aiebu {
 

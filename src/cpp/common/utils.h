@@ -1,20 +1,18 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+#ifndef AIEBU_COMMOM_UTILS_H_
+#define AIEBU_COMMOM_UTILS_H_
+#include "aiebu/aiebu_error.h"
 
-#ifndef _AIEBU_COMMOM_UTILS_H_
-#define _AIEBU_COMMOM_UTILS_H_
-
-#include <fstream>
-#include <filesystem>
-#include <iostream>
 #include <cassert>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <regex>
+#include <sstream>
 #include <string>
 #include <string_view>
-#include <sstream>
 #include <vector>
-#include <regex>
-#include "aiebu_error.h"
 
 #define BYTE_MASK 0xFF
 #define FIRST_BYTE_SHIFT 0
@@ -190,4 +188,4 @@ to_uinteger(const std::string& token) {
 }
 
 }
-#endif // _AIEBU_COMMOM_UTILS_H_
+#endif // AIEBU_COMMOM_UTILS_H_

@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
 
+#include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_error.h"
+
+#include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <vector>
 #include <iterator>
-#include "aiebu_assembler.h"
-#include "aiebu_error.h"
-#include <algorithm>
+#include <vector>
 
 /* 2 testcases added
  * without ctrl_pkt: ./aie2ps_cpp eff_net_coal test/cpp_test/aie2ps/eff_net_coal

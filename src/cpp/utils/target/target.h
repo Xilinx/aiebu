@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+#ifndef AIEBU_UTILITIES_TARGET_H_
+#define AIEBU_UTILITIES_TARGET_H_
 
-#ifndef __AIEBU_UTILITIES_TARGET_H_
-#define __AIEBU_UTILITIES_TARGET_H_
+#include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_error.h"
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
-#include "aiebu_assembler.h"
-#include "aiebu_error.h"
 
 namespace aiebu::utilities {
 
@@ -117,4 +117,4 @@ class target_aie2blob_dpu: public target_aie2blob
 
 } //namespace aiebu::utilities
 
-#endif //__AIEBU_UTILITIES_TARGET_H_
+#endif // AIEBU_UTILITIES_TARGET_H_

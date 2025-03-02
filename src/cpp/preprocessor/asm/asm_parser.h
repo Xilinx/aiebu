@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+#ifndef AIEBU_PREPROCESSOR_ASM_ASM_PARSER_H_
+#define AIEBU_PREPROCESSOR_ASM_ASM_PARSER_H_
 
-#ifndef _AIEBU_PREPROCESSOR_ASM_ASM_PARSER_H_
-#define _AIEBU_PREPROCESSOR_ASM_ASM_PARSER_H_
-
-#include <vector>
-#include <string>
-#include <iostream>
-#include <memory>
-#include <sstream>
-#include <stack>
-#include <regex>
-#include <map>
-#include <unordered_map>
-#include "utils.h"
 #include "code_section.h"
+#include "utils.h"
+
+#include <map>
+#include <memory>
+#include <regex>
+#include <stack>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace aiebu {
 
@@ -359,4 +358,4 @@ public:
 
 
 }
-#endif //_AIEBU_PREPROCESSOR_ASM_ASM_PARSER_H_
+#endif // AIEBU_PREPROCESSOR_ASM_ASM_PARSER_H_

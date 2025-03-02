@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: MIT */
-/* Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved. */
+/* Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved. */
+#include "aie_test_common.h"
+#include "aiebu/aiebu.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "aiebu.h"
-#include "aie_test_common.h"
 
 void usage_exit()
 {

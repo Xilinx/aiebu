@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+#ifndef AIEBU_REPORTER_H_
+#define AIEBU_REPORTER_H_
 
-#ifndef _AIEBU_REPORTER_H_
-#define _AIEBU_REPORTER_H_
-
-#include "aiebu_assembler.h"
+#include "aiebu/aiebu_assembler.h"
 
 #include <elfio/elfio_dump.hpp>
 

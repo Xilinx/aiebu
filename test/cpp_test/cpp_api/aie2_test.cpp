@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
+// Copyright (C) 2023-2025 Advanced Micro Devices, Inc.
 
+#include "aiebu/aiebu_assembler.h"
+
+#include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <vector>
 #include <iterator>
-#include "aiebu_assembler.h"
-#include <algorithm>
+#include <vector>
 
 void usage_exit()
 {

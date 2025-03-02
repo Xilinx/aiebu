@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.
-
+// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 #include "reporter.h"
-#include "aiebu_error.h"
-
 #include "transaction.hpp"
+
+#include "aiebu/aiebu_error.h"
 
 #include <boost/interprocess/streams/bufferstream.hpp>
 #include <elfio/elfio_dump.hpp>
-
 namespace aiebu {
 
     reporter::reporter(aiebu::aiebu_assembler::buffer_type /*type*/, const std::vector<char>& elf_data)
