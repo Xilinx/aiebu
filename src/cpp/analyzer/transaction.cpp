@@ -88,12 +88,11 @@ public:
         ss << op_format << "XAIE_IO_LOAD_PM_START " << dec_format << op_count[XAIE_IO_LOAD_PM_START] << std::endl;
         ss << op_format << "XAIE_IO_CUSTOM_OP_TCT " << dec_format << op_count[XAIE_IO_CUSTOM_OP_TCT] << std::endl;
         ss << op_format << "XAIE_IO_CUSTOM_OP_DDR_PATCH " << dec_format << op_count[XAIE_IO_CUSTOM_OP_DDR_PATCH] << std::endl;
+        ss << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC " << dec_format << op_count[XAIE_IO_CUSTOM_OP_MERGE_SYNC] << std::endl;
+        ss << op_format << "XAIE_IO_CUSTOM_OP_RECORD_TIMER " << dec_format << op_count[XAIE_IO_CUSTOM_OP_RECORD_TIMER] << std::endl;
+
         /*
         ss << "Number of read ops: " << std::to_string(num_read_ops) << std::endl;
-        ss << "Number of timer ops: " << std::to_string(num_readtimer_ops)
-           << std::endl;
-        ss << "Number of merge sync ops: " << std::to_string(num_merge_sync_ops)
-           << std::endl;
         */
         return get_txn_summary(txn_.data()) + ss.str();
     }
@@ -349,7 +348,7 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*Hdr);
         auto id = (unsigned int *)curr;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_RECORD_TIMER #" << std::dec << *id << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_RECORD_TIMER " << '#' << std::dec << *id << std::endl;
         return size;
     }
 
@@ -358,7 +357,7 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*Hdr);
         auto op = (const tct_op_t *)curr;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC #" << op->word << ", #" << op->config << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC " << '#' << op->word << ", #" << op->config << std::endl;
         return Hdr->Size;
     }
 
@@ -367,7 +366,7 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*hdr);
         auto op = (const tct_op_t *)curr;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT #" << op->word << ", #" << op->config << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT " << '#' << op->word << ", #" << op->config << std::endl;
         return hdr->Size;
     }
 
@@ -468,7 +467,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
         const char *curr = (const char *)ptr;
         curr += sizeof(*Hdr);
         auto id = (unsigned int *)curr;
-        ss_ops_ << "XAIE_IO_CUSTOM_OP_RECORD_TIMER #" << std::dec << *id << std::endl;
+        ss_ops_ << "XAIE_IO_CUSTOM_OP_RECORD_TIMER " << '#' << std::dec << *id << std::endl;
         return size;
     }
 
@@ -477,7 +476,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
         const char *curr = (const char *)ptr;
         curr += sizeof(*Hdr);
         auto op = (const tct_op_t *)curr;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC #" << op->word << ", #" << op->config << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC " << '#' << op->word << ", #" << op->config << std::endl;
         return Hdr->Size;
     }
 
