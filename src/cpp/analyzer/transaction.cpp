@@ -16,11 +16,11 @@
 #include "transaction.hpp"
 
 namespace {
-static const std::array<std::string_view, 5> preempt_code_table{"NOOP",
-                                                                "MEM_TILE",
-                                                                "AIE_TILE",
-                                                                "AIE_REGISTERS",
-                                                                "INVALID"};
+static const std::array<std::string_view, 5> preempt_code_table{"#NOOP",
+                                                                "#MEM_TILE",
+                                                                "#AIE_TILE",
+                                                                "#AIE_REGISTERS",
+                                                                "#INVALID"};
 
 constexpr uint8_t MAJOR_VER = 1;
 constexpr uint8_t MINOR_VER = 0;
@@ -235,7 +235,7 @@ private:
          * function to service the TXN buffer.
          */
         if ((Hdr->Major == MAJOR_VER) && (Hdr->Minor == MINOR_VER)) {
-            printf("Optimized HEADER version detected \n");
+            std::cout << "Optimized HEADER version detected \n";
             count_tnx_opt(ptr, op_count);
         } else {
             count_tnx(ptr, op_count);
@@ -257,7 +257,7 @@ private:
         curr += sizeof(*bw_header);
         u32 *Payload = (u32 *)curr;
         ss_ops_ << op_format << "XAIE_IO_BLOCKWRITE " << "@0x" << std::hex << bw_header->RegOff << ", [" <<
-          Size << "]" << std::endl;
+          std::dec << Size << "]" << std::endl;
         for (u32 i = 0; i < Size; i++) {
             ss_ops_ << op_format << ("XAIE_IO_BLOCKWRITE." + std::to_string(i)) << "0x" << std::hex << *Payload << std::endl;
             Payload++;
@@ -313,9 +313,12 @@ private:
     }
 
     size_t stringify_tct(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
-        auto co_header = (const XAie_CustomOpHdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT " << std::endl;
-        return co_header->Size;
+        auto hdr = (const XAie_CustomOpHdr *)(ptr);
+        const char *curr = (const char *)ptr;
+        curr += sizeof(*hdr);
+        auto op = (const tct_op_t *)curr;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT #" << op->word << ", #" << op->config << std::endl;
+        return hdr->Size;
     }
 
     size_t stringify_patchop(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
@@ -328,8 +331,8 @@ private:
         auto reg_off = op->regaddr;
         auto arg_idx = op->argidx;
         auto addr_offset = op->argplus;
-        ss_ops_ << "@0x" << std::hex << reg_off << std::dec << ", " << arg_idx
-                << std::hex << ", 0x" << addr_offset << std::endl;
+        ss_ops_ << "@0x" << std::hex << reg_off << std::dec << ", #" << arg_idx
+                << std::hex << ", +0x" << addr_offset << std::endl;
         return size;
     }
 
@@ -343,21 +346,29 @@ private:
     size_t stringify_rectimer(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto Hdr = (const XAie_CustomOpHdr *)(ptr);
         u32 size = Hdr->Size;
-        ss_ops_ << "TimerOp: " << std::endl;
+        const char *curr = (const char *)ptr;
+        curr += sizeof(*Hdr);
+        auto id = (unsigned int *)curr;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_RECORD_TIMER #" << std::dec << *id << std::endl;
         return size;
     }
 
     size_t stringify_merge_sync(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto Hdr = (const XAie_CustomOpHdr *)(ptr);
-        u32 size = Hdr->Size;
-        ss_ops_ << "MergeSync Op: " << std::endl;
-        return size;
+        const char *curr = (const char *)ptr;
+        curr += sizeof(*Hdr);
+        auto op = (const tct_op_t *)curr;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC #" << op->word << ", #" << op->config << std::endl;
+        return Hdr->Size;
     }
 
     size_t stringify_tct_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
-        auto co_header = (const XAie_CustomOpHdr_opt *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT " << std::endl;
-        return co_header->Size;
+        auto hdr = (const XAie_CustomOpHdr_opt *)(ptr);
+        const char *curr = (const char *)ptr;
+        curr += sizeof(*hdr);
+        auto op = (const tct_op_t *)curr;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT #" << op->word << ", #" << op->config << std::endl;
+        return hdr->Size;
     }
 
     size_t stringify_w32_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
@@ -375,13 +386,12 @@ private:
         curr += sizeof(*bw_header);
         u32 *Payload = (u32 *)curr;
         ss_ops_ << op_format << "XAIE_IO_BLOCKWRITE " << "@0x" << std::hex << bw_header->RegOff << ", [" <<
-            Size << "]" << std::endl;
+          std::dec << Size << "]" << std::endl;
         for (u32 i = 0; i < Size; i++) {
             ss_ops_ << op_format << ("XAIE_IO_BLOCKWRITE." + std::to_string(i)) << "0x" << std::hex << *Payload << std::endl;
             Payload++;
         }
-        return bw_size;
-    }
+        return bw_size;    }
 
     size_t stringify_mw32_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mw_header = (const XAie_MaskWrite32Hdr_opt *)(ptr);
@@ -440,8 +450,8 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
         auto reg_off = op->regaddr;
         auto arg_idx = op->argidx;
         auto addr_offset = op->argplus;
-        ss_ops_ << "@0x" << std::hex << reg_off << std::dec << ", " << arg_idx
-                << std::hex << ", 0x" << addr_offset << std::endl;
+        ss_ops_ << "@0x" << std::hex << reg_off << std::dec << ", #" << arg_idx
+                << std::hex << ", +0x" << addr_offset << std::endl;
         return size;
     }
 
@@ -455,15 +465,20 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
     size_t stringify_rectimer_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto Hdr = (const XAie_CustomOpHdr_opt *)(ptr);
         u32 size = Hdr->Size;
-        ss_ops_ << "TimerOp: " << std::endl;
+        const char *curr = (const char *)ptr;
+        curr += sizeof(*Hdr);
+        auto id = (unsigned int *)curr;
+        ss_ops_ << "XAIE_IO_CUSTOM_OP_RECORD_TIMER #" << std::dec << *id << std::endl;
         return size;
     }
 
     size_t stringify_merge_sync_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto Hdr = (const XAie_CustomOpHdr_opt *)(ptr);
-        u32 size = Hdr->Size;
-        ss_ops_ << "MergeSync Op: " << std::endl;
-        return size;
+        const char *curr = (const char *)ptr;
+        curr += sizeof(*Hdr);
+        auto op = (const tct_op_t *)curr;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC #" << op->word << ", #" << op->config << std::endl;
+        return Hdr->Size;
     }
 
     [[nodiscard]] std::string stringify_txn() const {
@@ -614,7 +629,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
          * function to service the TXN buffer.
          */
         if ((Hdr->Major == MAJOR_VER) && (Hdr->Minor == MINOR_VER)) {
-            printf("Optimized HEADER version detected \n");
+            std::cout << "Optimized HEADER version detected \n";
             return stringify_txn_opt();
         } else {
             return stringify_txn();

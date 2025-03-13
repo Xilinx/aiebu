@@ -16,11 +16,11 @@ namespace aiebu {
 class aie2_isa_op;
 
 const std::map<std::string, XAie_Preempt_level> preempt_level_table = { //NOLINT
-    {"NOOP",          NOOP},
-    {"MEM_TILE",      MEM_TILE},
-    {"AIE_TILE",      AIE_TILE},
-    {"AIE_REGISTERS", AIE_REGISTERS},
-    {"INVALID",       INVALID},
+    {"#noop",          NOOP},
+    {"#mem_tile",      MEM_TILE},
+    {"#aie_tile",      AIE_TILE},
+    {"#aie_registers", AIE_REGISTERS},
+    {"#invalid",       INVALID},
 };
 
 const std::map<XAie_TxnOpcode, std::string> opcode_table = { //NOLINT
@@ -324,7 +324,7 @@ public:
 
 class XAIE_IO_PREEMPT_op : public aie2_isa_op {
 public:
-  // e.g. XAIE_IO_PREEMPT MEM_TILE
+  // e.g. XAIE_IO_PREEMPT                       #MEM_TILE
   explicit XAIE_IO_PREEMPT_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_PREEMPT) {
     operand_count_check(args, 1);
     initialize_OpHdr(sizeof(XAie_PreemptHdr));
@@ -388,8 +388,8 @@ public:
     op->Size = get_op_size();
 
     auto values = get_extended_storage<tct_op_t>();
-    values->word = to_uinteger<uint32_t>(args[0]);
-    values->config = to_uinteger<uint32_t>(args[1]);
+    values->word = to_uinteger<uint32_t>(args[0].substr(1));
+    values->config = to_uinteger<uint32_t>(args[1].substr(1));
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
@@ -400,6 +400,7 @@ public:
 
 class XAIE_IO_CUSTOM_OP_DDR_PATCH_op : public aie2_isa_op {
 public:
+  // e.g. XAIE_IO_CUSTOM_OP_DDR_PATCH     @0x1d004, #1, +0x1f8
   explicit XAIE_IO_CUSTOM_OP_DDR_PATCH_op(const std::vector<std::string> &args)
       : aie2_isa_op(XAIE_IO_CUSTOM_OP_DDR_PATCH) {
     operand_count_check(args, 1);
@@ -411,8 +412,28 @@ public:
 
     const std::string regoff = args[0].substr(1);
     values->regaddr = to_uinteger<uint64_t>(regoff);
-    values->argidx = to_uinteger<uint64_t>(args[1]);
-    values->argplus = to_uinteger<uint64_t>(args[2]);
+    values->argidx = to_uinteger<uint64_t>(args[1].substr(1));
+    values->argplus = to_uinteger<uint64_t>(args[2].substr(1));
+  }
+
+  [[nodiscard]] size_t get_op_base_size() const override {
+    return sizeof(XAie_CustomOpHdr);
+  }
+};
+
+class XAIE_IO_CUSTOM_OP_RECORD_TIMER_op : public aie2_isa_op {
+public:
+  // e.g. XAIE_IO_CUSTOM_OP_RECORD_TIMER #14
+  explicit XAIE_IO_CUSTOM_OP_RECORD_TIMER_op(const std::vector<std::string> &args)
+      : aie2_isa_op(XAIE_IO_CUSTOM_OP_RECORD_TIMER) {
+    operand_count_check(args, 1);
+    initialize_OpHdr(sizeof(XAie_CustomOpHdr) + sizeof(unsigned int));
+
+    auto op = reinterpret_cast<XAie_CustomOpHdr *>(m_op);
+    op->Size = get_op_size();
+    auto values = get_extended_storage<unsigned int>();
+
+    values[0] = to_uinteger<uint64_t>(args[0].substr(1));
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
@@ -466,6 +487,7 @@ aie2_asm_preprocessor_input::aie2_asm_preprocessor_input() {
   m_mnemonic_table.emplace("xaie_io_load_pm_start", std::make_unique<aie2_isa_op_factory<XAIE_IO_LOAD_PM_START_op>>());
   m_mnemonic_table.emplace("xaie_io_custom_op_tct", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_TCT_op>>());
   m_mnemonic_table.emplace("xaie_io_custom_op_ddr_patch", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_DDR_PATCH_op>>());
+  m_mnemonic_table.emplace("xaie_io_custom_op_record_timer", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_RECORD_TIMER_op>>());
 }
 
 std::unique_ptr<aie2_isa_op> aie2_asm_preprocessor_input::assemble_operation(std::shared_ptr<operation> op)

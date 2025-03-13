@@ -6,4 +6,5 @@ add_subdirectory(save-restore)
 # identical on all endian systems in 1.71.0 only.
 if (${Boost_VERSION} VERSION_GREATER_EQUAL "1.71.0")
   add_subdirectory(basic)
+  add_subdirectory(rich)
 endif()

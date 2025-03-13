@@ -87,10 +87,10 @@ asm_parser::
 parse_lines(const std::vector<char>& data, std::string& file)
 {
   //parse asm code
-  const std::regex COMMENT_REGEX("^;(.*)$");
-  const std::regex LABEL_REGEX("^([a-zA-Z0-9_]+)\\:$");
-  const std::regex OP_REGEX("^([.a-zA-Z0-9_]+)(?:\\s+(.+)+)?$");
-  const std::regex DIRCETIVE_REGEX(".^([a-zA-Z0-9_]+)(?:\\s+(.+)+)?$");
+  const static std::regex COMMENT_REGEX("^;(.*)$");
+  const static std::regex LABEL_REGEX("^([a-zA-Z0-9_]+)\\:$");
+  const static std::regex OP_REGEX("^([.a-zA-Z0-9_]+)(?:\\s+(.+)+)?$");
+  const static std::regex DIRCETIVE_REGEX(".^([a-zA-Z0-9_]+)(?:\\s+(.+)+)?$");
 
   std::string str(data.begin(), data.end());
   std::istringstream isstr(str);

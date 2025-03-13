@@ -339,10 +339,10 @@ public:
 
   std::map<std::string, std::shared_ptr<scratchpad_info>>& getcolscratchpad(int col) { return m_col[col].get_scratchpads(); }
 
-  bool operate_directive(std::string& line)
+  bool operate_directive(const std::string& line)
   {
     std::smatch sm;
-    std::regex DIRCETIVE_REGEX("^([.a-zA-Z0-9_]+)(?:\\s+(.+)+)?$");
+    const static std::regex DIRCETIVE_REGEX("^([.a-zA-Z0-9_]+)(?:\\s+(.+)+)?$");
     std::regex_match(line, sm, DIRCETIVE_REGEX);
     if (sm.size() == 0)
       return false;
