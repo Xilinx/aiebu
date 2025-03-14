@@ -185,7 +185,7 @@ public:
     std::string regoff = args[idx++].substr(1);
     // Determine the total size including extended storage by counting the number of writes
 
-    const std::regex index_regex = get_regex({fragment::index_re});
+    static const std::regex index_regex = get_regex({fragment::index_re});
 
     std::smatch matches;
     if (!std::regex_match(args[idx], matches, index_regex))
@@ -244,7 +244,7 @@ public:
 
     auto op = reinterpret_cast<XAie_MaskWrite32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
-    const std::regex mask_regex = get_regex({fragment::begin_anchor_re, fragment::hex_re, fragment::l_brack_re,
+    static const std::regex mask_regex = get_regex({fragment::begin_anchor_re, fragment::hex_re, fragment::l_brack_re,
         fragment::r_brack_re, fragment::end_anchor_re});
 
     std::smatch matches;
@@ -277,7 +277,7 @@ public:
     auto op = reinterpret_cast<XAie_MaskPoll32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
 
-    const std::regex mask_poll_regex = get_regex({fragment::begin_anchor_re, fragment::hex_re, fragment::l_brack_re,
+    static const std::regex mask_poll_regex = get_regex({fragment::begin_anchor_re, fragment::hex_re, fragment::l_brack_re,
         fragment::r_brack_re, fragment::equal_re, fragment::hex_re, fragment::end_anchor_re});
 
     std::smatch matches;
