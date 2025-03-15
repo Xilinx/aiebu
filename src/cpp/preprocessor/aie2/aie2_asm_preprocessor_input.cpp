@@ -254,8 +254,8 @@ public:
     if (matches.size() != 2)
         throw error(error::error_code::invalid_asm, args[1]);
 
-    op->Value = to_uinteger<uint32_t>(matches[1]);
-    op->Mask = to_uinteger<uint32_t>(args[2]);
+    op->Mask = to_uinteger<uint32_t>(matches[1]);
+    op->Value = to_uinteger<uint32_t>(args[2]);
     op->Size = get_op_size();
   }
 
@@ -367,7 +367,7 @@ public:
     auto op = reinterpret_cast<XAie_PmLoadHdr *>(m_op);
     const auto load_seq = to_uinteger<uint32_t>(args[0]);
     for (unsigned int i = 0; i < 3; i++) {
-      op->LoadSequenceCount[i] = static_cast<uint8_t>((load_seq >> i) & 0xff);
+      op->LoadSequenceCount[i] = static_cast<uint8_t>((load_seq >> i * 8) & 0xff);
     }
     op->PmLoadId = to_uinteger<uint32_t>(args[1]);
   }
