@@ -369,7 +369,7 @@ public:
     for (unsigned int i = 0; i < 3; i++) {
       op->LoadSequenceCount[i] = static_cast<uint8_t>((load_seq >> i * 8) & 0xff);
     }
-    op->PmLoadId = to_uinteger<uint32_t>(args[1]);
+    op->PmLoadId = to_uinteger<uint32_t>(args[1].substr(1));
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
