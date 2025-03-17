@@ -341,12 +341,13 @@ public:
 
 class XAIE_IO_LOADPDI_op : public aie2_isa_op {
 public:
+  // e.g. XAIE_IO_LOADPDI              #0, 0x100, 0x80004000
   explicit XAIE_IO_LOADPDI_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_LOADPDI) {
     operand_count_check(args, 3);
     initialize_OpHdr(sizeof(XAie_LoadPdiHdr));
 
     auto op = reinterpret_cast<XAie_LoadPdiHdr *>(m_op);
-    op->PdiId = to_uinteger<uint16_t>(args[0]);
+    op->PdiId = to_uinteger<uint16_t>(args[0].substr(1));
     op->PdiSize = to_uinteger<uint16_t>(args[1]);
     op->PdiAddress = to_uinteger<uint64_t>(args[2]);
   }
@@ -359,6 +360,7 @@ public:
 
 class XAIE_IO_LOAD_PM_START_op : public aie2_isa_op {
 public:
+  // e.g. XAIE_IO_LOAD_PM_START           0x158, #0
   explicit XAIE_IO_LOAD_PM_START_op(const std::vector<std::string> &args)
       : aie2_isa_op(XAIE_IO_LOAD_PM_START) {
     operand_count_check(args, 2);

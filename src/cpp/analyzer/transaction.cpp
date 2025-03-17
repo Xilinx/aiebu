@@ -299,7 +299,7 @@ private:
 
     size_t stringify_loadpdi(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_LoadPdiHdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_LOADPDI " << "0x" <<  std::hex << mp_header->PdiId << ", 0x" <<
+        ss_ops_ << op_format << "XAIE_IO_LOADPDI " << "#" <<  std::dec << mp_header->PdiId << ", 0x" <<
                    mp_header->PdiSize << "0x" << mp_header->PdiAddress << std::endl;
         return sizeof(XAie_LoadPdiHdr);
     }
@@ -427,7 +427,7 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
 
     size_t stringify_loadpdi_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_LoadPdiHdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_LOADPDI " << "0x" <<  std::hex << mp_header->PdiId << ", 0x" <<
+        ss_ops_ << op_format << "XAIE_IO_LOADPDI " << "#" << std::dec << mp_header->PdiId << ", 0x" <<
                    mp_header->PdiSize << "0x" << mp_header->PdiAddress << std::endl;
         return sizeof(XAie_LoadPdiHdr);
     }
