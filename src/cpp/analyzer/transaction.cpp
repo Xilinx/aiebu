@@ -26,6 +26,17 @@ constexpr uint8_t MAJOR_VER = 1;
 constexpr uint8_t MINOR_VER = 0;
 }
 
+template <unsigned int N>
+uint8_t
+get_byte(uint32_t data) {
+  uint32_t mask = 0xFF;
+  const unsigned int shift = N * 8;
+  mask <<= shift;
+  data = data & mask;
+  data >>= shift;
+  return static_cast<uint8_t>(data);
+}
+
 struct transaction::implementation {
 private:
     static constexpr unsigned int field_width = 32;
@@ -316,7 +327,15 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*hdr);
         auto op = (const tct_op_t *)curr;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT " << "#0x" << std::hex << op->word << ", #0x" << std::hex << op->config << std::endl;
+        unsigned int column = get_byte<0>(op->word);
+        unsigned int row = get_byte<1>(op->word);
+        const char *dir = get_byte<2>(op->word) ? "#DMA_MM2S" : "#DMA_S2MM";
+        unsigned int channel = get_byte<3>(op->config);
+        unsigned int column_count = get_byte<2>(op->config);
+        unsigned int row_count = get_byte<1>(op->config);
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT " << "R[" << std::dec
+                << row << "]+" << row_count << ", C[" << std::dec << column
+                << "]+" << column_count << ", " << dir << ", " << channel << std::endl;
         return hdr->Size;
     }
 
@@ -357,7 +376,9 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*Hdr);
         auto op = (const tct_op_t *)curr;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC " << "#0x" << std::hex << op->word << ", #0x" << std::hex << op->config << std::endl;
+        unsigned int tokens = get_byte<0>(op->word);
+        unsigned int column = get_byte<1>(op->word);
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC " << "C[" << std::dec << column << "]==" << std::dec << tokens << std::endl;
         return Hdr->Size;
     }
 
@@ -366,7 +387,16 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*hdr);
         auto op = (const tct_op_t *)curr;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT " << '#' << op->word << ", #" << op->config << std::endl;
+        unsigned int column = get_byte<0>(op->word);
+        unsigned int row = get_byte<1>(op->word);
+        const char *dir = get_byte<2>(op->word) ? "#DMA_MM2S" : "#DMA_S2MM";
+        unsigned int channel = get_byte<3>(op->config);
+        unsigned int column_count = get_byte<2>(op->config);
+        unsigned int row_count = get_byte<1>(op->config);
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT " << "R[" << std::dec
+                << row << "]+" << row_count << ", C[" << std::dec << column
+                << "]+" << column_count << ", " << dir << ", " << channel << std::endl;
+
         return hdr->Size;
     }
 
@@ -476,7 +506,9 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
         const char *curr = (const char *)ptr;
         curr += sizeof(*Hdr);
         auto op = (const tct_op_t *)curr;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC " << '#' << op->word << ", #" << op->config << std::endl;
+        unsigned int tokens = get_byte<0>(op->word);
+        unsigned int column = get_byte<1>(op->word);
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC " << "C[" << std::dec << column << "]==" << std::dec << tokens << std::endl;
         return Hdr->Size;
     }
 

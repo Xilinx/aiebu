@@ -17,7 +17,7 @@ target_aie2blob::parse_pmctrlpkt(const std::vector<std::string> pm_key_value_pai
   std::map<uint32_t, std::vector<char> > mappmctrl;
 
   for (const auto& kv : pm_key_value_pairs) {
-    std::cout << "-->" << kv << "\n";
+//    std::cout << "-->" << kv << "\n";
     size_t pos = kv.find(':');
     if (pos == std::string::npos) {
       auto errMsg = boost::format("Invalid key:value pair: %s in pmctrl\n") % kv ;

@@ -8,15 +8,21 @@
 #include "utils.h"
 
 namespace aiebu {
-static const std::map<fragment, std::string>
-fragment_table = { //NOLINT
-  {fragment::begin_anchor_re, "^"},
-  {fragment::end_anchor_re, "$"},
-  {fragment::hex_re, "[[:space:]]*(0[xX][[:xdigit:]]+)[[:space:]]*"},
-  {fragment::l_brack_re, "[[:space:]]*\\([[:space:]]*"},
-  {fragment::r_brack_re, "[[:space:]]*\\)[[:space:]]*"},
-  {fragment::equal_re, "[[:space:]]*==[[:space:]]*"},
-  {fragment::index_re, "[[:space:]]*\\[[[:space:]]*([[:xdigit:]]+)[[:space:]]*\\][[:space:]]*"},
+static const std::map<fragment, std::string> fragment_table = {
+    // NOLINT
+    {fragment::begin_anchor_re, "^"},
+    {fragment::end_anchor_re, "$"},
+    {fragment::hex_re, "[[:space:]]*(0[xX][[:xdigit:]]+)[[:space:]]*"},
+    {fragment::dec_re, "[[:space:]]*([[:digit:]]+)[[:space:]]*"},
+    {fragment::add_dec_re, "[[:space:]]*\\+([[:digit:]]+)[[:space:]]*"},
+    {fragment::l_brack_re, "[[:space:]]*\\([[:space:]]*"},
+    {fragment::r_brack_re, "[[:space:]]*\\)[[:space:]]*"},
+    {fragment::equal_re, "[[:space:]]*==[[:space:]]*"},
+    {fragment::index_re, "[[:space:]]*\\[[[:space:]]*([[:xdigit:]]+)[[:space:]]*\\][[:space:]]*"},
+    {fragment::l_curly_re, "[[:space:]]*\\{[[:space:]]*"},
+    {fragment::r_curly_re, "[[:space:]]*\\}[[:space:]]*"},
+    {fragment::column, "[[:space:]]*c\\[([[:digit:]]+)\\][[:space:]]*"},
+    {fragment::row, "[[:space:]]*r\\[([[:digit:]]+)\\][[:space:]]*"},
 };
 
 std::regex

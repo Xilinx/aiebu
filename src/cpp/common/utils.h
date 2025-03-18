@@ -161,14 +161,21 @@ vector_of_string_to_vector_of_char(const std::vector<std::string>& args)
 }
 }
 
-enum class fragment{
+enum class fragment {
   begin_anchor_re,
   end_anchor_re,
   hex_re,
+  dec_re,
+  add_dec_re,
   l_brack_re,
   r_brack_re,
   equal_re,
   index_re,
+  l_curly_re,
+  r_curly_re,
+  column,
+  row,
+  dma,
 };
 
 std::regex get_regex(const std::vector<fragment>& pattern);
@@ -185,6 +192,17 @@ to_uinteger(const std::string& token) {
     throw error(error::error_code::invalid_asm, "Value " + token + " is out of range");
 
   return static_cast<UIntType>(result);
+}
+
+template <unsigned int N>
+uint8_t
+get_byte(uint32_t data) {
+  uint32_t mask = BYTE_MASK;
+  const unsigned int shift = N * 8;
+  mask <<= shift;
+  data = data & mask;
+  data >>= shift;
+  return static_cast<uint8_t>(data);
 }
 
 }

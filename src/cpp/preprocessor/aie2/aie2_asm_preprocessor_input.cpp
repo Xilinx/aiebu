@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "aie2_blob_preprocessor_input.h"
 #include "asm/asm_parser.h"
@@ -21,6 +22,11 @@ const std::map<std::string, XAie_Preempt_level> preempt_level_table = { //NOLINT
     {"#aie_tile",      AIE_TILE},
     {"#aie_registers", AIE_REGISTERS},
     {"#invalid",       INVALID},
+};
+
+const std::map<std::string, uint8_t> dma_direction_table = { //NOLINT
+    {"#dma_s2mm",      0},
+    {"#dma_mm2s",      1},
 };
 
 const std::map<XAie_TxnOpcode, std::string> opcode_table = { //NOLINT
@@ -381,17 +387,49 @@ public:
 
 
 class XAIE_IO_CUSTOM_OP_TCT_op : public aie2_isa_op {
+private:
+  std::pair<uint8_t, uint8_t> parse_index(const std::regex &regx, const std::string &token) const {
+    std::smatch cmatches;
+    if (!std::regex_match(token, cmatches, regx))
+        throw error(error::error_code::invalid_asm, token);
+
+    if (cmatches.size() !=3)
+        throw error(error::error_code::invalid_asm, token);
+
+    return std::make_pair<uint8_t, uint8_t>(to_uinteger<uint8_t>(cmatches[1]), to_uinteger<uint8_t>(cmatches[2]));
+  }
+
 public:
   explicit XAIE_IO_CUSTOM_OP_TCT_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_CUSTOM_OP_TCT) {
-    operand_count_check(args, 2);
+    operand_count_check(args, 4);
     initialize_OpHdr(sizeof(XAie_CustomOpHdr) + sizeof(tct_op_t));
 
     auto op = reinterpret_cast<XAie_CustomOpHdr *>(m_op);
     op->Size = get_op_size();
 
     auto values = get_extended_storage<tct_op_t>();
-    values->word = to_uinteger<uint32_t>(args[0].substr(1));
-    values->config = to_uinteger<uint32_t>(args[1].substr(1));
+    unsigned int idx = 0;
+    static const std::regex row_regex = get_regex({fragment::row, fragment::add_dec_re});
+    static const std::regex col_regex = get_regex({fragment::column, fragment::add_dec_re});
+
+    std::pair<uint8_t, uint8_t> row_val = parse_index(row_regex, args[idx++]);
+    std::pair<uint8_t, uint8_t> col_val = parse_index(col_regex, args[idx++]);
+
+    uint8_t dir =  dma_direction_table.at(args[idx++]);
+    uint8_t channel = to_uinteger<uint32_t>(args[idx]);
+
+    values->word = col_val.first;
+    values->word <<= 8;
+    values->word |= row_val.first;
+    values->word <<= 8;
+    values->word |= dir;
+
+    values->config = channel;
+    values->config <<= 8;
+    values->config |= col_val.second;
+    values->config <<= 8;
+    values->config |= row_val.second;
+    values->config <<= 8;
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {
@@ -403,15 +441,26 @@ public:
 class XAIE_IO_CUSTOM_OP_MERGE_SYNC_op : public aie2_isa_op {
 public:
   explicit XAIE_IO_CUSTOM_OP_MERGE_SYNC_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_CUSTOM_OP_MERGE_SYNC) {
-    operand_count_check(args, 2);
+    operand_count_check(args, 1);
     initialize_OpHdr(sizeof(XAie_CustomOpHdr) + sizeof(tct_op_t));
 
     auto op = reinterpret_cast<XAie_CustomOpHdr *>(m_op);
     op->Size = get_op_size();
 
     auto values = get_extended_storage<tct_op_t>();
-    values->word = to_uinteger<uint32_t>(args[0].substr(1));
-    values->config = to_uinteger<uint32_t>(args[1].substr(1));
+
+    static const std::regex regx = get_regex({fragment::column, fragment::equal_re, fragment::dec_re});
+    std::smatch cmatches;
+    if (!std::regex_match(args[0], cmatches, regx))
+        throw error(error::error_code::invalid_asm, args[0]);
+
+    if (cmatches.size() !=3)
+        throw error(error::error_code::invalid_asm, args[0]);
+
+    values->word = to_uinteger<uint8_t>(cmatches[1]);
+    values->word <<= 8;
+    values->word |= to_uinteger<uint8_t>(cmatches[2]);
+    values->config = 0;
   }
 
   [[nodiscard]] size_t get_op_base_size() const override {

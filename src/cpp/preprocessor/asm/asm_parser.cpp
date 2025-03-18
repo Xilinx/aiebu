@@ -112,13 +112,6 @@ parse_lines(const std::vector<char>& data, std::string& file)
     if (operate_directive(line))
     {
       ++linenumber;
-
-//      std::regex_match(line, sm, OP_REGEX);
-//      m_current_col = std::stoi(sm[2].str());
-      // Initialize empty m_col, it helps when .attach_to_group is immediately followed
-      // by another .attach_to_group. This use case is relevant for aie2asm flow where
-      // this directive is used to determine column range for a ctrlcode
-//      m_col[m_current_col] = std::vector<std::shared_ptr<asm_data>>();
       continue;
     }
 
