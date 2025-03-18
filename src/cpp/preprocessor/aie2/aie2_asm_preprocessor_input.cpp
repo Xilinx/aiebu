@@ -383,7 +383,27 @@ public:
 class XAIE_IO_CUSTOM_OP_TCT_op : public aie2_isa_op {
 public:
   explicit XAIE_IO_CUSTOM_OP_TCT_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_CUSTOM_OP_TCT) {
-    operand_count_check(args, 1);
+    operand_count_check(args, 2);
+    initialize_OpHdr(sizeof(XAie_CustomOpHdr) + sizeof(tct_op_t));
+
+    auto op = reinterpret_cast<XAie_CustomOpHdr *>(m_op);
+    op->Size = get_op_size();
+
+    auto values = get_extended_storage<tct_op_t>();
+    values->word = to_uinteger<uint32_t>(args[0].substr(1));
+    values->config = to_uinteger<uint32_t>(args[1].substr(1));
+  }
+
+  [[nodiscard]] size_t get_op_base_size() const override {
+    return sizeof(XAie_CustomOpHdr);
+  }
+};
+
+
+class XAIE_IO_CUSTOM_OP_MERGE_SYNC_op : public aie2_isa_op {
+public:
+  explicit XAIE_IO_CUSTOM_OP_MERGE_SYNC_op(const std::vector<std::string>& args) : aie2_isa_op(XAIE_IO_CUSTOM_OP_MERGE_SYNC) {
+    operand_count_check(args, 2);
     initialize_OpHdr(sizeof(XAie_CustomOpHdr) + sizeof(tct_op_t));
 
     auto op = reinterpret_cast<XAie_CustomOpHdr *>(m_op);
@@ -488,6 +508,7 @@ aie2_asm_preprocessor_input::aie2_asm_preprocessor_input() {
   m_mnemonic_table.emplace("xaie_io_loadpdi", std::make_unique<aie2_isa_op_factory<XAIE_IO_LOADPDI_op>>());
   m_mnemonic_table.emplace("xaie_io_load_pm_start", std::make_unique<aie2_isa_op_factory<XAIE_IO_LOAD_PM_START_op>>());
   m_mnemonic_table.emplace("xaie_io_custom_op_tct", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_TCT_op>>());
+  m_mnemonic_table.emplace("xaie_io_custom_op_merge_sync", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_MERGE_SYNC_op>>());
   m_mnemonic_table.emplace("xaie_io_custom_op_ddr_patch", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_DDR_PATCH_op>>());
   m_mnemonic_table.emplace("xaie_io_custom_op_record_timer", std::make_unique<aie2_isa_op_factory<XAIE_IO_CUSTOM_OP_RECORD_TIMER_op>>());
 }

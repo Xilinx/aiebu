@@ -316,7 +316,7 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*hdr);
         auto op = (const tct_op_t *)curr;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT #" << op->word << ", #" << op->config << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_TCT " << "#0x" << std::hex << op->word << ", #0x" << std::hex << op->config << std::endl;
         return hdr->Size;
     }
 
@@ -357,7 +357,7 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*Hdr);
         auto op = (const tct_op_t *)curr;
-        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC " << '#' << op->word << ", #" << op->config << std::endl;
+        ss_ops_ << op_format << "XAIE_IO_CUSTOM_OP_MERGE_SYNC " << "#0x" << std::hex << op->word << ", #0x" << std::hex << op->config << std::endl;
         return Hdr->Size;
     }
 
