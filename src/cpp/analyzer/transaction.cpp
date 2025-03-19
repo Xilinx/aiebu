@@ -327,9 +327,9 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*hdr);
         auto op = (const tct_op_t *)curr;
-        unsigned int column = get_byte<0>(op->word);
+        unsigned int column = get_byte<2>(op->word);
         unsigned int row = get_byte<1>(op->word);
-        const char *dir = get_byte<2>(op->word) ? "#DMA_MM2S" : "#DMA_S2MM";
+        const char *dir = get_byte<0>(op->word) ? "#DMA_MM2S" : "#DMA_S2MM";
         unsigned int channel = get_byte<3>(op->config);
         unsigned int column_count = get_byte<2>(op->config);
         unsigned int row_count = get_byte<1>(op->config);
@@ -387,9 +387,9 @@ private:
         const char *curr = (const char *)ptr;
         curr += sizeof(*hdr);
         auto op = (const tct_op_t *)curr;
-        unsigned int column = get_byte<0>(op->word);
+        unsigned int column = get_byte<2>(op->word);
         unsigned int row = get_byte<1>(op->word);
-        const char *dir = get_byte<2>(op->word) ? "#DMA_MM2S" : "#DMA_S2MM";
+        const char *dir = get_byte<0>(op->word) ? "#DMA_MM2S" : "#DMA_S2MM";
         unsigned int channel = get_byte<3>(op->config);
         unsigned int column_count = get_byte<2>(op->config);
         unsigned int row_count = get_byte<1>(op->config);
