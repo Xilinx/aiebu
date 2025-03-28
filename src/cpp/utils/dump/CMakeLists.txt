@@ -9,6 +9,8 @@ target_include_directories(aiebu_dump_objects
   PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp/include
   ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include
+  ${AIEBU_SOURCE_DIR}/src/cpp
+  ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO
   ${Boost_INCLUDE_DIRS}
   )
 

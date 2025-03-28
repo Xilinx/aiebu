@@ -17,14 +17,14 @@ class aiebu_assembler
   std::vector<char> elf_data;
 
   public:
-
     enum class buffer_type {
       blob_instr_dpu,
       blob_instr_prepost,
       blob_instr_transaction,
       blob_control_packet,
       asm_aie2ps,
-      asm_aie2
+      asm_aie2,
+      unspecified,
     };
 
   private:
