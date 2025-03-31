@@ -30,6 +30,8 @@ struct cp_ctrlinfo
 };
 
 
+constexpr unsigned int elf_magic = 0x464c457f;
+
 // TODO: Add magic numbers for other AIE flavors
 constexpr unsigned int ctrlcode_magic_aie2 = 0x06040100;
 
@@ -43,11 +45,10 @@ identify_buffer_type(const std::vector<unsigned char> &buffer)
   if (buffer.size() < 16)
     return aiebu_assembler::buffer_type::unspecified;
 
-  const unsigned int *data = reinterpret_cast<const unsigned int *>(buffer.data());
+  const auto data = reinterpret_cast<const unsigned int *>(buffer.data());
   // ELF magic number
   // TODO: add additional check to distinguish between aie2 and aie2ps
-  if ((buffer[0] == 0x7f) && (buffer[1] == 0x45) && (buffer[2] == 0x4c) &&
-      (buffer[3] == 0x46))
+  if (data[0] == elf_magic)
     return aiebu_assembler::buffer_type::elf_aie2;
 
   // Transaction ctrlcode header
