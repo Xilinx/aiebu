@@ -24,6 +24,10 @@ class aiebu_assembler
       blob_control_packet,
       asm_aie2ps,
       asm_aie2,
+      elf_aie2,
+      elf_aie2ps,
+      pdi_aie2,
+      pdi_aie2ps,
       unspecified,
     };
 

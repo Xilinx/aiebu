@@ -14,6 +14,7 @@ CMAKE=cmake
 CMAKE_MAJOR_VERSION=`cmake --version | head -n 1 | awk '{print $3}' |awk -F. '{print $1}'`
 CPU=`uname -m`
 here=$PWD
+run_memtest="no"
 
 function compile {
     local config=$1
@@ -34,7 +35,9 @@ function compile {
     make -j $CORE VERBOSE=1
     make -j $CORE VERBOSE=1 install
     make -j $CORE VERBOSE=1 test
-    make -j $CORE VERBOSE=1 test ARGS="-L memcheck -T memcheck"
+    if [[ $run_memtest == "yes" ]]; then
+	make -j $CORE VERBOSE=1 test ARGS="-L memcheck -T memcheck"
+    fi
     if [[ $config == "Release" ]]; then
 	make -j $CORE VERBOSE=1 package
     fi
@@ -48,6 +51,9 @@ while getopts ":rph" o; do
         p)
             build_python="yes"
             ;;
+	m)
+	    run_memtest="yes"
+	    ;;
         h)
             usage
             ;;

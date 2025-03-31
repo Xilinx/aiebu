@@ -6,19 +6,37 @@
 #include <set>
 #include <string>
 #include <iostream>
+#include <map>
 
 #include "analyzer/reporter.h"
-#include "common/utils.h"
+#include "common/file_utils.h"
 
 namespace aiebu {
 
-static const std::set<std::string> targets = { //NOLINT
+static const std::set<std::string>
+targets = { //NOLINT
     "aie2ps",
     "aie2asm",
     "aie2txn",
     "aie2dpu",
     "unspecified"
 };
+
+static const std::map<aiebu::aiebu_assembler::buffer_type, std::string>
+buffer_type_table = { // NOLINT
+  {aiebu::aiebu_assembler::buffer_type::blob_instr_dpu, "aie2-dpu-ctrlcode"},
+  {aiebu::aiebu_assembler::buffer_type::blob_instr_prepost, "aie2-ctrlpkt"},
+  {aiebu::aiebu_assembler::buffer_type::blob_instr_transaction, "aie2-ctrlcode"},
+  {aiebu::aiebu_assembler::buffer_type::blob_control_packet, "aie2-ctrlpkt"},
+  {aiebu::aiebu_assembler::buffer_type::asm_aie2ps, "aie2ps-ctrlcode-asm"},
+  {aiebu::aiebu_assembler::buffer_type::asm_aie2, "aie2-ctrlcode-asm"},
+  {aiebu::aiebu_assembler::buffer_type::elf_aie2, "aie2-elf"},
+  {aiebu::aiebu_assembler::buffer_type::elf_aie2ps, "aie2ps-elf"},
+  {aiebu::aiebu_assembler::buffer_type::pdi_aie2, "aie2-pdi"},
+  {aiebu::aiebu_assembler::buffer_type::pdi_aie2ps, "aie2ps-pdi"},
+  {aiebu::aiebu_assembler::buffer_type::unspecified, "unknown"},
+};
+
 
 cxxopts::ParseResult main_helper(int argc, const char* const *argv,
                                  const std::string & executable,
@@ -31,17 +49,19 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
   cxxopts::Options global_options(executable, description);
 
   try {
-    global_options.allow_unrecognised_options().add_options()
+    global_options.add_options()
       ("a,archive-headers", "Display archive header information", cxxopts::value<bool>()->default_value("false"))
       ("f,file-headers", "Display the contents of the overall file header", cxxopts::value<bool>()->default_value("false"))
       ("x,all-headers", "Display contents of all elf headers", cxxopts::value<bool>()->default_value("false"))
       ("d,disassemble", "Display assembler contents of ctrltext sections", cxxopts::value<bool>()->default_value("false"))
       ("H,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
-      ("m,architecture", "Specify the target architecture as MACHINE (aie2ps/aie2asm/aie2txn/aie2dpu)", cxxopts::value<decltype(target_name)>()->default_value("unspecified"))
+      ("m,architecture", "Specify the target architecture as MACHINE (aie2ps/aie2asm/aie2txn/aie2dpu)", cxxopts::value<std::string>()->default_value("unspecified"))
       ("D,disassemble-all", "Display assembler contents of all sections", cxxopts::value<bool>()->default_value("false"))
       ("t,syms", "Display contents of the symbols table(s)", cxxopts::value<bool>()->default_value("false"))
       ("r,reloc", "Display relocation entries in the file", cxxopts::value<bool>()->default_value("false"))
-      ("filename", "Input file name", cxxopts::value<decltype(filename)>());
+      ("filename", "Input file name", cxxopts::value<std::string>());
+
+    global_options.parse_positional({"filename"});
 
     auto result = global_options.parse(argc, argv);
 
@@ -50,8 +70,8 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
     if (result.count("help"))
       bhelp = result["help"].as<bool>();
 
-    if (result.count("target"))
-      target_name = result["target"].as<decltype(target_name)>();
+    target_name = result["architecture"].as<std::string>();
+
     if (targets.find(target_name) == targets.end())
       throw cxxopts::exceptions::incorrect_argument_type(target_name);
 
@@ -85,13 +105,18 @@ int main(int argc, char* argv[])
 
   try {
     result = aiebu::main_helper(argc, argv, executable, description);
-    return 0;
   } catch (const std::exception& e) {
     std::cout << e.what();
+    return 1;
   }
 
-  aiebu::reporter reporter(aiebu::aiebu_assembler::buffer_type::unspecified,
-                           aiebu::readfile(result["filename"].as<std::string>()));
+  const std::vector<unsigned char> buffer = aiebu::readfile(result["filename"].as<std::string>());
+  aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);
 
-  return 1;
+  std::cout << aiebu::buffer_type_table.at(type) << std::endl;
+
+//  aiebu::reporter reporter(aiebu::aiebu_assembler::buffer_type::unspecified,
+//                           aiebu::readfile(result["filename"].as<std::string>()));
+
+  return 0;
 }

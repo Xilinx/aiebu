@@ -8,6 +8,7 @@
 #include "utils.h"
 
 namespace aiebu {
+
 static const std::map<fragment, std::string> fragment_table = {
     // NOLINT
     {fragment::begin_anchor_re, "^"},
@@ -34,5 +35,7 @@ get_regex(const std::vector<fragment>& pattern)
   }
   return std::regex(composite);
 }
+
+
 
 }

@@ -14,11 +14,15 @@ namespace aiebu {
 class preprocessor
 {
 public:
-  preprocessor() {}
+  preprocessor() = default;
 
   virtual std::shared_ptr<preprocessed_output>
   process(std::shared_ptr<preprocessor_input> input) = 0;
-  virtual ~preprocessor() {}
+  virtual ~preprocessor() = default;
+  preprocessor(const preprocessor &) = delete;
+  preprocessor(preprocessor &&) = delete;
+  preprocessor& operator =(preprocessor const&) = delete;
+  preprocessor& operator =(preprocessor &&) = delete;
 };
 
 }
