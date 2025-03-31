@@ -32,6 +32,7 @@ identify_buffer_type(const std::vector<unsigned char> &buffer)
     return aiebu_assembler::buffer_type::pdi_aie2;
 
   // TODO: Put the reference to Packet Header and Control Packet here
+  // ctrlpkt identification is WIP
   if (((buffer[1] & 0x88) == 0x0) && ((buffer[2] & 0x80) == 0x0) &&
       ((buffer[3] & 0x70) == 0x0) && ((buffer[6] & 0xc0) == 0x0) &&
       ((buffer[7] & 0x60) == 0x0))
