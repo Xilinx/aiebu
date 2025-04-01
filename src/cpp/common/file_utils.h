@@ -22,7 +22,7 @@ inline std::vector<unsigned char> readfile(const std::string& filename)
   std::ifstream input(filename, std::ios::in | std::ios::binary);
   auto file_size = std::filesystem::file_size(filename);
   std::vector<unsigned char> buffer(file_size);
-  input.read(reinterpret_cast<char *>(buffer.data()), file_size);
+  input.read(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(file_size));
   return buffer;
 }
 
