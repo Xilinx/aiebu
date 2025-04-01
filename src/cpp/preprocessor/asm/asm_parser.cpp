@@ -5,6 +5,7 @@
 #include "aiebu/aiebu_error.h"
 
 #include <iostream>
+#include <fstream>
 
 namespace aiebu {
 

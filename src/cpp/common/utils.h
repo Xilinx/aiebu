@@ -6,13 +6,13 @@
 
 #include <cassert>
 #include <cstdint>
-#include <filesystem>
-#include <fstream>
+#include <limits>
 #include <regex>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
+#include <bitset>
 
 #define BYTE_MASK 0xFF
 #define FIRST_BYTE_SHIFT 0
@@ -180,6 +180,17 @@ get_byte(uint32_t data) {
   data = data & mask;
   data >>= shift;
   return static_cast<uint8_t>(data);
+}
+
+inline bool
+odd_parity_check(uint32_t data) {
+  const std::bitset<32> parity(data);
+  return (parity.count() & 0x0) ? false : true;
+}
+
+inline bool
+even_parity_check(uint32_t data) {
+  return !odd_parity_check(data);
 }
 
 }

@@ -3,6 +3,7 @@
 
 #include "file_utils.h"
 #include "aiebu/aiebu_assembler.h"
+#include "utils.h"
 
 namespace aiebu {
 
@@ -30,6 +31,7 @@ struct cp_ctrlinfo
 };
 
 
+constexpr unsigned int magic_length = 16;
 constexpr unsigned int elf_magic = 0x464c457f;
 
 // TODO: Add magic numbers for other AIE flavors
@@ -42,7 +44,7 @@ constexpr unsigned int pdi_magic1 = 0x11223344;
 aiebu_assembler::buffer_type
 identify_buffer_type(const std::vector<unsigned char> &buffer)
 {
-  if (buffer.size() < 16)
+  if (buffer.size() < magic_length)
     return aiebu_assembler::buffer_type::unspecified;
 
   const auto data = reinterpret_cast<const unsigned int *>(buffer.data());
@@ -62,10 +64,16 @@ identify_buffer_type(const std::vector<unsigned char> &buffer)
 
   // TODO: Put the reference to Packet Header and Control Packet here
   // ctrlpkt identification is WIP
-  if (((buffer[1] & 0x88) == 0x0) && ((buffer[2] & 0x80) == 0x0) &&
-      ((buffer[3] & 0x70) == 0x0) && ((buffer[6] & 0xc0) == 0x0) &&
-      ((buffer[7] & 0x60) == 0x0))
-    return aiebu_assembler::buffer_type::blob_control_packet;
+  const auto cphdr = reinterpret_cast<const cp_pktheader *>(data);
+  const auto cp = reinterpret_cast<const cp_ctrlinfo *>(data + 1);
+
+  if ((cphdr->one_0 == 0x0) && (cphdr->one_1 == 0x0) &&
+      (cphdr->three_0 == 0x0) && (cp->two_0 == 0x0) && (cp->two_1 == 0x0)) {
+    if (odd_parity_check(data[0]) && odd_parity_check(data[1]))
+      return aiebu_assembler::buffer_type::blob_control_packet;
+    else
+      return aiebu_assembler::buffer_type::unspecified;
+  }
 
   return aiebu_assembler::buffer_type::unspecified;
 }
