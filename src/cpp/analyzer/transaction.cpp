@@ -402,7 +402,7 @@ private:
 
     size_t stringify_w32_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto w_hdr = (const XAie_Write32Hdr_opt *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_WRITE, " << "@0x" << std::hex << w_hdr->RegOff << ", 0x" << w_hdr->Value
+        ss_ops_ << op_format << "XAIE_IO_WRITE " << "@0x" << std::hex << w_hdr->RegOff << ", 0x" << w_hdr->Value
                 << std::endl;
         return sizeof(XAie_Write32Hdr_opt);
     }
