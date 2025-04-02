@@ -64,8 +64,27 @@ namespace aiebu {
             file += ".asm";
             std::ofstream stream(file);
             stream << ";  [" << i << "] " << psec->get_name() << "\t"
-                   << psec->get_size() << std::endl;
+                   << psec->get_size() << 'B' << std::endl;
 
+            transaction tprint(psec->get_data(), psec->get_size());
+            stream << tprint.get_all_ops() << std::endl;
+        }
+    }
+
+    void reporter::ctrlcode_detail_summary(std::ostream &stream) const
+    {
+        ELFIO::Elf_Half sec_num = my_elf_reader.sections.size();
+        for ( int i = 0; i < sec_num; ++i ) {
+            const ELFIO::section* psec = my_elf_reader.sections[i];
+
+            // Decoding not supported for ".ctrldata" section
+            // for aie2 ".ctrldata" contain control packet and ".ctrlpkt-pm-N" contain
+            // pm control packet which cannot be decoded
+            if (psec->get_type() != ELFIO::SHT_PROGBITS || is_ctrldata(psec->get_name())
+               || is_pm_ctrlpkt(psec->get_name()))
+              continue;
+            stream << "[" << i << "] " << psec->get_name() << "\t"
+                   << psec->get_size() << 'B' << std::endl;
             transaction tprint(psec->get_data(), psec->get_size());
             stream << tprint.get_all_ops() << std::endl;
         }

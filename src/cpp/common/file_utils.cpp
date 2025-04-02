@@ -42,7 +42,7 @@ constexpr unsigned int pdi_magic0 = 0x000000dd;
 constexpr unsigned int pdi_magic1 = 0x11223344;
 
 aiebu_assembler::buffer_type
-identify_buffer_type(const std::vector<unsigned char>& buffer)
+identify_buffer_type(const std::vector<char>& buffer)
 {
   if (buffer.size() < magic_length)
     return aiebu_assembler::buffer_type::unspecified;

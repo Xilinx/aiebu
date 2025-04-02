@@ -27,6 +27,7 @@ namespace aiebu {
         void elf_summary(std::ostream &stream) const;
         void ctrlcode_summary(std::ostream &stream) const;
         void ctrlcode_detail_summary(const std::filesystem::path &root) const;
+        void ctrlcode_detail_summary(std::ostream &stream) const;
     };
 }
 

@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
 {
   const std::string executable = "aiebu-dump";
   // -- Program Description
-  const std::string description = "aiebu dumping utility (aiebu-dump)";
+  const std::string description = "aiebu dumping utility (aiebu-dump) for aie binaries";
 
   cxxopts::ParseResult result;
 
@@ -110,13 +110,20 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  const std::vector<unsigned char> buffer = aiebu::readfile(result["filename"].as<std::string>());
+  const std::vector<char> buffer = aiebu::readfile(result["filename"].as<std::string>());
   aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);
 
   std::cout << aiebu::buffer_type_table.at(type) << std::endl;
-
-//  aiebu::reporter reporter(aiebu::aiebu_assembler::buffer_type::unspecified,
-//                           aiebu::readfile(result["filename"].as<std::string>()));
+  if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
+    aiebu::reporter rep(aiebu::aiebu_assembler::buffer_type::elf_aie2, buffer);
+    if (result["all-headers"].as<bool>()) {
+      rep.elf_summary(std::cout);
+      rep.ctrlcode_summary(std::cout);
+    }
+    if (result["disassemble"].as<bool>()) {
+      rep.ctrlcode_detail_summary(std::cout);
+    }
+  }
 
   return 0;
 }
