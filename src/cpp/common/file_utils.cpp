@@ -7,26 +7,26 @@
 
 namespace aiebu {
 
-struct cp_pktheader
+struct cp_pktheader_aie2p
 {
   uint32_t stream_packet_ID : 5;
   uint32_t out_of_order_bd_idx : 6;
-  uint32_t one_0 : 1;
+  uint32_t reserved_a_0 : 1;
   uint32_t stream_id_rtn : 3;
-  uint32_t one_1 : 1;
+  uint32_t reserved_b_0 : 1;
   uint32_t source_row : 5;
-  uint32_t source_col : 5;
-  uint32_t three_0 : 3;
-  uint32_t parity : 1;
+  uint32_t source_col : 7;
+  uint32_t reserved_c_000 : 3;
+  uint32_t odd_parity : 1;
 };
 
-struct cp_ctrlinfo
+struct cp_ctrlinfo_aie2p
 {
   uint32_t local_byte_addr : 20;
-  uint32_t data_size : 2;
-  uint32_t two_0 : 2;
+  uint32_t num_data_beat : 2;
+  uint32_t operation : 2;
   uint32_t stream_id_rtn : 5;
-  uint32_t two_1 : 2;
+  uint32_t reserved_00 : 2;
   uint32_t parity : 1;
 };
 
@@ -64,11 +64,11 @@ identify_buffer_type(const std::vector<unsigned char>& buffer)
 
   // TODO: Put the reference to Packet Header and Control Packet here
   // ctrlpkt identification is WIP
-  const auto cphdr = reinterpret_cast<const cp_pktheader *>(data);
-  const auto cp = reinterpret_cast<const cp_ctrlinfo *>(data + 1);
+  const auto cphdr = reinterpret_cast<const cp_pktheader_aie2p *>(data);
+  const auto cp = reinterpret_cast<const cp_ctrlinfo_aie2p *>(data + 1);
 
-  if ((cphdr->one_0 == 0x0) && (cphdr->one_1 == 0x0) &&
-      (cphdr->three_0 == 0x0) && (cp->two_0 == 0x0) && (cp->two_1 == 0x0)) {
+  if ((cphdr->reserved_a_0 == 0x0) && (cphdr->reserved_b_0 == 0x0) &&
+      (cphdr->reserved_c_000 == 0x0) && (cp->reserved_00 == 0x0)) {
     if (odd_parity_check(data[0]) && odd_parity_check(data[1]))
       return aiebu_assembler::buffer_type::blob_control_packet;
     else
