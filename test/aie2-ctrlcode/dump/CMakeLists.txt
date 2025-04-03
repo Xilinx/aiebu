@@ -7,7 +7,7 @@ add_test(NAME "aie2_pmctrlpkt_txn_dump"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "aie2_pmctrlpkt_elf_dump"
-  COMMAND aiebu-dump ../pmctrlpkt/mc_code_txn.elf
+  COMMAND aiebu-dump -d ../pmctrlpkt/mc_code_txn.elf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "aie2_pmctrlpkt_ctrlpkt_dump0"

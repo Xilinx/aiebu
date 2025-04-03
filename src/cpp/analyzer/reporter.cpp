@@ -83,7 +83,7 @@ namespace aiebu {
             if (psec->get_type() != ELFIO::SHT_PROGBITS || is_ctrldata(psec->get_name())
                || is_pm_ctrlpkt(psec->get_name()))
               continue;
-            stream << "[" << i << "] " << psec->get_name() << "\t"
+            stream << "Section[" << i << "]: " << psec->get_name() << "\tSize: "
                    << psec->get_size() << 'B' << std::endl;
             transaction tprint(psec->get_data(), psec->get_size());
             stream << tprint.get_all_ops() << std::endl;
