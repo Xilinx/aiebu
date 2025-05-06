@@ -193,5 +193,7 @@ even_parity_check(uint32_t data) {
   return !odd_parity_check(data);
 }
 
+std::string version_string();
+
 }
 #endif // AIEBU_COMMOM_UTILS_H_

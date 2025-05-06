@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.18.0)
 project(AIEBU HOMEPAGE_URL https://github.com/Xilinx/aiebu VERSION 1.0)
 
 include(cmake/settings.cmake)
+include(cmake/version.cmake)
 
 message("-- AIEBU_NATIVE_BUILD: ${AIEBU_NATIVE_BUILD}")
 add_subdirectory(src/cpp)

@@ -6,6 +6,7 @@
 #include <regex>
 
 #include "utils.h"
+#include "version.h"
 
 namespace aiebu {
 
@@ -36,6 +37,12 @@ get_regex(const std::vector<fragment>& pattern)
   return std::regex(composite);
 }
 
-
+std::string
+version_string()
+{
+  std::stringstream stream;
+  version::print(stream);
+  return stream.str();
+}
 
 }

@@ -10,6 +10,7 @@
 
 #include "analyzer/reporter.h"
 #include "common/file_utils.h"
+#include "common/utils.h"
 
 namespace aiebu {
 
@@ -42,9 +43,7 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
                                  const std::string & executable,
                                  const std::string & description)
 {
-  bool bhelp = false;
   std::string target_name;
-  std::string filename;
   std::vector<std::string> subcmd_options;
   cxxopts::Options global_options(executable, description);
 
@@ -59,16 +58,23 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
       ("D,disassemble-all", "Display assembler contents of all sections", cxxopts::value<bool>()->default_value("false"))
       ("t,syms", "Display contents of the symbols table(s)", cxxopts::value<bool>()->default_value("false"))
       ("r,reloc", "Display relocation entries in the file", cxxopts::value<bool>()->default_value("false"))
-      ("filename", "Input file name", cxxopts::value<std::string>());
-
+      ("filename", "Input file name", cxxopts::value<std::string>())
+      ("v,version", "show version and exit", cxxopts::value<bool>()->default_value("false"));
     global_options.parse_positional({"filename"});
 
     auto result = global_options.parse(argc, argv);
 
     subcmd_options = result.unmatched();
 
-    if (result.count("help"))
-      bhelp = result["help"].as<bool>();
+    if (result.count("version")) {
+      std::cout << version_string();
+      return {};
+    }
+
+    if (result.count("help")) {
+      std::cout << global_options.help({"", executable}) << std::endl;
+      return {};
+    }
 
     target_name = result["architecture"].as<std::string>();
 
@@ -77,13 +83,6 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
 
     if (!result.count("filename"))
       throw cxxopts::exceptions::missing_argument("filename");
-
-    filename = result["filename"].as<decltype(filename)>();
-
-    if (bhelp) {
-      std::cout << global_options.help({"", executable}) << std::endl;
-      return {};
-    }
 
     return result;
   }
@@ -109,6 +108,9 @@ int main(int argc, char* argv[])
     std::cout << e.what();
     return 1;
   }
+
+  if (!result.arguments().size())
+    return 0;
 
   const std::vector<char> buffer = aiebu::readfile(result["filename"].as<std::string>());
   aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);

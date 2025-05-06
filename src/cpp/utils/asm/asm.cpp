@@ -9,6 +9,7 @@
 #include <string>
 
 #include "target.h"
+#include "utils.h"
 
 namespace aiebu::utilities {
 
@@ -29,7 +30,8 @@ void main_helper(int argc, char** argv,
       .add_options()
       ("h,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
       ("t,target", "supported targets aie2ps/aie2asm/aie2txn/aie2dpu/config", cxxopts::value<decltype(target_name)>())
-    ;
+      ("v,version", "show version and exit", cxxopts::value<bool>()->default_value("false"))
+      ;
 
     auto result = global_options.parse(argc, argv);
 
@@ -40,6 +42,11 @@ void main_helper(int argc, char** argv,
 
     if (result.count("target"))
       target_name = result["target"].as<decltype(target_name)>();
+
+    if (result.count("version")) {
+      std::cout << version_string();
+      return;
+    }
   }
   catch (const cxxopts::exceptions::exception& e) {
     auto errMsg = boost::format("Error parsing options: %s\n") % e.what() ;
