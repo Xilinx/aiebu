@@ -23,16 +23,13 @@ size_t packets::serialize(std::ostream &stream, size_t offset) const
   const auto info = reinterpret_cast<const cp_ctrlinfo_aie2p *>(m_buffer + offset);
   offset += sizeof(*info);
 
-  if (info->num_data_beat == 0)
-    return offset;
-
-  stream << "PKT-HDR  {#" << header->stream_packet_ID << ", R[" << header->source_row
+  stream << "PH {#" << header->stream_packet_ID << ", R[" << header->source_row
          << "?], C[" << header->source_col << "?]}\n";
 
-  stream << "CTRL-PKT {@0x" << std::hex << info->local_byte_addr << std::dec << ", ["
-         << info->num_data_beat << "], " << control_packet_operations_map(info->operation) << "}\n";
-  for (uint32_t i = 0; i < info->num_data_beat; i++) {
-    stream << "         [" << i << "] 0x" << std::hex
+  stream << "CH {@0x" << std::hex << info->local_byte_addr << std::dec << ", ["
+         << info->num_data_beat + 1 << "], " << control_packet_operations_map(info->operation) << "}\n";
+  for (uint32_t i = 0; i <= info->num_data_beat; i++) {
+    stream << "   [" << i << "] 0x" << std::hex
            << *(reinterpret_cast<const unsigned int *>(m_buffer + offset))
            << std::dec << "\n";
     offset += sizeof(unsigned int);

@@ -93,7 +93,7 @@ aiebu_assembler::
 disassemble(const std::filesystem::path &root) const
 {
     reporter rep(m_type, elf_data);
-    rep.ctrlcode_detail_summary(root);
+    rep.disassemble(root);
 }
 }
 

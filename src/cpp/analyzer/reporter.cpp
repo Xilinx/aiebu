@@ -47,7 +47,7 @@ namespace aiebu {
         }
     }
 
-    void reporter::ctrlcode_detail_summary(const std::filesystem::path &root) const
+    void reporter::disassemble(const std::filesystem::path &root) const
     {
         ELFIO::Elf_Half sec_num = my_elf_reader.sections.size();
         for ( int i = 0; i < sec_num; ++i ) {
@@ -73,7 +73,7 @@ namespace aiebu {
         }
     }
 
-    void reporter::ctrlcode_detail_summary(std::ostream &stream) const
+    void reporter::disassemble(std::ostream &stream, bool all) const
     {
         ELFIO::Elf_Half sec_num = my_elf_reader.sections.size();
         for ( int i = 0; i < sec_num; ++i ) {
@@ -89,12 +89,14 @@ namespace aiebu {
                 continue;
 
             if (is_ctrldata(psec->get_name())) {
-              stream << "\n";
-              stream << "Section[" << i << "]: " << psec->get_name()
-                     << "\tSize: " << psec->get_size() << 'B' << std::endl;
-              packets pprint(psec->get_data(), psec->get_size());
-              stream << "\n" << pprint.get_dump();
-              continue;
+                if (all) {
+                    stream << "\n";
+                    stream << "Section[" << i << "]: " << psec->get_name()
+                           << "\tSize: " << psec->get_size() << 'B' << std::endl;
+                    packets pprint(psec->get_data(), psec->get_size());
+                    stream << "\n" << pprint.get_dump();
+                }
+                continue;
             }
 
             stream << "\n";

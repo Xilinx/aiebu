@@ -10,6 +10,10 @@ add_test(NAME "aie2_pmctrlpkt_elf_dump"
   COMMAND aiebu-dump -d ../pmctrlpkt/mc_code_txn.elf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
+add_test(NAME "aie2_pmctrlpkt_elf_dump_all"
+  COMMAND aiebu-dump -D ../pmctrlpkt/mc_code_txn.elf
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
 add_test(NAME "aie2_pmctrlpkt_ctrlpkt_dump0"
   COMMAND aiebu-dump ../pmctrlpkt/ctrl_pkt.bin
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
