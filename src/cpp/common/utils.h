@@ -159,6 +159,7 @@ std::regex get_regex(const std::vector<fragment>& pattern);
 
 constexpr unsigned hexbase = 0x10;
 
+// Convert a string representation of a sized unsigned integer to the target integral value
 template <typename UIntType>
 UIntType
 to_uinteger(const std::string& token) {
@@ -171,10 +172,12 @@ to_uinteger(const std::string& token) {
   return static_cast<UIntType>(result);
 }
 
+// Extract a specific byte from a 32-bit unsigned integer
 template <unsigned int N>
 uint8_t
 get_byte(uint32_t data) {
   uint32_t mask = BYTE_MASK;
+  static_assert((N >= 0) && (N <= 3));
   const unsigned int shift = N * 8;
   mask <<= shift;
   data = data & mask;
@@ -182,10 +185,11 @@ get_byte(uint32_t data) {
   return static_cast<uint8_t>(data);
 }
 
+// Perform odd parity check for a 32-bit unsigned integer
 inline bool
 odd_parity_check(uint32_t data) {
   const std::bitset<32> parity(data);
-  return (parity.count() & 0x0) ? false : true;
+  return (parity.count() & 0x1) ? true : false;
 }
 
 inline bool

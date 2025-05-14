@@ -7,30 +7,6 @@
 
 namespace aiebu {
 
-struct cp_pktheader_aie2p
-{
-  uint32_t stream_packet_ID : 5;
-  uint32_t out_of_order_bd_idx : 6;
-  uint32_t reserved_a_0 : 1;
-  uint32_t stream_id_rtn : 3;
-  uint32_t reserved_b_0 : 1;
-  uint32_t source_row : 5;
-  uint32_t source_col : 7;
-  uint32_t reserved_c_000 : 3;
-  uint32_t odd_parity : 1;
-};
-
-struct cp_ctrlinfo_aie2p
-{
-  uint32_t local_byte_addr : 20;
-  uint32_t num_data_beat : 2;
-  uint32_t operation : 2;
-  uint32_t stream_id_rtn : 5;
-  uint32_t reserved_00 : 2;
-  uint32_t parity : 1;
-};
-
-
 constexpr unsigned int magic_length = 16;
 constexpr unsigned int elf_magic = 0x464c457f;
 

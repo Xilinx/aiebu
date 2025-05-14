@@ -122,7 +122,10 @@ int main(int argc, char* argv[])
       rep.elf_summary(std::cout);
       rep.ctrlcode_summary(std::cout);
     }
-    if (result["disassemble"].as<bool>()) {
+    else if (result["disassemble"].as<bool>()) {
+      rep.ctrlcode_detail_summary(std::cout);
+    }
+    else if (result["disassemble-all"].as<bool>()) {
       rep.ctrlcode_detail_summary(std::cout);
     }
   }
