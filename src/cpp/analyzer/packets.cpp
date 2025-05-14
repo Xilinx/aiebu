@@ -32,7 +32,7 @@ size_t packets::serialize(std::ostream &stream, size_t offset) const
   stream << "CTRL-PKT {@0x" << std::hex << info->local_byte_addr << std::dec << ", ["
          << info->num_data_beat << "], " << control_packet_operations_map(info->operation) << "}\n";
   for (uint32_t i = 0; i < info->num_data_beat; i++) {
-    stream << "         [" << i << "] " << std::hex
+    stream << "         [" << i << "] 0x" << std::hex
            << *(reinterpret_cast<const unsigned int *>(m_buffer + offset))
            << std::dec << "\n";
     offset += sizeof(unsigned int);
