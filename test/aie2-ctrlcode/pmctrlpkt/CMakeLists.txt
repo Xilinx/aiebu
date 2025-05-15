@@ -54,5 +54,18 @@ add_test(NAME "aie2_pmctrlpkt_txn_md5sum"
   COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake" "${CMAKE_CURRENT_BINARY_DIR}/mc_code_txn.elf" "${CMAKE_CURRENT_SOURCE_DIR}/gold.md5"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
+add_test(NAME "aie2_pmctrlpkt_compare_ctrldata"
+  COMMAND ${CMAKE_COMMAND} -E compare_files mc_code_txn.ctrldata.ctrl "${CMAKE_CURRENT_SOURCE_DIR}/mc_code_txn.ctrldata.ctrl"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+foreach(index RANGE 7)
+  set(tfile "mc_code_txn.ctrlpkt.pm.${index}.ctrl")
+  set(tname "aie2_pmctrlpkt_compare_ctrlpkt_${index}")
+  add_test(NAME "${tname}"
+    COMMAND ${CMAKE_COMMAND} -E compare_files ${tfile} "${CMAKE_CURRENT_SOURCE_DIR}/${tfile}"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+endforeach()
+
+
 set_tests_properties("aie2_pmctrlpkt_txn" PROPERTIES LABELS memcheck)
 set_tests_properties("aie2_pmctrlpkt_asm" PROPERTIES LABELS memcheck)

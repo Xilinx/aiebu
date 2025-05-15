@@ -26,7 +26,7 @@ namespace aiebu {
         reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& elf_data);
         void elf_summary(std::ostream &stream) const;
         void ctrlcode_summary(std::ostream &stream) const;
-        void disassemble(const std::filesystem::path &root) const;
+        void disassemble(const std::filesystem::path &root, bool all = false) const;
         void disassemble(std::ostream &stream, bool all = false) const;
     };
 }

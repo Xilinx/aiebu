@@ -22,4 +22,4 @@ add_test(NAME "aie2_pmctrlpkt_ctrlpkt_dump1"
   COMMAND aiebu-dump ../pmctrlpkt/pm_ctrlpkt_0.bin
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-set_tests_properties("aie2_pmctrlpkt_txn_dump" PROPERTIES LABELS memcheck)
+set_tests_properties("aie2_pmctrlpkt_elf_dump_all" PROPERTIES LABELS memcheck)

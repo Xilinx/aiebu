@@ -10,8 +10,7 @@
 
 namespace aiebu {
 
-static const std::map<fragment, std::string> fragment_table = {
-    // NOLINT
+static const std::map<fragment, std::string> fragment_table = { // NOLINT
     {fragment::begin_anchor_re, "^"},
     {fragment::end_anchor_re, "$"},
     {fragment::hex_re, "[[:space:]]*(0[xX][[:xdigit:]]+)[[:space:]]*"},
