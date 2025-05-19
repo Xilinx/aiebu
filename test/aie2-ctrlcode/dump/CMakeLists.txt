@@ -14,7 +14,7 @@ add_test(NAME "aie2_pmctrlpkt_elf_dump"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "aie2_pmctrlpkt_elf_dump_compare"
-  COMMAND ${CMAKE_COMMAND} -E compare_files d.txt "${CMAKE_CURRENT_SOURCE_DIR}/d.txt"
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol d.txt "${CMAKE_CURRENT_SOURCE_DIR}/d.txt"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "aie2_pmctrlpkt_elf_dump_all"
@@ -22,7 +22,7 @@ add_test(NAME "aie2_pmctrlpkt_elf_dump_all"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "aie2_pmctrlpkt_elf_dump_all_compare"
-  COMMAND ${CMAKE_COMMAND} -E compare_files D.txt "${CMAKE_CURRENT_SOURCE_DIR}/D.txt"
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol D.txt "${CMAKE_CURRENT_SOURCE_DIR}/D.txt"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "aie2_pmctrlpkt_ctrlpkt_dump0"
@@ -32,5 +32,15 @@ add_test(NAME "aie2_pmctrlpkt_ctrlpkt_dump0"
 add_test(NAME "aie2_pmctrlpkt_ctrlpkt_dump1"
   COMMAND aiebu-dump ../pmctrlpkt/pm_ctrlpkt_0.bin
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# Test interdependencies use ful when running ctest with -j
+set_tests_properties("aie2_pmctrlpkt_elf_dump" PROPERTIES DEPENDS "aie2_pmctrlpkt_txn")
+set_tests_properties("aie2_pmctrlpkt_elf_dump_all" PROPERTIES DEPENDS "aie2_pmctrlpkt_txn")
+set_tests_properties("aie2_pmctrlpkt_elf_dump_compare" PROPERTIES DEPENDS "aie2_pmctrlpkt_elf_dump")
+set_tests_properties("aie2_pmctrlpkt_elf_dump_all_compare" PROPERTIES DEPENDS "aie2_pmctrlpkt_elf_dump_all")
+
+set_tests_properties("aie2_pmctrlpkt_txn_dump" PROPERTIES DEPENDS "aie2_pmctrlpkt_txn")
+set_tests_properties("aie2_pmctrlpkt_ctrlpkt_dump0" PROPERTIES DEPENDS "aie2_pmctrlpkt_txn")
+set_tests_properties("aie2_pmctrlpkt_ctrlpkt_dump1" PROPERTIES DEPENDS "aie2_pmctrlpkt_txn")
 
 set_tests_properties("aie2_pmctrlpkt_elf_dump_all" PROPERTIES LABELS memcheck)

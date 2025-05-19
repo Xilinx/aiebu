@@ -46,7 +46,7 @@ add_test(NAME "aie2_pmctrlpkt_asm_redo"
 
 # Compare the two ctrlcodes: ASM text to decompiled ASM text
 add_test(NAME "aie2_pmctrlpkt_asm_compare"
-  COMMAND ${CMAKE_COMMAND} -E compare_files ctrl1.ctrltext.asm ctrl2.ctrltext.asm
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol ctrl1.ctrltext.asm ctrl2.ctrltext.asm
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 # Compare the md5sum of ELF generated in aie2_mc_code_txn_txn test with that of the golden file
@@ -55,17 +55,23 @@ add_test(NAME "aie2_pmctrlpkt_txn_md5sum"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "aie2_pmctrlpkt_compare_ctrldata"
-  COMMAND ${CMAKE_COMMAND} -E compare_files mc_code_txn.ctrldata.ctrl "${CMAKE_CURRENT_SOURCE_DIR}/mc_code_txn.ctrldata.ctrl"
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol mc_code_txn.ctrldata.ctrl "${CMAKE_CURRENT_SOURCE_DIR}/mc_code_txn.ctrldata.ctrl"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 foreach(index RANGE 7)
   set(tfile "mc_code_txn.ctrlpkt.pm.${index}.ctrl")
   set(tname "aie2_pmctrlpkt_compare_ctrlpkt_${index}")
   add_test(NAME "${tname}"
-    COMMAND ${CMAKE_COMMAND} -E compare_files ${tfile} "${CMAKE_CURRENT_SOURCE_DIR}/${tfile}"
+    COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol ${tfile} "${CMAKE_CURRENT_SOURCE_DIR}/${tfile}"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  set_tests_properties("${tname}" PROPERTIES DEPENDS "aie2_pmctrlpkt_txn")
 endforeach()
 
+# Test interdependencies used by cmake when running ctest with -j
+set_tests_properties("aie2_pmctrlpkt_asm_redo" PROPERTIES DEPENDS "aie2_pmctrlpkt_asm")
+set_tests_properties("aie2_pmctrlpkt_asm_compare" PROPERTIES DEPENDS "aie2_pmctrlpkt_asm;aie2_pmctrlpkt_asm_redo")
+set_tests_properties("aie2_pmctrlpkt_txn_md5sum" PROPERTIES DEPENDS "aie2_pmctrlpkt_txn")
+set_tests_properties("aie2_pmctrlpkt_compare_ctrldata" PROPERTIES DEPENDS "aie2_pmctrlpkt_txn")
 
 set_tests_properties("aie2_pmctrlpkt_txn" PROPERTIES LABELS memcheck)
 set_tests_properties("aie2_pmctrlpkt_asm" PROPERTIES LABELS memcheck)
