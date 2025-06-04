@@ -30,6 +30,7 @@ class aiebu_assembler
       elf_aie2ps,
       pdi_aie2,
       pdi_aie2ps,
+      blob_control_packet_aie2,
       unspecified,
     };
 

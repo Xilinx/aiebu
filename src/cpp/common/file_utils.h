@@ -39,6 +39,9 @@ struct cp_ctrlinfo_aie2p
   uint32_t parity : 1;
 };
 
+// For AIE2 control packets are 8 words aligned
+constexpr unsigned int ctrlpkt_offset_aie2 = 8 * sizeof(unsigned int);
+
 inline std::vector<char>
 readfile(const std::string& filename)
 {
@@ -70,6 +73,9 @@ findFilePath(const std::string& filename, const std::vector<std::string>& libpat
 
 aiebu_assembler::buffer_type
 identify_buffer_type(const std::vector<char> &buffer);
+
+aiebu_assembler::buffer_type
+check_control_packet(const std::vector<char>& buffer);
 
 }
 

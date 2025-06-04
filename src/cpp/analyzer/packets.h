@@ -18,6 +18,7 @@ private:
 public:
   packets(const char *buffer, uint64_t size) : m_buffer(buffer), m_size(size) {}
   std::string get_dump() const;
+  std::string get_dump_aie2() const;
 };
 
 }

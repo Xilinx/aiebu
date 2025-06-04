@@ -9,6 +9,7 @@
 #include <map>
 
 #include "analyzer/reporter.h"
+#include "analyzer/packets.h"
 #include "common/file_utils.h"
 #include "common/utils.h"
 
@@ -28,7 +29,8 @@ buffer_type_table = { // NOLINT
   {aiebu::aiebu_assembler::buffer_type::blob_instr_dpu, "aie2-dpu-ctrlcode"},
   {aiebu::aiebu_assembler::buffer_type::blob_instr_prepost, "aie2-ctrlpkt"},
   {aiebu::aiebu_assembler::buffer_type::blob_instr_transaction, "aie2-ctrlcode"},
-  {aiebu::aiebu_assembler::buffer_type::blob_control_packet, "aie2-ctrlpkt"},
+  {aiebu::aiebu_assembler::buffer_type::blob_control_packet, "aie2p-ctrlpkt"},
+  {aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2, "aie2-ctrlpkt"},
   {aiebu::aiebu_assembler::buffer_type::asm_aie2ps, "aie2ps-ctrlcode-asm"},
   {aiebu::aiebu_assembler::buffer_type::asm_aie2, "aie2-ctrlcode-asm"},
   {aiebu::aiebu_assembler::buffer_type::elf_aie2, "aie2-elf"},
@@ -129,6 +131,14 @@ int main(int argc, char* argv[])
       rep.disassemble(std::cout, true);
     }
   }
+  else if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet) {
+    aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()));
+    std::cout <<  packetprint.get_dump() << std::endl;
 
+  }
+  else if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
+        aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()));
+        std::cout <<  packetprint.get_dump_aie2() << std::endl;
+  }
   return 0;
 }

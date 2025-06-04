@@ -49,4 +49,16 @@ packets::get_dump() const
   return stream.str();
 }
 
+std::string
+packets::get_dump_aie2() const
+{
+  std::stringstream stream;
+  size_t offset = 0;
+  while (offset < m_size) {
+    serialize(stream, offset);
+    offset += ctrlpkt_offset_aie2;
+  }
+  return stream.str();
+}
+
 }
