@@ -54,7 +54,8 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
       ("a,archive-headers", "Display archive header information", cxxopts::value<bool>()->default_value("false"))
       ("f,file-headers", "Display the contents of the overall file header", cxxopts::value<bool>()->default_value("false"))
       ("x,all-headers", "Display contents of all elf headers", cxxopts::value<bool>()->default_value("false"))
-      ("d,disassemble", "Display assembler contents of ctrltext sections", cxxopts::value<bool>()->default_value("false"))
+      ("d,disassemble", "Display assembler contents of ctrltext sections if elf file is provided or display control packet \
+        in assembled format if control packet binary file is provided", cxxopts::value<bool>()->default_value("false"))
       ("H,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
       ("m,architecture", "Specify the target architecture as MACHINE (aie2ps/aie2asm/aie2txn/aie2dpu)", cxxopts::value<std::string>()->default_value("unspecified"))
       ("D,disassemble-all", "Display assembler contents of all sections", cxxopts::value<bool>()->default_value("false"))
@@ -132,13 +133,16 @@ int main(int argc, char* argv[])
     }
   }
   else if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet) {
-    aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()));
-    std::cout <<  packetprint.get_dump() << std::endl;
-
+    if (result["disassemble"].as<bool>()) {
+      aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()));
+      std::cout <<  packetprint.get_dump() << std::endl;
+    }
   }
   else if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
-        aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()));
-        std::cout <<  packetprint.get_dump_aie2() << std::endl;
+    if (result["disassemble"].as<bool>()) {
+      aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()));
+      std::cout <<  packetprint.get_dump_aie2() << std::endl;
+    }
   }
   return 0;
 }

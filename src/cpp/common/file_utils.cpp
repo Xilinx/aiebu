@@ -40,51 +40,50 @@ identify_buffer_type(const std::vector<char>& buffer)
 
   // TODO: Put the reference to Packet Header and Control Packet here
   // ctrlpkt identification is WIP
-  return check_control_packet(buffer);
+  return check_control_packet(buffer.data(), buffer.size());
 }
 
-
 aiebu_assembler::buffer_type
-check_control_packet(const std::vector<char>& buffer)
+check_control_packet(const char* buffer, uint64_t size)
 {
-  if (buffer.size() < magic_length)
+  if (size < magic_length)
     return aiebu_assembler::buffer_type::unspecified;
 
-  const unsigned int* control_packet = reinterpret_cast<const unsigned int *>(buffer.data());
-  size_t offset = 0;
-  size_t count = 0;
+  auto control_packet = reinterpret_cast<const unsigned int *>(buffer);
+  uint64_t offset = 0;
+  uint64_t count = 0;
 
   // Check if the input buffer is control packet for aie2p
-  while (count < buffer.size()) {
+  while (count < size) {
     const auto cphdr = reinterpret_cast<const cp_pktheader_aie2p *>(control_packet);
     const auto cp = reinterpret_cast<const cp_ctrlinfo_aie2p *>(control_packet + 1);
 
     if ((cphdr->reserved_a_0 == 0x0) && (cphdr->reserved_b_0 == 0x0) &&
         (cphdr->reserved_c_000 == 0x0) && (cp->reserved_00 == 0x0) &&
-        odd_parity_check(control_packet[0]) && odd_parity_check(control_packet[1])) {
-      offset = sizeof(*cphdr) + sizeof(*cp) + ((cp->num_data_beat + 1) * sizeof(unsigned int));
-      control_packet += offset / sizeof(*control_packet);
-      count += offset;
+        odd_parity_check(*control_packet) && odd_parity_check(*(control_packet + 1))) {
+      offset = ((sizeof(*cphdr) + sizeof(*cp)) / word_size) + (cp->num_data_beat + 1);
+      control_packet += offset;
+      count += offset * word_size;
     } else {
       break;
     }
   }
 
-  if (count >= buffer.size())
+  if (count >= size)
     return aiebu_assembler::buffer_type::blob_control_packet;
 
   // Check if the input buffer is control packet for aie2
-  control_packet = reinterpret_cast<const unsigned int *>(buffer.data());
+  control_packet = reinterpret_cast<const unsigned int *>(buffer);
   count = 0;
 
-  while (count < buffer.size()) {
+  while (count < size) {
     const auto cphdr_aie2 = reinterpret_cast<const cp_pktheader_aie2p *>(control_packet);
     const auto cp_aie2 = reinterpret_cast<const cp_ctrlinfo_aie2p *>(control_packet + 1);
 
     if ((cphdr_aie2->reserved_a_0 == 0x0) && (cphdr_aie2->reserved_b_0 == 0x0) &&
         (cphdr_aie2->reserved_c_000 == 0x0) && (cp_aie2->reserved_00 == 0x0) &&
-        odd_parity_check(control_packet[0]) && odd_parity_check(control_packet[1])) {
-      control_packet += ctrlpkt_offset_aie2 / sizeof(*control_packet);
+        odd_parity_check(*control_packet) && odd_parity_check(*(control_packet + 1))) {
+      control_packet += ctrlpkt_offset_aie2 / word_size;
       count += ctrlpkt_offset_aie2;
     } else {
       return aiebu_assembler::buffer_type::unspecified;
