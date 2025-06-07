@@ -132,16 +132,11 @@ int main(int argc, char* argv[])
       rep.disassemble(std::cout, true);
     }
   }
-  else if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet) {
+  else if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet || 
+           type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
     if (result["disassemble"].as<bool>()) {
-      aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()));
+      aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()), type);
       std::cout <<  packetprint.get_dump() << std::endl;
-    }
-  }
-  else if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
-    if (result["disassemble"].as<bool>()) {
-      aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()));
-      std::cout <<  packetprint.get_dump_aie2() << std::endl;
     }
   }
   return 0;

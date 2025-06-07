@@ -43,20 +43,20 @@ packets::get_dump() const
 {
   std::stringstream stream;
   size_t offset = 0;
-  while (offset < m_size) {
-    offset = serialize(stream, offset);
-  }
-  return stream.str();
-}
-
-std::string
-packets::get_dump_aie2() const
-{
-  std::stringstream stream;
-  size_t offset = 0;
-  while (offset < m_size) {
-    serialize(stream, offset);
-    offset += ctrlpkt_offset_aie2;
+  // check control packet type
+  if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_control_packet) {
+    // AIE2P control packet
+    while (offset < m_size) {
+      offset = serialize(stream, offset);
+    }
+  } else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
+    // AIE2 control packet
+    while (offset < m_size) {
+      serialize(stream, offset);
+      offset += ctrlpkt_offset_aie2;
+    }
+  } else {
+    stream << "Unknown buffer type for control packet dump.\n";
   }
   return stream.str();
 }

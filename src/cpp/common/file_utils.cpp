@@ -69,7 +69,7 @@ check_control_packet(const char* buffer, uint64_t size)
     }
   }
 
-  if (count >= size)
+  if (count == size)
     return aiebu_assembler::buffer_type::blob_control_packet;
 
   // Check if the input buffer is control packet for aie2

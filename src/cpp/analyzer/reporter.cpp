@@ -65,21 +65,11 @@ namespace aiebu {
                     std::ofstream stream(file);
                     stream << ";  [" << i << "] " << psec->get_name() << "\t"
                            << psec->get_size() << 'B' << std::endl;
-                    packets pprint(psec->get_data(), psec->get_size());
-                    if (is_pm_ctrlpkt(psec->get_name())) {
-                        stream << pprint.get_dump();
-                    } else if (is_ctrldata(psec->get_name())) {
-                        // Check type of control packet
-                        aiebu::aiebu_assembler::buffer_type packet_type =
-                        check_control_packet(psec->get_data(), psec->get_size());
-                        if (packet_type == aiebu::aiebu_assembler::buffer_type::blob_control_packet) {
-                            stream << pprint.get_dump();
-                        } else if (packet_type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
-                            stream << pprint.get_dump_aie2();
-                        } else {
-                            stream << "\nInvalid control packet type" << std::endl;
-                        }
-                    }
+                    // Check type of control packet
+                    aiebu::aiebu_assembler::buffer_type packet_type =
+                    check_control_packet(psec->get_data(), psec->get_size());
+                    packets pprint(psec->get_data(), psec->get_size(), packet_type);
+                    stream << pprint.get_dump();
                 }
                 continue;
             }
@@ -110,21 +100,12 @@ namespace aiebu {
                     stream << "\n";
                     stream << "Section[" << i << "]: " << psec->get_name()
                            << "\tSize: " << psec->get_size() << 'B' << std::endl;
-                    packets pprint(psec->get_data(), psec->get_size());
-                    if (is_pm_ctrlpkt(psec->get_name())) {
-                        stream << "\n" << pprint.get_dump();
-                    } else if (is_ctrldata(psec->get_name())) {
-                        // Check type of control packet
-                        aiebu::aiebu_assembler::buffer_type packet_type =
-                        check_control_packet(psec->get_data(), psec->get_size());
-                        if (packet_type == aiebu::aiebu_assembler::buffer_type::blob_control_packet) {
-                            stream << "\n" << pprint.get_dump();
-                        } else if (packet_type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
-                            stream << "\n" << pprint.get_dump_aie2();
-                        } else {
-                            stream << "\nInvalid control packet type" << std::endl;
-                        }
-                    }
+
+                    // Check type of control packet
+                    aiebu::aiebu_assembler::buffer_type packet_type =
+                    check_control_packet(psec->get_data(), psec->get_size());
+                    packets pprint(psec->get_data(), psec->get_size(), packet_type);
+                    stream << "\n" << pprint.get_dump();
                 }
                 continue;
             }
