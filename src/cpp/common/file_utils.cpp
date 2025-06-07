@@ -50,7 +50,6 @@ check_control_packet(const char* buffer, uint64_t size)
     return aiebu_assembler::buffer_type::unspecified;
 
   auto control_packet = reinterpret_cast<const unsigned int *>(buffer);
-  uint64_t offset = 0;
   uint64_t count = 0;
 
   // Check if the input buffer is control packet for aie2p
@@ -61,7 +60,7 @@ check_control_packet(const char* buffer, uint64_t size)
     if ((cphdr->reserved_a_0 == 0x0) && (cphdr->reserved_b_0 == 0x0) &&
         (cphdr->reserved_c_000 == 0x0) && (cp->reserved_00 == 0x0) &&
         odd_parity_check(*control_packet) && odd_parity_check(*(control_packet + 1))) {
-      offset = ((sizeof(*cphdr) + sizeof(*cp)) / word_size) + (cp->num_data_beat + 1);
+      uint64_t offset = ((sizeof(*cphdr) + sizeof(*cp)) / word_size) + (cp->num_data_beat + 1);
       control_packet += offset;
       count += offset * word_size;
     } else {
