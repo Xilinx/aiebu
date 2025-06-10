@@ -9,6 +9,11 @@
 
 namespace aiebu {
 
+// Size of word in bytes
+constexpr unsigned int word_size = 4;
+// For AIE2 control packets are 8 words (8words * 4bytes/word = 32bytes) aligned
+constexpr unsigned int ctrlpkt_offset_aie2 = 8 * word_size;
+
 char control_packet_operations_map(uint32_t op)
 {
   static const std::array<char, 4> optable = {'P', 'R', 'W', 'U'};

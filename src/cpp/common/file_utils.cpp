@@ -18,6 +18,11 @@ constexpr unsigned int ctrlcode_magic_aie2 = 0x06040100;
 constexpr unsigned int pdi_magic0 = 0x000000dd;
 constexpr unsigned int pdi_magic1 = 0x11223344;
 
+// Size of word in bytes
+constexpr unsigned int word_size = 4;
+// For AIE2 control packets are 8 words (8words * 4bytes/word = 32bytes) aligned
+constexpr unsigned int ctrlpkt_offset_aie2 = 8 * word_size;
+
 aiebu_assembler::buffer_type
 identify_buffer_type(const std::vector<char>& buffer)
 {
@@ -40,11 +45,11 @@ identify_buffer_type(const std::vector<char>& buffer)
 
   // TODO: Put the reference to Packet Header and Control Packet here
   // ctrlpkt identification is WIP
-  return check_control_packet(buffer.data(), buffer.size());
+  return identify_control_packet(buffer.data(), buffer.size());
 }
 
 aiebu_assembler::buffer_type
-check_control_packet(const char* buffer, uint64_t size)
+identify_control_packet(const char* buffer, uint64_t size)
 {
   if (size < magic_length)
     return aiebu_assembler::buffer_type::unspecified;

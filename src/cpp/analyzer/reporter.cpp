@@ -67,7 +67,7 @@ namespace aiebu {
                            << psec->get_size() << 'B' << std::endl;
                     // Check type of control packet
                     aiebu::aiebu_assembler::buffer_type packet_type =
-                    check_control_packet(psec->get_data(), psec->get_size());
+                    identify_control_packet(psec->get_data(), psec->get_size());
                     packets pprint(psec->get_data(), psec->get_size(), packet_type);
                     stream << pprint.get_dump();
                 }
@@ -103,7 +103,7 @@ namespace aiebu {
 
                     // Check type of control packet
                     aiebu::aiebu_assembler::buffer_type packet_type =
-                    check_control_packet(psec->get_data(), psec->get_size());
+                    identify_control_packet(psec->get_data(), psec->get_size());
                     packets pprint(psec->get_data(), psec->get_size(), packet_type);
                     stream << "\n" << pprint.get_dump();
                 }

@@ -12,7 +12,7 @@ class packets {
 private:
   const char *m_buffer;
   uint64_t m_size;
-  aiebu::aiebu_assembler::buffer_type m_buffer_type;
+  const aiebu::aiebu_assembler::buffer_type m_buffer_type;
 
 private:
   size_t serialize(std::ostream &stream, size_t offset) const;
