@@ -321,7 +321,7 @@ AIEBU-DUMP Command line utility
 
 -  (aie2ps/aie2asm/aie2txn/aie2dpu) (default: unspecified)
 
--  -D, --disassemble-all Display assembler contents of all sections
+-  -D, --disassemble-all Display assembler contents of all ELF sections
 
 -  
 
