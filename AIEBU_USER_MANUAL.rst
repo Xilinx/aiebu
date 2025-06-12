@@ -1,43 +1,9 @@
-AIEBU Usage Manual (In progress)
-================================
+.. _AIEBU_USER_MANUAL.rst:
 
--  `AIE Binary Utilities
-   (AIEBU) <#AIEBUUsageManual(Inprogress)-AIEBinaryU>`__
+..
+    comment:: SPDX-License-Identifier: MIT
+    comment:: Copyright (C) 2024 Advanced Micro Devices, Inc.
 
--  `AIEBU-ASM command line
-   utility <#AIEBUUsageManual(Inprogress)-AIEBU-ASMc>`__
-
-   -  `TARGET: aie2txn <#AIEBUUsageManual(Inprogress)-TARGET:aie>`__
-
-   -  `Example <#AIEBUUsageManual(Inprogress)-Example>`__
-
-   -  `Output ELF Section Layout for AIE2 and
-      AIE2P <#AIEBUUsageManual(Inprogress)-OutputELFS>`__
-
-      -  `Description <#AIEBUUsageManual(Inprogress)-Descriptio>`__
-
--  `AIEBU-DUMP Command line
-   utility <#AIEBUUsageManual(Inprogress)-AIEBU-DUMP>`__
-
-   -  `Examples <#AIEBUUsageManual(Inprogress)-Examples>`__
-
-      -  `1. Display all ELF Headers and Opcode
-         frequency <#AIEBUUsageManual(Inprogress)-1.Displaya>`__
-
-         -  `AIEBU-DUMP
-            Command <#AIEBUUsageManual(Inprogress)-AIEBU-DUMP>`__
-
-      -  `2. Display Assembly format of .ctrltext
-         section <#AIEBUUsageManual(Inprogress)-2.DisplayA>`__
-
-         -  `AIEBU-DUMP
-            Command <#AIEBUUsageManual(Inprogress)-AIEBU-DUMP>`__
-
-      -  `3. Display Assembly code of all ELF
-         sections <#AIEBUUsageManual(Inprogress)-3.DisplayA>`__
-
-         -  `AIEBU-DUMP
-            Command <#AIEBUUsageManual(Inprogress)-AIEBU-DUMP>`__
 
 AIE Binary Utilities (AIEBU)
 ============================
@@ -46,7 +12,7 @@ This repository contains library and utilities to work with AIE
 *ctrlcode.*
 
 AIEBU-ASM command line utility
-==============================
+------------------------------
 
 **NAME**
 
@@ -58,12 +24,11 @@ AIEBU-ASM command line utility
 -  cd <workspace>/aiebu/build/Debug/opt/xilinx/aiebu/bin
 
 **SYNOPSIS**
+::
 
 -  aiebu-asm [OPTIONS]
-
 -  aiebu-asm [-t \| --target]
-
--  [-h \| --help]
+-            [-h \| --help]
 
 **DESCRIPTION**
 
@@ -82,138 +47,87 @@ AIEBU-ASM command line utility
    NPU to run.
 
 **OPTIONS**
+::
 
 -  -t, --target TARGET
-
 -  Specify the target for the assembler. Supported targets are
-
 -  aie2ps/aie2asm/aie2txn
 
-Once we select on of the 3 targets we can proceed with the other options
-in the utility.
+- Once we select on of the 3 targets we can proceed with the other options in the utility.
 
-**TARGET:** **aie2txn**
------------------------
 
-For AIE2 and AIE2P architectures below command options of aiebu-asm are
-provided.
+
+Target: aie2txn
+---------------
+
+- For AIE2 and AIE2P architectures below command options of aiebu-asm are provided.
+
 
 **SYNOPSIS**
+::
 
 -  aiebu-asm -t aie2txn [OPTIONS]
-
 -  
-
 -  aiebu-asm -t aie2txn [-c \|-- control code ]
-
 -  [-p \| -- control packet ]
-
 -  [-j \| -- json ]
-
 -  [-m \| -- pm control packet ]
-
 -  [-o \| -- output ]
-
 -  [-r \| -- report]
-
 -  [-h \| --help]
 
+
 **OPTIONS**
+::
 
 -  -t, --target TARGET
-
 -  Specify the target for the assembler. Supported targets are
-
 -  aie2ps/aie2asm/aie2txn
-
 -  
-
 -  -c, --controlcode FILE
-
 -  Provide TXN control code binary file with its path.
-
 -  
-
 -  -p, --controlpkt FILE
-
--  Provide the control packet binary file with its path. Use this option
-   if the control packet is provided.
-
+-  Provide the control packet binary file with its path. Use this option if the control packet is provided.
 -  
-
 -  -j, --json FILE
-
--  Provide the patching JSON file with its path. This file has has
-   patching information for the control packet.
-
+-  Provide the patching JSON file with its path. This file has has patching information for the control packet.
 -  This option is always accompanies with -p option above
-
 -  
-
 -  -m, --pmctrlpkt ID:FILE
-
 -  Specify a program memory control packet in the format
-
--  \`<id>:<file>`. Where <id> is the pm control packet ID and <file> is
-   the pm control packet binary with its path.
-
+-  \`<id>:<file>`. Where <id> is the pm control packet ID and <file> is the pm control packet binary with its path.
 -  
-
 -  -o, --outputelf FILE
-
--  Provide name of the ELF output file with its path that will be
-   generated as a result of running the aiebu-asm utility.
-
+-  Provide name of the ELF output file with its path that will be generated as a result of running the aiebu-asm utility.
 -  
-
 -  -r, --report
-
 -  Standalone option, no value to be provided with this option.
-
--  This option generate the control code assembly file (.asm) at the
-   same location where the output elf is generated using the -o option.
-
--  This option needs to be used with -c and -o options to provide the
-   control_code.bin and output.elf path respectively.
-
+-  This option generate the control code assembly file (.asm) at the same location where the output elf is generated using the -o option.
+-  This option needs to be used with -c and -o options to provide the control_code.bin and output.elf path respectively.
 -  Also generates a report for the assembled output on the console.
-
 -  
-
 -  -h, --help
-
 -  Show this help message and exit.
 
-Example
--------
+
+**EXAMPLE**
 
 -  TXN Control Code only
 
-   -  ./aiebu-asm -t aie2txn -c
-      <path_to_control_code.bin>/control_code.bin -o
-      <path_to_output.elf>/output.elf
+   -  ``./aiebu-asm -t aie2txn -c <path_to_control_code.bin>/control_code.bin -o <path_to_output.elf>/output.elf``
 
 -  TXN Control Code + Control Packet
 
-   -  ./aiebu-asm -t aie2txn -c
-      <path_to_control_code.bin>/control_code.bin -p
-      <path_to_control_packet.bin>/control_packet.bin -j
-      <path_to_external_buffer_id.json>/external_buffer_id.json -o
-      <path_to_output.elf>/output.elf
+   - ``./aiebu-asm -t aie2txn -c <path_to_control_code.bin>/control_code.bin -p <path_to_control_packet.bin>/control_packet.bin -j <path_to_external_buffer_id.json>/external_buffer_id.json -o <path_to_output.elf>/output.elf``
 
-Output ELF Section Layout for AIE2 and AIE2P
---------------------------------------------
 
-Description
-~~~~~~~~~~~
 
-ELF is an executable loadable format file used to package the
-transaction control code binaries, control packet binaries, pm control
-packet binaries and provide necessary patching information.
+**ELF SECTIONS**
 
-`readelf(1) - Linux manual
-page <https://www.man7.org/linux/man-pages/man1/readelf.1.html>`__ is a
-utility which dumps the elf file in readable format.
+-  ELF is an executable loadable format file used to package the transaction control code binaries, control packet binaries, pm control packet binaries and provide necessary patching information. `readelf(1) - Linux manual page <https://www.man7.org/linux/man-pages/man1/readelf.1.html>`__ is a utility which dumps the elf file in readable format.
+
+
 
 +------------------+--------------------------------------------------+
 | **Sections**     | **Description**                                  |
@@ -245,6 +159,8 @@ utility which dumps the elf file in readable format.
 |                  | symbols need to be patched at run time           |
 +------------------+--------------------------------------------------+
 
+
+
 AIEBU-DUMP Command line utility
 ===============================
 
@@ -257,27 +173,18 @@ AIEBU-DUMP Command line utility
 -  cd <workspace>/aiebu/build/Debug/aiebu/bin
 
 **SYNOPSIS**
+::
 
 -  aiebu-dump [OPTION...] positional parameters
-
 -  
-
 -  aiebu-dump [-a \| --archive-headers ] <filename>
-
 -  [-f \| --file-headers ]
-
 -  [-x \| --all-headers ]
-
 -  [-d \| --disassemble ]
-
 -  [-H \| --help ]
-
 -  [-m \| --architecture arg ]
-
 -  [-D \| --disassemble-all ]
-
 -  [-t \| --syms ]
-
 -  [-r \| --reloc ]
 
 **DESCRIPTION**
@@ -289,99 +196,46 @@ AIEBU-DUMP Command line utility
    etc.
 
 **OPTIONS**
+::
 
 -  -a, --archive-headers Display archive header information
-
 -  
-
 -  -f, --file-headers Display the contents of the overall file header
-
 -  
-
--  -x, --all-headers Display contents of all elf headers plus frequency
-   of each opcode
-
+-  -x, --all-headers Display contents of all elf headers plus frequency of each opcode
 -  in .ctrltext, .prempt_save and .preempt_restore sections of the elf.
-
 -  
-
--  -d, --disassemble Display assembler contents of ctrltext section if
-   ELF is given as input
-
--  Displays the control packet assembly format if control packet binary
-   is given as input
-
+-  -d, --disassemble Display assembler contents of ctrltext section if ELF is given as input
+-  Displays the control packet assembly format if control packet binary is given as input
 -  
-
 -  -H, --help show help message and exit
-
 -  
-
--  -m, --architecture arg Specify the target architecture as MACHINE
-
--  (aie2ps/aie2asm/aie2txn/aie2dpu) (default: unspecified)
-
--  -D, --disassemble-all Display assembler contents of all ELF sections
-
+-  -m, --architecture arg Specify the target architecture as MACHINE (aie2ps/aie2asm/aie2txn/aie2dpu) (default: unspecified)
+-  -D, --disassemble-all Display assembler contents of all sections
 -  
-
 -  -t, --syms Display contents of the symbols table(s)
-
 -  
-
 -  -r, --reloc Display relocation entries in the file
 
-Examples
-~~~~~~~~
 
-1. Display all ELF Headers and Opcode frequency
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**EXAMPLE**
 
-If the user wants to display ELF Header, Program Header and Section
-Headers of an ELF file along with the frequency of each opcode present
-in the .ctrltext, .preempt_save and .preempt_restore sections then use
--x options as given below.
+- Display all ELF Headers and Opcode frequency
 
-The ELF file is given as input and the output is displayed on the
-console.
+  - If the user wants to display ELF Header, Program Header and Section Headers of an ELF file along with the frequency of each opcode present in the .ctrltext, .preempt_save and .preempt_restore sections then use -x options as given below. The ELF file is given as input and the output is displayed on the console.
 
-AIEBU-DUMP Command
-''''''''''''''''''
+  - ``./aiebu-dump <path_to_filename.elf>/<filename.elf> -x``
 
--  ./aiebu-dump <path_to_filename.elf>/<filename.elf> -x
 
-2. Display Assembly format of .ctrltext section
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- Display Assembly format of .ctrltext section
 
-If the user wants to display the contents of the control code assembly
-in text format then use option -d. This essentially displays the
-assembler contents of only the .ctrltext section.
+  - If the user wants to display the contents of the control code assembly in text format then use option -d. This essentially displays the assembler contents of only the .ctrltext section. The ELF file is given as input and the output is displayed on the console.
 
-The ELF file is given as input and the output is displayed on the
-console.
+  - ``./aiebu-dump <path_to_filename.elf>/<filename.elf> -d``
 
-.. _aiebu-dump-command-1:
 
-AIEBU-DUMP Command
-''''''''''''''''''
+- Display Assembly code of all ELF sections
 
-./aiebu-dump <path_to_filename.elf>/<filename.elf> -d
+  - If the user wants to display the contents of the control code assembly, premption_save control code assembly and preemption_restore control code assembly, the control packet unpacking etc in text format then use option -D. This essentially displays the assembler contents of all sections of the ELF. This is not implemented yet. The ELF file is given as input and the output is displayed on the console.
 
-3. Display Assembly code of all ELF sections
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If the user wants to display the contents of the control code assembly,
-premption_save control code assembly and preemption_restore control code
-assembly, the control packet unpacking etc in text format then use
-option -D. This essentially displays the assembler contents of all
-sections of the ELF. This is not implemented yet.
-
-The ELF file is given as input and the output is displayed on the
-console.
-
-.. _aiebu-dump-command-2:
-
-AIEBU-DUMP Command
-''''''''''''''''''
-
-./aiebu-dump <path_to_filename.elf>/<filename.elf> -D
+  - ``./aiebu-dump <path_to_filename.elf>/<filename.elf> -D``
