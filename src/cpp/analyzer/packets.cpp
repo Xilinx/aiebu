@@ -9,6 +9,11 @@
 
 namespace aiebu {
 
+// Size of word in bytes
+constexpr unsigned int word_size = 4;
+// For AIE2 control packets are 8 words (8words * 4bytes/word = 32bytes) aligned
+constexpr unsigned int ctrlpkt_offset_aie2 = 8 * word_size;
+
 char control_packet_operations_map(uint32_t op)
 {
   static const std::array<char, 4> optable = {'P', 'R', 'W', 'U'};
@@ -43,8 +48,20 @@ packets::get_dump() const
 {
   std::stringstream stream;
   size_t offset = 0;
-  while (offset < m_size) {
-    offset = serialize(stream, offset);
+  // check control packet type
+  if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_control_packet) {
+    // AIE2P control packet
+    while (offset < m_size) {
+      offset = serialize(stream, offset);
+    }
+  } else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
+    // AIE2 control packet
+    while (offset < m_size) {
+      serialize(stream, offset);
+      offset += ctrlpkt_offset_aie2;
+    }
+  } else {
+    stream << "Unknown buffer type for control packet dump.\n";
   }
   return stream.str();
 }

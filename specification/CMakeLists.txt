@@ -19,8 +19,6 @@ endif()
 set(SPEC_PYTHON_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 add_custom_target(isa-spec-gen)
-add_subdirectory(aie2)
 add_subdirectory(aie2ps)
 
 install(DIRECTORY aie2ps DESTINATION ${AIEBU_SPECIFICATION_INSTALL_DIR} CONFIGURATIONS Debug Release COMPONENT Runtime PATTERN __pycache__ EXCLUDE)
-install(DIRECTORY aie2 DESTINATION ${AIEBU_SPECIFICATION_INSTALL_DIR} CONFIGURATIONS Debug Release COMPONENT Runtime PATTERN __pycache__ EXCLUDE)

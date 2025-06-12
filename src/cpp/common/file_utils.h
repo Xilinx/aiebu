@@ -71,6 +71,9 @@ findFilePath(const std::string& filename, const std::vector<std::string>& libpat
 aiebu_assembler::buffer_type
 identify_buffer_type(const std::vector<char> &buffer);
 
+aiebu_assembler::buffer_type
+identify_control_packet(const char* buffer, uint64_t size);
+
 }
 
 #endif // AIEBU_COMMOM_FILE_UTILS_H_

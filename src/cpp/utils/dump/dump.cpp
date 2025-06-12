@@ -9,6 +9,7 @@
 #include <map>
 
 #include "analyzer/reporter.h"
+#include "analyzer/packets.h"
 #include "common/file_utils.h"
 #include "common/utils.h"
 
@@ -28,7 +29,8 @@ buffer_type_table = { // NOLINT
   {aiebu::aiebu_assembler::buffer_type::blob_instr_dpu, "aie2-dpu-ctrlcode"},
   {aiebu::aiebu_assembler::buffer_type::blob_instr_prepost, "aie2-ctrlpkt"},
   {aiebu::aiebu_assembler::buffer_type::blob_instr_transaction, "aie2-ctrlcode"},
-  {aiebu::aiebu_assembler::buffer_type::blob_control_packet, "aie2-ctrlpkt"},
+  {aiebu::aiebu_assembler::buffer_type::blob_control_packet, "aie2p-ctrlpkt"},
+  {aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2, "aie2-ctrlpkt"},
   {aiebu::aiebu_assembler::buffer_type::asm_aie2ps, "aie2ps-ctrlcode-asm"},
   {aiebu::aiebu_assembler::buffer_type::asm_aie2, "aie2-ctrlcode-asm"},
   {aiebu::aiebu_assembler::buffer_type::elf_aie2, "aie2-elf"},
@@ -52,7 +54,8 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
       ("a,archive-headers", "Display archive header information", cxxopts::value<bool>()->default_value("false"))
       ("f,file-headers", "Display the contents of the overall file header", cxxopts::value<bool>()->default_value("false"))
       ("x,all-headers", "Display contents of all elf headers", cxxopts::value<bool>()->default_value("false"))
-      ("d,disassemble", "Display assembler contents of ctrltext sections", cxxopts::value<bool>()->default_value("false"))
+      ("d,disassemble", "Display assembler contents of ctrltext sections if elf file is provided or display control packet \
+        in assembled format if control packet binary file is provided", cxxopts::value<bool>()->default_value("false"))
       ("H,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
       ("m,architecture", "Specify the target architecture as MACHINE (aie2ps/aie2asm/aie2txn/aie2dpu)", cxxopts::value<std::string>()->default_value("unspecified"))
       ("D,disassemble-all", "Display assembler contents of all sections", cxxopts::value<bool>()->default_value("false"))
@@ -129,6 +132,12 @@ int main(int argc, char* argv[])
       rep.disassemble(std::cout, true);
     }
   }
-
+  else if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet || 
+           type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
+    if (result["disassemble"].as<bool>()) {
+      aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()), type);
+      std::cout <<  packetprint.get_dump() << std::endl;
+    }
+  }
   return 0;
 }

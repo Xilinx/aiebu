@@ -4,6 +4,8 @@
 #include "packets.h"
 #include "transaction.hpp"
 #include "transaction.hpp"
+#include "common/file_utils.h"
+
 
 #include "aiebu/aiebu_error.h"
 
@@ -63,8 +65,10 @@ namespace aiebu {
                     std::ofstream stream(file);
                     stream << ";  [" << i << "] " << psec->get_name() << "\t"
                            << psec->get_size() << 'B' << std::endl;
-
-                    packets pprint(psec->get_data(), psec->get_size());
+                    // Check type of control packet
+                    aiebu::aiebu_assembler::buffer_type packet_type =
+                    identify_control_packet(psec->get_data(), psec->get_size());
+                    packets pprint(psec->get_data(), psec->get_size(), packet_type);
                     stream << pprint.get_dump();
                 }
                 continue;
@@ -96,7 +100,11 @@ namespace aiebu {
                     stream << "\n";
                     stream << "Section[" << i << "]: " << psec->get_name()
                            << "\tSize: " << psec->get_size() << 'B' << std::endl;
-                    packets pprint(psec->get_data(), psec->get_size());
+
+                    // Check type of control packet
+                    aiebu::aiebu_assembler::buffer_type packet_type =
+                    identify_control_packet(psec->get_data(), psec->get_size());
+                    packets pprint(psec->get_data(), psec->get_size(), packet_type);
                     stream << "\n" << pprint.get_dump();
                 }
                 continue;
