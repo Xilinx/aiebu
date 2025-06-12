@@ -119,6 +119,8 @@ int main(int argc, char* argv[])
   aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);
 
   std::cout << aiebu::buffer_type_table.at(type) << std::endl;
+
+
   if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
     aiebu::reporter rep(aiebu::aiebu_assembler::buffer_type::elf_aie2, buffer);
     if (result["all-headers"].as<bool>()) {
@@ -137,6 +139,15 @@ int main(int argc, char* argv[])
     if (result["disassemble"].as<bool>()) {
       aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()), type);
       std::cout <<  packetprint.get_dump() << std::endl;
+    }
+  }
+  else if (type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
+    aiebu::reporter rep(aiebu::aiebu_assembler::buffer_type::blob_instr_transaction, buffer);
+    if (result["all-headers"].as<bool>()) {
+      rep.ctrlcode_blob_summary(std::cout);
+    }
+    else if (result["disassemble"].as<bool>()) {
+      rep.disassemble_blob(std::cout);
     }
   }
   return 0;
