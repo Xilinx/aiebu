@@ -38,6 +38,9 @@ namespace aiebu {
       reporter(reporter&&) = delete;                    // Move constructor
       reporter& operator=(reporter&&) = delete;         // Move assignment operator
 
+      // Destructor
+      ~reporter() = default;                            // Default destructor
+
       // Member functions
       void elf_summary(std::ostream &stream) const;
       void ctrlcode_summary(std::ostream &stream) const;
