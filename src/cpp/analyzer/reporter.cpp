@@ -15,15 +15,13 @@
 
 namespace aiebu {
 
-reporter::reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& buffer)
-: m_buffer_type(type), m_buffer(buffer)
+reporter::reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& elf_data) 
+    : m_buffer_type(type), m_buffer(elf_data.data()), m_buffer_size(elf_data.size())
 {
-    boost::interprocess::ibufferstream istr(buffer.data(), buffer.size());
-    if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
-        bool result = my_elf_reader.load(istr);
-        if (!result) {
-            throw error(error::error_code::invalid_buffer_type, "Invalid ELF buffer");
-        }
+    boost::interprocess::ibufferstream istr(elf_data.data(), elf_data.size());
+    bool result = my_elf_reader.load(istr);
+    if (!result) {
+        throw error(error::error_code::invalid_buffer_type, "Invalid ELF buffer");
     }
 }
 
@@ -126,13 +124,13 @@ void reporter::disassemble(std::ostream &stream, bool all) const
 
 void reporter::ctrlcode_blob_summary(std::ostream &stream) const
 {
-    transaction tprint(m_buffer.data(), m_buffer.size());
+    transaction tprint(m_buffer, m_buffer_size);
     stream << tprint.get_txn_summary() << std::endl;
 }
 
 void reporter::disassemble_blob(std::ostream &stream) const
 {
-    transaction tprint(m_buffer.data(), m_buffer.size());
+    transaction tprint(m_buffer, m_buffer_size);
     stream << tprint.get_all_ops() << std::endl;
 }
 

@@ -13,7 +13,8 @@ namespace aiebu {
   private:
       ELFIO::elfio my_elf_reader;
       const aiebu::aiebu_assembler::buffer_type m_buffer_type;
-      const std::vector<char> m_buffer;
+      const char* m_buffer;
+      uint64_t m_buffer_size;
 
 
   protected:
@@ -27,14 +28,14 @@ namespace aiebu {
         return !name.substr(0,8).compare(".ctrlpkt");
       }
   public:
-      reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& buffer);
+      reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& elf_data);
+      reporter(aiebu::aiebu_assembler::buffer_type type, const char* buffer, uint64_t size) :  m_buffer_type(type), m_buffer(buffer), m_buffer_size(size) {}
       void elf_summary(std::ostream &stream) const;
       void ctrlcode_summary(std::ostream &stream) const;
       void disassemble(const std::filesystem::path &root, bool all = false) const;
       void disassemble(std::ostream &stream, bool all = false) const;
       void ctrlcode_blob_summary(std::ostream &stream) const;
       void disassemble_blob(std::ostream &stream) const;
-
   };
 }
 

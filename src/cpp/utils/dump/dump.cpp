@@ -53,7 +53,6 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
     global_options.add_options()
       ("a,archive-headers", "Display archive header information", cxxopts::value<bool>()->default_value("false"))
       ("f,file-headers", "Display the contents of the overall file header", cxxopts::value<bool>()->default_value("false"))
-      ("p,private-headers", "Display opcode frequency in the control code binary", cxxopts::value<bool>()->default_value("false"))
       ("x,all-headers", "Display contents of all elf headers", cxxopts::value<bool>()->default_value("false"))
       ("d,disassemble", "Display assembler contents of ctrltext sections if elf file is provided or display control packet \
         in assembled format if control packet binary file is provided", cxxopts::value<bool>()->default_value("false"))
@@ -118,7 +117,9 @@ int main(int argc, char* argv[])
 
   const std::vector<char> buffer = aiebu::readfile(result["filename"].as<std::string>());
   aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);
+
   std::cout << aiebu::buffer_type_table.at(type) << std::endl;
+
 
   if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
     aiebu::reporter rep(aiebu::aiebu_assembler::buffer_type::elf_aie2, buffer);
@@ -141,11 +142,11 @@ int main(int argc, char* argv[])
     }
   }
   else if (type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
-    aiebu::reporter rep(aiebu::aiebu_assembler::buffer_type::blob_instr_transaction, buffer);
-    if (result["private-headers"].as<bool>()) {
+    aiebu::reporter rep(type, buffer.data(), buffer.size());
+    if (result["all-headers"].as<bool>()) {
       rep.ctrlcode_blob_summary(std::cout);
     }
-    else if (result["disassemble"].as<bool>() || result["disassemble-all"].as<bool>()) {
+    else if (result["disassemble"].as<bool>()) {
       rep.disassemble_blob(std::cout);
     }
   }
