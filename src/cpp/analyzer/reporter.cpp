@@ -6,8 +6,6 @@
 #include "transaction.hpp"
 #include "common/file_utils.h"
 
-
-
 #include "aiebu/aiebu_error.h"
 
 #include <boost/interprocess/streams/bufferstream.hpp>

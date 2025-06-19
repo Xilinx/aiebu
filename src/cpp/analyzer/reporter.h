@@ -16,7 +16,6 @@ namespace aiebu {
       const char* m_buffer;
       uint64_t m_buffer_size;
 
-
   protected:
       inline bool is_ctrldata(const std::string& name) const
       {
@@ -28,8 +27,18 @@ namespace aiebu {
         return !name.substr(0,8).compare(".ctrlpkt");
       }
   public:
+      // Constructors
       reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& elf_data);
-      reporter(aiebu::aiebu_assembler::buffer_type type, const char* buffer, uint64_t size) :  m_buffer_type(type), m_buffer(buffer), m_buffer_size(size) {}
+      reporter(aiebu::aiebu_assembler::buffer_type type, const char* buffer, uint64_t size)
+          : m_buffer_type(type), m_buffer(buffer), m_buffer_size(size) {}
+
+      // Delete copy and move constructors and assignment operators
+      reporter(const reporter&) = delete;               // Copy constructor
+      reporter& operator=(const reporter&) = delete;    // Copy assignment operator
+      reporter(reporter&&) = delete;                    // Move constructor
+      reporter& operator=(reporter&&) = delete;         // Move assignment operator
+
+      // Member functions
       void elf_summary(std::ostream &stream) const;
       void ctrlcode_summary(std::ostream &stream) const;
       void disassemble(const std::filesystem::path &root, bool all = false) const;

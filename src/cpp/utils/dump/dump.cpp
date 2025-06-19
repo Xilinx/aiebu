@@ -117,10 +117,7 @@ int main(int argc, char* argv[])
 
   const std::vector<char> buffer = aiebu::readfile(result["filename"].as<std::string>());
   aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);
-
   std::cout << aiebu::buffer_type_table.at(type) << std::endl;
-
-
   if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
     aiebu::reporter rep(aiebu::aiebu_assembler::buffer_type::elf_aie2, buffer);
     if (result["all-headers"].as<bool>()) {
