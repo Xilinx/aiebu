@@ -36,6 +36,7 @@ class aiebu_assembler
 
   private:
     buffer_type m_type;
+    buffer_type m_output_type;
 
   public:
     /*

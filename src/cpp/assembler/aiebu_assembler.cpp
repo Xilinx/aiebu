@@ -40,31 +40,37 @@ aiebu_assembler(buffer_type type,
   {
     aiebu::assembler a(assembler::elf_type::aie2_dpu_blob);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
   else if (type == buffer_type::blob_instr_transaction)
   {
     aiebu::assembler a(assembler::elf_type::aie2_transaction_blob);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
   else if (type == buffer_type::asm_aie2)
   {
     aiebu::assembler a(assembler::elf_type::aie2_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
   else if (type == buffer_type::asm_aie2ps)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps;
   }
   else if (type == buffer_type::config)
   {
     aiebu::assembler a(assembler::elf_type::config);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps;
   }
   else if (type == buffer_type::asm_aie4)
   {
     aiebu::assembler a(assembler::elf_type::aie4_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps;
   }
   else {
     throw error(error::error_code::invalid_buffer_type, "Buffer_type not supported !!!");
@@ -83,7 +89,7 @@ void
 aiebu_assembler::
 get_report(std::ostream &stream) const
 {
-    reporter rep(m_type, elf_data);
+    reporter rep(m_output_type, elf_data);
     rep.elf_summary(stream);
     rep.ctrlcode_summary(stream);
 }
@@ -92,7 +98,7 @@ void
 aiebu_assembler::
 disassemble(const std::filesystem::path &root) const
 {
-    reporter rep(m_type, elf_data);
+    reporter rep(m_output_type, elf_data);
     rep.disassemble(root, true);
 }
 }
