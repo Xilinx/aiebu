@@ -64,6 +64,7 @@ aiebu_assembler(buffer_type type,
   {
     aiebu::assembler a(assembler::elf_type::config);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
+    // TODO: Determine architecture type for config. Currently defaulting to elf_aie2ps.
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps;
   }
   else if (type == buffer_type::asm_aie4)
