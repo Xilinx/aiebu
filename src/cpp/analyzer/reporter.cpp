@@ -203,8 +203,7 @@ namespace aiebu {
     void reporter::disassemble_blob(const std::filesystem::path &root) const
     {
         std::filesystem::path file(root);
-        file += "disassemble_";
-        file += "blob.asm";
+        file += "_disassemble.asm";
         std::ofstream stream(file);
         if (!stream) {
             throw error(error::error_code::internal_error, "Failed to open file for writing");

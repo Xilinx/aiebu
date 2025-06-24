@@ -126,13 +126,13 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         size_t pm_ctrlpkt_size)
 {
   int ret = 0;
-  if (buffer2 == NULL && buffer2_size != 0)
+  if (buffer2 == nullptr && buffer2_size != 0)
   {
     std::cout << "ERROR: Invalid buffer2 size" << std::endl;
     return -(static_cast<int>(aiebu::error::error_code::invalid_input));
   }
 
-  if (patch_json == NULL && patch_json_size !=0)
+  if (patch_json == nullptr && patch_json_size !=0)
   {
     std::cout << "ERROR: Invalid patch json size" << std::endl;
     return -(static_cast<int>(aiebu::error::error_code::invalid_input));
