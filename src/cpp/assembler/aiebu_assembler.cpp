@@ -138,7 +138,7 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
     return -(static_cast<int>(aiebu::error::error_code::invalid_input));
   }
 
-  if (buffer1 == NULL)
+  if (buffer1 == nullptr)
   {
     std::cout << "ERROR: Invalid input, buffer1 is NULL" << std::endl;
     return -(static_cast<int>(aiebu::error::error_code::invalid_input));
