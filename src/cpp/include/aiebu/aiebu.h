@@ -16,7 +16,9 @@ enum aiebu_error_code {
   aiebu_invalid_batch_buffer_type,
   aiebu_invalid_buffer_type,
   aiebu_invalid_offset,
-  aiebu_invalid_internal_error
+  aiebu_invalid_internal_error,
+  aiebu_invalid_input,
+  aiebu_invalid_elf
 };
 
 enum aiebu_assembler_buffer_type {

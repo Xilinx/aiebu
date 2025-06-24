@@ -20,7 +20,9 @@ public:
     invalid_patch_buffer_type = aiebu_invalid_batch_buffer_type,
     invalid_buffer_type = aiebu_invalid_buffer_type,
     invalid_offset = aiebu_invalid_offset,
-    internal_error = aiebu_invalid_internal_error
+    internal_error = aiebu_invalid_internal_error,
+    invalid_input = aiebu_invalid_input,
+    invalid_elf = aiebu_invalid_elf
   };
 
   error(error_code ec, const std::error_category& cat, const std::string& what = "");

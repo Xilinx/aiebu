@@ -16,26 +16,42 @@ namespace aiebu {
     reporter::reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& buffer) :
         m_buffer_type(type), m_buffer(buffer)
     {
+        if (buffer.empty()) {
+            throw error(error::error_code::invalid_input, "Input buffer is empty");
+        }
         if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
             boost::interprocess::ibufferstream istr(buffer.data(), buffer.size());
             bool result = my_elf_reader.load(istr);
             if (!result)
-                throw error(error::error_code::invalid_buffer_type, "Invalid ELF buffer");
+                throw error(error::error_code::invalid_elf, "Invalid ELF buffer");
         }
     }
 
     void reporter::elf_summary(std::ostream &stream) const
     {
-        if (m_buffer_type != aiebu::aiebu_assembler::buffer_type::elf_aie2) {
-            throw error(error::error_code::invalid_buffer_type, "Invalid buffer type for ELF summary");
+        if (!stream) {
+            throw error(error::error_code::invalid_input, "The given stream is not writable or has failed");
         }
-        ELFIO::dump::header(stream, my_elf_reader );
-        ELFIO::dump::section_headers( stream, my_elf_reader);
-        ELFIO::dump::segment_headers( stream, my_elf_reader);
+        if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
+            ELFIO::dump::header(stream, my_elf_reader );
+            ELFIO::dump::section_headers( stream, my_elf_reader);
+            ELFIO::dump::segment_headers( stream, my_elf_reader);
+        }
+        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
+            throw error(error::error_code::internal_error,
+                  "AIE2PS and AIE4 ELF are not supported");
+        }
+        else {
+            throw error(error::error_code::invalid_buffer_type,
+                  "Invalid buffer type for ELF summary");
+        }
     }
 
     void reporter::ctrlcode_summary(std::ostream &stream) const
     {
+        if (!stream) {
+            throw error(error::error_code::invalid_input, "The given stream is not writable or has failed");
+        }
         if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
             ELFIO::Elf_Half sec_num = my_elf_reader.sections.size();
             for ( int i = 0; i < sec_num; ++i ) {
@@ -58,9 +74,13 @@ namespace aiebu {
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
             ctrlcode_blob_summary(stream);
         }
+        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
+            throw error(error::error_code::internal_error,
+                  "AIE2PS and AIE4 ELF are not supported");
+        }
         else {
             throw error(error::error_code::invalid_buffer_type,
-                  "Invalid buffer type");
+                  "Invalid buffer type for summary");
         }
     }
 
@@ -79,6 +99,9 @@ namespace aiebu {
                         file += psec->get_name();
                         file += ".ctrl";
                         std::ofstream stream(file);
+                        if (!stream) {
+                            throw error(error::error_code::internal_error, "Failed to open file for writing");
+                        }
                         stream << ";  [" << i << "] " << psec->get_name() << "\t"
                             << psec->get_size() << 'B' << std::endl;
                         // Check type of control packet
@@ -95,6 +118,9 @@ namespace aiebu {
                 file += psec->get_name();
                 file += ".asm";
                 std::ofstream stream(file);
+                if (!stream) {
+                    throw error(error::error_code::internal_error, "Failed to open file for writing");
+                }
                 stream << ";  [" << i << "] " << psec->get_name() << "\t"
                     << psec->get_size() << 'B' << std::endl;
 
@@ -105,14 +131,21 @@ namespace aiebu {
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
             disassemble_blob(root);
         }
+        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
+            throw error(error::error_code::internal_error,
+                  "AIE2PS and AIE4 ELF are not supported");
+        }
         else {
             throw error(error::error_code::invalid_buffer_type,
-                  "Invalid buffer type");
+                  "Invalid buffer type for disassembly");
         }
     }
 
     void reporter::disassemble(std::ostream &stream, bool all) const
     {
+        if (!stream) {
+            throw error(error::error_code::invalid_input, "The given stream is not writable or has failed");
+        }
         if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
             ELFIO::Elf_Half sec_num = my_elf_reader.sections.size();
             for ( int i = 0; i < sec_num; ++i ) {
@@ -145,9 +178,13 @@ namespace aiebu {
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
             disassemble_blob(stream);
         }
+        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
+            throw error(error::error_code::internal_error,
+                  "AIE2PS and AIE4 ELF are not supported");
+        }
         else {
             throw error(error::error_code::invalid_buffer_type,
-                  "Invalid buffer type");
+                  "Invalid buffer type for disassembly");
         }
     }
 
@@ -165,13 +202,13 @@ namespace aiebu {
 
     void reporter::disassemble_blob(const std::filesystem::path &root) const
     {
-        if (m_buffer_type != aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
-            throw error(error::error_code::invalid_buffer_type,
-                  "Invalid buffer type for disassemble");
-        }
         std::filesystem::path file(root);
+        file += "disassemble_";
         file += "blob.asm";
         std::ofstream stream(file);
+        if (!stream) {
+            throw error(error::error_code::internal_error, "Failed to open file for writing");
+        }
         disassemble_blob(stream);
     }
 }

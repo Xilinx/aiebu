@@ -36,6 +36,9 @@ aiebu_assembler(buffer_type type,
                 const std::vector<std::string>& libpaths,
                 const std::map<uint32_t, std::vector<char> >& ctrlpkt) : m_type(type)
 {
+  if (buffer1.empty()) {
+    throw error(error::error_code::invalid_input, "Buffer1 is empty.");
+  }
   if (type == buffer_type::blob_instr_dpu)
   {
     aiebu::assembler a(assembler::elf_type::aie2_dpu_blob);
@@ -90,17 +93,21 @@ void
 aiebu_assembler::
 get_report(std::ostream &stream) const
 {
-    reporter rep(m_output_type, elf_data);
-    rep.elf_summary(stream);
-    rep.ctrlcode_summary(stream);
+  if (!stream) {
+    throw error(error::error_code::invalid_input,
+                "The given stream is not writable or has failed.");
+  }
+  reporter rep(m_output_type, elf_data);
+  rep.elf_summary(stream);
+  rep.ctrlcode_summary(stream);
 }
 
 void
 aiebu_assembler::
 disassemble(const std::filesystem::path &root) const
 {
-    reporter rep(m_output_type, elf_data);
-    rep.disassemble(root, true);
+  reporter rep(m_output_type, elf_data);
+  rep.disassemble(root, true);
 }
 }
 
@@ -122,13 +129,25 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
   if (buffer2 == NULL && buffer2_size != 0)
   {
     std::cout << "ERROR: Invalid buffer2 size" << std::endl;
-    return -(static_cast<int>(aiebu::error::error_code::internal_error));
+    return -(static_cast<int>(aiebu::error::error_code::invalid_input));
   }
 
   if (patch_json == NULL && patch_json_size !=0)
   {
     std::cout << "ERROR: Invalid patch json size" << std::endl;
-    return -(static_cast<int>(aiebu::error::error_code::internal_error));
+    return -(static_cast<int>(aiebu::error::error_code::invalid_input));
+  }
+
+  if (buffer1 == NULL)
+  {
+    std::cout << "ERROR: Invalid input, buffer1 is NULL" << std::endl;
+    return -(static_cast<int>(aiebu::error::error_code::invalid_input));
+  }
+
+  if (buffer1_size == 0)
+  {
+    std::cout << "ERROR: Invalid buffer1 size" << std::endl;
+    return -(static_cast<int>(aiebu::error::error_code::invalid_input));
   }
 
   try
