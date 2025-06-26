@@ -253,7 +253,7 @@ deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, cons
   uint32_t size = 2;
   uint32_t tile = 0;
   for (const auto& arg : m_opcode->get_args()) {
-    uint32_t len = arg.get_width() / BYTE_TO_BITS;  // convert bits to byte
+    uint32_t len = arg.get_width() / byte_to_bits;  // convert bits to byte
     uint32_t val = read_len_le(data + size, len);
     size += len;
     switch (arg.get_type()) {
@@ -277,7 +277,7 @@ deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, cons
         if (slocal_ptrs.find(val) == slocal_ptrs.end()) {
           std::string label = get_label();
           result.push_back(label);
-          state->add_local_ptr(val, label, SHIM_BD_LEN);
+          state->add_local_ptr(val, label, shim_bd_len);
         } else {
           result.push_back(slocal_ptrs.at(val).first);
         }
@@ -341,7 +341,7 @@ size(disassembler_state& /*state*/)
 {
   int total = 2; // 1 opcode + 1 pad
   for (const auto& arg : m_opcode->get_args()) {
-    total += (arg.get_width() / BYTE_TO_BITS);
+    total += (arg.get_width() / byte_to_bits);
   }
   int result = total;
   return result;

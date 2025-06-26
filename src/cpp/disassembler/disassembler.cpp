@@ -84,7 +84,7 @@ void asm_disassembler::dump_data_section(const ELFIO::section* sec, std::shared_
       long_op_deserializer deserializer(dummy_isa);
       pos += deserializer.deserialize(writer, state, data + pos);
     }
-    else if (opcode == 165) {
+    else if (opcode == align) {
       state->increment_address(1);
       pos++;
     }

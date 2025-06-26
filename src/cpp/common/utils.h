@@ -19,8 +19,6 @@
 #define SECOND_BYTE_SHIFT 8
 #define THIRD_BYTE_SHIFT 16
 #define FORTH_BYTE_SHIFT 24
-#define BYTE_TO_BITS 8
-#define SHIM_BD_LEN 9
 
 using jobid_type = std::string;
 using barrierid_type = uint32_t;
@@ -33,6 +31,9 @@ const static jobid_type EOP_ID("EOP");
 constexpr offset_type PAGE_SIZE = 8192;
 constexpr int HEX_BASE = 16;
 constexpr int WORD_SIZE = 4;
+constexpr uint32_t byte_to_bits = 8;
+constexpr uint32_t shim_bd_len = 9;
+constexpr opcode_type align = 0xA5;
 
 namespace aiebu {
 

@@ -141,6 +141,7 @@
 <li><a href="#eop">.eop</a></li>
 <li><a href="#attach_to_group">.attach_to_group</a></li>
 <li><a href="#setpad">.setpad</a></li>
+<li><a href="#partition">.partition</a></li>
 <li><a href="#uc_dma_bd">UC_DMA_BD</a></li>
 </ul>
 </li>
@@ -1679,6 +1680,31 @@ Example:</p>
 <pre><code>...
 .setpad save, 0x100
 .setpad ctrl_pkt, ctrlpkt.bin
+...
+</code></pre>
+<h2 id="partition">.partition</h2>
+<p>This directive is used to specify the size of a partition.</p>
+<table>
+<thead>
+<tr>
+<th><code>.partition</code></th>
+<th>partition size information</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>string</td>
+</tr>
+</tbody>
+</table>
+<p>Specify size of a partition where the design can run. Depending on whether the design is in single-app mode or dual-app mode, the size of partition can be specified in number of columns as <code>Xcolumn</code> or number of cores plus number of 256kB memtile chunks as <code>Ycore:Zmem</code>
+Example:</p>
+<pre><code>...
+;For a 3 column partition in single-app mode
+.partiton 3column
+;For 2 core plus 1.5MB memory partition in dual-app mode
+.partition 2core:6mem
 ...
 </code></pre>
 <h2 id="uc_dma_bd">UC_DMA_BD</h2>

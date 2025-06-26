@@ -99,8 +99,9 @@ class op_deserializer
 protected:
   static constexpr unsigned int field_width = 8;
   static uint32_t numlabel;
-  std::string LABEL = "@label";
+  std::string label = "@label";
   std::shared_ptr<isa_op> m_opcode;
+
 uint8_t read_uint8(const char* data) {
     return static_cast<uint8_t>(*data);
 }
@@ -129,7 +130,7 @@ uint32_t read_len_le(const char* data, uint32_t len) {
   throw std::runtime_error("Unsupported read_len_le for len:" + std::to_string(len));
 }
 
-  std::string get_label() { return LABEL + std::to_string(numlabel++); }
+  std::string get_label() { return label + std::to_string(numlabel++); }
 public:
   op_deserializer(std::shared_ptr<isa_op> opcode):m_opcode(opcode) {}
   //op_deserializer() {}

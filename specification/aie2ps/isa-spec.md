@@ -928,6 +928,26 @@ Example:
 ```
 
 
+## .partition
+
+This directive is used to specify the size of a partition.
+
+|`.partition` | partition size information |
+|-| - |
+|-| string |
+
+Specify size of a partition where the design can run. Depending on whether the design is in single-app mode or dual-app mode, the size of partition can be specified in number of columns as `Xcolumn` or number of cores plus number of 256kB memtile chunks as `Ycore:Zmem`
+Example:
+```
+...
+;For a 3 column partition in single-app mode
+.partiton 3column
+;For 2 core plus 1.5MB memory partition in dual-app mode
+.partition 2core:6mem
+...
+```
+
+
 ## UC_DMA_BD
 
 In control code, the BD that needs to patch is defined by directive UC_DMA_BD
