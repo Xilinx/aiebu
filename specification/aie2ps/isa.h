@@ -154,5 +154,149 @@ public:
 
 };
 
+class isa_disassembler
+{
+private:
+  std::shared_ptr<std::map<uint8_t, std::shared_ptr<isa_op>>> m_isa;
+
+public:
+  isa_disassembler()
+  {
+    m_isa = std::make_shared<std::map<uint8_t, std::shared_ptr<isa_op>>>();
+
+    (*m_isa)[0] = std::make_shared<isa_op>("start_job", 0, std::vector<opArg>{
+     opArg("job_id", opArg::optype::CONST, 16), opArg("size", opArg::optype::JOBSIZE, 16), opArg("_pad", opArg::optype::PAD, 16),
+    });
+
+    (*m_isa)[23] = std::make_shared<isa_op>("start_job_deferred", 23, std::vector<opArg>{
+     opArg("job_id", opArg::optype::CONST, 16), opArg("size", opArg::optype::JOBSIZE, 16), opArg("_pad", opArg::optype::PAD, 16),
+    });
+
+    (*m_isa)[24] = std::make_shared<isa_op>("launch_job", 24, std::vector<opArg>{
+     opArg("job_id", opArg::optype::CONST, 16),
+    });
+
+    (*m_isa)[1] = std::make_shared<isa_op>("uc_dma_write_des", 1, std::vector<opArg>{
+     opArg("wait_handle", opArg::optype::REG, 8), opArg("_pad", opArg::optype::PAD, 8), opArg("descriptor_ptr", opArg::optype::CONST, 16), opArg("_pad", opArg::optype::PAD, 16),
+    });
+
+    (*m_isa)[2] = std::make_shared<isa_op>("wait_uc_dma", 2, std::vector<opArg>{
+     opArg("wait_handle", opArg::optype::REG, 8), opArg("_pad", opArg::optype::PAD, 8),
+    });
+
+    (*m_isa)[3] = std::make_shared<isa_op>("mask_write_32", 3, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16), opArg("address", opArg::optype::CONST, 32), opArg("mask", opArg::optype::CONST, 32), opArg("value", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[5] = std::make_shared<isa_op>("write_32", 5, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16), opArg("address", opArg::optype::CONST, 32), opArg("value", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[6] = std::make_shared<isa_op>("wait_tcts", 6, std::vector<opArg>{
+     opArg("tile_id", opArg::optype::CONST, 16), opArg("actor_id", opArg::optype::CONST, 8), opArg("_pad", opArg::optype::PAD, 8), opArg("target_tcts", opArg::optype::CONST, 8), opArg("_pad", opArg::optype::PAD, 8),
+    });
+
+    (*m_isa)[7] = std::make_shared<isa_op>("end_job", 7, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16),
+    });
+
+    (*m_isa)[8] = std::make_shared<isa_op>("yield", 8, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16),
+    });
+
+    (*m_isa)[9] = std::make_shared<isa_op>("uc_dma_write_des_sync", 9, std::vector<opArg>{
+     opArg("descriptor_ptr", opArg::optype::CONST, 16),
+    });
+
+    (*m_isa)[11] = std::make_shared<isa_op>("write_32_d", 11, std::vector<opArg>{
+     opArg("flags", opArg::optype::CONST, 8), opArg("_pad", opArg::optype::PAD, 8), opArg("address", opArg::optype::CONST, 32), opArg("value", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[12] = std::make_shared<isa_op>("read_32", 12, std::vector<opArg>{
+     opArg("value", opArg::optype::REG, 8), opArg("_pad", opArg::optype::PAD, 8), opArg("address", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[13] = std::make_shared<isa_op>("read_32_d", 13, std::vector<opArg>{
+     opArg("address", opArg::optype::REG, 8), opArg("value", opArg::optype::REG, 8),
+    });
+
+    (*m_isa)[14] = std::make_shared<isa_op>("apply_offset_57", 14, std::vector<opArg>{
+     opArg("table_ptr", opArg::optype::CONST, 16), opArg("num_entries", opArg::optype::CONST, 16), opArg("offset", opArg::optype::CONST, 16),
+    });
+
+    (*m_isa)[15] = std::make_shared<isa_op>("add", 15, std::vector<opArg>{
+     opArg("dest", opArg::optype::REG, 8), opArg("_pad", opArg::optype::PAD, 8), opArg("value", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[16] = std::make_shared<isa_op>("mov", 16, std::vector<opArg>{
+     opArg("dest", opArg::optype::REG, 8), opArg("_pad", opArg::optype::PAD, 8), opArg("value", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[17] = std::make_shared<isa_op>("local_barrier", 17, std::vector<opArg>{
+     opArg("local_barrier_id", opArg::optype::BARRIER, 8), opArg("num_participants", opArg::optype::CONST, 8),
+    });
+
+    (*m_isa)[18] = std::make_shared<isa_op>("remote_barrier", 18, std::vector<opArg>{
+     opArg("remote_barrier_id", opArg::optype::BARRIER, 8), opArg("_pad", opArg::optype::PAD, 8), opArg("party_mask", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[255] = std::make_shared<isa_op>("eof", 255, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16),
+    });
+
+    (*m_isa)[19] = std::make_shared<isa_op>("poll_32", 19, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16), opArg("address", opArg::optype::CONST, 32), opArg("value", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[20] = std::make_shared<isa_op>("mask_poll_32", 20, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16), opArg("address", opArg::optype::CONST, 32), opArg("mask", opArg::optype::CONST, 32), opArg("value", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[21] = std::make_shared<isa_op>("trace", 21, std::vector<opArg>{
+     opArg("info", opArg::optype::CONST, 16),
+    });
+
+    (*m_isa)[22] = std::make_shared<isa_op>("nop", 22, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16),
+    });
+
+    (*m_isa)[25] = std::make_shared<isa_op>("preempt", 25, std::vector<opArg>{
+     opArg("id", opArg::optype::CONST, 16), opArg("save_control_code_offset", opArg::optype::PAGE_ID, 16), opArg("restore_control_code_offset", opArg::optype::PAGE_ID, 16),
+    });
+
+    (*m_isa)[26] = std::make_shared<isa_op>("load_pdi", 26, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16), opArg("pdi_id", opArg::optype::CONST, 16), opArg("pdi_host_addr_offset", opArg::optype::PAGE_ID, 16),
+    });
+
+    (*m_isa)[27] = std::make_shared<isa_op>("load_last_pdi", 27, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16),
+    });
+
+    (*m_isa)[28] = std::make_shared<isa_op>("save_timestamps", 28, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16), opArg("unq_id", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[29] = std::make_shared<isa_op>("sleep", 29, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16), opArg("target", opArg::optype::CONST, 32),
+    });
+
+    (*m_isa)[30] = std::make_shared<isa_op>("save_register", 30, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16), opArg("address", opArg::optype::CONST, 32), opArg("unq_id", opArg::optype::CONST, 32),
+    });
+
+    
+
+    (*m_isa)[0xA5] = std::make_shared<isa_op>(".align", 0XA5, std::vector<opArg>{});
+    //(*m_isa)[".long"] = std::make_shared<isa_op>(".long", 0/* dummy*/, std::vector<opArg>{});
+    //(*m_isa)["uc_dma_bd"] = std::make_shared<isa_op>("uc_dma_bd", 0/* dummy*/, std::vector<opArg>{});
+    //(*m_isa)["uc_dma_bd_shim"] = std::make_shared<isa_op>("uc_dma_bd_shim", 0/* dummy*/, std::vector<opArg>{});
+  }
+
+  std::shared_ptr<std::map<uint8_t, std::shared_ptr<isa_op>>> get_isamap()
+  {
+    return m_isa;
+  }
+
+};
 }
 #endif //_ISA_ASSEMBLER_STUBS_H_

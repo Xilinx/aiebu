@@ -7,6 +7,8 @@
 #include <map>
 #include <string>
 #include <utility>
+#include <fstream>
+#include <sstream>
 #include <vector>
 #include <unordered_map>
 #include "symbol.h"
@@ -127,6 +129,26 @@ public:
   }
 
   std::shared_ptr<const partition_info> get_partition_info() const { return m_partition; }
+};
+
+class ctrl_writer
+{
+public:
+  ctrl_writer(const std::string& filename);
+  ~ctrl_writer();
+
+  void write_directive(const std::string& directive);
+  void write_label(const std::string& label);
+  void write_attach_to_group(int colnum);
+  void write_endl(const std::string& label);
+  void write_eop();
+  void write_operation(const std::string& name,
+                       const std::vector<std::string>& args,
+                       const std::string& label);
+
+private:
+  std::ofstream ofs;
+  std::string current_label;
 };
 
 }

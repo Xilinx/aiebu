@@ -38,5 +38,33 @@ public:
 
 };
 
+class isa_disassembler
+{
+private:
+  std::shared_ptr<std::map<uint8_t, std::shared_ptr<isa_op>>> m_isa;
+
+public:
+  isa_disassembler()
+  {
+    m_isa = std::make_shared<std::map<uint8_t, std::shared_ptr<isa_op>>>();
+
+    {% for operation in operations %}(*m_isa)[{{operation.opcode}}] = std::make_shared<isa_op>("{{operation.mnemonic.lower()}}", {{operation.opcode}}, std::vector<opArg>{
+    {% for arg in operation.arguments if arg.type != 'patch_buf' %} opArg({%if arg.type != 'pad' %}"{{arg.name}}"{% else %}"_pad"{% endif %}, opArg::optype::{% if arg.type == 'register' %}REG{% else %}{{arg.type.upper()}}{% endif %}, {{get_arg_width(arg)}}),{% endfor %}
+    });
+
+    {% endfor %}
+
+    (*m_isa)[0xA5] = std::make_shared<isa_op>(".align", 0XA5, std::vector<opArg>{});
+    //(*m_isa)[".long"] = std::make_shared<isa_op>(".long", 0/* dummy*/, std::vector<opArg>{});
+    //(*m_isa)["uc_dma_bd"] = std::make_shared<isa_op>("uc_dma_bd", 0/* dummy*/, std::vector<opArg>{});
+    //(*m_isa)["uc_dma_bd_shim"] = std::make_shared<isa_op>("uc_dma_bd_shim", 0/* dummy*/, std::vector<opArg>{});
+  }
+
+  std::shared_ptr<std::map<uint8_t, std::shared_ptr<isa_op>>> get_isamap()
+  {
+    return m_isa;
+  }
+
+};
 }
 #endif //_ISA_ASSEMBLER_STUBS_H_

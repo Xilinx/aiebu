@@ -79,6 +79,7 @@ target_sources(aiebu_library_objects
   encoder/aie2ps/report.cpp
   preprocessor/aie2ps/aie2ps_preprocessor_input.cpp
   preprocessor/asm/pager.cpp
+  disassembler/disassembler.cpp
   )
 target_include_directories(aiebu_library_objects
   PRIVATE

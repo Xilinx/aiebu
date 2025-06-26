@@ -19,11 +19,14 @@
 #define SECOND_BYTE_SHIFT 8
 #define THIRD_BYTE_SHIFT 16
 #define FORTH_BYTE_SHIFT 24
+#define BYTE_TO_BITS 8
+#define SHIM_BD_LEN 9
 
 using jobid_type = std::string;
 using barrierid_type = uint32_t;
 using offset_type = uint32_t;
 using pageid_type = uint32_t;
+using opcode_type = uint8_t;
 constexpr pageid_type NO_PAGE = -1;
 const static jobid_type EOF_ID("EOF");
 const static jobid_type EOP_ID("EOP");
