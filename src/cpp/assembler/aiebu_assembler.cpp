@@ -36,9 +36,6 @@ aiebu_assembler(buffer_type type,
                 const std::vector<std::string>& libpaths,
                 const std::map<uint32_t, std::vector<char> >& ctrlpkt) : m_type(type)
 {
-  //if (buffer1.empty()) {
-  //  throw error(error::error_code::invalid_input, "Buffer1 is empty.");
-  //}
   if (type == buffer_type::blob_instr_dpu)
   {
     aiebu::assembler a(assembler::elf_type::aie2_dpu_blob);
@@ -79,11 +76,13 @@ aiebu_assembler(buffer_type type,
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_config);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps;
   }
   else if (type == buffer_type::aie4_config)
   {
     aiebu::assembler a(assembler::elf_type::aie4_config);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps;
   }
   else {
     throw error(error::error_code::invalid_buffer_type, "Buffer_type not supported !!!");
@@ -135,6 +134,13 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         size_t pm_ctrlpkt_size)
 {
   int ret = 0;
+
+  if (buffer1 == nullptr && buffer1_size != 0)
+  {
+    std::cout << "ERROR: Invalid buffer1 size" << std::endl;
+    return -(static_cast<int>(aiebu::error::error_code::invalid_input));
+  }
+
   if (buffer2 == nullptr && buffer2_size != 0)
   {
     std::cout << "ERROR: Invalid buffer2 size" << std::endl;
@@ -144,18 +150,6 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
   if (patch_json == nullptr && patch_json_size !=0)
   {
     std::cout << "ERROR: Invalid patch json size" << std::endl;
-    return -(static_cast<int>(aiebu::error::error_code::invalid_input));
-  }
-
-  if (buffer1 == nullptr)
-  {
-    std::cout << "ERROR: Invalid input, buffer1 is NULL" << std::endl;
-    return -(static_cast<int>(aiebu::error::error_code::invalid_input));
-  }
-
-  if (buffer1_size == 0)
-  {
-    std::cout << "ERROR: Invalid buffer1 size" << std::endl;
     return -(static_cast<int>(aiebu::error::error_code::invalid_input));
   }
 
