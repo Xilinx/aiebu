@@ -868,22 +868,6 @@ directives:
       .partition 2core:6mem
       ...
       ```
-  - mnemonic: .partition
-    brief: This directive is used to specify the size of a partition.
-    arguments:
-      - name: partition size information
-        type: string
-    description: |
-      Specify size of a partition where the design can run. Depending on whether the design is in single-app mode or dual-app mode, the size of partition can be specified in number of columns as `Xcolumn` or number of cores plus number of 256kB memtile chunks as `Ycore:Zmem`
-      Example:
-      ```
-      ...
-      ;For a 3 column partition in single-app mode
-      .partiton 3column
-      ;For 2 core plus 1.5MB memory partition in dual-app mode
-      .partition 2core:6mem
-      ...
-      ```
   - mnemonic: .target
     brief: This directive is used to specify the architecture platform where the control code runs
     arguments:

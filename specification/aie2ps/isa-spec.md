@@ -671,20 +671,33 @@ unit of page to the 1st page of control code, and this address is where the `RES
 can determine whether preemption is required, and if required, it can also distinguish whether it is to `SAVE` or to
 `RESTORE`, and run the `SAVE` or `RESTORE` control code accordingly.
 In multi-uc case, for each preemption point id, the control code of each uc should have this opcode with same `id`.
+This opcode should take one whole job which in turn should take one whole page.
 
 
 ## LOAD_PDI (0x1a)
 
 load pdi
 
-| 0x1a | - | - | pdi_id | pdi_host_addr_offset | instruction size |
-| :-: | - | - | - | - | -: |
-| opcode (8b) | pad (8b) | pad (16b) | const (16b) | page_id (16b) | 8B |
+| 0x1a | - | - | pdi_id | pdi_host_addr_offset | - | instruction size |
+| :-: | - | - | - | - | - | -: |
+| opcode (8b) | pad (8b) | pad (16b) | const (32b) | page_id (16b) | pad (16b) | 12B |
 
 pdi itself is also a piece of control code. It can be loaded by other control code at anywhere anytime.
 `pdi_id` is an elf wide unique id and specifies an unique pdi. consecutive loading of same pdi results in following
 loading skipped by the uC. `pdi_host_addr_offset` specifies a relative address in unit of page to the 1st page of
 the control code and is where the pdi control code resides
+This opcode should take one whole job which in turn should take one whole page.
+
+
+## LOAD_CORES (0x04)
+
+load cores
+
+| 0x04 | - | - | core_elf_id | core_elf_host_addr_offset | - | instruction size |
+| :-: | - | - | - | - | - | -: |
+| opcode (8b) | pad (8b) | pad (16b) | const (32b) | page_id (16b) | pad (16b) | 12B |
+
+This essentially is same to LOAD_PDI except that CERT will save the elf info for aie cores to different location than the pdi so that cert can do recovery of both during preemption
 
 
 ## LOAD_LAST_PDI (0x1b)
@@ -924,6 +937,50 @@ Example:
 ...
 .setpad save, 0x100
 .setpad ctrl_pkt, ctrlpkt.bin
+...
+```
+
+
+## .partition
+
+This directive is used to specify the size of a partition.
+
+|`.partition` | partition size information |
+|-| - |
+|-| string |
+
+Specify size of a partition where the design can run. Depending on whether the design is in single-app mode or dual-app mode, the size of partition can be specified in number of columns as `Xcolumn` or number of cores plus number of 256kB memtile chunks as `Ycore:Zmem`
+Example:
+```
+...
+;For a 3 column partition in single-app mode
+.partiton 3column
+;For 2 core plus 1.5MB memory partition in dual-app mode
+.partition 2core:6mem
+...
+```
+
+
+## .target
+
+This directive is used to specify the architecture platform where the control code runs
+
+|`.target` | <arch>-<sub-arch> |
+|-| - |
+|-| string |
+
+Specify the information of the target architecture. `arch` is aie architecture, i.e aie2ps or aie4. `sub-arch` is used to tell different version of the architecture, i.e a/b/z of aie4. `sub-arch` is optional
+Example:
+```
+...
+;For telluride
+.target aie2ps
+;For soundwave
+.target aie4-a
+;For medusa
+.target aie4
+;For pacifica
+.target aie4-z
 ...
 ```
 

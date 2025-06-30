@@ -127,6 +127,7 @@
 <li><a href="#nop-0x16">NOP (0x16)</a></li>
 <li><a href="#preempt-0x19">PREEMPT (0x19)</a></li>
 <li><a href="#load_pdi-0x1a">LOAD_PDI (0x1a)</a></li>
+<li><a href="#load_cores-0x04">LOAD_CORES (0x04)</a></li>
 <li><a href="#load_last_pdi-0x1b">LOAD_LAST_PDI (0x1b)</a></li>
 <li><a href="#save_timestamps-0x1c">SAVE_TIMESTAMPS (0x1c)</a></li>
 <li><a href="#sleep-0x1d">SLEEP (0x1d)</a></li>
@@ -141,6 +142,8 @@
 <li><a href="#eop">.eop</a></li>
 <li><a href="#attach_to_group">.attach_to_group</a></li>
 <li><a href="#setpad">.setpad</a></li>
+<li><a href="#partition">.partition</a></li>
+<li><a href="#target">.target</a></li>
 <li><a href="#uc_dma_bd">UC_DMA_BD</a></li>
 </ul>
 </li>
@@ -1330,7 +1333,8 @@ and this address is where the <code>SAVE</code> control code resides. <code>rest
 unit of page to the 1st page of control code, and this address is where the <code>RESTORE</code> control code resides. The opcode
 can determine whether preemption is required, and if required, it can also distinguish whether it is to <code>SAVE</code> or to
 <code>RESTORE</code>, and run the <code>SAVE</code> or <code>RESTORE</code> control code accordingly.
-In multi-uc case, for each preemption point id, the control code of each uc should have this opcode with same <code>id</code>.</p>
+In multi-uc case, for each preemption point id, the control code of each uc should have this opcode with same <code>id</code>.
+This opcode should take one whole job which in turn should take one whole page.</p>
 <h2 id="load_pdi-0x1a">LOAD_PDI (0x1a)</h2>
 <p>load pdi</p>
 <table>
@@ -1341,6 +1345,7 @@ In multi-uc case, for each preemption point id, the control code of each uc shou
 <th>-</th>
 <th>pdi_id</th>
 <th>pdi_host_addr_offset</th>
+<th>-</th>
 <th style="text-align: right;">instruction size</th>
 </tr>
 </thead>
@@ -1349,16 +1354,45 @@ In multi-uc case, for each preemption point id, the control code of each uc shou
 <td style="text-align: center;">opcode (8b)</td>
 <td>pad (8b)</td>
 <td>pad (16b)</td>
-<td>const (16b)</td>
+<td>const (32b)</td>
 <td>page_id (16b)</td>
-<td style="text-align: right;">8B</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">12B</td>
 </tr>
 </tbody>
 </table>
 <p>pdi itself is also a piece of control code. It can be loaded by other control code at anywhere anytime.
 <code>pdi_id</code> is an elf wide unique id and specifies an unique pdi. consecutive loading of same pdi results in following
 loading skipped by the uC. <code>pdi_host_addr_offset</code> specifies a relative address in unit of page to the 1st page of
-the control code and is where the pdi control code resides</p>
+the control code and is where the pdi control code resides
+This opcode should take one whole job which in turn should take one whole page.</p>
+<h2 id="load_cores-0x04">LOAD_CORES (0x04)</h2>
+<p>load cores</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x04</th>
+<th>-</th>
+<th>-</th>
+<th>core_elf_id</th>
+<th>core_elf_host_addr_offset</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td>const (32b)</td>
+<td>page_id (16b)</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">12B</td>
+</tr>
+</tbody>
+</table>
+<p>This essentially is same to LOAD_PDI except that CERT will save the elf info for aie cores to different location than the pdi so that cert can do recovery of both during preemption</p>
 <h2 id="load_last_pdi-0x1b">LOAD_LAST_PDI (0x1b)</h2>
 <p>load last loaded pdi</p>
 <table>
@@ -1679,6 +1713,60 @@ Example:</p>
 <pre><code>...
 .setpad save, 0x100
 .setpad ctrl_pkt, ctrlpkt.bin
+...
+</code></pre>
+<h2 id="partition">.partition</h2>
+<p>This directive is used to specify the size of a partition.</p>
+<table>
+<thead>
+<tr>
+<th><code>.partition</code></th>
+<th>partition size information</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>string</td>
+</tr>
+</tbody>
+</table>
+<p>Specify size of a partition where the design can run. Depending on whether the design is in single-app mode or dual-app mode, the size of partition can be specified in number of columns as <code>Xcolumn</code> or number of cores plus number of 256kB memtile chunks as <code>Ycore:Zmem</code>
+Example:</p>
+<pre><code>...
+;For a 3 column partition in single-app mode
+.partiton 3column
+;For 2 core plus 1.5MB memory partition in dual-app mode
+.partition 2core:6mem
+...
+</code></pre>
+<h2 id="target">.target</h2>
+<p>This directive is used to specify the architecture platform where the control code runs</p>
+<table>
+<thead>
+<tr>
+<th><code>.target</code></th>
+<th><arch>-<sub-arch></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>string</td>
+</tr>
+</tbody>
+</table>
+<p>Specify the information of the target architecture. <code>arch</code> is aie architecture, i.e aie2ps or aie4. <code>sub-arch</code> is used to tell different version of the architecture, i.e a/b/z of aie4. <code>sub-arch</code> is optional
+Example:</p>
+<pre><code>...
+;For telluride
+.target aie2ps
+;For soundwave
+.target aie4-a
+;For medusa
+.target aie4
+;For pacifica
+.target aie4-z
 ...
 </code></pre>
 <h2 id="uc_dma_bd">UC_DMA_BD</h2>

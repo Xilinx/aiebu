@@ -120,7 +120,11 @@ public:
     });
 
     (*m_isa)["load_pdi"] = std::make_shared<isa_op>("load_pdi", 26, std::vector<opArg>{
-     opArg("_pad", opArg::optype::PAD, 16), opArg("pdi_id", opArg::optype::CONST, 16), opArg("pdi_host_addr_offset", opArg::optype::PAGE_ID, 16),
+     opArg("_pad", opArg::optype::PAD, 16), opArg("pdi_id", opArg::optype::CONST, 32), opArg("pdi_host_addr_offset", opArg::optype::PAGE_ID, 16), opArg("_pad", opArg::optype::PAD, 16),
+    });
+
+    (*m_isa)["load_cores"] = std::make_shared<isa_op>("load_cores", 4, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, 16), opArg("core_elf_id", opArg::optype::CONST, 32), opArg("core_elf_host_addr_offset", opArg::optype::PAGE_ID, 16), opArg("_pad", opArg::optype::PAD, 16),
     });
 
     (*m_isa)["load_last_pdi"] = std::make_shared<isa_op>("load_last_pdi", 27, std::vector<opArg>{

@@ -36,7 +36,8 @@ static unsigned int control_op_mask_poll_32(const uint8_t *_pc, uint32_t address
 static unsigned int control_op_trace(const uint8_t *_pc, uint16_t info);
 static unsigned int control_op_nop(const uint8_t *_pc);
 static unsigned int control_op_preempt(const uint8_t *_pc, uint16_t id, uint16_t save_control_code_offset, uint16_t restore_control_code_offset);
-static unsigned int control_op_load_pdi(const uint8_t *_pc, uint16_t pdi_id, uint16_t pdi_host_addr_offset);
+static unsigned int control_op_load_pdi(const uint8_t *_pc, uint32_t pdi_id, uint16_t pdi_host_addr_offset);
+static unsigned int control_op_load_cores(const uint8_t *_pc, uint32_t core_elf_id, uint16_t core_elf_host_addr_offset);
 static unsigned int control_op_load_last_pdi(const uint8_t *_pc);
 static unsigned int control_op_save_timestamps(const uint8_t *_pc, uint32_t unq_id);
 static unsigned int control_op_sleep(const uint8_t *_pc, uint32_t target);
@@ -268,8 +269,17 @@ static inline unsigned int control_dispatch_load_pdi(const uint8_t *pc)
 {
   return control_op_load_pdi(
     pc,
-    /* pdi_id (const) */ *(uint16_t *)(&pc[4]),
-    /* pdi_host_addr_offset (page_id) */ *(uint16_t *)(&pc[6])
+    /* pdi_id (const) */ *(uint32_t *)(&pc[4]),
+    /* pdi_host_addr_offset (page_id) */ *(uint16_t *)(&pc[8])
+  );
+}
+
+static inline unsigned int control_dispatch_load_cores(const uint8_t *pc)
+{
+  return control_op_load_cores(
+    pc,
+    /* core_elf_id (const) */ *(uint32_t *)(&pc[4]),
+    /* core_elf_host_addr_offset (page_id) */ *(uint16_t *)(&pc[8])
   );
 }
 
@@ -331,6 +341,7 @@ static inline unsigned int control_dispatch_save_register(const uint8_t *pc)
   case ISA_OPCODE_NOP: pc += control_dispatch_nop(pc); break; \
   case ISA_OPCODE_PREEMPT: pc += control_dispatch_preempt(pc); break; \
   case ISA_OPCODE_LOAD_PDI: pc += control_dispatch_load_pdi(pc); break; \
+  case ISA_OPCODE_LOAD_CORES: pc += control_dispatch_load_cores(pc); break; \
   case ISA_OPCODE_LOAD_LAST_PDI: pc += control_dispatch_load_last_pdi(pc); break; \
   case ISA_OPCODE_SAVE_TIMESTAMPS: pc += control_dispatch_save_timestamps(pc); break; \
   case ISA_OPCODE_SLEEP: pc += control_dispatch_sleep(pc); break; \
