@@ -25,6 +25,13 @@ namespace aiebu {
             if (!result)
                 throw error(error::error_code::invalid_elf, "Invalid ELF buffer");
         }
+        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2_config ||
+            m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps ||
+            m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config ||
+            m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie4 ||
+            m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie4_config) {
+               throw error(error::error_code::internal_error, "Not supported");
+        }
     }
 
     void reporter::elf_summary(std::ostream &stream) const
@@ -36,10 +43,6 @@ namespace aiebu {
             ELFIO::dump::header(stream, my_elf_reader );
             ELFIO::dump::section_headers( stream, my_elf_reader);
             ELFIO::dump::segment_headers( stream, my_elf_reader);
-        }
-        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
-            throw error(error::error_code::internal_error,
-                  "AIE2PS and AIE4 ELF are not supported");
         }
         else {
             throw error(error::error_code::invalid_buffer_type,
@@ -73,10 +76,6 @@ namespace aiebu {
         }
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
             ctrlcode_blob_summary(stream);
-        }
-        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
-            throw error(error::error_code::internal_error,
-                  "AIE2PS and AIE4 ELF are not supported");
         }
         else {
             throw error(error::error_code::invalid_buffer_type,
@@ -131,10 +130,6 @@ namespace aiebu {
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
             disassemble_blob(root);
         }
-        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
-            throw error(error::error_code::internal_error,
-                  "AIE2PS and AIE4 ELF are not supported");
-        }
         else {
             throw error(error::error_code::invalid_buffer_type,
                   "Invalid buffer type for disassembly");
@@ -177,10 +172,6 @@ namespace aiebu {
         }
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
             disassemble_blob(stream);
-        }
-        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
-            throw error(error::error_code::internal_error,
-                  "AIE2PS and AIE4 ELF are not supported");
         }
         else {
             throw error(error::error_code::invalid_buffer_type,

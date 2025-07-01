@@ -33,6 +33,10 @@ class aiebu_assembler
       pdi_aie2,
       pdi_aie2ps,
       blob_control_packet_aie2,
+      elf_aie2_config,
+      elf_aie2ps_config,
+      elf_aie4,
+      elf_aie4_config,
       unspecified,
     };
 
