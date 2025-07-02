@@ -3,14 +3,14 @@
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_custom_target(spec-tool-deps
     COMMAND wget -q -O markdown_graphviz_svg.py
-    https://raw.githubusercontent.com/Tanami/markdown-graphviz-svg/master/markdown_graphviz_svg.py
+    https://raw.githubusercontent.com/Tanami/markdown-graphviz-svg/master/src/markdown_graphviz_svg/markdown_graphviz_svg.py
     BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/markdown_graphviz_svg.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 else()
   add_custom_target(spec-tool-deps
     COMMAND powershell wget -O markdown_graphviz_svg.py
-    https://raw.githubusercontent.com/Tanami/markdown-graphviz-svg/master/markdown_graphviz_svg.py
+    https://raw.githubusercontent.com/Tanami/markdown-graphviz-svg/master/src/markdown_graphviz_svg/markdown_graphviz_svg.py
     BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/markdown_graphviz_svg.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
