@@ -1,0 +1,404 @@
+{
+    "debug": [
+        {
+            "sno": "1",
+            "operation": "START_JOB 0",
+            "opcode_size": "8",
+            "column": "0",
+            "page_index": "0",
+            "page_offset": "16",
+            "line": "2",
+            "file": "default"
+        },
+        {
+            "sno": "2",
+            "operation": "LOAD_PDI 0, @pdi",
+            "opcode_size": "8",
+            "column": "0",
+            "page_index": "0",
+            "page_offset": "24",
+            "line": "3",
+            "file": "default"
+        },
+        {
+            "sno": "3",
+            "operation": "END_JOB",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "0",
+            "page_offset": "32",
+            "line": "4",
+            "file": "default"
+        },
+        {
+            "sno": "4",
+            "operation": "EOF",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "0",
+            "page_offset": "36",
+            "line": "22",
+            "file": "default"
+        },
+        {
+            "sno": "5",
+            "operation": "START_JOB 0",
+            "opcode_size": "8",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8208",
+            "line": "4",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "6",
+            "operation": "UC_DMA_WRITE_DES_SYNC\t @UCBD_label_0",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8216",
+            "line": "5",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "7",
+            "operation": "APPLY_OFFSET_57\t @DMAWRITE_data_0, 1, 2",
+            "opcode_size": "8",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8220",
+            "line": "6",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "8",
+            "operation": "UC_DMA_WRITE_DES_SYNC\t @UCBD_label_1",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8228",
+            "line": "7",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "9",
+            "operation": "APPLY_OFFSET_57\t @DMAWRITE_data_2, 1, 0",
+            "opcode_size": "8",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8232",
+            "line": "8",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "10",
+            "operation": "UC_DMA_WRITE_DES_SYNC\t @UCBD_label_2",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8240",
+            "line": "9",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "11",
+            "operation": "MASK_POLL_32\t 0x61d0604, 0x1, 0x1",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8244",
+            "line": "10",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "12",
+            "operation": "MASK_POLL_32\t 0x1d0604, 0x1, 0x1",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8260",
+            "line": "11",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "13",
+            "operation": "UC_DMA_WRITE_DES_SYNC\t @UCBD_label_3",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8276",
+            "line": "12",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "14",
+            "operation": "MASK_POLL_32\t 0x21d0604, 0x1, 0x1",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8280",
+            "line": "13",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "15",
+            "operation": "UC_DMA_WRITE_DES_SYNC\t @UCBD_label_4",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8296",
+            "line": "14",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "16",
+            "operation": "APPLY_OFFSET_57\t @DMAWRITE_data_8, 1, 1",
+            "opcode_size": "8",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8300",
+            "line": "15",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "17",
+            "operation": "UC_DMA_WRITE_DES_SYNC\t @UCBD_label_5",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8308",
+            "line": "16",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "18",
+            "operation": "MASK_POLL_32\t 0x400c604, 0x1, 0x1",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8312",
+            "line": "17",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "19",
+            "operation": "END_JOB",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8328",
+            "line": "18",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "20",
+            "operation": "EOF",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "1",
+            "page_offset": "8332",
+            "line": "22",
+            "file": "Work/ps/ml_asm//aie_runtime_control.asm"
+        },
+        {
+            "sno": "147",
+            "operation": "START_JOB 0",
+            "opcode_size": "8",
+            "column": "0",
+            "page_index": "2",
+            "page_offset": "16400",
+            "line": "4",
+            "file": "Work/ps/asm//aie_asm_elfs.asm"
+        },
+        {
+            "sno": "148",
+            "operation": "UC_DMA_WRITE_DES_SYNC\t @UCBD_label_0",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "2",
+            "page_offset": "16408",
+            "line": "5",
+            "file": "Work/ps/asm//aie_asm_elfs.asm"
+        },
+        {
+            "sno": "149",
+            "operation": "MASK_WRITE_32\t 0x303aa4, 0xff, 0x0",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "2",
+            "page_offset": "16412",
+            "line": "6",
+            "file": "Work/ps/asm//aie_asm_elfs.asm"
+        },
+        {
+            "sno": "150",
+            "operation": "UC_DMA_WRITE_DES_SYNC\t @UCBD_label_1",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "2",
+            "page_offset": "16428",
+            "line": "7",
+            "file": "Work/ps/asm//aie_asm_elfs.asm"
+        },
+        {
+            "sno": "151",
+            "operation": "END_JOB",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "2",
+            "page_offset": "16432",
+            "line": "8",
+            "file": "Work/ps/asm//aie_asm_elfs.asm"
+        },
+        {
+            "sno": "152",
+            "operation": "EOF",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "2",
+            "page_offset": "16436",
+            "line": "10",
+            "file": "Work/ps/asm//aie_asm_elfs.asm"
+        },
+        {
+            "sno": "926",
+            "operation": "START_JOB 0",
+            "opcode_size": "8",
+            "column": "0",
+            "page_index": "3",
+            "page_offset": "24592",
+            "line": "4",
+            "file": "Work/ps/asm//aie_asm_init.asm"
+        },
+        {
+            "sno": "927",
+            "operation": "UC_DMA_WRITE_DES_SYNC\t @UCBD_label_0",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "3",
+            "page_offset": "24600",
+            "line": "5",
+            "file": "Work/ps/asm//aie_asm_init.asm"
+        },
+        {
+            "sno": "928",
+            "operation": "MASK_WRITE_32\t 0x338000, 0x2, 0x2",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "3",
+            "page_offset": "24604",
+            "line": "6",
+            "file": "Work/ps/asm//aie_asm_init.asm"
+        },
+        {
+            "sno": "929",
+            "operation": "MASK_WRITE_32\t 0x338000, 0x2, 0x0",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "3",
+            "page_offset": "24620",
+            "line": "7",
+            "file": "Work/ps/asm//aie_asm_init.asm"
+        },
+        {
+            "sno": "930",
+            "operation": "MASK_WRITE_32\t 0x4002104, 0xc00, 0x400",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "3",
+            "page_offset": "24636",
+            "line": "8",
+            "file": "Work/ps/asm//aie_asm_init.asm"
+        },
+        {
+            "sno": "931",
+            "operation": "MASK_WRITE_32\t 0x4002108, 0xc, 0x4",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "3",
+            "page_offset": "24652",
+            "line": "9",
+            "file": "Work/ps/asm//aie_asm_init.asm"
+        },
+        {
+            "sno": "932",
+            "operation": "MASK_WRITE_32\t 0x6002104, 0xc00, 0x400",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "3",
+            "page_offset": "24668",
+            "line": "10",
+            "file": "Work/ps/asm//aie_asm_init.asm"
+        },
+        {
+            "sno": "933",
+            "operation": "MASK_WRITE_32\t 0x338038, 0x1, 0x1",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "3",
+            "page_offset": "24684",
+            "line": "11",
+            "file": "Work/ps/asm//aie_asm_init.asm"
+        },
+        {
+            "sno": "934",
+            "operation": "END_JOB",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "3",
+            "page_offset": "24700",
+            "line": "12",
+            "file": "Work/ps/asm//aie_asm_init.asm"
+        },
+        {
+            "sno": "935",
+            "operation": "EOF",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "3",
+            "page_offset": "24704",
+            "line": "10",
+            "file": "Work/ps/asm//aie_asm_init.asm"
+        },
+        {
+            "sno": "1025",
+            "operation": "START_JOB 0",
+            "opcode_size": "8",
+            "column": "0",
+            "page_index": "4",
+            "page_offset": "32784",
+            "line": "4",
+            "file": "Work/ps/asm//aie_asm_enable.asm"
+        },
+        {
+            "sno": "1026",
+            "operation": "MASK_WRITE_32\t 0x338000, 0x1, 0x1",
+            "opcode_size": "16",
+            "column": "0",
+            "page_index": "4",
+            "page_offset": "32792",
+            "line": "5",
+            "file": "Work/ps/asm//aie_asm_enable.asm"
+        },
+        {
+            "sno": "1027",
+            "operation": "END_JOB",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "4",
+            "page_offset": "32808",
+            "line": "6",
+            "file": "Work/ps/asm//aie_asm_enable.asm"
+        },
+        {
+            "sno": "1028",
+            "operation": "EOF",
+            "opcode_size": "4",
+            "column": "0",
+            "page_index": "4",
+            "page_offset": "32812",
+            "line": "10",
+            "file": "Work/ps/asm//aie_asm_enable.asm"
+        }
+    ]
+}

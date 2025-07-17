@@ -1,0 +1,78 @@
+#
+# cert dtrace example
+#
+begin
+{
+    print("\ntracing started ...\n")
+    tss = timestamp32()
+    print(f"begin ts: {tss:d}")
+
+    buf1[0x20] = [
+        0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef,
+        0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef,
+        0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef,
+        0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef,
+        0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef,
+        0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef,
+        0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef,
+        0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef
+    ]
+    write_mem(0x100000, 0x20, buf1)
+    print(f"write 0xdeadbeef starting memtile offset 0x100000 and next 32 memory locations")
+}
+jprobe:aie_asm_elfs.asm:uc0:line4-484
+{
+    ts1 = timestamp32()
+    print("opcode: {} ts: {:d}".format(operation, ts1))
+}
+jprobe:aie_asm_init.asm:uc0:line16-180 
+{
+    ts2 = timestamp()
+    print(f"opcode: {operation} ts: {ts2:d}")
+}
+jprobe:aie_asm_enable.asm:uc0:line10,20,30,40,50
+{
+    print("opcode: {}".format(operation))
+}
+jprobe:aie_runtime_control1.asm:uc4:line12,16 {
+    buf3 = read_mem(0xa1a0680, 4)
+    print(f"read mem = {buf3}")
+}
+jprobe:aie_runtime_control2.asm:uc8:line5,7,9,12,17,22,24
+{
+    ts3 = timestamp32()
+    print("opcode: {operation} timestamp: {ts3:d}")
+}
+jprobe:aie_runtime_control3.asm:uc12:line6,8,23
+{
+    ts3 = timestamp()
+    print("opcode: {operation} timestamp: {ts3:d}")
+}
+jprobe:aie_runtime_control4.asm:uc16:line25-26
+{
+    v = read_reg(0x2400c604)
+    print(f"read value: {hex(v)}")
+}
+jprobe:aie_runtime_control5.asm:uc20:line25 
+{
+    mask_write_reg(0x2c00c604, 0x1, 0x1)
+    print(f"mask write 0x2c00c604, mask value 0x1")
+}
+tracepoint:uc4,8,12,16,20:id4-7
+{
+    ts4[3] = timestamps()
+    print(f"{probename}: ts4 = {ts4}")
+}
+jprobe:dummy.asm:uc4,8,12,16,20:line3
+{
+    print("opcode: {}".format(operation))
+}
+end
+{
+    buf2 = read_mem(0x100000, 32)
+    print(f"read mem = {buf2}")
+
+    time = ts_end_job - ts_start_job 
+    print(f"total time: {time:d}")
+    print("\ntracing ended !!\n")
+}

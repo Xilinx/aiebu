@@ -1,0 +1,8 @@
+#
+# cert profile example
+#
+profile:uc0:200000000hz
+{
+    a = opcode()
+    printa(a)
+}

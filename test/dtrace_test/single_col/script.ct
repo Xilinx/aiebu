@@ -1,0 +1,102 @@
+#
+# cert dtrace example
+#
+begin
+{
+    print("\ntracing started ...\n")
+    tss = timestamp32()
+    print(f"begin ts: {tss:d}")
+
+    buf1[0x4] = [
+        0xdeadbeef, 0xdeadbeef, 
+        0xdeadbeef, 0xdeadbeef
+    ]
+    write_mem(0x100010, 4, buf1)
+    print(f"write 0xdeadbeef starting memtile offset 0x100010 and next 4 memory locations")
+}
+jprobe:aie_asm_elfs.asm:uc0:line5,7
+{
+    ts1 = timestamp32()
+    print("opcode: {}".format(operation))
+    print("ucdma write ts: {:d}".format(ts1))
+}
+jprobe:aie_asm_init.asm:uc0:line6-11 
+{
+    ts2 = timestamp32()
+    print(f"mask write ts: {ts2:d}")
+}
+jprobe:aie_runtime_control.asm:uc0:line4
+{
+    write_reg(0x100000, 0xabcdabcd)
+    print(f"write 0xabcdabcd to memtile 0_1 offset 0")
+    mask_write_reg(0x100000, 0x0000FFFF, 0x12345678)
+    print(f"mask write 0x12345678 to memtile 0_1 offset 0, mask value 0x0000FFFF")
+}
+jprobe:aie_runtime_control.asm:uc0:line5-17
+{
+    ts3 = timestamp()
+    print("opcode: {operation} timestamp: {ts3:d}")
+}
+jprobe:aie_runtime_control.asm:uc0:line18
+{
+    v = read_reg(0x100000)
+    print(f"read from memtile 0_1 offset 0: {hex(v)}")
+}
+jprobe:default:uc0:line2
+{
+    ts_start_job = timestamp32()
+    axi_mm_offset = read_reg(0xc0020)
+    print(f"start job ts: {ts_start_job:d} axi_mm_offset: 0x{axi_mm_offset:x}")
+}
+jprobe:default:uc0:line3
+{
+    print("opcode: {}".format(operation))
+}
+jprobe:default:uc0:line4
+{
+    ts_end_job = timestamp()
+    print("end job ts: {ts_end_job:d}")
+
+    v = read_reg(0x2100000)
+    print(f"read from memtile 1_1 offset 0: {hex(v)}")
+}
+tracepoint:uc0:id4-5
+{
+    @ts4[5] = timestamps()
+    print(f"{probename}: page load timestamps: {ts4}")
+}
+tracepoint:uc0:id6
+{
+    ts5[5] = timestamps32()
+    print(f"{probename}: page execute start timestamps: {ts5}")
+}
+tracepoint:uc0:id7
+{
+    ts6[5] = timestamps32()
+    print(f"{probename}: page execute done timestamps: {ts6}")
+}
+tracepoint:uc0:id12
+{
+    ts7 = timestamp()
+    print("{}: after control code running ts4: {:d}".format(probename, ts7))
+}
+tracepoint:uc0:id14
+{
+    ts8 = timestamp()
+    print("{}: before hsa cmd completion ts5: {:d}".format(probename, ts8))
+}
+end
+{
+    buf2 = read_mem(0x100010, 4)
+    print(f"read mem = {buf2}")
+
+    time_taken = [ts6[i] - ts5[i] for i in range(len(ts5))]
+    max_time = max(time_taken)
+    max_time_page = time_taken.index(max_time)
+    print("page time taken:", time_taken)
+    print(f"page {max_time_page} took the most time: {max_time}")
+
+    time = ts_end_job - ts_start_job 
+    print(f"total time: {time:d}")
+    print("\ntracing ended !!\n")
+}
