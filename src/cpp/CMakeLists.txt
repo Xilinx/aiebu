@@ -118,3 +118,6 @@ install(FILES
   DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}/aiebu
   CONFIGURATIONS Debug Release COMPONENT ${AIEBU_DEV_COMPONENT}
 )
+
+# Build dynamic tracing library
+add_subdirectory(dtrace)
