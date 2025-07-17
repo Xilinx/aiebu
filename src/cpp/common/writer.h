@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
+#include <fstream>
+#include <sstream>
 #include "symbol.h"
 #include "code_section.h"
 
@@ -166,6 +168,27 @@ public:
 
   std::shared_ptr<const partition_info> get_partition_info() const { return m_partition; }
 };
+
+class ctrl_writer
+{
+public:
+  explicit ctrl_writer(const std::string& filename);
+  ~ctrl_writer();
+
+  void write_directive(const std::string& directive);
+  void write_label(const std::string& label);
+  void write_attach_to_group(int colnum);
+  void write_operation(const std::string& name,
+    const std::vector<std::string>& args,
+    const std::string& label);
+  void write_endl(const std::string& label);
+  void write_eop();
+
+private:
+std::ofstream ofs;
+std::string current_label;
+};  
+
 
 }
 #endif //_AIEBU_COMMON_WRITER_H_

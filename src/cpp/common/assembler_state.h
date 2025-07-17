@@ -183,22 +183,30 @@ public:
   {
     // get list of jobs
     std::vector<jobid_type> keys;
+    std::cout << "Getting job list. Total jobs: " << m_jobmap.size() << std::endl;
     std::transform(
       m_jobmap.begin(),
       m_jobmap.end(),
       std::back_inserter(keys),
-      [](const std::map<jobid_type, std::shared_ptr<job>>::value_type &pair){return pair.first;});
+      [](const std::map<jobid_type, std::shared_ptr<job>>::value_type &pair){
+        std::cout << "Job ID: " << pair.first << std::endl;
+        return pair.first;
+      });
     return keys;
   }
   const std::vector<std::string> get_label_list() const
   {
-    // get list of jobs
+    // get list of labels
     std::vector<std::string> keys;
+    std::cout << "Getting label list. Total labels: " << m_labelmap.size() << std::endl;
     std::transform(
       m_labelmap.begin(),
       m_labelmap.end(),
       std::back_inserter(keys),
-      [](const std::map<std::string, std::shared_ptr<label>>::value_type &pair){return pair.first;});
+      [](const std::map<std::string, std::shared_ptr<label>>::value_type &pair){
+        std::cout << "Label: " << pair.first << std::endl;
+        return pair.first;
+      });
     return keys;
   }
 

@@ -4,6 +4,7 @@
 #ifndef _ADSM_OPS_OPARG_H_
 #define _ADSM_OPS_OPARG_H_
 
+#include "utils.h"
 #include <vector>
 #include <string>
 
