@@ -11,6 +11,12 @@
 #include <unordered_map>
 #include <cstdint>
 
+#ifdef _WIN32
+  #define DTRACE_EXPORT __declspec(dllexport)
+#else
+  #define DTRACE_EXPORT __attribute__((visibility("default")))
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,6 +35,7 @@ extern "C" {
  * on the provided script file and map data. It returns 0 on success and 1 on failure.
  * Does not include the log level parameter, log_level is set to error by default.
  */
+DTRACE_EXPORT
 uint32_t 
 get_dtrace_col_numbers(const char* script_file, const char* map_data, 
     uint32_t* buffers_length);
@@ -45,6 +52,7 @@ get_dtrace_col_numbers(const char* script_file, const char* map_data,
  * This function calculates and returns the length of uC for dynamic tracing based
  * on the provided script file and map data. It returns 0 on success and 1 on failure.
  */
+DTRACE_EXPORT
 uint32_t 
 get_dtrace_col_numbers_with_log(const char* script_file, const char* map_data, 
     uint32_t* buffers_length, uint32_t log_level);
@@ -60,6 +68,7 @@ get_dtrace_col_numbers_with_log(const char* script_file, const char* map_data,
  * and uC index needed for dynamic tracing based on the provided script file and map data. 
  * It returns 0 on success and 1 on failure.
  */
+DTRACE_EXPORT
 void
 get_dtrace_buffer_size(uint64_t* buffers);
 
@@ -73,6 +82,7 @@ get_dtrace_buffer_size(uint64_t* buffers);
  * This function initializes and allocates dynamic tracing buffers for each uC index. 
  * Each element in the control buffer represents a probe or its respective action.
  */
+DTRACE_EXPORT
 void 
 populate_dtrace_buffer(uint32_t* dtrace_buffer, uint64_t dtrace_buffer_dma);
 
@@ -84,6 +94,7 @@ populate_dtrace_buffer(uint32_t* dtrace_buffer, uint64_t dtrace_buffer_dma);
  * This function creates a result file by processing the result buffer and mem buffer, 
  * and writes the output to the specified result file.
  */
+DTRACE_EXPORT
 void 
 get_dtrace_result_file(const char* result_file);
 

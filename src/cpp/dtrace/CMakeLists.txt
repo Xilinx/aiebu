@@ -36,6 +36,7 @@ target_include_directories(dtrace_library_objects
   )
 
 set_target_properties(dtrace_library_objects PROPERTIES
+  CXX_VISIBILITY_PRESET hidden
   POSITION_INDEPENDENT_CODE ON
   )
 
