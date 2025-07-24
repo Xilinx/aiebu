@@ -5,6 +5,7 @@
 #include "aiebu/aiebu_assembler.h"
 #include "utils.h"
 #include <iostream>
+#include "elfio/elfio.hpp"
 
 namespace aiebu {
 
@@ -23,6 +24,11 @@ constexpr unsigned int word_size = 4;
 // For AIE2 control packets are 8 words (8words * 4bytes/word = 32bytes) aligned
 constexpr unsigned int ctrlpkt_offset_aie2 = 8 * word_size;
 
+// Size of word in bytes
+constexpr unsigned int os_abi_aie2p = 69;
+constexpr unsigned int os_abi_aie2ps = 64;
+constexpr unsigned int os_abi_aie2ps_group = 70;
+
 aiebu_assembler::buffer_type
 identify_buffer_type(const std::vector<char>& buffer)
 {
@@ -30,10 +36,19 @@ identify_buffer_type(const std::vector<char>& buffer)
     return aiebu_assembler::buffer_type::unspecified;
 
   const auto data = reinterpret_cast<const unsigned int *>(buffer.data());
+
   // ELF magic number
-  // TODO: add additional check to distinguish between aie2 and aie2ps
-  if (data[0] == elf_magic)
-    return aiebu_assembler::buffer_type::elf_aie2;
+  if (data[0] == elf_magic) {
+    ELFIO::elfio reader;
+    std::istringstream stream(std::string(buffer.data(), buffer.size()));
+    if (reader.load(stream)) {
+      // Check if the ELF file is for AIE2 or AIE2PS
+      if (reader.get_os_abi() == os_abi_aie2p)
+        return aiebu_assembler::buffer_type::elf_aie2;
+      else if (reader.get_os_abi() == os_abi_aie2ps || reader.get_os_abi() == os_abi_aie2ps_group)
+        return aiebu_assembler::buffer_type::elf_aie2ps;
+    }
+ }
   // Transaction ctrlcode header
   if (data[0] == ctrlcode_magic_aie2)
     return aiebu_assembler::buffer_type::blob_instr_transaction;

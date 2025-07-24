@@ -117,7 +117,7 @@ public:
     return static_cast<uint32_t>(data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
   }
 
-  uint32_t read_length(const char* data, uint32_t len) {
+  uint32_t get_arg_val(const char* data, uint32_t len) {
     if (len == 1) {
       return read_uint8(data);
     } else if (len == 2) {
@@ -164,7 +164,7 @@ public:
   uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override ;
   /*{
     ////
-    uint32_t align_value = read_length(data, 1);
+    uint32_t align_value = get_arg_val(data, 1);
     if (align_value == 0) {
       throw error(error::error_code::invalid_asm, "Invalid alignment value: " + std::to_string(align_value) + "\n");
     }

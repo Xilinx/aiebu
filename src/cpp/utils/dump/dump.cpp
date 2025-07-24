@@ -12,6 +12,7 @@
 #include "analyzer/packets.h"
 #include "common/file_utils.h"
 #include "common/utils.h"
+#include "disassembler/disassembler.h"
 
 namespace aiebu {
 
@@ -119,8 +120,17 @@ int main(int argc, char* argv[])
   const std::vector<char> buffer = aiebu::readfile(result["filename"].as<std::string>());
   aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);
   std::cout << aiebu::buffer_type_table.at(type) << std::endl;
-
-  if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet ||
+  if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
+    try {
+      aiebu::asm_disassembler disasm(argv[1], std::cout);
+      disasm.run();
+      std::cout << "Disassembly completed successfully.\n";
+  } catch (const std::exception& ex) {
+      std::cerr << "Disassembler error: " << ex.what() << std::endl;
+      return 2;
+  }
+  }
+  else if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet ||
            type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
     if (result["disassemble"].as<bool>()) {
       aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()), type);

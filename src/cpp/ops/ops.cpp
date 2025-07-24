@@ -246,12 +246,12 @@ deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, cons
 {
   std::vector<std::string> result;
   //1 byte opcode and 1 byte pad
-  uint32_t size = 2;
+  uint32_t size = 2; // TODO: LOAD_PDI, LOAD_LAST_PDI, SAVE_TIMESTAMPS, SLEEP, SAVE_REGISTER have 1 + 2 bytes of padding.  
   uint32_t tile = 0;
 
   for (const auto& arg : m_opcode->get_args()) {
     uint32_t len = arg.get_width() / byte_to_bits;  // convert bits to byte
-    uint32_t val = read_length(data + size, len);
+    uint32_t val = get_arg_val(data + size, len);
     size += len;
     switch (arg.get_type()) {
       case opArg::optype::CONST:
@@ -286,7 +286,7 @@ deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, cons
           result.push_back(oss.str());
         }
         break;
-        case opArg::optype::JOBSIZE:
+      case opArg::optype::JOBSIZE:
         // TODO: Check if jobsize is valid
         break;
   
@@ -295,9 +295,9 @@ deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, cons
           throw std::runtime_error("Register number out of range: " + std::to_string(val));
         }
         if (val < 8) {  // NOLINT
-          result.push_back("$r" + std::to_string(val));
+          result.push_back("$r" + std::to_string(val)); // r0 to r7
         } else {
-          result.push_back("$g" + std::to_string(val - 8));
+          result.push_back("$g" + std::to_string(val - 8)); // g0 to g15
         }
         break;
       case opArg::optype::BARRIER:

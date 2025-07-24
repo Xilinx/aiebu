@@ -22,6 +22,7 @@ add_library(aiebu_library_objects OBJECT
   preprocessor/aie2/aie2_asm_preprocessor_input.cpp
   preprocessor/asm/asm_parser.cpp
   ops/ops.cpp
+  disassembler/disassembler.cpp
   )
 
 # Remove globle includes in case of submodule XRT as there are conflicts

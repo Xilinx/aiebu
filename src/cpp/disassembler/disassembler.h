@@ -8,17 +8,23 @@
 #include "elfio/elfio.hpp"
 #include "common/disassembler_state.h"
 #include "specification/aie2ps/isa.h"
+#include "ops/ops.h"
 #include "writer.h"
 
 namespace aiebu {
 
-class disassembler {
+class asm_disassembler {
 public:
-    disassembler(const std::string& elf_path, const std::string& label_path);
+    
+    asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream);
 
     void run();
 
 private:
+    ELFIO::elfio elf_reader;
+    ctrl_writer ctrl_writer_;
+    std::shared_ptr<std::map<uint8_t, std::shared_ptr<isa_op>>> isa_op_map;
+    
     void process_sections();
     void print_section_info(const ELFIO::section* section) ;
     void process_text_section(const ELFIO::section* section, std::shared_ptr<disassembler_state> state);
@@ -26,10 +32,6 @@ private:
     void process_pad_section(const ELFIO::section* /*section*/, std::shared_ptr<disassembler_state> /*state*/);
     bool is_text_section(const std::string& section_name) const;
     bool is_data_section(const std::string& section_name) const;
-
-    ELFIO::elfio elf_reader_;
-    ctrl_writer ctrl_writer_;
-    std::shared_ptr<std::map<uint8_t, std::shared_ptr<isa_op>>> isa_op_map_;
 };
 
 } // namespace aiebu

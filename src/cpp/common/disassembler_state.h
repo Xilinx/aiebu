@@ -24,8 +24,8 @@ private:
 public:
     uint32_t get_address() const { return position; }
 
-    void increment_address(uint32_t inc) {
-        position += inc;
+    void increment_address(uint32_t offset) {
+        position += offset;
     }
 
     const std::map<uint32_t, std::string>& get_labels() const {
@@ -36,10 +36,6 @@ public:
         labels[addr] = label;
     }
 
-    const std::map<uint32_t, std::string>& getExternalLabels() const {
-        return external_labels;
-    }
-
     const std::map<uint32_t, std::pair<std::string, uint32_t>>& get_local_ptrs() const {
         return local_ptr;
     }
@@ -47,7 +43,7 @@ public:
     const std::map<uint32_t, std::string>& get_externallabels() const {
         return external_labels;
     }
-    
+
     void add_externallabel(uint32_t address, std::string label) {
         external_labels[address] = std::move(label);
     }
@@ -81,7 +77,7 @@ public:
     // TODO - Convert below to a map like in assembler_state.h
     std::string to_actor(uint32_t val, uint32_t tile) {
         uint32_t row = tile & 0x1F;  //NOLINT
-    
+
         if (row == 0) {  //NOLINT
           // One SHIM TILE
           switch(val)
@@ -90,8 +86,7 @@ public:
             case 1: return "SHIM_S2MM_1"; //NOLINT
             case 6: return "SHIM_MM2S_0"; //NOLINT
             case 7: return "SHIM_MM2S_1"; //NOLINT
-            default: throw error(error::error_code::invalid_asm, "Invalid Shim tile actor:" + std::to_string(val) + "\n");  
-          }
+            default: throw error(error::error_code::invalid_asm, "Invalid Shim tile actor:" + std::to_string(val) + "\n");          }
         }
         else if (row == 1 || row == 2) { //NOLINT
           // Two MEM TILE

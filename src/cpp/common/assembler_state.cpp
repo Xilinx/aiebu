@@ -26,7 +26,7 @@ assembler_state(std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> 
 
 // makeunique: make the job and label name unique by adding file name with it,
 //             this is only needed before paging as different file can have same
-//             job number and label but after pafing its not needed as on a page
+//             job number and label but after paging its not needed as on a page
 //             we will have only unique job and label
 void
 assembler_state::

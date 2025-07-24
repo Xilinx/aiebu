@@ -41,7 +41,7 @@ public:
   section_writer(const section_writer& rhs) = default;
   section_writer& operator=(const section_writer& rhs) = delete;
   section_writer(section_writer &&s) = default;
-  //section_writer& operator=(const section_writer&& rhs) = default;
+
 
   virtual void write_byte(uint8_t byte);
 
@@ -152,7 +152,6 @@ public:
 
 class config_writer: public writer
 {
-  // map<kernel, map<instance, vector<section_writer object having control code pages and symbol info>>
   std::map<std::string, std::map<std::string, std::vector<std::shared_ptr<writer>>>> m_output;
   std::shared_ptr<const partition_info> m_partition;
 
@@ -172,23 +171,20 @@ public:
 class ctrl_writer
 {
 public:
-  explicit ctrl_writer(const std::string& filename);
+  explicit ctrl_writer(std::ostream& stream);
   ~ctrl_writer();
 
   void write_directive(const std::string& directive);
   void write_label(const std::string& label);
   void write_attach_to_group(int colnum);
-  void write_operation(const std::string& name,
-    const std::vector<std::string>& args,
-    const std::string& label);
+  void write_operation(const std::string& name, const std::vector<std::string>& args, const std::string& label);
   void write_endl(const std::string& label);
   void write_eop();
 
 private:
-std::ofstream ofs;
-std::string current_label;
-};  
-
+  std::ostream& m_stream;
+  std::string current_label;
+};
 
 }
 #endif //_AIEBU_COMMON_WRITER_H_

@@ -163,7 +163,7 @@ class isa_disassembler
 private:
   std::shared_ptr<std::map<uint8_t, std::shared_ptr<isa_op>>> m_isa_disasm;
 
-  public:
+public:
   isa_disassembler()
   {
     m_isa_disasm = std::make_shared<std::map<uint8_t, std::shared_ptr<isa_op>>>();
@@ -296,7 +296,7 @@ private:
 
   }
 
-  std::shared_ptr<std::map<uint8_t, std::shared_ptr<isa_op>>> get_isamap()
+  std::shared_ptr<std::map<uint8_t, std::shared_ptr<isa_op>>> get_isa_map()
   {
     return m_isa_disasm;
   }

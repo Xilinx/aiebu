@@ -17,6 +17,11 @@ target_include_directories(aiebu_dump_objects
   ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include
   ${AIEBU_SOURCE_DIR}/src/cpp
   ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO
+  ${AIEBU_SOURCE_DIR}/src/cpp/disassembler
+  ${AIEBU_SOURCE_DIR}/src/cpp/common
+  ${AIEBU_SOURCE_DIR}/src/cpp/ops
+  ${AIEBU_SOURCE_DIR}/src/cpp/preprocessor
+  ${AIEBU_SOURCE_DIR}/
   ${Boost_INCLUDE_DIRS}
   )
 

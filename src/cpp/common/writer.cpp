@@ -67,16 +67,15 @@ padding(offset_type pagesize)
 }
 
 ctrl_writer::
-ctrl_writer(const std::string& filename)
+ctrl_writer(std::ostream& out_stream)
+  : m_stream(out_stream)
 {
-  ofs.open(filename);
-  if (!ofs)
-    throw std::runtime_error("Unable to open log file: " + filename);
+  // No file opening needed; using provided stream
 }
 
 ctrl_writer::
 ~ctrl_writer() {
-  ofs.close();
+  // No file closing needed; stream is managed externally
 }
 
 void
@@ -87,7 +86,7 @@ write_label(const std::string& name)
   if (!name.empty() && name.front() == '@')
     clean_name = name.substr(1); // Remove leading '@'
 
-  ofs << clean_name << ":\n";
+  m_stream << clean_name << ":\n";
   current_label = clean_name;
 }
 
@@ -95,14 +94,14 @@ void
 ctrl_writer::
 write_attach_to_group(int col)
 {
-  ofs << ".attach_to_group " << col << '\n';
+  m_stream << ".attach_to_group " << col << '\n';
 }
 
 void
 ctrl_writer::
 write_directive(const std::string& name)
 {
-  ofs << name << '\n';
+  m_stream << name << '\n';
 }
 
 void
@@ -113,14 +112,14 @@ write_endl(const std::string& name)
   if (!clean_name.empty() && clean_name.front() == '@')
     clean_name = clean_name.substr(1);  // Strip leading '@'
 
-  ofs << ".endl " << clean_name << '\n';
+  m_stream << ".endl " << clean_name << '\n';
 }
 
 void
 ctrl_writer::
 write_eop()
 {
-  ofs << ".eop\n";
+  m_stream << ".eop\n";
 }
 
 void
@@ -130,20 +129,20 @@ write_operation(const std::string& name,
                 const std::string& label)
 {
   if (current_label == label)
-    ofs << "    ";
+    m_stream << "    ";
 
-  ofs << name << "\t";
+  m_stream << name << "\t";
 
   for (size_t index = 0; index < args.size(); ++index) {
     if (current_label != label)
-      ofs << " ";
+      m_stream << " ";
 
-    ofs << args[index];
+    m_stream << args[index];
 
-   if (index < args.size() - 1)
-     ofs << ", ";
+    if (index < args.size() - 1)
+      m_stream << ", ";
   }
-  ofs << '\n';
+  m_stream << '\n';
 }
 
 }
