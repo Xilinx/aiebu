@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2024 Advanced Micro Devices, Inc.
+# Copyright (C) 2024-2025 Advanced Micro Devices, Inc.
 
-install(PROGRAMS xas xdas DESTINATION ${AIEBU_INSTALL_DIR}/bin CONFIGURATIONS Debug Release COMPONENT Runtime)
+# install(PROGRAMS xas xdas
+#   DESTINATION ${AIEBU_INSTALL_DIR}/bin
+#   CONFIGURATIONS Debug Release
+#   COMPONENT ${AIEBU_COMPONENT})

@@ -97,8 +97,8 @@ if (MSVC)
 endif()
 
 install (TARGETS aiebu_static
-  ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR}
-  LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}
+  LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_COMPONENT} NAMELINK_COMPONENT ${AIEBU_DEV_COMPONENT}
+  ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT}
 )
 
 install(FILES
@@ -106,14 +106,5 @@ install(FILES
   include/aiebu/aiebu_assembler.h
   include/aiebu/aiebu_error.h
   DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}/aiebu
-  CONFIGURATIONS Debug Release COMPONENT Runtime
-)
-
-# Deprecated include path, redirects to aiebu/*.h with warning
-install(FILES
-  include/deprecated/aiebu.h
-  include/deprecated/aiebu_assembler.h
-  include/deprecated/aiebu_error.h
-  DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}
-  CONFIGURATIONS Debug Release COMPONENT Runtime
+  CONFIGURATIONS Debug Release COMPONENT ${AIEBU_DEV_COMPONENT}
 )

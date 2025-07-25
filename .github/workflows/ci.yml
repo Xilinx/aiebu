@@ -74,7 +74,17 @@ jobs:
 
     - name: Build
       run: |
-        cmake --build ${{github.workspace}}/build/Release --config Release --target install
+        cmake --build ${{github.workspace}}/build/Release --config Release
+
+    - name: Install (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cmake --install ${{github.workspace}}/build/Release --config Release --prefix ${{github.workspace}}/build/Release/opt/xilinx/aiebu
+
+    - name: Install (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake --install ${{github.workspace}}/build/Release --config Release --prefix ${{github.workspace}}/build/Release/xilinx/aiebu
 
     - name: Test (Linux)
       if: runner.os == 'Linux'

@@ -54,21 +54,14 @@ endif()
 ################################################################
 # Install directories
 ################################################################
-if (NOT AIEBU_GIT_SUBMODULE AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/opt/xilinx" CACHE PATH "..." FORCE)
-  else()
-    set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/xilinx" CACHE PATH "..." FORCE)
-  endif()
-  message("-- Install prefix is default initialized to ${CMAKE_INSTALL_PREFIX}")
-endif()
-
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 
-set(AIEBU_INSTALL_DIR "aiebu")
+set(AIEBU_INSTALL_DIR ".")
 set(AIEBU_INSTALL_BIN_DIR           "${AIEBU_INSTALL_DIR}/bin")
 set(AIEBU_INSTALL_LIB_DIR           "${AIEBU_INSTALL_DIR}/lib")
 set(AIEBU_INSTALL_INCLUDE_DIR       "${AIEBU_INSTALL_DIR}/include")
+set(AIEBU_INSTALL_CMAKE_DIR         "${AIEBU_INSTALL_DIR}/share/cmake/${PROJECT_NAME}")
+set(AIEBU_BUILD_INSTALL_DIR         "${CMAKE_BINARY_DIR}${CMAKE_INSTALL_PREFIX}")
 set(AIEBU_PYTHON_INSTALL_DIR        "${AIEBU_INSTALL_DIR}/lib/python3")
 set(AIEBU_SPECIFICATION_INSTALL_DIR "${AIEBU_INSTALL_DIR}/share/specification")
 set(AIEBU_GEN_DIR                   "${AIEBU_BINARY_DIR}/lib/gen")

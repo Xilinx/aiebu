@@ -5,6 +5,7 @@ project(AIEBU HOMEPAGE_URL https://github.com/Xilinx/aiebu VERSION 1.0)
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 include(cmake/settings.cmake)
+include(cmake/components.cmake)
 include(cmake/version.cmake)
 
 message("-- AIEBU_NATIVE_BUILD: ${AIEBU_NATIVE_BUILD}")

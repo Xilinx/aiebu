@@ -45,5 +45,6 @@ add_custom_target(dump_check_dynamic_deps ALL
 
 install(TARGETS aiebu-dump
   RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
-  CONFIGURATIONS Debug Release COMPONENT Runtime
-)
+  CONFIGURATIONS Debug Release
+  COMPONENT ${AIEBU_COMPONENT}
+  )

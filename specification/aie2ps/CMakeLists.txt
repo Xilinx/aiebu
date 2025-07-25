@@ -72,7 +72,8 @@ add_custom_target(c-defines
 
 add_dependencies(isa-spec-gen cpp-assembler-stubs docs html-docs c-stubs c-defines)
 
-install(FILES isa-spec.html isa-spec.md isa_stubs.h isa_defines.h isa.h
-  DESTINATION ${AIEBU_SPECIFICATION_INSTALL_DIR}/aie2ps
-  CONFIGURATIONS Debug Release COMPONENT Runtime
-  )
+# install(FILES isa-spec.html isa-spec.md isa_stubs.h isa_defines.h isa.h
+#   DESTINATION ${AIEBU_SPECIFICATION_INSTALL_DIR}/aie2ps
+#   CONFIGURATIONS Debug Release
+#   COMPONENT ${AIEBU_COMPONENT}
+#   )

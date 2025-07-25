@@ -58,9 +58,19 @@ set(AIEBU_PYTHON_INSTALL_DIR  "${AIEBU_INSTALL_DIR}/lib/python3")
 message("-- AIEBU_PYTHON_INSTALL_DIR=${AIEBU_PYTHON_INSTALL_DIR}")
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  install(DIRECTORY aiebu/ctrlcode aiebu/scripts aiebu/pylibelf DESTINATION ${AIEBU_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug Release COMPONENT Runtime PATTERN __pycache__ EXCLUDE )
+  install(DIRECTORY aiebu/ctrlcode aiebu/scripts aiebu/pylibelf
+    DESTINATION ${AIEBU_PYTHON_INSTALL_DIR}
+    CONFIGURATIONS Debug Release
+    COMPONENT ${AIEBU_COMPONENT}
+    PATTERN __pycache__ EXCLUDE )
 
-  install(PROGRAMS aiebu/control_asm_disasm.py DESTINATION ${AIEBU_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug Release COMPONENT Runtime)
+  install(PROGRAMS aiebu/control_asm_disasm.py
+    DESTINATION ${AIEBU_PYTHON_INSTALL_DIR}
+    CONFIGURATIONS Debug Release
+    COMPONENT ${AIEBU_COMPONENT})
 
-  install(FILES aiebu/__init__.py DESTINATION ${AIEBU_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug Release COMPONENT Runtime)
+  install(FILES aiebu/__init__.py
+    DESTINATION ${AIEBU_PYTHON_INSTALL_DIR}
+    CONFIGURATIONS Debug Release
+    COMPONENT ${AIEBU_COMPONENT})
 endif()

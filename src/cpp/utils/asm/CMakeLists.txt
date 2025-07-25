@@ -50,5 +50,7 @@ add_custom_target(asm_check_dynamic_deps ALL
 
 install(TARGETS aiebu-asm
   RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
-  CONFIGURATIONS Debug Release COMPONENT Runtime
-)
+  CONFIGURATIONS Debug Release
+  COMPONENT ${AIEBU_COMPONENT}
+  )
+
