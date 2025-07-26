@@ -3,6 +3,9 @@
 REM SPDX-License-Identifier: Apache-2.0
 REM Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
 
+REM Usage: check_and_run.bat <dir> <cmd> <args...>
+
+set CMD=%*
 set STAGING_DIR=%1
 shift
 
@@ -11,5 +14,10 @@ if not exist "%STAGING_DIR%" (
     exit /B 77
 )
 
-rem Run the rest of the command
-%*
+rem Extract the actual command and its arguments after the first two
+for /f "tokens=1* delims= " %%A in ("%CMD%") do (
+    set "CMD=%%B"
+)
+
+echo "rest of command is: %CMD%"
+%CMD%

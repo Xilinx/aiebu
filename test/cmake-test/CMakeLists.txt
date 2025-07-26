@@ -17,7 +17,7 @@ endif()
 # can be found, otherwise skipped.
 
 if (WIN32)
-  set(AIEBU_INSTALL_STAGING_DIR ${CMAKE_BINARY_DIR}/xilinx/aiebu)
+  set(AIEBU_INSTALL_STAGING_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/xilinx/aiebu)
   set(AIEBU_CHECK_AND_RUN_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/check_and_run.bat)
 else()
   set(AIEBU_INSTALL_STAGING_DIR ${CMAKE_BINARY_DIR}/opt/xilinx/aiebu)
