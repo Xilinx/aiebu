@@ -79,11 +79,15 @@ jobs:
     - name: Install (Linux)
       if: runner.os == 'Linux'
       run: |
+        # Specify staging install area specific to Linux
+        # The unittest cmake_test test requires this specific staging area
         cmake --install ${{github.workspace}}/build/Release --config Release --prefix ${{github.workspace}}/build/Release/opt/xilinx/aiebu
 
     - name: Install (Windows)
       if: runner.os == 'Windows'
       run: |
+        # Specify staging install area specific to Windows
+        # The unittest cmake_test test requires this specific staging area
         cmake --install ${{github.workspace}}/build/Release --config Release --prefix ${{github.workspace}}/build/Release/xilinx/aiebu
 
     - name: Test (Linux)
