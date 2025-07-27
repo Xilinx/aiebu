@@ -132,11 +132,3 @@ jobs:
         name: aiebu_release_windows
         path: ${{github.workspace}}/build/WBuild/AIEBU-*-win64.zip
         retention-days: 7
-
-    - name: Upload (Windows)
-      if: runner.os == 'Windows'
-      uses: actions/upload-artifact@v4
-      with:
-        name: aiebu_release_windows_debug
-        path: ${{github.workspace}}/build
-        retention-days: 1
