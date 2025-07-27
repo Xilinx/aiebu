@@ -1,20 +1,13 @@
+@ECHO OFF
 
 REM SPDX-License-Identifier: MIT
 REM Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
-
+setlocal enabledelayedexpansion
 set SCRIPTDIR=%~dp0
+set SCRIPTDIR=%SCRIPTDIR:~0,-1%
 set BUILDDIR=%SCRIPTDIR%
-set NOCMAKE=0
 
 set CMAKEFLAGS=-DMSVC_PARALLEL_JOBS=%LOCAL_MSVC_PARALLEL_JOBS% -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-ECHO CMAKEFLAGS=%CMAKEFLAGS%
-
-
-@ECHO OFF
-
-set SCRIPTDIR=%~dp0
-set BUILDDIR=%SCRIPTDIR%
-
 set DEBUG=1
 set RELEASE=1
 set CREATE_PACKAGE=0
@@ -23,6 +16,8 @@ set NOCMAKE=0
 set NOCTEST=0
 set AIEBU_BUILD=""
 set BOOST=C:\Xilinx\XRT\ext.new
+set GENERATOR="Visual Studio 17 2022"
+set PLATFORM=WBuild
 
 IF DEFINED MSVC_PARALLEL_JOBS ( SET LOCAL_MSVC_PARALLEL_JOBS=%MSVC_PARALLEL_JOBS%) ELSE ( SET LOCAL_MSVC_PARALLEL_JOBS=3 )
 
@@ -51,6 +46,7 @@ IF DEFINED MSVC_PARALLEL_JOBS ( SET LOCAL_MSVC_PARALLEL_JOBS=%MSVC_PARALLEL_JOBS
   ) else (
   if [%1] == [-p] (
     set AIEBU_BUILD="python"
+    set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_PYTHON=ON
   ) else (
   if [%1] == [-pkg] (
     set CREATE_PACKAGE=1
@@ -66,17 +62,58 @@ IF DEFINED MSVC_PARALLEL_JOBS ( SET LOCAL_MSVC_PARALLEL_JOBS=%MSVC_PARALLEL_JOBS
 
 :argsParsed
 
-set CMAKEFLAGS=-DMSVC_PARALLEL_JOBS=%LOCAL_MSVC_PARALLEL_JOBS% -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DBOOST_ROOT=%BOOST%
-ECHO CMAKEFLAGS=%CMAKEFLAGS%
+REM configure
+if [%NOCMAKE%] == [0] (
+   echo Configuring CMake project
+
+   set CMAKEFLAGS=%CMAKEFLAGS%^
+   -DMSVC_PARALLEL_JOBS=%LOCAL_MSVC_PARALLEL_JOBS%^
+   -DBOOST_ROOT=%EXT_DIR%^
+   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+   echo cmake -B %BUILDDIR%\%PLATFORM% -G %GENERATOR% !CMAKEFLAGS! %BUILDDIR%\..
+   cmake -B %BUILDDIR%\%PLATFORM% -G %GENERATOR% !CMAKEFLAGS! %BUILDDIR%\..
+   IF errorlevel 1 (exit /B %errorlevel%)
+)
 
 if [%DEBUG%] == [1] (
-   call :DebugBuild
+   echo cmake --build %BUILDDIR%\%PLATFORM% --config Debug --verbose
+   cmake --build %BUILDDIR%\%PLATFORM% --config Debug --verbose
+   if errorlevel 1 (exit /B %errorlevel%)
+
+   echo cmake --install %BUILDDIR%\%PLATFORM% --config Debug --prefix %BUILDDIR%\%PLATFORM%\Debug\xilinx\aiebu --verbose
+   cmake --install %BUILDDIR%\%PLATFORM% --config Debug --prefix %BUILDDIR%\%PLATFORM%\Debug\xilinx\aiebu --verbose
+   if errorlevel 1 (exit /B %errorlevel%)
+
+   echo cmake --build %BUILDDIR%\%PLATFORM% --config Debug --target run_tests
+   cmake --build %BUILDDIR%\%PLATFORM% --config Debug --target run_tests
    if errorlevel 1 (exit /B %errorlevel%)
 )
 
 if [%RELEASE%] == [1] (
-   call :ReleaseBuild
+   echo cmake --build %BUILDDIR%\%PLATFORM% --config Release --verbose
+   cmake --build %BUILDDIR%\%PLATFORM% --config Release --verbose
    if errorlevel 1 (exit /B %errorlevel%)
+
+   echo cmake --install %BUILDDIR%\%PLATFORM% --config Release --prefix %BUILDDIR%\%PLATFORM%\Release\xilinx\aiebu --verbose
+   cmake --install %BUILDDIR%\%PLATFORM% --config Release --prefix %BUILDDIR%\%PLATFORM%\Release\xilinx\aiebu --verbose
+   if errorlevel 1 (exit /B %errorlevel%)
+
+   echo cmake --build %BUILDDIR%\%PLATFORM% --config Release --target run_tests
+   cmake --build %BUILDDIR%\%PLATFORM% --config Release --target run_tests
+   if errorlevel 1 (exit /B %errorlevel%)
+
+   ECHO ====================== Create SDK ZIP archive ============================
+   echo cpack -G ZIP -B %BUILDDIR%\%PLATFORM% -C Release --config %BUILDDIR%\%PLATFORM%\CPackConfig.cmake
+   cpack -G ZIP -B %BUILDDIR%\%PLATFORM% -C Release --config %BUILDDIR%\%PLATFORM%\CPackConfig.cmake
+   if errorlevel 1 (exit /B %errorlevel%)
+
+   if [%CREATE_PACKAGE%]  == [1] (
+      ECHO ====================== Creating MSI Archive ============================
+      echo cpack -G WIX -B %BUILDDIR%\%PLATFORM% -C Release --config %BUILDDIR%\%PLATFORM%\CPackConfig.cmake
+      cpack -G WIX -B %BUILDDIR%\%PLATFORM% -C Release --config %BUILDDIR%\%PLATFORM%\CPackConfig.cmake
+      if errorlevel 1 (exit /B %errorlevel%)
+   )
 )
 
 goto :EOF
@@ -98,83 +135,7 @@ GOTO:EOF
 
 REM --------------------------------------------------------------------------
 :Clean
-PUSHD %BUILDDIR%
-IF EXIST WDebug (
-  ECHO Removing 'WDebug' directory...
-  rmdir /S /Q WDebug
+IF EXIST %BUILDDIR%\%PLATFORM% (
+  ECHO Removing '%BUILDDIR%\%PLATFORM%' directory...
+  rmdir /S /Q %BUILDDIR%\%PLATFORM%
 )
-IF EXIST WRelease (
-  ECHO Removing 'WRelease' directory...
-  rmdir /S /Q WRelease
-)
-POPD
-GOTO:EOF
-
-REM --------------------------------------------------------------------------
-:DebugBuild
-echo ====================== Windows Debug Build ============================
-set CMAKEFLAGS=%CMAKEFLAGS% -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=%BUILDDIR%/WDebug
-
-ECHO CMAKEFLAGS=%CMAKEFLAGS%
-
-MKDIR %BUILDDIR%\WDebug
-PUSHD %BUILDDIR%\WDebug
-
-if [%AIEBU_BUILD%] == ["python"] (
-  set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_PYTHON=ON
-)
-
-if [%NOCMAKE%] == [0] (
-   cmake -G "Visual Studio 17 2022" %CMAKEFLAGS% ../../
-   IF errorlevel 1 (POPD & exit /B %errorlevel%)
-)
-
-cmake --build . --verbose --config Debug
-IF errorlevel 1 (POPD & exit /B %errorlevel%)
-
-cmake --build . --verbose --config Debug --target install
-IF errorlevel 1 (POPD & exit /B %errorlevel%)
-
-cmake --build . --verbose --config Debug --target run_tests
-IF errorlevel 1 (POPD & exit /B %errorlevel%)
-
-POPD
-GOTO:EOF
-
-REM --------------------------------------------------------------------------
-:ReleaseBuild
-ECHO ====================== Windows Release Build ============================
-set CMAKEFLAGS=%CMAKEFLAGS% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%BUILDDIR%/WRelease
-ECHO CMAKEFLAGS=%CMAKEFLAGS%
-
-MKDIR %BUILDDIR%\WRelease
-PUSHD %BUILDDIR%\WRelease
-
-if [%AIEBU_BUILD%] == ["python"] (
-  set CMAKEFLAGS=%CMAKEFLAGS% -DAIEBU_PYTHON=ON
-)
-
-if [%NOCMAKE%] == [0] (
-   cmake -G "Visual Studio 17 2022" %CMAKEFLAGS% ../../
-   IF errorlevel 1 (POPD & exit /B %errorlevel%)
-)
-
-cmake --build . --verbose --config Release
-IF errorlevel 1 (POPD & exit /B %errorlevel%)
-
-cmake --build . --verbose --config Release --target install
-IF errorlevel 1 (POPD & exit /B %errorlevel%)
-
-cmake --build . --verbose --config Release --target run_tests
-IF errorlevel 1 (POPD & exit /B %errorlevel%)
-
-ECHO ====================== Zipping up Installation Build ============================
-cpack -G ZIP -C Release
-
-if [%CREATE_PACKAGE%]  == [1] (
-  ECHO ====================== Creating MSI Archive ============================
-  cpack -G WIX -C Release
-)
-
-popd
-GOTO:EOF

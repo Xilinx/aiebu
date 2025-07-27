@@ -19,27 +19,25 @@ run_memtest="no"
 function compile {
     local config=$1
     local build_python=$2
-    local cmakeflags="-DCMAKE_BUILD_TYPE=$config -DCMAKE_INSTALL_PREFIX=$PWD/$config"
+    local cmakeflags="-DCMAKE_BUILD_TYPE=$config"
     if [[ $build_python == "yes" ]]; then
       cmakeflags="$cmakeflags -DAIEBU_PYTHON=ON"
     fi
 
-    mkdir -p $config
-    cd $config
     if [[ $config == "Debug" ]]; then
 	cmakeflags="$cmakeflags -DXRT_CLANG_TIDY=ON"
     fi
 
-    cmake $cmakeflags ../../
+    cmake -B $BUILDDIR/$config $cmakeflags $BUILDDIR/..
+    cmake --build $BUILDDIR/$config --config $config --verbose -j $CORE
+    cmake --install $BUILDDIR/$config --config $config --prefix $BUILDDIR/$config/opt/xilinx/aiebu
+    cmake --build $BUILDDIR/$config --config $config --target test
 
-    make -j $CORE VERBOSE=1
-    make -j $CORE VERBOSE=1 install
-    make -j $CORE VERBOSE=1 test
     if [[ $run_memtest == "yes" ]]; then
-	make -j $CORE VERBOSE=1 test ARGS="-L memcheck -T memcheck"
+	make -C $BUILDDIR/$config -j $CORE VERBOSE=1 test ARGS="-L memcheck -T memcheck"
     fi
     if [[ $config == "Release" ]]; then
-	make -j $CORE VERBOSE=1 package
+	make -C $BUILDDIR/$config -j $CORE VERBOSE=1 package
     fi
 }
 
@@ -61,10 +59,6 @@ while getopts ":rph" o; do
 done
 shift $((OPTIND-1))
 
-cd $BUILDDIR
 compile Debug $build_python
 
-cd $BUILDDIR
 compile Release $build_python
-
-cd $here

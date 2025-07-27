@@ -66,29 +66,37 @@ jobs:
         python -m pip install pyyaml jinja2 Markdown pylint colorama gitPython wrapt
 
         # configure cmake specifying path to python
-        cmake -B ${{github.workspace}}/build/Release `
+        cmake -B ${{github.workspace}}/build/WBuild `
         -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
         -DCMAKE_BUILD_TYPE=Release `
         -DPython3_EXECUTABLE=${{ env.PYTHON_EXECUTABLE }} `
         -DAIEBU_PYTHON=ON
 
-    - name: Build
+    - name: Build (Linux)
+      if: runner.os == 'Linux'
       run: |
         cmake --build ${{github.workspace}}/build/Release --config Release
 
+    - name: Build (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake --build ${{github.workspace}}/build/WBuild --config Release
+        
     - name: Install (Linux)
       if: runner.os == 'Linux'
       run: |
-        # Specify staging install area specific to Linux
-        # The unittest cmake_test test requires this specific staging area
+        # Specify staging install area specific to Linux.
+        # Binary dir (Release) is specific to configuration.
+        # The unittest cmake_test test requires opt/xilinx/aiebu staging area
         cmake --install ${{github.workspace}}/build/Release --config Release --prefix ${{github.workspace}}/build/Release/opt/xilinx/aiebu
 
     - name: Install (Windows)
       if: runner.os == 'Windows'
       run: |
-        # Specify staging install area specific to Windows
-        # The unittest cmake_test test requires this specific staging area
-        cmake --install ${{github.workspace}}/build/Release --config Release --prefix ${{github.workspace}}/build/Release/xilinx/aiebu
+        # Specify staging install area specific to Windows.
+        # Multi-config build setup, binary dir (WBuild) is shared.
+        # The unittest cmake_test test requires Release/xilinx/aiebu staging area
+        cmake --install ${{github.workspace}}/build/WBuild --config Release --prefix ${{github.workspace}}/build/WBuild/Release/xilinx/aiebu
 
     - name: Test (Linux)
       if: runner.os == 'Linux'
@@ -98,17 +106,17 @@ jobs:
     - name: Test (Windows)
       if: runner.os == 'Windows'
       run: |
-        cmake --build ${{github.workspace}}/build/Release --config Release --target run_tests
+        cmake --build ${{github.workspace}}/build/WBuild --config Release --target run_tests
 
     - name: Package (Linux)
       if: runner.os == 'Linux'
       run: |
-        cpack -G TGZ -B ${{github.workspace}}/build/Release -C Release --config build/Release/CPackConfig.cmake
+        cpack -G TGZ -B ${{github.workspace}}/build/Release -C Release --config ${{github.workspace}}/build/Release/CPackConfig.cmake
 
     - name: Package (Windows)
       if: runner.os == 'Windows'
       run: |
-        cpack -G ZIP -B ${{github.workspace}}/build/Release -C Release --config build/Release/CPackConfig.cmake
+        cpack -G ZIP -B ${{github.workspace}}/build/WBuild -C Release --config ${{github.workspace}}/build/WBuild/CPackConfig.cmake
 
     - name: Upload (Linux)
       if: runner.os == 'Linux' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
@@ -122,7 +130,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: aiebu_release_windows
-        path: ${{github.workspace}}/build/Release/AIEBU-*-win64.zip
+        path: ${{github.workspace}}/build/WBuild/AIEBU-*-win64.zip
         retention-days: 7
 
     - name: Upload (Windows)
