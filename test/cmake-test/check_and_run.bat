@@ -19,5 +19,5 @@ for /f "tokens=1* delims= " %%A in ("%CMD%") do (
     set "CMD=%%B"
 )
 
-echo "rest of command is: %CMD%"
+rem Run the rest of the command
 %CMD%

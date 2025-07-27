@@ -34,10 +34,10 @@ function compile {
     cmake --build $BUILDDIR/$config --config $config --target test
 
     if [[ $run_memtest == "yes" ]]; then
-	make -C $BUILDDIR/$config -j $CORE VERBOSE=1 test ARGS="-L memcheck -T memcheck"
+        cmake --build $BUILDDIR/$config --target test -- ARGS="-L memcheck -T memcheck"
     fi
     if [[ $config == "Release" ]]; then
-	make -C $BUILDDIR/$config -j $CORE VERBOSE=1 package
+        cmake --build $BUILDDIR/$config --config $config --target package --verbose -j $CORE
     fi
 }
 
