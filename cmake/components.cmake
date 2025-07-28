@@ -11,7 +11,7 @@ endif()
 # NSIS packager cannot handle '-' in component names
 if (WIN32)
   set (AIEBU_DEV_COMPONENT_SUFFIX "_dev")
-endif()   
+endif()
 
 if (NOT AIEBU_GIT_SUBMODULE)
   set (CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "aiebu")

@@ -5,9 +5,9 @@ REM Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
 
 REM Usage: check_and_run.bat <dir> <cmd> <args...>
 
-set CMD=%*
 set STAGING_DIR=%1
 shift
+set CMD=%*
 
 if not exist "%STAGING_DIR%" (
     echo Skipping test because staging dir "%STAGING_DIR%" does not exist
