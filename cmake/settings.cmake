@@ -4,6 +4,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(POLICY CMP0177)
+  cmake_policy(SET CMP0177 NEW)
+endif()
+
 ################################################################
 # Version settings
 ################################################################
@@ -57,7 +61,13 @@ endif()
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 
 set(AIEBU_INSTALL_DIR ".")
-set(AIEBU_INSTALL_BIN_DIR           "${AIEBU_INSTALL_DIR}/bin")
+
+if (WIN32)
+  set(AIEBU_INSTALL_BIN_DIR           "${AIEBU_INSTALL_DIR}")
+else()
+  set(AIEBU_INSTALL_BIN_DIR           "${AIEBU_INSTALL_DIR}/bin")
+endif()
+
 set(AIEBU_INSTALL_LIB_DIR           "${AIEBU_INSTALL_DIR}/lib")
 set(AIEBU_INSTALL_INCLUDE_DIR       "${AIEBU_INSTALL_DIR}/include")
 set(AIEBU_INSTALL_CMAKE_DIR         "${AIEBU_INSTALL_DIR}/share/cmake/${PROJECT_NAME}")
