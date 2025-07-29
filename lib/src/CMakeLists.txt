@@ -72,7 +72,10 @@ target_include_directories(${AIEBU_COPY_EXE}
   ${AIEBU_SOURCE_DIR}/src/cpp/include
 )
 
-target_link_libraries(${AIEBU_COPY_EXE} xaiengine aiebu_static)
+target_link_libraries(${AIEBU_COPY_EXE} PRIVATE xaiengine aiebu_static)
+if (NOT WIN32)
+  target_link_libraries(${AIEBU_COPY_EXE} PRIVATE pthread)
+endif()
 
 add_custom_command(
   OUTPUT ${AIEBU_COPY_GEN_FILES}
