@@ -1,26 +1,22 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
-
-
+# Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
 PROJECT(cpp_api)
 
 set(AIE2_TESTNAME "aie2_cpp")
-
 add_executable(${AIE2_TESTNAME} aie2_test.cpp)
-target_link_libraries(${AIE2_TESTNAME}
-  PRIVATE
-  aiebu_static
-  )
+target_link_libraries(${AIE2_TESTNAME} PRIVATE aiebu_static)
 target_include_directories(${AIE2_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/include)
 
 set(AIE2PS_TESTNAME "aie2ps_cpp")
 set(CHECKSUMS_FILE "${CMAKE_CURRENT_BINARY_DIR}/checksums.txt")
 add_executable(${AIE2PS_TESTNAME} aie2ps_test.cpp)
-target_link_libraries(${AIE2PS_TESTNAME}
-  PRIVATE
-  aiebu_static
-  )
+target_link_libraries(${AIE2PS_TESTNAME} PRIVATE aiebu_static)
 target_include_directories(${AIE2PS_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/include)
+
+if (NOT WIN32)
+  target_link_libraries(${AIE2_TESTNAME} PRIVATE pthread)
+  target_link_libraries(${AIE2PS_TESTNAME} PRIVATE pthread)
+endif()
 
 add_custom_command(OUTPUT ctrl_pkt0.bin
   COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake" -d "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_ctrlpacket/ctrl_pkt/ctrl_pkt0.b64" ctrl_pkt0.bin

@@ -29,6 +29,7 @@ add_executable(aiebu-asm $<TARGET_OBJECTS:aiebu_asm_objects>)
 target_link_libraries(aiebu-asm PRIVATE aiebu_static)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_link_libraries(aiebu-asm PRIVATE pthread)
   target_link_options(aiebu-asm PRIVATE "-static")
   set_target_properties(aiebu-asm PROPERTIES INSTALL_RPATH "" BUILD_RPATH "")
 
