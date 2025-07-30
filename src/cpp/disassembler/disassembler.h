@@ -17,13 +17,15 @@ class asm_disassembler {
 public:
     
     asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream);
+    ~asm_disassembler();
 
     void run();
 
 private:
     ELFIO::elfio elf_reader;
     ctrl_writer ctrl_writer_;
-    std::shared_ptr<std::map<uint8_t, std::shared_ptr<isa_op>>> isa_op_map;
+    const std::map<uint8_t, isa_op_disasm>* isa_op_map;
+    isa_disassembler* isa_disasm;
     
     void process_sections();
     void print_section_info(const ELFIO::section* section) ;

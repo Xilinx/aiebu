@@ -74,7 +74,6 @@ public:
     }
 
     // FOR AIE2PS
-    // TODO - Convert below to a map like in assembler_state.h
     std::string to_actor(uint32_t val, uint32_t tile) {
         uint32_t row = tile & 0x1F;  //NOLINT
 

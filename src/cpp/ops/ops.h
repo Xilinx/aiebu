@@ -95,14 +95,32 @@ public:
 };
 
 
+class isa_op_disasm
+{
+protected:
+  std::string m_opname;
+  uint8_t m_code;
+  std::vector<opArg> m_args;
+public:
+  const std::vector<opArg>& get_args() const { return m_args; }
+  uint8_t get_code() const { return m_code; }
+  const std::string& get_code_name() const { return m_opname; }
+  std::unique_ptr<op_deserializer> create_deserializer() const;
+
+  isa_op_disasm(std::string opname, uint8_t code, std::vector<opArg> args):m_opname(opname), m_code(code) {
+    for (auto a : args)
+      m_args.emplace_back(a);
+  }
+};
+
 class op_deserializer
 {
 protected:
   static constexpr unsigned int field_width = 8;
   static uint32_t numlabel;
   std::string label = "@label";
-  std::shared_ptr<isa_op> m_opcode;
-//  std::vector<std::string> m_args;
+  const isa_op_disasm* m_opcode;
+
 
 public:
   uint8_t read_uint8(const char* data) {
@@ -129,57 +147,34 @@ public:
     }
   }
 
-
   std::string get_label() {
     std::string ret = label + std::to_string(numlabel++);
     return ret;
   }
 
-public:
-    explicit op_deserializer(std::shared_ptr<isa_op> opcode):m_opcode(opcode) {
-      /*
-      if (!m_opcode) {
-        throw error(error::error_code::invalid_asm, "Invalid ISA opcode for deserializer");
-      }
-      // Initialize label with the opcode name
-      label = m_opcode->get_code_name() + "_";
-      */
-    }
+  explicit op_deserializer(const isa_op_disasm* opcode): m_opcode(opcode) {}
 
-    virtual ~op_deserializer() = default;
-//    virtual std::shared_ptr<isa_op> deserialize(std::shared_ptr<disassembler_state> state, std::vector<uint8_t>& data, offset_type& offset) = 0;
-//    virtual offset_type size() = 0;
-    virtual offset_type size(disassembler_state& ) { return 0;}
-    virtual offset_type align() { return 4; }
-    virtual uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) = 0;
+  virtual ~op_deserializer() = default;
+  virtual offset_type size(disassembler_state& ) { return 0;}
+  virtual offset_type align() { return 4; }
+  virtual uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) = 0;
 };
 
 
 class align_op_deserializer: public op_deserializer
 {
 public:
-  explicit align_op_deserializer(std::shared_ptr<isa_op> opcode):op_deserializer(opcode) {}
+  explicit align_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
   offset_type size(disassembler_state& /*state*/) override { return 1; }
   offset_type align() override { return 4; }
-  uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override ;
-  /*{
-    ////
-    uint32_t align_value = get_arg_val(data, 1);
-    if (align_value == 0) {
-      throw error(error::error_code::invalid_asm, "Invalid alignment value: " + std::to_string(align_value) + "\n");
-    }
-    writer.write_align(align_value);
-    return align_value;
-    ////
-  }
-    */
+  uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
 };
 
 
 class long_op_deserializer: public op_deserializer
 {
 public:
-  explicit long_op_deserializer(std::shared_ptr<isa_op> opcode):op_deserializer(opcode) {}
+  explicit long_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
   offset_type size(disassembler_state& /*state*/) override { return 4; }
 
   offset_type align() override { return 4; }
@@ -189,7 +184,7 @@ public:
 class ucDmaBd_op_deserializer: public op_deserializer
 {
 public:
-  explicit ucDmaBd_op_deserializer(std::shared_ptr<isa_op> opcode):op_deserializer(opcode) {}
+  explicit ucDmaBd_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
   offset_type size(disassembler_state& /*state*/) override { return 16; }
   offset_type align() override { return 16; }
   uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
@@ -198,7 +193,7 @@ public:
 class isa_op_deserializer: public op_deserializer
 {
 public:
-  explicit isa_op_deserializer(std::shared_ptr<isa_op> opcode):op_deserializer(opcode) {}
+  explicit isa_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
   offset_type size(disassembler_state& state) override;
   offset_type align() override { return 4; }
   uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
@@ -238,25 +233,21 @@ public:
     else
       return std::make_shared<isa_op_serializer>(get_shared_ptr(), args);
   }
-
-  std::shared_ptr<op_deserializer> deserializer()
-  {
-    if (!m_opname.compare(".long"))
-      return std::make_shared<long_op_deserializer>(get_shared_ptr());
-    else if (!m_opname.compare(".align"))
-      return std::make_shared<align_op_deserializer>(get_shared_ptr());
-    else if (!m_opname.compare("uc_dma_bd"))
-      return std::make_shared<ucDmaBd_op_deserializer>(get_shared_ptr());
-    else
-      return std::make_shared<isa_op_deserializer>(get_shared_ptr());
-  }
-
 };
 
+  inline std::unique_ptr<op_deserializer> isa_op_disasm::create_deserializer() const
+  {
+    const std::string& opname = get_code_name();
 
-
-
-
+    if (!opname.compare(".long"))
+      return std::unique_ptr<op_deserializer>(new long_op_deserializer(this));
+    else if (!opname.compare(".align"))
+      return std::unique_ptr<op_deserializer>(new align_op_deserializer(this));
+    else if (!opname.compare("uc_dma_bd") || !opname.compare("uc_dma_bd_shim"))
+      return std::unique_ptr<op_deserializer>(new ucDmaBd_op_deserializer(this));
+    else
+      return std::unique_ptr<op_deserializer>(new isa_op_deserializer(this));
+  }
 
 }
 #endif //_ADSM_OPS_ISA_OP_H_

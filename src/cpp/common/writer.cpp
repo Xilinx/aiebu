@@ -5,6 +5,7 @@
 #include "writer.h"
 
 #include "aiebu/aiebu_error.h"
+#include <iostream>
 
 namespace aiebu {
 
@@ -29,7 +30,8 @@ offset_type
 section_writer::
 tell() const
 {
-  return static_cast<offset_type>(m_data.size());
+  offset_type size = static_cast<offset_type>(m_data.size());
+  return size;
 }
 
 uint32_t
@@ -38,10 +40,11 @@ read_word(offset_type offset) const
 {
   if (offset + 3 >= m_data.size())
     throw error(error::error_code::internal_error, "reading beyond data size !!!");
-  return (m_data[offset + 3] << FORTH_BYTE_SHIFT)
+  uint32_t result = (m_data[offset + 3] << FORTH_BYTE_SHIFT)
          + (m_data[offset + 2] << THIRD_BYTE_SHIFT)
          + (m_data[offset + 1] << SECOND_BYTE_SHIFT)
          + m_data[offset];
+  return result;
 }
 
 void
@@ -68,15 +71,10 @@ padding(offset_type pagesize)
 
 ctrl_writer::
 ctrl_writer(std::ostream& out_stream)
-  : m_stream(out_stream)
-{
-  // No file opening needed; using provided stream
-}
+  : m_stream(out_stream) {}
 
 ctrl_writer::
-~ctrl_writer() {
-  // No file closing needed; stream is managed externally
-}
+~ctrl_writer() {}
 
 void
 ctrl_writer::
@@ -128,8 +126,11 @@ write_operation(const std::string& name,
                 const std::vector<std::string>& args,
                 const std::string& label)
 {
-  if (current_label == label)
-    m_stream << "    ";
+  if (current_label == label) {
+    if (!(name == "start_job" || name == "end_job" || name == "eof")) {
+        m_stream << "    ";
+    }
+  }
 
   m_stream << name << "\t";
 

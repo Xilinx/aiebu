@@ -22,7 +22,7 @@ class aie2ps_encoder : public encoder
   asm_report m_report;
   Debug m_debug;
 public:
-  aie2ps_encoder() {     
+  aie2ps_encoder() {
     isa i;
     m_isa = i.get_isamap();
   }
