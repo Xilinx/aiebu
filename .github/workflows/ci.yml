@@ -55,11 +55,22 @@ jobs:
         echo "PYTHON_EXECUTABLE=$python_path"
         echo "PYTHON_EXECUTABLE=$python_path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+    - name: Cache vcpkg packages
+      if: runner.os == 'Windows'
+      uses: actions/cache@v4
+      with:
+        path: |
+          C:\vcpkg\installed
+          C:\vcpkg\buildtrees
+          C:\vcpkg\downloads
+        key: vcpkg-${{ runner.os }}-${{ hashFiles('**/vcpkg.json') }}
+        restore-keys: |
+          vcpkg-${{ runner.os }}-
+
     - name: Install Dependencies (Windows) and configure CMake
       if: runner.os == 'Windows'
       run: |
-        vcpkg integrate install
-        vcpkg install boost-format boost-uuid boost-interprocess boost-algorithm boost-property-tree boost-headers --triplet=x64-windows
+        vcpkg install --triplet=x64-windows
 
         # install python dependencies
         python -m pip install --upgrade pip
