@@ -14,14 +14,13 @@ on:
 
 # see binary-caching-github-actions-cache
 env:
-  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  VCPKG_BINARY_SOURCES: "clear;nuget,https://pkgs.dev.azure.com/vcpkg/public/_packaging/public/nuget/v3/index.json,readwrite"
 
 jobs:
   build:
     strategy:
       matrix:
-#        os: [ubuntu-latest, windows-latest]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
 
