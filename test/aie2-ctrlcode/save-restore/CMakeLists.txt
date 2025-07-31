@@ -3,4 +3,4 @@
 
 # Validate checksums of generated ctrlcode
 add_test(NAME "aie2_save_restore_ctrlcode_md5sum"
-  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol "${AIEBU_BINARY_DIR}/lib/gen/checksums.txt" "${CMAKE_CURRENT_SOURCE_DIR}/checksums.txt")
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol "${AIEBU_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/gen/checksums.txt" "${CMAKE_CURRENT_SOURCE_DIR}/checksums.txt")

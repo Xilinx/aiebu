@@ -84,10 +84,10 @@ string(TIMESTAMP AIEBU_DATE "%Y-%m-%d %H:%M:%S")
 
 configure_file(
   ${AIEBU_SOURCE_DIR}/cmake/config/version.h.in
-  ${PROJECT_BINARY_DIR}/lib/gen/version.h
+  ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/gen/version.h
 )
 
 configure_file(
   ${AIEBU_SOURCE_DIR}/cmake/config/version.json.in
-  ${PROJECT_BINARY_DIR}/lib/gen/version.json
+  ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/gen/version.json
 )

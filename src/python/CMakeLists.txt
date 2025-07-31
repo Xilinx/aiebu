@@ -53,7 +53,7 @@ add_custom_target(py-stubs
           ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
 )
 
-set(AIEBU_PYTHON_INSTALL_DIR  "${AIEBU_INSTALL_DIR}/lib/python3")
+set(AIEBU_PYTHON_INSTALL_DIR  "${AIEBU_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/python3")
 
 message("-- AIEBU_PYTHON_INSTALL_DIR=${AIEBU_PYTHON_INSTALL_DIR}")
 

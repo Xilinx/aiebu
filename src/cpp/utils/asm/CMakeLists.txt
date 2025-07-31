@@ -22,7 +22,7 @@ target_include_directories(aiebu_asm_objects
   ${AIEBU_SOURCE_DIR}/src/cpp/common
   ${AIEBU_SOURCE_DIR}/src/cpp/utils/target
   ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include
-  ${AIEBU_BINARY_DIR}/lib/gen
+  ${AIEBU_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/gen
   )
 
 add_executable(aiebu-asm $<TARGET_OBJECTS:aiebu_asm_objects>)

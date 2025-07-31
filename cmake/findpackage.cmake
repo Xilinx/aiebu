@@ -47,24 +47,9 @@ install (
 # This will generate a file that details all targets we have marked for export
 # as part of the aiebu-targets export group
 # It will provide information such as the library file names and locations post install
-#install(
-#  EXPORT aiebu-targets
-#  NAMESPACE ${PROJECT_NAME}::
-#  DESTINATION ${AIEBU_INSTALL_DIR}/share/cmake/${PROJECT_NAME}
-#  )
-
-install(
-  TARGETS aiebu_static
-  EXPORT aiebu-targets
-  ARCHIVE DESTINATION ${AIEBU_INSTALL_DIR}/lib
-  LIBRARY DESTINATION ${AIEBU_INSTALL_DIR}/lib
-  RUNTIME DESTINATION ${AIEBU_INSTALL_DIR}/bin
-  )
-
 install(
   EXPORT aiebu-targets
-  FILE aiebu-targets.cmake
-  NAMESPACE AIEBU::
+  NAMESPACE ${PROJECT_NAME}::
   DESTINATION ${AIEBU_INSTALL_CMAKE_DIR}
   COMPONENT ${AIEBU_DEV_COMPONENT}
   )

@@ -17,14 +17,8 @@ endif()
 # can be found, otherwise skipped.
 
 if (WIN32)
-  # On windows the build script uses multi-config build, meaning same
-  # binary dir is used for Release and Debug.  At install time,
-  # artifacts are staged into Release/ and Debug/ subdirectories
-  set(AIEBU_INSTALL_STAGING_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/xilinx/aiebu)
   set(AIEBU_CHECK_AND_RUN_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/check_and_run.bat)
 else()
-  # On Linux the build script uses separate binary dir for Release or Debug
-  set(AIEBU_INSTALL_STAGING_DIR ${CMAKE_BINARY_DIR}/opt/xilinx/aiebu)
   set(AIEBU_CHECK_AND_RUN_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/check_and_run.sh)
 endif()
 
