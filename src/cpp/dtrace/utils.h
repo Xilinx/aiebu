@@ -4,15 +4,16 @@
 #ifndef DTRACE_UTILS_H
 #define DTRACE_UTILS_H
 
-#include <cstdint>
-#include <exception>
-#include <string>
-#include <iostream>
-#include <sstream>
 // This file contains the declaration of the log level and expressions for dtrace.
 #ifdef CERT_TRACE_CONTROL_H
 #include "trace_control.h"
 #endif
+
+#include <cstdint>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 
 // Log Levels Enum
 enum class dtrace_log_level {

@@ -6,15 +6,16 @@
 
 // This header file contains the control class which is responsible for 
 // controlling the entire flow of the tool.
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <cstdint> 
 #include "dtrace/parser/parser.h"
 #include "dtrace/action/action_control.h"
 #include "dtrace/probe/probe_control.h"
 #include "dtrace/pager/pager.h"
 #include "dtrace/utils.h"
+
+#include <cstdint> 
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace dtrace
 {

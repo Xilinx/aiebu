@@ -5,18 +5,19 @@
 #define ACTION_CONTROL_H
 
 // This file contains the declaration of the action control class and action classes.
-#include <vector>
-#include <string>
-#include <map>
-#include <unordered_map>
-#include <cstdint>
-#include <regex>
-#include <boost/property_tree/ptree.hpp>
 #include "dtrace/utils.h"
-
 #ifdef CERT_TRACE_CONTROL_H
 #include "trace_control.h"
 #endif
+
+#include <boost/property_tree/ptree.hpp>
+
+#include <cstdint>
+#include <map>
+#include <regex>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace dtrace::action
 {

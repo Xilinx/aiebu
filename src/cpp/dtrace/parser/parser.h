@@ -6,19 +6,21 @@
 
 // This file contains the declaration of the parser class which is responsible 
 // for parsing and managing trace actions and probes.
-#include <string>
-#include <vector>
-#include <map>
-#include <unordered_map>
-#include <set>
-#include <memory>
-#include <regex>
-#include <cstdint>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include "dtrace/action/action_control.h"
 #include "dtrace/probe/probe_control.h"
 #include "dtrace/utils.h"
+
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <regex>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace dtrace::parser
 {

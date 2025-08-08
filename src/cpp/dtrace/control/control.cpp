@@ -3,8 +3,9 @@
 
 // This file defines the control class which is responsible for creating control buffers and result files.
 #include "control.h"
-#include <iostream>
+
 #include <fstream>
+#include <iostream>
 #include <stdexcept>
 
 #ifdef _WIN32

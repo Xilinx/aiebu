@@ -6,12 +6,13 @@
 
 // This file contains the declaration of the pager class, which is responsible 
 // for managing paging operations on control buffers.
-#include <vector>
-#include <unordered_map>
-#include <cstdint>
 #include "dtrace/probe/probe_control.h"
 #include "dtrace/action/action_control.h"
 #include "dtrace/utils.h"
+
+#include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 namespace dtrace::pager
 {

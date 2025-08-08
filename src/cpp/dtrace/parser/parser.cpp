@@ -3,13 +3,14 @@
 
 // This file contains the implementation of the parser class. The parser class is responsible for
 // parsing the input script file and generating the corresponding probe and action.
-#include <sstream>
-#include <stdexcept>
-#include <filesystem>
-#include <utility>
 #include "dtrace/parser/parser.h"
 #include "dtrace/action/action_control.h"
 #include "dtrace/probe/probe_control.h"
+
+#include <filesystem>
+#include <sstream>
+#include <stdexcept>
+#include <utility>
 
 namespace dtrace::parser
 {

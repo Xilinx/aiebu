@@ -2,9 +2,9 @@
 // Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
+#include <iomanip>
 #include <sstream>
 #include <stdexcept>  
-#include <iomanip>
 
 namespace dtrace::action
 {

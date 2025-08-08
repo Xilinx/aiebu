@@ -5,11 +5,11 @@
 #define TRACE_H
 
 // This header file contains the public APIs for creating control buffer, memory buffer, and result file
+#include <cstdint>
 #include <iostream>
 #include <string>
-#include <vector>        
 #include <unordered_map>
-#include <cstdint>
+#include <vector>
 
 #ifdef _WIN32
   #define DTRACE_EXPORT __declspec(dllexport)

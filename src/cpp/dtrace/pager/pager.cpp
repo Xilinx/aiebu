@@ -3,8 +3,8 @@
 
 // This file contains the implementation of the pager class, which is responsible 
 // for managing paging operations on control buffers.
-#include <stdexcept>
 #include "dtrace/pager/pager.h"
+#include <stdexcept>
 
 namespace dtrace::pager
 {

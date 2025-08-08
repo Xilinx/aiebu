@@ -5,17 +5,18 @@
 #define PROBE_CONTROL_H
 
 // This file contains the declaration of the probe control class and probe classes
-#include <cstdint>
-#include <string>
-#include <vector>
-#include <memory>
-#include <boost/property_tree/ptree.hpp>
 #include "dtrace/action/action_control.h"
 #include "dtrace/utils.h"
-
 #ifdef CERT_TRACE_CONTROL_H
 #include "trace_control.h"
 #endif
+
+#include <boost/property_tree/ptree.hpp>
+
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace dtrace::probe
 {
