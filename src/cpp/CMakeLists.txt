@@ -94,6 +94,9 @@ add_library(aiebu_static STATIC
 
 if (MSVC)
   target_link_libraries(aiebu_static advapi32)
+else()
+  # On linux use xrt_coreutil.a
+  set_target_properties(aiebu_static PROPERTIES OUTPUT_NAME "aiebu")
 endif()
 
 install (TARGETS aiebu_static
