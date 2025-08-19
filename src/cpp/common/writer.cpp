@@ -30,7 +30,7 @@ offset_type
 section_writer::
 tell() const
 {
-  offset_type size = static_cast<offset_type>(m_data.size());
+  auto size = static_cast<offset_type>(m_data.size());
   return size;
 }
 
@@ -93,25 +93,30 @@ asm_writer::asm_writer(std::ostream& stream, const std::string& filename)
 
 asm_writer::~asm_writer() {}
 
-#define FOR_ALL_STREAMS(code) for (auto s : m_streams) { code }
+template <typename Func>
+void for_all_streams(std::vector<std::ostream*>& streams, Func&& func) {
+  for (auto s : streams) {
+    func(s);
+  }
+}
 
 void asm_writer::write_label(const std::string& name)
 {
   std::string clean_name = name;
   if (!name.empty() && name.front() == '@')
     clean_name = name.substr(1);
-  FOR_ALL_STREAMS((*s) << clean_name << ":\n";)
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << clean_name << ":\n"; });
   current_label = clean_name;
 }
 
 void asm_writer::write_attach_to_group(int col)
 {
-  FOR_ALL_STREAMS((*s) << ".attach_to_group " << col << '\n';)
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".attach_to_group " << col << '\n'; });
 }
 
 void asm_writer::write_directive(const std::string& name)
 {
-  FOR_ALL_STREAMS((*s) << name << '\n';)
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << name << '\n'; });
 }
 
 void asm_writer::write_endl(const std::string& name)
@@ -119,19 +124,19 @@ void asm_writer::write_endl(const std::string& name)
   std::string clean_name = name;
   if (!clean_name.empty() && clean_name.front() == '@')
     clean_name = clean_name.substr(1);
-  FOR_ALL_STREAMS((*s) << ".endl " << clean_name << '\n';)
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".endl " << clean_name << '\n'; });
 }
 
 void asm_writer::write_eop()
 {
-  FOR_ALL_STREAMS((*s) << ".eop\n";)
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".eop\n"; });
 }
 
 void asm_writer::write_operation(const std::string& name,
                                   const std::vector<std::string>& args,
                                   const std::string& label)
 {
-  FOR_ALL_STREAMS(
+  for_all_streams(m_streams, [&](std::ostream* s) {
     if (current_label == label) {
       if (!(name == "start_job" || name == "end_job" || name == "eof")) {
         (*s) << "    ";
@@ -146,7 +151,7 @@ void asm_writer::write_operation(const std::string& name,
         (*s) << ", ";
     }
     (*s) << '\n';
-  )
+  });
 }
 
 }

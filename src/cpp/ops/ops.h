@@ -107,7 +107,7 @@ public:
   const std::string& get_code_name() const { return m_opname; }
   std::unique_ptr<op_deserializer> create_deserializer() const;
 
-  isa_op_disasm(std::string opname, uint8_t code, std::vector<opArg> args):m_opname(opname), m_code(code) {
+  isa_op_disasm(std::string opname, uint8_t code, std::vector<opArg> args):m_opname(std::move(opname)), m_code(code) {
     for (auto a : args)
       m_args.emplace_back(a);
   }
@@ -117,6 +117,15 @@ class op_deserializer
 {
 protected:
   static constexpr unsigned int field_width = 8;
+  static constexpr unsigned int byte_shift_8 = 8;
+  static constexpr unsigned int byte_shift_16 = 16;
+  static constexpr unsigned int byte_shift_24 = 24;
+  static constexpr uint32_t len_8 = 1;
+  static constexpr uint32_t len_16 = 2;
+  static constexpr uint32_t len_32 = 4;
+  static constexpr uint32_t align_4 = 4;
+  static constexpr uint32_t align_16 = 16;
+  static constexpr uint32_t ucDmaBd_size = 16;
   static uint32_t numlabel;
   std::string label = "@label";
   const isa_op_disasm* m_opcode;
@@ -128,19 +137,19 @@ public:
   }
 
   uint16_t read_uint16(const char* data) {
-    return static_cast<uint16_t>(data[0] | (data[1] << 8));
+    return static_cast<uint16_t>(data[0] | (data[1] << byte_shift_8));
   }
 
   uint32_t read_uint32(const char* data) {
-    return static_cast<uint32_t>(data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
+    return static_cast<uint32_t>(data[0] | (data[1] << byte_shift_8) | (data[2] << byte_shift_16) | (data[3] << byte_shift_24));
   }
 
   uint32_t get_arg_val(const char* data, uint32_t len) {
-    if (len == 1) {
+    if (len == len_8) {
       return read_uint8(data);
-    } else if (len == 2) {
+    } else if (len == len_16) {
       return read_uint16(data);
-    } else if (len == 4) {
+    } else if (len == len_32) {
       return read_uint32(data);
     } else {
       throw error(error::error_code::invalid_asm, "Invalid length for reading data: " + std::to_string(len) + "\n");
@@ -155,8 +164,21 @@ public:
   explicit op_deserializer(const isa_op_disasm* opcode): m_opcode(opcode) {}
 
   virtual ~op_deserializer() = default;
+
+  // Copy constructor
+  op_deserializer(const op_deserializer& other) = default;
+
+  // Copy assignment operator
+  op_deserializer& operator=(const op_deserializer& other) = default;
+
+  // Move constructor
+  op_deserializer(op_deserializer&& other) noexcept = default;
+
+  // Move assignment operator
+  op_deserializer& operator=(op_deserializer&& other) noexcept = default;
+
   virtual offset_type size(disassembler_state& ) { return 0;}
-  virtual offset_type align() { return 4; }
+  virtual offset_type align() { return align_4; }
   virtual uint32_t deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) = 0;
 };
 
@@ -165,8 +187,8 @@ class align_op_deserializer: public op_deserializer
 {
 public:
   explicit align_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
-  offset_type size(disassembler_state& /*state*/) override { return 1; }
-  offset_type align() override { return 4; }
+  offset_type size(disassembler_state& /*state*/) override { return len_8; }
+  offset_type align() override { return align_4; }
   uint32_t deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
 };
 
@@ -175,9 +197,9 @@ class long_op_deserializer: public op_deserializer
 {
 public:
   explicit long_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
-  offset_type size(disassembler_state& /*state*/) override { return 4; }
+  offset_type size(disassembler_state& /*state*/) override { return len_32; }
 
-  offset_type align() override { return 4; }
+  offset_type align() override { return align_4; }
   uint32_t deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
 };
 
@@ -185,8 +207,8 @@ class ucDmaBd_op_deserializer: public op_deserializer
 {
 public:
   explicit ucDmaBd_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
-  offset_type size(disassembler_state& /*state*/) override { return 16; }
-  offset_type align() override { return 16; }
+  offset_type size(disassembler_state& /*state*/) override { return ucDmaBd_size; }
+  offset_type align() override { return align_16; }
   uint32_t deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
 };
 
@@ -195,7 +217,7 @@ class isa_op_deserializer: public op_deserializer
 public:
   explicit isa_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
   offset_type size(disassembler_state& state) override;
-  offset_type align() override { return 4; }
+  offset_type align() override { return align_4; }
   uint32_t deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
 };
 

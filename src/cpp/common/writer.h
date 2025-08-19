@@ -171,11 +171,19 @@ public:
 class asm_writer
 {
 public:
-  asm_writer(std::ostream& stream); // For single stream
-  asm_writer(const std::string& filename); // For file only
+  explicit asm_writer(std::ostream& stream); // For single stream
+  explicit asm_writer(const std::string& filename); // For file only
   asm_writer(std::ostream& stream, const std::string& filename); // For both
 
   ~asm_writer();
+
+  // Delete copy operations since we manage unique resources
+  asm_writer(const asm_writer&) = delete;
+  asm_writer& operator=(const asm_writer&) = delete;
+
+  // Delete move operations to be explicit
+  asm_writer(asm_writer&&) = delete;
+  asm_writer& operator=(asm_writer&&) = delete;
 
   void write_directive(const std::string& directive);
   void write_label(const std::string& label);
