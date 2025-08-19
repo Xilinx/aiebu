@@ -6,6 +6,7 @@
 
 #include "aiebu/aiebu_error.h"
 #include <iostream>
+#include <utility>
 
 namespace aiebu {
 
@@ -91,12 +92,11 @@ asm_writer::asm_writer(std::ostream& stream, const std::string& filename)
   m_streams.push_back(m_ofstream.get());
 }
 
-asm_writer::~asm_writer() {}
-
+asm_writer::~asm_writer() = default;
 template <typename Func>
 void for_all_streams(std::vector<std::ostream*>& streams, Func&& func) {
   for (auto s : streams) {
-    func(s);
+    std::forward<Func>(func)(s);
   }
 }
 

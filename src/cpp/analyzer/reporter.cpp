@@ -132,7 +132,7 @@ namespace aiebu {
         }
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps ) {
             try {
-                aiebu::asm_disassembler disasm(root, std::cout);
+                aiebu::asm_disassembler disasm(root.string(), std::cout);
                 disasm.run();
             } catch (const std::exception& ex) {
                 throw error(error::error_code::internal_error,
