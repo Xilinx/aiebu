@@ -6,7 +6,7 @@
 
 #include <string>
 #include <iomanip>
-#include <cassert> //////>>>>>>>>>
+#include <cassert>
 
 namespace aiebu {
 
@@ -242,11 +242,11 @@ uint32_t op_deserializer::numlabel = 0;
 
 uint32_t
 isa_op_deserializer::
-deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
+deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
 {
   std::vector<std::string> result;
   //1 byte opcode and 1 byte pad
-  uint32_t size = 2; // TODO: LOAD_PDI, LOAD_LAST_PDI, SAVE_TIMESTAMPS, SLEEP, SAVE_REGISTER have 1 + 2 bytes of padding.  
+  uint32_t size = 2;
   uint32_t tile = 0;
 
   for (const auto& arg : m_opcode->get_args()) {
@@ -344,7 +344,7 @@ deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, cons
 
   uint32_t
   align_op_deserializer::
-  deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* /*data*/)
+  deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* /*data*/)
   {
     state->increment_address(1);
     writer.write_operation(m_opcode->get_code_name(), {}, "");
@@ -354,7 +354,7 @@ deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, cons
   
   uint32_t
   ucDmaBd_op_deserializer::
-  deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
+  deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
   {
     assert(state->get_address() % align() == 0 && "uC DMA definition has to be 128-bit aligned!");
     std::string label = state->get_labels().at(state->get_address());
@@ -417,7 +417,7 @@ deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, cons
 
 uint32_t
 long_op_deserializer::
-deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
+deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
 {
   uint32_t lp = state->get_address();
   auto label_pair = state->get_local_ptrs().at(lp);

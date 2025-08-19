@@ -69,81 +69,84 @@ padding(offset_type pagesize)
     write_byte(0x00);
 }
 
-ctrl_writer::
-ctrl_writer(std::ostream& out_stream)
-  : m_stream(out_stream) {}
+asm_writer::asm_writer(std::ostream& stream)
+{
+  m_streams.push_back(&stream);
+}
 
-ctrl_writer::
-~ctrl_writer() {}
+asm_writer::asm_writer(const std::string& filename)
+  : m_ofstream(std::make_unique<std::ofstream>(filename))
+{
+  if (!m_ofstream->is_open())
+    throw std::runtime_error("Failed to open file: " + filename);
+  m_streams.push_back(m_ofstream.get());
+}
 
-void
-ctrl_writer::
-write_label(const std::string& name)
+asm_writer::asm_writer(std::ostream& stream, const std::string& filename)
+  : m_ofstream(std::make_unique<std::ofstream>(filename))
+{
+  if (!m_ofstream->is_open())
+    throw std::runtime_error("Failed to open file: " + filename);
+  m_streams.push_back(&stream);
+  m_streams.push_back(m_ofstream.get());
+}
+
+asm_writer::~asm_writer() {}
+
+#define FOR_ALL_STREAMS(code) for (auto s : m_streams) { code }
+
+void asm_writer::write_label(const std::string& name)
 {
   std::string clean_name = name;
   if (!name.empty() && name.front() == '@')
-    clean_name = name.substr(1); // Remove leading '@'
-
-  m_stream << clean_name << ":\n";
+    clean_name = name.substr(1);
+  FOR_ALL_STREAMS((*s) << clean_name << ":\n";)
   current_label = clean_name;
 }
 
-void
-ctrl_writer::
-write_attach_to_group(int col)
+void asm_writer::write_attach_to_group(int col)
 {
-  m_stream << ".attach_to_group " << col << '\n';
+  FOR_ALL_STREAMS((*s) << ".attach_to_group " << col << '\n';)
 }
 
-void
-ctrl_writer::
-write_directive(const std::string& name)
+void asm_writer::write_directive(const std::string& name)
 {
-  m_stream << name << '\n';
+  FOR_ALL_STREAMS((*s) << name << '\n';)
 }
 
-void
-ctrl_writer::
-write_endl(const std::string& name)
+void asm_writer::write_endl(const std::string& name)
 {
   std::string clean_name = name;
   if (!clean_name.empty() && clean_name.front() == '@')
-    clean_name = clean_name.substr(1);  // Strip leading '@'
-
-  m_stream << ".endl " << clean_name << '\n';
+    clean_name = clean_name.substr(1);
+  FOR_ALL_STREAMS((*s) << ".endl " << clean_name << '\n';)
 }
 
-void
-ctrl_writer::
-write_eop()
+void asm_writer::write_eop()
 {
-  m_stream << ".eop\n";
+  FOR_ALL_STREAMS((*s) << ".eop\n";)
 }
 
-void
-ctrl_writer::
-write_operation(const std::string& name,
-                const std::vector<std::string>& args,
-                const std::string& label)
+void asm_writer::write_operation(const std::string& name,
+                                  const std::vector<std::string>& args,
+                                  const std::string& label)
 {
-  if (current_label == label) {
-    if (!(name == "start_job" || name == "end_job" || name == "eof")) {
-        m_stream << "    ";
+  FOR_ALL_STREAMS(
+    if (current_label == label) {
+      if (!(name == "start_job" || name == "end_job" || name == "eof")) {
+        (*s) << "    ";
+      }
     }
-  }
-
-  m_stream << name << "\t";
-
-  for (size_t index = 0; index < args.size(); ++index) {
-    if (current_label != label)
-      m_stream << " ";
-
-    m_stream << args[index];
-
-    if (index < args.size() - 1)
-      m_stream << ", ";
-  }
-  m_stream << '\n';
+    (*s) << name << "\t";
+    for (size_t index = 0; index < args.size(); ++index) {
+      if (current_label != label)
+        (*s) << " ";
+      (*s) << args[index];
+      if (index < args.size() - 1)
+        (*s) << ", ";
+    }
+    (*s) << '\n';
+  )
 }
 
 }

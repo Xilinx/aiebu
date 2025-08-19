@@ -157,7 +157,7 @@ public:
   virtual ~op_deserializer() = default;
   virtual offset_type size(disassembler_state& ) { return 0;}
   virtual offset_type align() { return 4; }
-  virtual uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) = 0;
+  virtual uint32_t deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) = 0;
 };
 
 
@@ -167,7 +167,7 @@ public:
   explicit align_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
   offset_type size(disassembler_state& /*state*/) override { return 1; }
   offset_type align() override { return 4; }
-  uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
+  uint32_t deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
 };
 
 
@@ -178,7 +178,7 @@ public:
   offset_type size(disassembler_state& /*state*/) override { return 4; }
 
   offset_type align() override { return 4; }
-  uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
+  uint32_t deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
 };
 
 class ucDmaBd_op_deserializer: public op_deserializer
@@ -187,7 +187,7 @@ public:
   explicit ucDmaBd_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
   offset_type size(disassembler_state& /*state*/) override { return 16; }
   offset_type align() override { return 16; }
-  uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
+  uint32_t deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
 };
 
 class isa_op_deserializer: public op_deserializer
@@ -196,7 +196,7 @@ public:
   explicit isa_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
   offset_type size(disassembler_state& state) override;
   offset_type align() override { return 4; }
-  uint32_t deserialize(ctrl_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
+  uint32_t deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data) override;
 };
 
 

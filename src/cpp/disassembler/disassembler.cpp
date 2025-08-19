@@ -11,7 +11,7 @@ constexpr size_t ELF_SECTION_HEADER_PADDING = 16;  // ELF-specific header paddin
 constexpr uint8_t ALIGN_OPCODE = 0xA5;  // .align pseudo-instruction opcode
 
 asm_disassembler::asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream)
-    : ctrl_writer_(output_stream) {
+    : asm_write(output_stream) {
     if (!elf_reader.load(input_elf_path)) {
         throw std::runtime_error("Failed to load ELF: " + input_elf_path);
     }
@@ -48,7 +48,10 @@ void asm_disassembler::print_section_info(const ELFIO::section* section) {
     if (section->get_flags() & ELFIO::SHF_ALLOC) flags += "a";
     if (section->get_flags() & ELFIO::SHF_WRITE) flags += "w";
     if (section->get_flags() & ELFIO::SHF_EXECINSTR) flags += "x";
-    ctrl_writer_.write_directive("");
+    asm_write.write_directive("");
+    if (is_data_section(section->get_name())) {
+        asm_write.write_directive(".align " + std::to_string(section->get_addr_align()));
+    }
 }
 
 void asm_disassembler::process_text_section(const ELFIO::section* section, std::shared_ptr<disassembler_state> state) {
@@ -64,7 +67,7 @@ void asm_disassembler::process_text_section(const ELFIO::section* section, std::
                 continue;
             }
             auto deserializer = op_it->second.create_deserializer();
-            size_t consumed = deserializer->deserialize(ctrl_writer_, state, section_data + offset);
+            size_t consumed = deserializer->deserialize(asm_write, state, section_data + offset);
             offset += consumed;
         } else {
             std::cerr << "[DEBUG] Unknown opcode " << static_cast<int>(opcode) << " at position " << offset << "\n";
@@ -83,12 +86,12 @@ void asm_disassembler::process_data_section(const ELFIO::section* section, std::
         auto local_ptr_map = state->get_local_ptrs();
         if (label_map.find(state->get_address()) != label_map.end()) {
             ucDmaBd_op_deserializer deserializer(&dummy_isa_op);
-            size_t consumed = deserializer.deserialize(ctrl_writer_, state, section_data + offset);
+            size_t consumed = deserializer.deserialize(asm_write, state, section_data + offset);
             offset += consumed;
         } else if (local_ptr_map.find(state->get_address()) != local_ptr_map.end()) {
-            ctrl_writer_.write_directive(".align 4");
+            asm_write.write_directive(".align 4");
             long_op_deserializer deserializer(&dummy_isa_op);
-            size_t consumed = deserializer.deserialize(ctrl_writer_, state, section_data + offset);
+            size_t consumed = deserializer.deserialize(asm_write, state, section_data + offset);
             offset += consumed;
         } else if (opcode == align) {
             state->increment_address(1);

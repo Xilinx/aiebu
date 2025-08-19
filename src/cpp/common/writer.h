@@ -168,11 +168,14 @@ public:
   std::shared_ptr<const partition_info> get_partition_info() const { return m_partition; }
 };
 
-class ctrl_writer
+class asm_writer
 {
 public:
-  explicit ctrl_writer(std::ostream& stream);
-  ~ctrl_writer();
+  asm_writer(std::ostream& stream); // For single stream
+  asm_writer(const std::string& filename); // For file only
+  asm_writer(std::ostream& stream, const std::string& filename); // For both
+
+  ~asm_writer();
 
   void write_directive(const std::string& directive);
   void write_label(const std::string& label);
@@ -182,7 +185,8 @@ public:
   void write_eop();
 
 private:
-  std::ostream& m_stream;
+  std::vector<std::ostream*> m_streams;
+  std::unique_ptr<std::ofstream> m_ofstream;
   std::string current_label;
 };
 

@@ -181,7 +181,9 @@ parse_lines(const std::vector<char>& data, std::string& file)
       insert_col_asmdata(std::make_shared<asm_data>(std::make_shared<operation>(sm[1].str(), sm[2].str()),
                                                     operation_type::op, code_section::unknown, 0, (uint32_t)-1,
                                                     linenumber, line, file));
-      if (!sm[1].str().compare("EOF"))
+      std::string op_name = sm[1].str();
+      std::transform(op_name.begin(), op_name.end(), op_name.begin(), ::tolower);
+      if (!op_name.compare("eof"))
         set_data_state(true);
     }
   }

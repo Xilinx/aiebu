@@ -23,7 +23,7 @@ public:
 
 private:
     ELFIO::elfio elf_reader;
-    ctrl_writer ctrl_writer_;
+    asm_writer asm_write;
     const std::map<uint8_t, isa_op_disasm>* isa_op_map;
     isa_disassembler* isa_disasm;
     
