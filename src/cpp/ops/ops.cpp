@@ -15,10 +15,13 @@ static constexpr uint32_t offset_type_marker = 0xFFFF;
 offset_type
 isa_op_serializer::size(assembler_state& /*state*/)
 {
-  offset_type result = 2; // 2 bytes for opcode
-  for (auto &arg : m_opcode->get_args())
-    result += arg.m_width/width_8;
-  return result; 
+  if (m_opcode->get_code_name().compare("apply_offset_57") != 0) {
+    offset_type result = 2; // 2 bytes for opcode
+    for (auto &arg : m_opcode->get_args())
+      result += arg.m_width/width_8;
+    return result;
+  }
+  return 0;
 }
 
 offset_type
@@ -37,8 +40,12 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
 {
   //encode isa_op
   std::vector<uint8_t> ret;
-  ret.push_back(m_opcode->get_code());
-  ret.push_back(pad);
+  // Patching is already done host side, so skip apply_offset_57 opcode
+  // as part of text section, to avoid overhead on FW for processing apply_offset_57
+  if (m_opcode->get_code_name().compare("apply_offset_57") != 0) {
+    ret.push_back(m_opcode->get_code());
+    ret.push_back(pad);
+  }
 
   int arg_index = 0;
   opArg::optype atype;
@@ -143,9 +150,10 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
           }
 
         }
-
-        ret.push_back(val & BYTE_MASK);
-        ret.push_back((val >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+        if (m_opcode->get_code_name().compare("apply_offset_57") != 0) {
+          ret.push_back(val & BYTE_MASK);
+          ret.push_back((val >> SECOND_BYTE_SHIFT) & BYTE_MASK);
+        }
       } else if (arg.m_width == width_32)
       {
         ret.push_back((val >> FIRST_BYTE_SHIFT)& BYTE_MASK);
