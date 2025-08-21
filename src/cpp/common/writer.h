@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
+#include <fstream>
+#include <sstream>
 #include "symbol.h"
 #include "code_section.h"
 
@@ -39,7 +41,7 @@ public:
   section_writer(const section_writer& rhs) = default;
   section_writer& operator=(const section_writer& rhs) = delete;
   section_writer(section_writer &&s) = default;
-  //section_writer& operator=(const section_writer&& rhs) = default;
+
 
   virtual void write_byte(uint8_t byte);
 
@@ -150,7 +152,6 @@ public:
 
 class config_writer: public writer
 {
-  // map<kernel, map<instance, vector<section_writer object having control code pages and symbol info>>
   std::map<std::string, std::map<std::string, std::vector<std::shared_ptr<writer>>>> m_output;
   std::shared_ptr<const partition_info> m_partition;
 
@@ -165,6 +166,36 @@ public:
   }
 
   std::shared_ptr<const partition_info> get_partition_info() const { return m_partition; }
+};
+
+class asm_writer
+{
+public:
+  explicit asm_writer(std::ostream& stream); // For single stream
+  explicit asm_writer(const std::string& filename); // For file only
+  asm_writer(std::ostream& stream, const std::string& filename); // For both
+
+  ~asm_writer();
+
+  // Delete copy operations since we manage unique resources
+  asm_writer(const asm_writer&) = delete;
+  asm_writer& operator=(const asm_writer&) = delete;
+
+  // Delete move operations to be explicit
+  asm_writer(asm_writer&&) = delete;
+  asm_writer& operator=(asm_writer&&) = delete;
+
+  void write_directive(const std::string& directive);
+  void write_label(const std::string& label);
+  void write_attach_to_group(int colnum);
+  void write_operation(const std::string& name, const std::vector<std::string>& args, const std::string& label);
+  void write_endl(const std::string& label);
+  void write_eop();
+
+private:
+  std::vector<std::ostream*> m_streams;
+  std::unique_ptr<std::ofstream> m_ofstream;
+  std::string current_label;
 };
 
 }

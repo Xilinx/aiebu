@@ -5,6 +5,8 @@
 #include "writer.h"
 
 #include "aiebu/aiebu_error.h"
+#include <iostream>
+#include <utility>
 
 namespace aiebu {
 
@@ -29,7 +31,8 @@ offset_type
 section_writer::
 tell() const
 {
-  return static_cast<offset_type>(m_data.size());
+  auto size = static_cast<offset_type>(m_data.size());
+  return size;
 }
 
 uint32_t
@@ -38,10 +41,11 @@ read_word(offset_type offset) const
 {
   if (offset + 3 >= m_data.size())
     throw error(error::error_code::internal_error, "reading beyond data size !!!");
-  return (m_data[offset + 3] << FORTH_BYTE_SHIFT)
+  uint32_t result = (m_data[offset + 3] << FORTH_BYTE_SHIFT)
          + (m_data[offset + 2] << THIRD_BYTE_SHIFT)
          + (m_data[offset + 1] << SECOND_BYTE_SHIFT)
          + m_data[offset];
+  return result;
 }
 
 void
@@ -64,6 +68,90 @@ padding(offset_type pagesize)
   auto padsize = pagesize - datasize;
   for( auto i=0U; i<padsize; ++i)
     write_byte(0x00);
+}
+
+asm_writer::asm_writer(std::ostream& stream)
+{
+  m_streams.push_back(&stream);
+}
+
+asm_writer::asm_writer(const std::string& filename)
+  : m_ofstream(std::make_unique<std::ofstream>(filename))
+{
+  if (!m_ofstream->is_open())
+    throw std::runtime_error("Failed to open file: " + filename);
+  m_streams.push_back(m_ofstream.get());
+}
+
+asm_writer::asm_writer(std::ostream& stream, const std::string& filename)
+  : m_ofstream(std::make_unique<std::ofstream>(filename))
+{
+  if (!m_ofstream->is_open())
+    throw std::runtime_error("Failed to open file: " + filename);
+  m_streams.push_back(&stream);
+  m_streams.push_back(m_ofstream.get());
+}
+
+asm_writer::~asm_writer() = default;
+template <typename Func>
+void for_all_streams(std::vector<std::ostream*>& streams, Func&& func) {
+  for (auto s : streams) {
+    std::forward<Func>(func)(s);
+  }
+}
+
+void asm_writer::write_label(const std::string& name)
+{
+  std::string clean_name = name;
+  if (!name.empty() && name.front() == '@')
+    clean_name = name.substr(1);
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << clean_name << ":\n"; });
+  current_label = clean_name;
+}
+
+void asm_writer::write_attach_to_group(int col)
+{
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".attach_to_group " << col << '\n'; });
+}
+
+void asm_writer::write_directive(const std::string& name)
+{
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << name << '\n'; });
+}
+
+void asm_writer::write_endl(const std::string& name)
+{
+  std::string clean_name = name;
+  if (!clean_name.empty() && clean_name.front() == '@')
+    clean_name = clean_name.substr(1);
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".endl " << clean_name << '\n'; });
+}
+
+void asm_writer::write_eop()
+{
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".eop\n"; });
+}
+
+void asm_writer::write_operation(const std::string& name,
+                                  const std::vector<std::string>& args,
+                                  const std::string& label)
+{
+  for_all_streams(m_streams, [&](std::ostream* s) {
+    if (current_label == label) {
+      if (!(name == "start_job" || name == "end_job" || name == "eof")) {
+        (*s) << "    ";
+      }
+    }
+    (*s) << name << "\t";
+    for (size_t index = 0; index < args.size(); ++index) {
+      if (current_label != label)
+        (*s) << " ";
+      (*s) << args[index];
+      if (index < args.size() - 1)
+        (*s) << ", ";
+    }
+    (*s) << '\n';
+  });
 }
 
 }
