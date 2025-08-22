@@ -237,6 +237,112 @@ serialize(std::shared_ptr<assembler_state> state,
   return ret;
 }
 
+// Dedicated functions for handling different argument types in CONST case
+std::string
+isa_op_deserializer::
+handle_tile_id_arg(uint32_t val, uint32_t& tile,
+                   std::shared_ptr<disassembler_state> state)
+{
+  tile = val;
+  return state->to_tile(val);
+}
+
+std::string
+isa_op_deserializer::
+handle_actor_id_arg(uint32_t val, uint32_t tile,
+                    std::shared_ptr<disassembler_state> state)
+{
+  return state->to_actor(val, tile);
+}
+
+std::string
+isa_op_deserializer::
+handle_descriptor_ptr_arg(uint32_t val,
+                          std::shared_ptr<disassembler_state> state)
+{
+  auto slabels = state->get_labels();
+  if (slabels.find(val) == slabels.end()) {
+    std::string label = get_label();
+    state->add_label(val, label);
+    return label;
+  } else {
+    return slabels.at(val);
+  }
+}
+
+std::string
+isa_op_deserializer::
+handle_table_ptr_arg(uint32_t val,
+                      std::shared_ptr<disassembler_state> state)
+{
+  auto slocal_ptrs = state->get_local_ptrs();
+  if (slocal_ptrs.find(val) == slocal_ptrs.end()) {
+    std::string label = get_label();
+    state->add_local_ptr(val, label, shim_bd_len);
+    return label;
+  } else {
+    return slocal_ptrs.at(val).first;
+  }
+}
+
+std::string
+isa_op_deserializer::
+handle_generic_const_arg(const opArg& arg, uint32_t val)
+{
+  // Handle offset argument: divide by 2 if not 0xFFFF
+  if (is_offset(arg) && val != 0xFFFF) {
+    val = val / 2;
+  }
+
+  // Format as hexadecimal string
+  std::ostringstream oss;
+  oss << "0x" << std::uppercase << std::hex << val;
+  return oss.str();
+}
+
+std::string
+isa_op_deserializer::
+handle_register_arg(uint32_t val)
+{
+  constexpr uint32_t local_register_count = 8;
+  constexpr uint32_t global_register_count = 16;
+  constexpr uint32_t total_register_count = local_register_count + global_register_count;
+
+  if (val >= total_register_count) {
+    throw std::runtime_error("Register number out of range: " + std::to_string(val));
+  }
+
+  // Local registers (r0-r7) vs Global registers (g0-g15)
+  if (val < local_register_count) {
+    return "$r" + std::to_string(val); // r0 to r7
+  } else {
+    return "$g" + std::to_string(val - local_register_count); // g0 to g15
+  }
+}
+
+std::string
+isa_op_deserializer::
+handle_barrier_arg(uint32_t val)
+{
+  // Handle different barrier types based on opcode
+  if (m_opcode->get_code_name() == "local_barrier") {
+    return "$lb" + std::to_string(val);
+  } else if (m_opcode->get_code_name() == "remote_barrier") {
+    return "$rb" + std::to_string(val - 1);
+  } else {
+    throw std::runtime_error("Invalid barrier arg for " + m_opcode->get_code_name());
+  }
+}
+
+std::string
+isa_op_deserializer::
+handle_page_id_arg(uint32_t val,
+                    std::shared_ptr<disassembler_state> state)
+{
+  std::string label = get_label();
+  state->add_externallabel(val, label);
+  return label;
+}
 
 uint32_t op_deserializer::numlabel = 0;
 
@@ -244,135 +350,110 @@ uint32_t
 isa_op_deserializer::
 deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
 {
-  std::vector<std::string> result;
-  //1 byte opcode and 1 byte pad
-  uint32_t size = 2;
-  uint32_t tile = 0;
+    std::vector<std::string> result;
+    uint32_t size = 2;//1 byte opcode and 1 byte pad
+    uint32_t tile = 0;
 
-  for (const auto& arg : m_opcode->get_args()) {
-    uint32_t len = arg.get_width() / byte_to_bits;  // convert bits to byte
-    uint32_t val = get_arg_val(data + size, len);
-    size += len;
-    switch (arg.get_type()) {
-      case opArg::optype::CONST:
-        if (arg.get_name() == "tile_id") {
-        tile = val;
-        result.push_back(state->to_tile(val));
-        } else if (arg.get_name() == "actor_id") {
-          result.push_back(state->to_actor(val, tile));
-        } else if (arg.get_name() == "descriptor_ptr") {
-          auto slabels = state->get_labels();
-          if (slabels.find(val) == slabels.end()) {
-            std::string label = get_label();
-            result.push_back(label);
-            state->add_label(val, label);
-          } else {
-            result.push_back(slabels.at(val));
-          }
-        } else if (arg.get_name() == "table_ptr") {
-          auto slocal_ptrs = state->get_local_ptrs();
-          if (slocal_ptrs.find(val) == slocal_ptrs.end()) {
-            std::string label = get_label();
-            result.push_back(label);
-            state->add_local_ptr(val, label, shim_bd_len);
-          } else {
-            result.push_back(slocal_ptrs.at(val).first);
-          }
-        } else {
-          if (arg.get_name() == "offset" && val != 0xFFFF)  // NOLINT
-            val = val/2;
-          std::ostringstream oss;
-          oss << "0x" << std::uppercase << std::hex << val;
-          result.push_back(oss.str());
+    for (const auto& arg : m_opcode->get_args()) {
+        uint32_t len = arg.get_width() / byte_to_bits;  // convert bits to byte
+        uint32_t val = get_arg_val(data + size, len);
+        size += len;
+
+        switch (arg.get_type()) {
+            case opArg::optype::CONST:
+                // Handle different CONST argument types based on their names
+                if (is_tile_id(arg)) {
+                    result.push_back(handle_tile_id_arg(val, tile, state));
+                } else if (is_actor_id(arg)) {
+                    result.push_back(handle_actor_id_arg(val, tile, state));
+                } else if (is_descriptor_ptr(arg)) {
+                    result.push_back(handle_descriptor_ptr_arg(val, state));
+                } else if (is_table_ptr(arg)) {
+                    result.push_back(handle_table_ptr_arg(val, state));
+                } else {
+                    // Generic constant argument handling (includes offset and others)
+                    result.push_back(handle_generic_const_arg(arg, val));
+                }
+                break;
+
+            case opArg::optype::JOBSIZE:
+                // TODO: Check if jobsize is valid
+                break;
+
+            case opArg::optype::REG:
+                result.push_back(handle_register_arg(val));
+                break;
+
+            case opArg::optype::BARRIER:
+                result.push_back(handle_barrier_arg(val));
+                break;
+
+            case opArg::optype::PAD:
+                // No action required for padding
+                break;
+
+            case opArg::optype::PAGE_ID:
+                result.push_back(handle_page_id_arg(val, state));
+                break;
+
+            default:
+                throw std::runtime_error("Invalid argument type!");
         }
-        break;
-      case opArg::optype::JOBSIZE:
-        // TODO: Check if jobsize is valid
-        break;
-  
-      case opArg::optype::REG:
-        if (val >= 24) { // 24 register, 8 local 16 global
-          throw std::runtime_error("Register number out of range: " + std::to_string(val));
-        }
-        if (val < 8) {  // NOLINT
-          result.push_back("$r" + std::to_string(val)); // r0 to r7
-        } else {
-          result.push_back("$g" + std::to_string(val - 8)); // g0 to g15
-        }
-        break;
-      case opArg::optype::BARRIER:
-        if (m_opcode->get_code_name() == "local_barrier") {
-          result.push_back("$lb" + std::to_string(val));
-        } else if (m_opcode->get_code_name() == "remote_barrier") {
-          result.push_back("$rb" + std::to_string(val - 1));
-        } else {
-          throw std::runtime_error("Invalid barrier arg for " + m_opcode->get_code_name());
-        }
-        break;
-  
-      case opArg::optype::PAD:
-        // No action required
-        break;
-  
-      case opArg::optype::PAGE_ID: {
-        std::string label = get_label();
-        result.push_back(label);
-        state->add_externallabel(val, label);
-        break;
-      }
-  
-      default:
-        throw std::runtime_error("Invalid argument type!");
-      }
     }
+
     state->increment_address(size);
     writer.write_operation(m_opcode->get_code_name(), result, "");
     return size;
-  }
-      
-  offset_type
-  isa_op_deserializer::
-  size(disassembler_state& /*state*/)
-  {
-    int total = 2; // 1 opcode + 1 pad
-    for (const auto& arg : m_opcode->get_args()) {
-      total += (arg.get_width() / byte_to_bits); 
-    }
-    int result = total;
-    return result;
-  }
+}
 
-  uint32_t
-  align_op_deserializer::
-  deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* /*data*/)
-  {
-    state->increment_address(1);
-    writer.write_operation(m_opcode->get_code_name(), {}, "");
-    return 1;
+offset_type
+isa_op_deserializer::
+size(disassembler_state& /*state*/)
+{
+  int total = 2; // 1 opcode + 1 pad
+  for (const auto& arg : m_opcode->get_args()) {
+    total += (arg.get_width() / byte_to_bits);
   }
+  int result = total;
+  return result;
+}
+
+uint32_t
+align_op_deserializer::
+deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* /*data*/)
+{
+  state->increment_address(1);
+  writer.write_operation(m_opcode->get_code_name(), {}, "");
+  return 1;
+}
   
-  
-  uint32_t
-  ucDmaBd_op_deserializer::
-  deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
-  {
-    assert(state->get_address() % align() == 0 && "uC DMA definition has to be 128-bit aligned!");
-    std::string label = state->get_labels().at(state->get_address());
-    writer.write_label(label);
-    int ctrl_next_BD = 1;
-    uint32_t count = 0;
-    while (ctrl_next_BD == 1) {
-      int ctrl_external = 0;
-      //int ctrl_local_relative = 0;
-  
-      std::vector<std::string> result;
-      std::vector<uint32_t> arg;
-  
-      arg.push_back(read_uint16(data + count));     // size field
-      arg.push_back(read_uint16(data + count + 2)); // flags
-      arg.push_back(read_uint32(data + count + 4)); // local_ptr_offset
-      arg.push_back(read_uint32(data + count + 8)); // remote address high
-      arg.push_back(read_uint32(data + count + 12));// remote address high
+uint32_t
+ucDmaBd_op_deserializer::
+deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
+{
+  assert(state->get_address() % align() == 0 && "uC DMA definition has to be 128-bit aligned!");
+  std::string label = state->get_labels().at(state->get_address());
+  writer.write_label(label);
+  int ctrl_next_BD = 1;
+  uint32_t count = 0;
+  constexpr uint32_t size_offset = 0;
+  constexpr uint32_t flags_offset = 2;
+  constexpr uint32_t local_ptr_offset = 4;
+  constexpr uint32_t remote_addr_low_offset = 8;
+  constexpr uint32_t remote_addr_high_offset = 12;
+
+  while (ctrl_next_BD == 1) {
+    int ctrl_external = 0;
+    //int ctrl_local_relative = 0;
+
+    std::vector<std::string> result;
+    std::vector<uint32_t> arg;
+
+    arg.push_back(read_uint16(data + count + size_offset));        // size field
+    arg.push_back(read_uint16(data + count + flags_offset));       // flags
+    arg.push_back(read_uint32(data + count + local_ptr_offset));   // local_ptr_offset
+    arg.push_back(read_uint32(data + count + remote_addr_low_offset));  // remote address low
+    arg.push_back(read_uint32(data + count + remote_addr_high_offset)); // remote address high
 
     // Format address fields
     {
