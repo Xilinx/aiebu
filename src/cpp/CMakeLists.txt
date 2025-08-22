@@ -22,6 +22,7 @@ add_library(aiebu_library_objects OBJECT
   preprocessor/aie2/aie2_asm_preprocessor_input.cpp
   preprocessor/asm/asm_parser.cpp
   ops/ops.cpp
+  disassembler/disassembler.cpp
   )
 
 # Remove globle includes in case of submodule XRT as there are conflicts
@@ -51,6 +52,7 @@ target_include_directories(aiebu_library_objects
   ${CMAKE_CURRENT_SOURCE_DIR}/assembler
   ${CMAKE_CURRENT_SOURCE_DIR}/elf
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2
+  ${CMAKE_CURRENT_SOURCE_DIR}/disassembler
   ${AIEBU_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/gen
   )
 
@@ -79,12 +81,14 @@ target_sources(aiebu_library_objects
   encoder/aie2ps/report.cpp
   preprocessor/aie2ps/aie2ps_preprocessor_input.cpp
   preprocessor/asm/pager.cpp
+  disassembler/disassembler.cpp
   )
 target_include_directories(aiebu_library_objects
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2ps
   ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
+  ${CMAKE_CURRENT_SOURCE_DIR}/disassembler
   ${CMAKE_CURRENT_BINARY_DIR}
   )
 
@@ -94,9 +98,6 @@ add_library(aiebu_static STATIC
 
 if (MSVC)
   target_link_libraries(aiebu_static advapi32)
-else()
-  # On linux use xrt_coreutil.a
-  set_target_properties(aiebu_static PROPERTIES OUTPUT_NAME "aiebu")
 endif()
 
 install (TARGETS aiebu_static
