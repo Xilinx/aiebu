@@ -121,30 +121,36 @@ int main(int argc, char* argv[])
   std::cout << aiebu::buffer_type_table.at(type) << std::endl;
 
   if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet ||
-           type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
+      type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
     if (result["disassemble"].as<bool>()) {
       aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()), type);
-      std::cout <<  packetprint.get_dump() << std::endl;
+      std::cout << packetprint.get_dump() << std::endl;
     }
   }
   else {
-      aiebu::reporter rep(type, buffer);
-      if (result["all-headers"].as<bool>()) {
-        if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
-          rep.elf_summary(std::cout);
-        }
-      }
-      else if (result["disassemble"].as<bool>()) {
-        rep.disassemble(std::cout);
-      }
-      else if (result["disassemble-all"].as<bool>()) {
-        if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
-          rep.disassemble(std::cout, true);
-        }
-      }
-      else if (result["private-headers"].as<bool>()) {
-        rep.ctrlcode_summary(std::cout);
+    aiebu::reporter rep(type, buffer);
+    if (result["all-headers"].as<bool>()) {
+      if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
+        rep.elf_summary(std::cout);
       }
     }
+    else if (result["disassemble"].as<bool>()) {
+      if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2 ||
+          type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
+        rep.disassemble(std::cout);
+      }
+    }
+    else if (result["disassemble-all"].as<bool>()) {
+      if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
+        rep.disassemble(std::cout, true);
+      }
+      else if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
+        rep.disassemble(result["filename"].as<std::string>(), true);
+      }
+    }
+    else if (result["private-headers"].as<bool>()) {
+      rep.ctrlcode_summary(std::cout);
+    }
+  }
   return 0;
 }

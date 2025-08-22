@@ -17,6 +17,11 @@ target_include_directories(aiebu_dump_objects
   ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include
   ${AIEBU_SOURCE_DIR}/src/cpp
   ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO
+  ${AIEBU_SOURCE_DIR}/src/cpp/disassembler
+  ${AIEBU_SOURCE_DIR}/src/cpp/common
+  ${AIEBU_SOURCE_DIR}/src/cpp/ops
+  ${AIEBU_SOURCE_DIR}/src/cpp/preprocessor
+  ${AIEBU_SOURCE_DIR}/
   ${Boost_INCLUDE_DIRS}
   )
 
@@ -25,32 +30,24 @@ target_link_libraries(aiebu-dump PRIVATE aiebu_static)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(aiebu-dump PRIVATE pthread)
+  target_link_options(aiebu-dump PRIVATE "-static")
+  set_target_properties(aiebu-dump PROPERTIES INSTALL_RPATH "" BUILD_RPATH "")
 
-  # Upstreaming does not allow statically linked executables.  AIEBU_UPSTREAM is
-  # set by projects that are built for upstreaming and includes AIEBU as a
-  # submodule
-  if (NOT AIEBU_UPSTREAM)
-    target_link_options(aiebu-dump PRIVATE "-static")
-    set_target_properties(aiebu-dump PROPERTIES INSTALL_RPATH "" BUILD_RPATH "")
-
-    # Create a dynamically linked executable. aiebu-dump-dyn, on Linux for
-    # running valgrind, etc. This binary is not released for deployment but only
-    # used for internal testing. Note that valgrind known to report many glibc
-    # related errors when running with fully statically linked executables,
-    # hence the dynamically linked binary for testing
-    add_executable(aiebu-dump-dyn $<TARGET_OBJECTS:aiebu_dump_objects>)
-    target_link_libraries(aiebu-dump-dyn PRIVATE aiebu_static)
-  endif()
+  # Create a dynamically linked executable. aiebu-dump-dyn, on Linux for running
+  # valgrind, etc. This binary is not released for deployment but only used for
+  # internal testing. Note that valgrind known to report many glibc related
+  # errors when running with fully statically linked executables, hence the
+  # dynamically linked binary for testing
+  add_executable(aiebu-dump-dyn $<TARGET_OBJECTS:aiebu_dump_objects>)
+  target_link_libraries(aiebu-dump-dyn PRIVATE aiebu_static)
 endif()
 
 # This custom target fails if aiebu-dump has any dynamic dependencies
-if (NOT AIEBU_UPSTREAM)
-  add_custom_target(dump_check_dynamic_deps ALL
-    COMMAND ${CMAKE_COMMAND} -E echo "Checking for dynamic dependencies ..."
-    COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/depends.cmake" $<TARGET_FILE:aiebu-dump> aiebu-dump_depends.txt
-    DEPENDS aiebu-dump
-    )
-endif()
+add_custom_target(dump_check_dynamic_deps ALL
+  COMMAND ${CMAKE_COMMAND} -E echo "Checking for dynamic dependencies ..."
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/depends.cmake" $<TARGET_FILE:aiebu-dump> aiebu-dump_depends.txt
+  DEPENDS aiebu-dump
+  )
 
 install(TARGETS aiebu-dump
   RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
