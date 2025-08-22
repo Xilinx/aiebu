@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
-#include "ops.h"
 
+#include "ops.h"
 #include "aiebu/aiebu_error.h"
 
 #include <string>
+#include <iomanip>
+#include <cassert>
 
 namespace aiebu {
 
@@ -235,4 +237,209 @@ serialize(std::shared_ptr<assembler_state> state,
   return ret;
 }
 
+
+uint32_t op_deserializer::numlabel = 0;
+
+uint32_t
+isa_op_deserializer::
+deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
+{
+  std::vector<std::string> result;
+  //1 byte opcode and 1 byte pad
+  uint32_t size = 2;
+  uint32_t tile = 0;
+
+  for (const auto& arg : m_opcode->get_args()) {
+    uint32_t len = arg.get_width() / byte_to_bits;  // convert bits to byte
+    uint32_t val = get_arg_val(data + size, len);
+    size += len;
+    switch (arg.get_type()) {
+      case opArg::optype::CONST:
+        if (arg.get_name() == "tile_id") {
+        tile = val;
+        result.push_back(state->to_tile(val));
+        } else if (arg.get_name() == "actor_id") {
+          result.push_back(state->to_actor(val, tile));
+        } else if (arg.get_name() == "descriptor_ptr") {
+          auto slabels = state->get_labels();
+          if (slabels.find(val) == slabels.end()) {
+            std::string label = get_label();
+            result.push_back(label);
+            state->add_label(val, label);
+          } else {
+            result.push_back(slabels.at(val));
+          }
+        } else if (arg.get_name() == "table_ptr") {
+          auto slocal_ptrs = state->get_local_ptrs();
+          if (slocal_ptrs.find(val) == slocal_ptrs.end()) {
+            std::string label = get_label();
+            result.push_back(label);
+            state->add_local_ptr(val, label, shim_bd_len);
+          } else {
+            result.push_back(slocal_ptrs.at(val).first);
+          }
+        } else {
+          if (arg.get_name() == "offset" && val != 0xFFFF)  // NOLINT
+            val = val/2;
+          std::ostringstream oss;
+          oss << "0x" << std::uppercase << std::hex << val;
+          result.push_back(oss.str());
+        }
+        break;
+      case opArg::optype::JOBSIZE:
+        // TODO: Check if jobsize is valid
+        break;
+  
+      case opArg::optype::REG:
+        if (val >= 24) { // 24 register, 8 local 16 global
+          throw std::runtime_error("Register number out of range: " + std::to_string(val));
+        }
+        if (val < 8) {  // NOLINT
+          result.push_back("$r" + std::to_string(val)); // r0 to r7
+        } else {
+          result.push_back("$g" + std::to_string(val - 8)); // g0 to g15
+        }
+        break;
+      case opArg::optype::BARRIER:
+        if (m_opcode->get_code_name() == "local_barrier") {
+          result.push_back("$lb" + std::to_string(val));
+        } else if (m_opcode->get_code_name() == "remote_barrier") {
+          result.push_back("$rb" + std::to_string(val - 1));
+        } else {
+          throw std::runtime_error("Invalid barrier arg for " + m_opcode->get_code_name());
+        }
+        break;
+  
+      case opArg::optype::PAD:
+        // No action required
+        break;
+  
+      case opArg::optype::PAGE_ID: {
+        std::string label = get_label();
+        result.push_back(label);
+        state->add_externallabel(val, label);
+        break;
+      }
+  
+      default:
+        throw std::runtime_error("Invalid argument type!");
+      }
+    }
+    state->increment_address(size);
+    writer.write_operation(m_opcode->get_code_name(), result, "");
+    return size;
+  }
+      
+  offset_type
+  isa_op_deserializer::
+  size(disassembler_state& /*state*/)
+  {
+    int total = 2; // 1 opcode + 1 pad
+    for (const auto& arg : m_opcode->get_args()) {
+      total += (arg.get_width() / byte_to_bits); 
+    }
+    int result = total;
+    return result;
+  }
+
+  uint32_t
+  align_op_deserializer::
+  deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* /*data*/)
+  {
+    state->increment_address(1);
+    writer.write_operation(m_opcode->get_code_name(), {}, "");
+    return 1;
+  }
+  
+  
+  uint32_t
+  ucDmaBd_op_deserializer::
+  deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
+  {
+    assert(state->get_address() % align() == 0 && "uC DMA definition has to be 128-bit aligned!");
+    std::string label = state->get_labels().at(state->get_address());
+    writer.write_label(label);
+    int ctrl_next_BD = 1;
+    uint32_t count = 0;
+    while (ctrl_next_BD == 1) {
+      int ctrl_external = 0;
+      //int ctrl_local_relative = 0;
+  
+      std::vector<std::string> result;
+      std::vector<uint32_t> arg;
+  
+      arg.push_back(read_uint16(data + count));     // size field
+      arg.push_back(read_uint16(data + count + 2)); // flags
+      arg.push_back(read_uint32(data + count + 4)); // local_ptr_offset
+      arg.push_back(read_uint32(data + count + 8)); // remote address high
+      arg.push_back(read_uint32(data + count + 12));// remote address high
+
+    // Format address fields
+    {
+      std::ostringstream a3, a4;
+      a4 << "0x" << std::uppercase << std::hex << std::setw(field_width) << std::setfill('0') << arg[4];
+      a3 << "0x" << std::uppercase << std::hex << std::setw(field_width) << std::setfill('0') << arg[3];
+      result.push_back(a4.str());
+      result.push_back(a3.str());
+    }
+
+    uint32_t local_ptr_offset = arg[2] + state->get_address();
+    auto slocal_ptr = state->get_local_ptrs();
+    if (slocal_ptr.find(local_ptr_offset) == slocal_ptr.end()) {
+      std::string ptr_label = get_label();
+      result.push_back(ptr_label);
+      state->add_local_ptr(local_ptr_offset, ptr_label, arg[0]);
+    } else {
+      result.push_back(slocal_ptr[local_ptr_offset].first);
+    }
+
+    result.push_back(std::to_string(arg[0]));
+
+    if ((arg[1] & 0x1) == 0)
+      ctrl_next_BD = 0;
+
+    if ((arg[1] & 0x2) != 0)
+      ctrl_external = 1;
+
+    //if ((arg[1] & 0x4) != 0)
+    //  ctrl_local_relative = 1;
+
+    result.push_back(std::to_string(ctrl_external));
+    result.push_back(std::to_string(ctrl_next_BD));
+
+    state->increment_address(size(*state));
+    count += size(*state);
+    writer.write_operation("UC_DMA_BD", result, label);
+  }
+
+  return count;
 }
+
+uint32_t
+long_op_deserializer::
+deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const char* data)
+{
+  uint32_t lp = state->get_address();
+  auto label_pair = state->get_local_ptrs().at(lp);
+  std::string label = label_pair.first;
+  writer.write_label(label);
+  uint32_t count = label_pair.second;
+  assert(count != 0 && ".long length is zero");
+  uint32_t pos = 0;
+  for (uint32_t i = 0; i < count; ++i) {
+    std::vector<std::string> result;
+
+    uint32_t val = read_uint32(data + pos);
+    std::ostringstream oss;
+    oss << "0x" << std::uppercase << std::hex
+        << std::setw(field_width) << std::setfill('0') << val;
+    result.push_back(oss.str());
+
+    state->increment_address(size(*state));
+    pos += size(*state);
+    writer.write_operation(".long", result, label);
+  }
+  return pos;
+}
+
+} // namespace aiebu
