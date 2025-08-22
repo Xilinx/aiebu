@@ -61,3 +61,9 @@ foreach(tfile ${tfiles})
       "PYTHONPATH=${AIEBU_SOURCE_DIR}")
   endif()
 endforeach()
+
+# MD5 name-based uuid generation was corrected to be
+# identical on all endian systems in 1.71.0 only.
+if (${Boost_VERSION} VERSION_GREATER_EQUAL "1.71.0")
+  add_subdirectory(dump)
+endif()

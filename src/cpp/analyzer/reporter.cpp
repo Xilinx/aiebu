@@ -5,6 +5,7 @@
 #include "transaction.hpp"
 #include "transaction.hpp"
 #include "common/file_utils.h"
+#include "disassembler/disassembler.h"
 
 
 #include "aiebu/aiebu_error.h"
@@ -26,7 +27,6 @@ namespace aiebu {
                 throw error(error::error_code::invalid_elf, "Invalid ELF buffer");
         }
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2_config ||
-            m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps ||
             m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config ||
             m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie4 ||
             m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie4_config) {
@@ -129,6 +129,15 @@ namespace aiebu {
         }
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
             disassemble_blob(root);
+        }
+        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps ) {
+            try {
+                aiebu::asm_disassembler disasm(root.string(), std::cout);
+                disasm.run();
+            } catch (const std::exception& ex) {
+                throw error(error::error_code::internal_error,
+                    "Disassembler error: " + std::string(ex.what()));
+            }
         }
         else {
             throw error(error::error_code::invalid_buffer_type,
