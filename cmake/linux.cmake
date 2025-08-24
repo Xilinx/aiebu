@@ -8,4 +8,4 @@ if (AIEBU_PYTHON STREQUAL "ON")
 
   find_program (READELF eu-readelf REQUIRED)
 endif()
-add_compile_options(-Wall -Wextra -Werror)
+add_compile_options(-Wall -Wextra -Werror -fvisibility=hidden)
