@@ -340,7 +340,7 @@ handle_page_id_arg(uint32_t val,
                     std::shared_ptr<disassembler_state> state)
 {
   std::string label = get_label();
-  state->add_externallabel(val, label);
+  state->add_external_label(val, label);
   return label;
 }
 
