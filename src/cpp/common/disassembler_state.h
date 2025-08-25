@@ -40,7 +40,7 @@ public:
         return local_ptr;
     }
 
-    const std::map<uint32_t, std::string>& get_externallabels() const {
+    const std::map<uint32_t, std::string>& get_external_labels() const {
         return external_labels;
     }
 
