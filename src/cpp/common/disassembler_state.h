@@ -44,7 +44,7 @@ public:
         return external_labels;
     }
 
-    void add_externallabel(uint32_t address, std::string label) {
+    void add_external_label(uint32_t address, std::string label) {
         external_labels[address] = std::move(label);
     }
 
