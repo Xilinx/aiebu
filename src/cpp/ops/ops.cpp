@@ -10,6 +10,8 @@
 
 namespace aiebu {
 
+static constexpr uint32_t offset_type_marker = 0xFFFF;
+
 offset_type
 isa_op_serializer::size(assembler_state& /*state*/)
 {
@@ -95,7 +97,7 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
         //    we send "arg index" as symbol name and arg offset in apply_offset_57
         if (!m_opcode->get_code_name().compare("apply_offset_57") && !arg.get_name().compare("offset"))
         {
-          if (val == state->m_control_packet_index || val == 0xFFFF)       // NOLINT
+          if (val == state->m_control_packet_index || val == offset_type_marker)       // NOLINT
             sval = "control-code-" + std::to_string(colnum);
 
           size_t index = state->find_label_entry(m_args[0].substr(1));
@@ -114,11 +116,11 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
 
           // arg 0 to 6 and be patched in CERT.
           // Beyond that its elfloader/host responsibility to patch mandatorily
-          if (val > 6 && val != 0xFFFF)
+          if (val > 6 && val != offset_type_marker)
             std::cout <<"WARNING: Apply_offset_57 has arg index " << val << " > 6, Should be mandatorily patched in host!!!\n";
           if (val == state->m_control_packet_index)
-            val = 0xFFFF;
-          else if (val != 0xFFFF)
+            val = offset_type_marker;
+          else if (val != offset_type_marker)
           {
             // val is arg index, to get offset x2
             val = val * 2;
@@ -289,8 +291,8 @@ std::string
 isa_op_deserializer::
 handle_generic_const_arg(const opArg& arg, uint32_t val)
 {
-  // Handle offset argument: divide by 2 if not 0xFFFF
-  if (is_offset(arg) && val != 0xFFFF) {
+  // Handle offset argument: if not 0xFFFF, divide by 2 to get the argument value.
+  if (is_offset(arg) && val != offset_type_marker) {
     val = val / 2;
   }
 
@@ -410,12 +412,11 @@ offset_type
 isa_op_deserializer::
 size(disassembler_state& /*state*/)
 {
-  int total = 2; // 1 opcode + 1 pad
+  uint32_t total_width = 2; // 1 opcode + 1 pad
   for (const auto& arg : m_opcode->get_args()) {
-    total += (arg.get_width() / byte_to_bits);
+    total_width += (arg.get_width() / byte_to_bits);
   }
-  int result = total;
-  return result;
+  return total_width;
 }
 
 uint32_t
