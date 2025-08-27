@@ -7,8 +7,11 @@
 
 namespace aiebu {
 
-constexpr size_t ELF_SECTION_HEADER_PADDING = 16;  // ELF-specific header padding
-constexpr uint8_t ALIGN_OPCODE = 0xA5;  // .align pseudo-instruction opcode
+static constexpr size_t ELF_SECTION_HEADER_PADDING = 16;  // ELF-specific header padding
+static constexpr uint8_t ALIGN_OPCODE = 0xA5;  // .align pseudo-instruction opcode
+constexpr size_t CTRLTEXT_STRING_LENGTH = 9;  // Length of ".ctrltext"
+constexpr size_t CTRLDATA_STRING_LENGTH = 9;  // Length of ".ctrldata"
+
 
 asm_disassembler::asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream)
     : asm_write(output_stream) {
@@ -57,7 +60,7 @@ void asm_disassembler::print_section_info(const ELFIO::section* section) {
 void asm_disassembler::process_text_section(const ELFIO::section* section, std::shared_ptr<disassembler_state> state) {
     const char* section_data = section->get_data();
     size_t section_size = section->get_size();
-    for (size_t offset = 16; offset < section_size;) {
+    for (size_t offset = ELF_SECTION_HEADER_PADDING; offset < section_size;) {
         uint8_t opcode = *reinterpret_cast<const uint8_t*>(section_data + offset);
         auto op_it = isa_op_map->find(opcode);
         if (op_it != isa_op_map->end()) {
@@ -111,12 +114,12 @@ void asm_disassembler::process_pad_section(const ELFIO::section* /*section*/, st
 }
 
 bool asm_disassembler::is_text_section(const std::string& section_name) const {
-    bool result = section_name.substr(0, 9) == ".ctrltext";
+    bool result = section_name.substr(0, CTRLTEXT_STRING_LENGTH) == ".ctrltext";
     return result;
 }
 
 bool asm_disassembler::is_data_section(const std::string& section_name) const {
-    bool result = section_name.substr(0, 9) == ".ctrldata";
+    bool result = section_name.substr(0, CTRLDATA_STRING_LENGTH) == ".ctrldata";
     return result;
 }
 

@@ -19,6 +19,14 @@ public:
     asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream);
     ~asm_disassembler();
 
+    // Delete copy constructor and copy assignment operator
+    asm_disassembler(const asm_disassembler&) = delete;
+    asm_disassembler& operator=(const asm_disassembler&) = delete;
+
+    // Delete move constructor and move assignment operator
+    asm_disassembler(asm_disassembler&&) = delete;
+    asm_disassembler& operator=(asm_disassembler&&) = delete;
+
     void run();
 
 private:
