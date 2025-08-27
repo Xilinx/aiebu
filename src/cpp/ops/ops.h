@@ -214,6 +214,23 @@ public:
 
 class isa_op_deserializer: public op_deserializer
 {
+private:
+  std::string handle_tile_id_arg(uint32_t val, uint32_t& tile, std::shared_ptr<disassembler_state> state);
+  std::string handle_actor_id_arg(uint32_t val, uint32_t tile, std::shared_ptr<disassembler_state> state);
+  std::string handle_descriptor_ptr_arg(uint32_t val, std::shared_ptr<disassembler_state> state);
+  std::string handle_table_ptr_arg(uint32_t val, std::shared_ptr<disassembler_state> state);
+  std::string handle_generic_const_arg(const opArg& arg, uint32_t val);
+  std::string handle_register_arg(uint32_t val);
+  std::string handle_barrier_arg(uint32_t val);
+  std::string handle_page_id_arg(uint32_t val, std::shared_ptr<disassembler_state> state);
+
+  // Inline helper functions for argument type checking
+  inline bool is_tile_id(const opArg& arg) { return arg.get_name() == "tile_id"; }
+  inline bool is_actor_id(const opArg& arg) { return arg.get_name() == "actor_id"; }
+  inline bool is_descriptor_ptr(const opArg& arg) { return arg.get_name() == "descriptor_ptr"; }
+  inline bool is_table_ptr(const opArg& arg) { return arg.get_name() == "table_ptr"; }
+  inline bool is_offset(const opArg& arg) { return arg.get_name() == "offset"; }
+
 public:
   explicit isa_op_deserializer(const isa_op_disasm* opcode):op_deserializer(opcode) {}
   offset_type size(disassembler_state& state) override;
