@@ -15,9 +15,8 @@ namespace aiebu {
 
 class asm_disassembler {
 public:
-    
     asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream);
-    ~asm_disassembler();
+    ~asm_disassembler() = default;
 
     // Delete copy constructor and copy assignment operator
     asm_disassembler(const asm_disassembler&) = delete;
@@ -30,10 +29,10 @@ public:
     void run();
 
 private:
-    ELFIO::elfio elf_reader;
-    asm_writer asm_write;
+    ELFIO::elfio m_elf_reader;
+    asm_writer m_asm_writer;
     const std::map<uint8_t, isa_op_disasm>* isa_op_map;
-    isa_disassembler* isa_disasm;
+    isa_disassembler isa_disasm;
     
     void process_sections();
     void print_section_info(const ELFIO::section* section) ;
