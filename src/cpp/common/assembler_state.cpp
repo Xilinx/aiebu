@@ -15,14 +15,15 @@ assembler_state::
 assembler_state(std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> isa,
                 std::vector<std::shared_ptr<asm_data>>& data,
                 std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
-                std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index, bool makeunique)
+                std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index,
+                uint32_t optimize_level, bool makeunique)
                 : m_isa(std::move(isa)), m_data(data), m_scratchpad(scratchpad),
                   m_labelpageindex(labelpageindex), m_control_packet_index(control_packet_index)
 {
+  process_optimization(optimize_level);
   process(makeunique);
   //printstate();
 }
-
 
 // makeunique: make the job and label name unique by adding file name with it,
 //             this is only needed before paging as different file can have same

@@ -25,9 +25,9 @@ public:
                                                  std::vector<std::shared_ptr<asm_data>>& data,
                                                  std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
                                                  std::map<std::string, uint32_t>& labelpageindex,
-                                                 uint32_t control_packet_index, bool makeunique)
+                                                 uint32_t control_packet_index, uint32_t optimize_level, bool makeunique)
   {
-    return std::make_shared<assembler_state_aie2ps>(isa, data, scratchpad, labelpageindex, control_packet_index, makeunique);
+    return std::make_shared<assembler_state_aie2ps>(isa, data, scratchpad, labelpageindex, control_packet_index, optimize_level, makeunique);
   }
 
   virtual std::shared_ptr<preprocessed_output>
@@ -43,10 +43,12 @@ public:
   process_internal(std::shared_ptr<asm_preprocessor_input> tinput)
   {
     //auto keys = tinput->get_keys();
+    const std::string prefix = "opt_level_";
     std::shared_ptr<asm_parser> parser(new asm_parser(tinput->get_data(), tinput->get_include_paths()));
     parser->parse_lines();
     auto collist = parser->get_col_list();
     isa i;
+    uint32_t optimize = 0;
     m_isa = i.get_isamap();
     auto toutput = std::make_shared<aie2ps_preprocessed_output>(parser->get_partition_info());
     auto flags = tinput->get_flags();
@@ -54,9 +56,14 @@ public:
     {
       if (flag == disable_dump_map)
         toutput->set_debug(false);
+      else if (flag.find(prefix) == 0)
+        optimize = std::stoi(flag.substr(prefix.size()));
       else
         std::cout << "Invalid flag: " << flag << ", ignored !!!" << std::endl;
     }
+
+    toutput->set_optmization(optimize);
+
     toutput->set_annotations(parser->get_annotations());
 
     for (auto col: collist)
@@ -71,7 +78,7 @@ public:
       {
         // create state
         std::vector<std::shared_ptr<asm_data>> data = coldata.get_label_asmdata(label);
-        std::shared_ptr<assembler_state> state = create_assembler_state(m_isa, data, scratchpad, label_page_index, 0, true);
+        std::shared_ptr<assembler_state> state = create_assembler_state(m_isa, data, scratchpad, label_page_index, 0, optimize, true);
         // create pages
         pager(PAGE_SIZE).pagify(*state, col, pages, relative_page_index);
         label_page_index[get_pagelabel(label)] = relative_page_index;

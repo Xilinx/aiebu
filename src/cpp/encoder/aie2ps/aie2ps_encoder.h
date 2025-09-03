@@ -32,7 +32,7 @@ public:
   virtual std::string get_TextSectionName(uint32_t colnum, pageid_type pagenum) {return ".ctrltext." + std::to_string(colnum) + "." + std::to_string(pagenum); }
   virtual std::string get_DataSectionName(uint32_t colnum, pageid_type pagenum) {return ".ctrldata." + std::to_string(colnum) + "." + std::to_string(pagenum); }
   virtual std::string get_PadSectionName(uint32_t colnum) {return ".pad." + std::to_string(colnum); }
-  std::string page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad, std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index);
+  std::string page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad, std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index, uint32_t optimization_level);
   virtual void patch57(const std::shared_ptr<section_writer> textwriter, std::shared_ptr<section_writer> datawriter, offset_type offset, uint64_t patch);
   void fill_scratchpad(std::shared_ptr<section_writer> padwriter,const std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpads);
   void fill_control_packet_symbols(std::shared_ptr<section_writer> padwriter,const uint32_t col, const std::string& controlpacket_padname, std::vector<symbol>& syms, const std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpads);
@@ -43,9 +43,9 @@ public:
                          std::vector<std::shared_ptr<asm_data>>& data,
                          std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
                          std::map<std::string, uint32_t>& labelpageindex,
-                         uint32_t control_packet_index, bool makeunique)
+                         uint32_t control_packet_index, uint32_t optimize_level, bool makeunique)
   {
-    return std::make_shared<assembler_state_aie2ps>(isa, data, scratchpad, labelpageindex, control_packet_index, makeunique);
+    return std::make_shared<assembler_state_aie2ps>(isa, data, scratchpad, labelpageindex, control_packet_index, optimize_level, makeunique);
   }
 
   std::vector<std::shared_ptr<writer>> get_writers() { return twriter; }

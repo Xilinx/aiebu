@@ -60,6 +60,7 @@ process(std::shared_ptr<preprocessed_output> input)
   auto& totalcoldata = tinput->get_coldata();
   auto& totalsyms = tinput->get_symbols();
   m_debug.set_annotations(tinput->get_annotations());
+  uint32_t optimizatiom_level = tinput->get_optimization_level();
 
   // for each colnum encode each page
   for (auto coldata: totalcoldata) {
@@ -68,7 +69,7 @@ process(std::shared_ptr<preprocessed_output> input)
     for (auto& lpage : coldata.second->m_pages)
     {
       auto cp_name = page_writer(lpage, coldata.second->m_scratchpad, coldata.second->m_labelpageindex,
-                                 coldata.second->m_control_packet_index);
+                                 coldata.second->m_control_packet_index, optimizatiom_level);
       if (!cp_name.empty())
         controlpacket_padname = cp_name.substr(1);
     }
@@ -124,7 +125,7 @@ findKey(const std::map<std::string, std::vector<std::string>>& myMap, const std:
 std::string
 aie2ps_encoder::
 page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
-            std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index)
+            std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index, uint32_t optimization_level)
 {
   // encode page
   std::vector<uint8_t> page_header = { 0xFF, 0xFF, 0x00, 0x00,
@@ -148,7 +149,7 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
   std::vector<std::shared_ptr<asm_data>> all;
   all.insert(all.end(), lpage.m_text.begin(), lpage.m_text.end());
   all.insert(all.end(), lpage.m_data.begin(), lpage.m_data.end());
-  std::shared_ptr<assembler_state> page_state = create_assembler_state(m_isa, all, scratchpad, labelpageindex, control_packet_index, false);
+  std::shared_ptr<assembler_state> page_state = create_assembler_state(m_isa, all, scratchpad, labelpageindex, control_packet_index, optimization_level,false);
 
   auto textwriter = std::make_shared<section_writer>(get_TextSectionName(colnum, pagenum), code_section::text);
   auto datawriter = std::make_shared<section_writer>(get_DataSectionName(colnum, pagenum), code_section::data);
@@ -165,6 +166,7 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
     //TODO add debug info
     std::string name = text->get_operation()->get_name();
     offset_type pc_low, pc_high;
+
     if (name == "start_job" || name == "start_job_deferred") {
       pc_low = pagenum * PAGE_SIZE + textwriter->tell();
       pc_high = pc_low + page_state->m_jobmap[page_state->gen_job_name(false, text)]->get_size() - 1;
