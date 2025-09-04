@@ -34,7 +34,7 @@ public:
    * It add partition info in note section and finalize to generate elf
    */
   std::vector<char>
-  process(std::vector<std::shared_ptr<writer>> &mwriter) override
+  process(std::vector<std::shared_ptr<writer>>& mwriter) override
   {
 
     if (mwriter.empty())
