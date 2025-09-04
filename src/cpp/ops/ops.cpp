@@ -15,7 +15,7 @@ static constexpr uint32_t offset_type_marker = 0xFFFF;
 offset_type
 isa_op_serializer::size(assembler_state& state)
 {
-  if (state.is_enable_opt_opcode(m_opcode->get_code_name())) return 0;
+  if (state.is_optimization_enabled_for_op(m_opcode->get_code_name())) return 0;
   offset_type result = 2; // 2 bytes for opcode
   for (auto &arg : m_opcode->get_args())
     result += arg.m_width/width_8;
@@ -39,7 +39,7 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
   std::vector<uint8_t> ret;
   // Patching is already done host side, so skip apply_offset_57 opcode
   // as part of text section, to avoid overhead on FW for processing apply_offset_57
-  if (!state->is_enable_opt_opcode(m_opcode->get_code_name())) {
+  if (!state->is_optimization_enabled_for_op(m_opcode->get_code_name())) {
     ret.push_back(m_opcode->get_code());
     ret.push_back(pad);
   }
@@ -73,9 +73,9 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
       ++arg_index;
     }
 
-    if (atype == opArg::optype::REG && (!state->is_enable_opt_opcode(m_opcode->get_code_name())))
+    if (atype == opArg::optype::REG && (!state->is_optimization_enabled_for_op(m_opcode->get_code_name())))
       ret.push_back(parse_register(sval) & BYTE_MASK);
-    else if (atype == opArg::optype::BARRIER && (!state->is_enable_opt_opcode(m_opcode->get_code_name())))
+    else if (atype == opArg::optype::BARRIER && (!state->is_optimization_enabled_for_op(m_opcode->get_code_name())))
       ret.push_back(parse_barrier(sval) & BYTE_MASK);
     else if (atype == opArg::optype::CONST)
     {
@@ -88,7 +88,7 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
                              symbol::patch_schema::scaler_32);
       }
 
-      if (arg.m_width == width_8 && (!state->is_enable_opt_opcode(m_opcode->get_code_name()))) 
+      if (arg.m_width == width_8 && (!state->is_optimization_enabled_for_op(m_opcode->get_code_name())))
       {
         ret.push_back(val & BYTE_MASK);
       } else if (arg.m_width == width_16)
@@ -147,11 +147,11 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
           }
 
         }
-        if (!state->is_enable_opt_opcode(m_opcode->get_code_name())){ 
+        if (!state->is_optimization_enabled_for_op(m_opcode->get_code_name())){
           ret.push_back(val & BYTE_MASK);
           ret.push_back((val >> SECOND_BYTE_SHIFT) & BYTE_MASK);
         }
-      } else if (arg.m_width == width_32 && (!state->is_enable_opt_opcode(m_opcode->get_code_name())))
+      } else if (arg.m_width == width_32 && (!state->is_optimization_enabled_for_op(m_opcode->get_code_name())))
       {
         ret.push_back((val >> FIRST_BYTE_SHIFT)& BYTE_MASK);
         ret.push_back((val >> SECOND_BYTE_SHIFT) & BYTE_MASK);

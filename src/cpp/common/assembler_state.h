@@ -228,14 +228,14 @@ public:
 
   void process_optimization(uint32_t optimize_level)
   {
-    if (optimize_level >= 1) {
+    if (optimize_level >= 1)
       m_opt_opcodes.insert("apply_offset_57");
-    } else {
+    else
       m_opt_opcodes.clear();
-    }
   }
 
-  bool is_enable_opt_opcode(std::string name) {
+  bool is_optimization_enabled_for_op(const std::string &name) const
+  {
      return (m_opt_opcodes.count(name)> 0);
   }
 
