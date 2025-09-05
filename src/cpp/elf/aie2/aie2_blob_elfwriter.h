@@ -36,6 +36,10 @@ public:
   std::vector<char>
   process(std::vector<std::shared_ptr<writer>>& mwriter) override
   {
+
+    if (mwriter.empty())
+      return {};
+
     auto mconfig_writer = std::dynamic_pointer_cast<aie2_config_writer>(mwriter[0]);
     init_symtab();
     uint32_t index=0;

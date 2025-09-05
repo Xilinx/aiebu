@@ -26,6 +26,7 @@ class aie2ps_preprocessed_output : public preprocessed_output
   std::vector<symbol> m_sym;
   std::vector<annotation_type> m_annotation_list;
   bool isdebug = true;
+  uint32_t m_optimization_level = 0;
   std::shared_ptr<const partition_info> m_partition;
 public:
 
@@ -68,6 +69,14 @@ public:
   bool get_debug() const
   {
     return isdebug;
+  }
+  void set_optmization(uint32_t value)
+  {
+    m_optimization_level = value;
+  }
+  uint32_t get_optimization_level()
+  {
+    return m_optimization_level;
   }
 };
 

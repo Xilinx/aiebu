@@ -178,7 +178,7 @@ add_preemption_code(uint32_t col)
   void
   aie2_blob_preprocessor_input::
   validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const {
-    // Return if the offset and arg_index are within their respective sizes. 
+    // Return if the offset and arg_index are within their respective sizes.
     if ((offset <= size) && (arg_index <= MAX_ARG_INDEX)) {
       return;
     }
@@ -1002,10 +1002,9 @@ add_preemption_code(uint32_t col)
     boost::property_tree::read_json(patch_json, pt);
 
     const auto& pt_xrt_kernel_instance = pt.get_child_optional("xrt-kernels");
-    if (!pt_xrt_kernel_instance) {
-      std::cout << "xrt-kernels instance not found returning\n";
-      return;
-    }
+    if (!pt_xrt_kernel_instance)
+      throw error(error::error_code::invalid_input, "xrt-kernels not found in config json file");
+
     const auto& p_xrt_kernel_instance = pt_xrt_kernel_instance.get();
     for (const auto& [unused, ctrlcode] : p_xrt_kernel_instance)
     {

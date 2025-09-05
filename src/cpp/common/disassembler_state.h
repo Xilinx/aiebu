@@ -40,11 +40,11 @@ public:
         return local_ptr;
     }
 
-    const std::map<uint32_t, std::string>& get_externallabels() const {
+    const std::map<uint32_t, std::string>& get_external_labels() const {
         return external_labels;
     }
 
-    void add_externallabel(uint32_t address, std::string label) {
+    void add_external_label(uint32_t address, std::string label) {
         external_labels[address] = std::move(label);
     }
 

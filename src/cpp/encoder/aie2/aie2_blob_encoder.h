@@ -47,7 +47,12 @@ public:
   process(std::shared_ptr<preprocessed_output> input) override
   {
     auto tinput = std::static_pointer_cast<aie2_config_preprocessed_output>(input);
-    // lets get partition info for first instance and compare this with other instances
+    // lets get partition info for first instance and compare this with other
+    // instances
+    if (tinput->get_kernel_map().empty())
+        return twriter;
+    if (tinput->get_kernel_map().begin()->second.get_instance_map().empty())
+        return twriter;
     auto pinfo_first_instance = tinput->get_kernel_map().begin()->second.get_instance_map().begin()->second->get_partition_info();
     auto output_writer = std::make_shared<aie2_config_writer>(pinfo_first_instance);
     twriter.push_back(output_writer);

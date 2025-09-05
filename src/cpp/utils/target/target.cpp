@@ -409,15 +409,16 @@ asm_config_parser::parser(const sub_cmd_options &options)
 {
   std::string json_file;
   cxxopts::Options all_options("Target config Options", m_description);
+  uint32_t optimization_level =0;
 
   try {
     all_options.add_options()
             ("o,outputelf", "ELF output file name", cxxopts::value<decltype(output_elffile)>())
             ("j,json", "control packet Patching json file", cxxopts::value<decltype(json_file)>())
             ("f,flag", "flags", cxxopts::value<decltype(flags)>())
+            ("O,optimization", "optimization level (1-4)", cxxopts::value<int>()->default_value("0"))
             ("h,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
     ;
-
 
     auto char_ver = aiebu::utilities::vector_of_string_to_vector_of_char(options);
 
@@ -428,6 +429,15 @@ asm_config_parser::parser(const sub_cmd_options &options)
       return false;
     }
 
+    if (result.count("optimization")) {
+      optimization_level = result["optimization"].as<int>();
+      if (optimization_level <= 0 || optimization_level > 4) {
+        std::cout << "Info: optimization level must be between 0 and 4, else default to 0\n";
+        optimization_level =0;
+      }
+      flags.push_back("opt_level_" + std::to_string(optimization_level));
+    }
+
     if (result.count("outputelf"))
       output_elffile = result["outputelf"].as<decltype(output_elffile)>();
     else
@@ -436,8 +446,11 @@ asm_config_parser::parser(const sub_cmd_options &options)
     if (result.count("json"))
       json_file = result["json"].as<decltype(json_file)>();
 
-    if (result.count("flag"))
-      flags = result["flag"].as<decltype(flags)>();
+    if (result.count("flag")) {
+       auto extra_flags = result["flag"].as<std::vector<std::string>>();
+       flags.insert(flags.end(), extra_flags.begin(), extra_flags.end());
+    }
+
   }
   catch (const cxxopts::exceptions::exception& e) {
     std::cout << all_options.help({"", "Target config Options"});

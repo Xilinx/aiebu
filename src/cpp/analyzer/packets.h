@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
 
+#ifndef AIEBU_PACKETS_H_
+#define AIEBU_PACKETS_H_
+
 #include <string>
 #include <cstdint>
 #include <iostream>
@@ -25,3 +28,5 @@ public:
 };
 
 }
+
+#endif
