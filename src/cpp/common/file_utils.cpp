@@ -28,27 +28,29 @@ constexpr unsigned int ctrlpkt_offset_aie2 = 8 * word_size;
 constexpr unsigned int os_abi_aie2p = 69;
 constexpr unsigned int os_abi_aie2ps = 64;
 constexpr unsigned int os_abi_aie2ps_group = 70;
+constexpr unsigned int elf_header_size = 64;
+// EI_OSABI is at offset 7 in the ELF header
+constexpr unsigned int elf_os_abi_offset = 7;
 
 aiebu_assembler::buffer_type
 identify_buffer_type(const std::vector<char>& buffer)
 {
   if (buffer.size() < magic_length)
     return aiebu_assembler::buffer_type::unspecified;
-
   const auto data = reinterpret_cast<const unsigned int *>(buffer.data());
-  // ELF magic number
-  // TODO: add additional check to distinguish between aie2 and aie2ps
   if (data[0] == elf_magic) {
-    ELFIO::elfio reader;
-    std::istringstream stream(std::string(buffer.data(), buffer.size()));
-    if (reader.load(stream)) {
-      // Check if the ELF file is for AIE2 or AIE2PS
-      if (reader.get_os_abi() == os_abi_aie2p)
+    // ELF header is at least 52 bytes for 32-bit, 64 bytes for 64-bit
+    if (buffer.size() >= elf_header_size) {
+      // EI_OSABI is at offset 7 in the ELF header
+      const auto os_abi = static_cast<unsigned char>(buffer[elf_os_abi_offset]);
+
+      if (os_abi == os_abi_aie2p)
         return aiebu_assembler::buffer_type::elf_aie2;
-      else if (reader.get_os_abi() == os_abi_aie2ps || reader.get_os_abi() == os_abi_aie2ps_group)
+      else if (os_abi == os_abi_aie2ps || os_abi == os_abi_aie2ps_group)
         return aiebu_assembler::buffer_type::elf_aie2ps;
     }
   }
+
   // Transaction ctrlcode header
   if (data[0] == ctrlcode_magic_aie2)
     return aiebu_assembler::buffer_type::blob_instr_transaction;
