@@ -90,6 +90,9 @@ aiebu_assembler::buffer_type
 identify_buffer_type(const std::vector<char> &buffer);
 
 aiebu_assembler::buffer_type
+identify_elf_type(const std::vector<char>& buffer);
+
+aiebu_assembler::buffer_type
 identify_control_packet(const char* buffer, uint64_t size);
 
 inline std::string get_parent_directory(const std::string& relativePath) {

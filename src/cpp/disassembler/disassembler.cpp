@@ -34,11 +34,10 @@ void asm_disassembler::process_sections() {
         print_section_info(section);
         if (is_text_section(section_name))
             process_text_section(section, state);
-        else if (is_data_section(section_name)) {
+        if (is_data_section(section_name)) {
             process_data_section(section, state);
             state->reset();
-        } else
-            throw error(error::error_code::invalid_asm, "Section not recognized as text or data:" + section_name + "\n");
+        }
     }
 }
 
@@ -113,5 +112,4 @@ bool asm_disassembler::is_data_section(const std::string& section_name) const {
     bool result = section_name.substr(0, CTRLDATA_STRING_LENGTH) == ".ctrldata";
     return result;
 }
-
 } // namespace aiebu

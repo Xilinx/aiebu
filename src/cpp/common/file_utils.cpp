@@ -28,7 +28,8 @@ constexpr unsigned int ctrlpkt_offset_aie2 = 8 * word_size;
 constexpr unsigned int os_abi_aie2p = 69;
 constexpr unsigned int os_abi_aie2ps = 64;
 constexpr unsigned int os_abi_aie2ps_group = 70;
-constexpr unsigned int elf_header_size = 64;
+// ELF header is at least 52 bytes for 32-bit, 64 bytes for 64-bit
+constexpr unsigned int min_elf_header_size = 52;
 // EI_OSABI is at offset 7 in the ELF header
 constexpr unsigned int elf_os_abi_offset = 7;
 
@@ -39,16 +40,7 @@ identify_buffer_type(const std::vector<char>& buffer)
     return aiebu_assembler::buffer_type::unspecified;
   const auto data = reinterpret_cast<const unsigned int *>(buffer.data());
   if (data[0] == elf_magic) {
-    // ELF header is at least 52 bytes for 32-bit, 64 bytes for 64-bit
-    if (buffer.size() >= elf_header_size) {
-      // EI_OSABI is at offset 7 in the ELF header
-      const auto os_abi = static_cast<unsigned char>(buffer[elf_os_abi_offset]);
-
-      if (os_abi == os_abi_aie2p)
-        return aiebu_assembler::buffer_type::elf_aie2;
-      else if (os_abi == os_abi_aie2ps || os_abi == os_abi_aie2ps_group)
-        return aiebu_assembler::buffer_type::elf_aie2ps;
-    }
+    return identify_elf_type(buffer);
   }
 
   // Transaction ctrlcode header
@@ -56,7 +48,6 @@ identify_buffer_type(const std::vector<char>& buffer)
     return aiebu_assembler::buffer_type::blob_instr_transaction;
 
   // TODO: Put the reference to PDI format from bootgen
-  // TODO: Add code to distinguish between aie2 and aie2ps
   if ((data[0] == pdi_magic0) && (data[1] == pdi_magic1))
     return aiebu_assembler::buffer_type::pdi_aie2;
 
@@ -64,6 +55,26 @@ identify_buffer_type(const std::vector<char>& buffer)
   // ctrlpkt identification is WIP
   return identify_control_packet(buffer.data(), buffer.size());
 }
+
+
+aiebu_assembler::buffer_type
+identify_elf_type(const std::vector<char>& buffer)
+{
+  // ELF header is at least 52 bytes for 32-bit, 64 bytes for 64-bit
+  if (buffer.size() >= min_elf_header_size) {
+    // EI_OSABI is at offset 7 in the ELF header
+    const auto os_abi = static_cast<unsigned char>(buffer.data()[elf_os_abi_offset]);
+    if (os_abi == os_abi_aie2p)
+      return aiebu_assembler::buffer_type::elf_aie2;
+    else if (os_abi == os_abi_aie2ps || os_abi == os_abi_aie2ps_group)
+      return aiebu_assembler::buffer_type::elf_aie2ps;
+    else
+      return aiebu_assembler::buffer_type::unspecified;
+  }
+  else
+    throw error(error::error_code::invalid_elf, "ELF header size is less than expected");
+}
+
 
 aiebu_assembler::buffer_type
 identify_control_packet(const char* buffer, uint64_t size)
@@ -73,7 +84,6 @@ identify_control_packet(const char* buffer, uint64_t size)
 
   auto control_packet = reinterpret_cast<const unsigned int *>(buffer);
   uint64_t count = 0;
-
   // Check if the input buffer is control packet for aie2p
   while (count < size) {
     const auto cphdr = reinterpret_cast<const cp_pktheader_aie2p *>(control_packet);
@@ -100,7 +110,6 @@ identify_control_packet(const char* buffer, uint64_t size)
   while (count < size) {
     const auto cphdr_aie2 = reinterpret_cast<const cp_pktheader_aie2p *>(control_packet);
     const auto cp_aie2 = reinterpret_cast<const cp_ctrlinfo_aie2p *>(control_packet + 1);
-
     if ((cphdr_aie2->reserved_a_0 == 0x0) && (cphdr_aie2->reserved_b_0 == 0x0) &&
         (cphdr_aie2->reserved_c_000 == 0x0) && (cp_aie2->reserved_00 == 0x0) &&
         odd_parity_check(*control_packet) && odd_parity_check(*(control_packet + 1))) {
