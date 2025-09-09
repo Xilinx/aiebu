@@ -100,7 +100,7 @@ void asm_disassembler::process_data_section(const ELFIO::section* section, std::
 }
 
 void asm_disassembler::process_pad_section(const ELFIO::section* /*section*/, std::shared_ptr<disassembler_state> /*state*/) {
-    std::cout << "[DEBUG] Dumping .pad not supported\n";
+    std::cout << "Dumping .pad not supported\n";
 }
 
 bool asm_disassembler::is_text_section(const std::string& section_name) const {

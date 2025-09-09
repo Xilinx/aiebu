@@ -118,7 +118,6 @@ int main(int argc, char* argv[])
 
   const std::vector<char> buffer = aiebu::readfile(result["filename"].as<std::string>());
   aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);
-  std::cout << aiebu::buffer_type_table.at(type) << std::endl;
 
   if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet ||
       type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {

@@ -52,7 +52,6 @@ readfile(const std::string& filename)
   if (!file_size)
     throw error(error::error_code::invalid_asm, "filename " + filename + " is empty!!");
 
-  std::cout << "READING: " << filename <<"\n";
   std::vector<char> buffer(file_size);
   input.read(buffer.data(), static_cast<std::streamsize>(file_size));
   return buffer;

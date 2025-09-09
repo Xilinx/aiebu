@@ -11,13 +11,6 @@ add_test(NAME "aie2ps_disassemble"
   COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/run.cmake" -o disassembled_ctrlcode.asm -x ${ADUMP} -- -D ./ctrlcode_asm.elf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-# Delete first two lines from disassembled_ctrlcode.asm
-add_test(NAME "aie2ps_disassemble_cleanup"
-  COMMAND ${CMAKE_COMMAND} -E env sed -i "1,2d" disassembled_ctrlcode.asm
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-
-set_tests_properties("aie2ps_disassemble_cleanup" PROPERTIES DEPENDS "aie2ps_disassemble")
-
 add_test(NAME "aie2ps_disassemble_compare"
   COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol disassembled_ctrlcode.asm "${CMAKE_CURRENT_SOURCE_DIR}/disassemble_golden.asm"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
@@ -34,7 +27,6 @@ add_test(NAME "aie2ps_disassemble_elf_md5sum"
 # Set properties for the test
 set_tests_properties("aie2ps_asm" PROPERTIES LABELS memcheck)
 set_tests_properties("aie2ps_disassemble" PROPERTIES LABELS memcheck)
-set_tests_properties("aie2ps_disassemble_cleanup" PROPERTIES LABELS memcheck)
 set_tests_properties("aie2ps_disassemble_compare" PROPERTIES LABELS memcheck)
 set_tests_properties("aie2ps_disassembled_elf" PROPERTIES LABELS memcheck)
 set_tests_properties("aie2ps_disassemble_elf_md5sum" PROPERTIES LABELS memcheck)
