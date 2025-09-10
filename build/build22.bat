@@ -85,8 +85,8 @@ if [%DEBUG%] == [1] (
    cmake --install %BUILDDIR%\%PLATFORM% --config Debug --prefix %BUILDDIR%\%PLATFORM%\Debug\xilinx\aiebu --verbose
    if errorlevel 1 (exit /B %errorlevel%)
 
-   echo cmake --build %BUILDDIR%\%PLATFORM% --config Debug --target run_tests
-   cmake --build %BUILDDIR%\%PLATFORM% --config Debug --target run_tests
+   echo cmake --build %BUILDDIR%\%PLATFORM% --config Debug --target run_tests -j %LOCAL_MSVC_PARALLEL_JOBS%
+   cmake --build %BUILDDIR%\%PLATFORM% --config Debug --target run_tests -j %LOCAL_MSVC_PARALLEL_JOBS%
    if errorlevel 1 (exit /B %errorlevel%)
 )
 
@@ -99,8 +99,8 @@ if [%RELEASE%] == [1] (
    cmake --install %BUILDDIR%\%PLATFORM% --config Release --prefix %BUILDDIR%\%PLATFORM%\Release\xilinx\aiebu --verbose
    if errorlevel 1 (exit /B %errorlevel%)
 
-   echo cmake --build %BUILDDIR%\%PLATFORM% --config Release --target run_tests
-   cmake --build %BUILDDIR%\%PLATFORM% --config Release --target run_tests
+   echo cmake --build %BUILDDIR%\%PLATFORM% --config Release --target run_tests -j %LOCAL_MSVC_PARALLEL_JOBS%
+   cmake --build %BUILDDIR%\%PLATFORM% --config Release --target run_tests -j %LOCAL_MSVC_PARALLEL_JOBS%
    if errorlevel 1 (exit /B %errorlevel%)
 
    ECHO ====================== Create SDK ZIP archive ============================

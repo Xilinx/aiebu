@@ -86,13 +86,13 @@ jobs:
     - name: Build (Linux)
       if: runner.os == 'Linux'
       run: |
-        cmake --build ${{github.workspace}}/build/Release --config Release
+        cmake --build ${{github.workspace}}/build/Release --config Release -j 4
 
     - name: Build (Windows)
       if: runner.os == 'Windows'
       run: |
-        cmake --build ${{github.workspace}}/build/WBuild --config Release
-        
+        cmake --build ${{github.workspace}}/build/WBuild --config Release -j 4
+
     - name: Install (Linux)
       if: runner.os == 'Linux'
       run: |
@@ -112,12 +112,12 @@ jobs:
     - name: Test (Linux)
       if: runner.os == 'Linux'
       run: |
-        cmake --build ${{github.workspace}}/build/Release --config Release --target test
+        cmake --build ${{github.workspace}}/build/Release --config Release --target test -j 4
 
     - name: Test (Windows)
       if: runner.os == 'Windows'
       run: |
-        cmake --build ${{github.workspace}}/build/WBuild --config Release --target run_tests
+        cmake --build ${{github.workspace}}/build/WBuild --config Release --target run_tests -j 4
 
     - name: Package (Linux)
       if: runner.os == 'Linux'
