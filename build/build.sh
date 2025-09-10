@@ -31,10 +31,10 @@ function compile {
     cmake -B $BUILDDIR/$config $cmakeflags $BUILDDIR/..
     cmake --build $BUILDDIR/$config --config $config --verbose -j $CORE
     cmake --install $BUILDDIR/$config --config $config --prefix $BUILDDIR/$config/opt/xilinx/aiebu
-    cmake --build $BUILDDIR/$config --config $config --target test
+    cmake --build $BUILDDIR/$config --config $config --target test -j $CORE
 
     if [[ $run_memtest == "yes" ]]; then
-        cmake --build $BUILDDIR/$config --target test -- ARGS="-L memcheck -T memcheck"
+        cmake --build $BUILDDIR/$config --target test -j $CORE -- ARGS="-L memcheck -T memcheck"
     fi
     if [[ $config == "Release" ]]; then
         cmake --build $BUILDDIR/$config --config $config --target package --verbose -j $CORE

@@ -26,3 +26,6 @@ add_test(NAME "aie2_dma_txn_ctrlpkt_pmload_md5sum"
 
 # Set properties for the test
 set_tests_properties("aie2_dma_txn_ctrlpkt_pmload" PROPERTIES LABELS memcheck)
+
+# Test interdependencies use full when running ctest with -j
+set_tests_properties("aie2_dma_txn_ctrlpkt_pmload_md5sum" PROPERTIES DEPENDS "aie2_dma_txn_ctrlpkt_pmload")

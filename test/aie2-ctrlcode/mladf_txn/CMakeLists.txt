@@ -24,3 +24,6 @@ add_test(NAME "aie2_mladf_txn_md5sum"
 
 # Set properties for the test
 set_tests_properties("aie2_mladf_txn" PROPERTIES LABELS memcheck)
+
+# Test interdependencies use full when running ctest with -j
+set_tests_properties("aie2_mladf_txn_md5sum" PROPERTIES DEPENDS "aie2_mladf_txn")

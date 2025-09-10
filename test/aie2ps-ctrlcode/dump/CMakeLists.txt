@@ -30,3 +30,8 @@ set_tests_properties("aie2ps_disassemble" PROPERTIES LABELS memcheck)
 set_tests_properties("aie2ps_disassemble_compare" PROPERTIES LABELS memcheck)
 set_tests_properties("aie2ps_disassembled_elf" PROPERTIES LABELS memcheck)
 set_tests_properties("aie2ps_disassemble_elf_md5sum" PROPERTIES LABELS memcheck)
+
+# Test interdependencies use full when running ctest with -j
+set_tests_properties("aie2ps_disassemble_compare" PROPERTIES DEPENDS "aie2ps_disassemble")
+set_tests_properties("aie2ps_disassembled_elf" PROPERTIES DEPENDS "aie2ps_disassemble")
+set_tests_properties("aie2ps_disassemble_elf_md5sum" PROPERTIES DEPENDS "aie2ps_disassembled_elf;aie2ps_asm")
