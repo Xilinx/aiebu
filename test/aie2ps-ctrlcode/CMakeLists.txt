@@ -65,6 +65,14 @@ foreach(tfile ${tfiles})
 
   set_tests_properties(${sample} "${sample}_elftolegacy" "${sample}_disassemble" PROPERTIES ENVIRONMENT
     "PYTHONPATH=${AIEBU_SOURCE_DIR}")
+
+  set_tests_properties("${sample}_elftolegacy" PROPERTIES DEPENDS "${sample}")
+  set_tests_properties("${sample}_elftolegacy_cpp" PROPERTIES DEPENDS "${sample}_cpp")
+  set_tests_properties("${sample}_compare" PROPERTIES DEPENDS "${sample}_elftolegacy")
+  set_tests_properties("${sample}_compare_cpp" PROPERTIES DEPENDS "${sample}_elftolegacy_cpp")
+  set_tests_properties("${sample}_readelf" PROPERTIES DEPENDS "${sample}")
+  set_tests_properties("${sample}_compareelf" PROPERTIES DEPENDS "${sample}_readelf")
+  set_tests_properties("${sample}_disassemble" PROPERTIES DEPENDS "${sample}")
 endforeach()
 
 # MD5 name-based uuid generation was corrected to be
