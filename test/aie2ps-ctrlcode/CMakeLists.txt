@@ -26,8 +26,10 @@ foreach(tfile ${tfiles})
 
   if (NOT (AIEBU_PYTHON STREQUAL "ON"))
     continue()
+  endif()
   if (NOT (${CMAKE_SYSTEM_NAME} STREQUAL "Linux"))
     continue()
+  endif()
 
   add_test(NAME ${sample}
     COMMAND "${AIEBU_SOURCE_DIR}/src/python/aiebu/control_asm_disasm.py" --disable_dump_map "${tfile}" -o "${sampleelf}"
