@@ -44,7 +44,7 @@ public:
   {
     //auto keys = tinput->get_keys();
     const std::string prefix = "opt_level_";
-    std::shared_ptr<asm_parser> parser(new asm_parser(tinput->get_data(), tinput->get_include_paths()));
+    std::shared_ptr<asm_parser> parser(new asm_parser(tinput->get_ctrlcode_data(), tinput->get_include_paths()));
     parser->parse_lines();
     auto collist = parser->get_col_list();
     isa i;

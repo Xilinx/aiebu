@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <string>
+#include <cstdint>
 #include "elfio/elfio.hpp"
 #include "common/disassembler_state.h"
 #include "specification/aie2ps/isa.h"
@@ -33,7 +34,7 @@ private:
     asm_writer m_asm_writer;
     const std::map<uint8_t, isa_op_disasm>* isa_op_map;
     isa_disassembler isa_disasm;
-    
+
     void process_sections();
     void print_section_info(const ELFIO::section* section) ;
     void process_text_section(const ELFIO::section* section, std::shared_ptr<disassembler_state> state);

@@ -72,17 +72,9 @@ public:
     }
   }
 
-  const std::vector<std::string> get_keys()
+  std::vector<char> &get_ctrlcode_data()
   {
-    std::vector<std::string> keys(m_data.size());
-    auto key_selector = [](auto pair){return pair.first;};
-    transform(m_data.begin(), m_data.end(), keys.begin(), key_selector);
-    return keys;
-  }
-
-  std::vector<char>& get_data()
-  {
-    return m_data["control_code"];
+    return get_data("control_code");
   }
 };
 
