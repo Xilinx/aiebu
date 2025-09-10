@@ -45,13 +45,15 @@ foreach(tfile ${tfiles})
       COMMAND ${CMAKE_COMMAND} -E compare_files "${samplecppouttxt}" "${CMAKE_CURRENT_SOURCE_DIR}/${sampletxt}"
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-    add_test(NAME "${sample}_readelf"
-      COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run-readelf.sh" "${sampleelf}" "${sampleelftext}"
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+      add_test(NAME "${sample}_readelf"
+	COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run-readelf.sh" "${sampleelf}" "${sampleelftext}"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-    add_test(NAME "${sample}_compareelf"
-      COMMAND ${CMAKE_COMMAND} -E compare_files "${sampleelftext}" "${CMAKE_CURRENT_SOURCE_DIR}/${samplegold}"
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+      add_test(NAME "${sample}_compareelf"
+	COMMAND ${CMAKE_COMMAND} -E compare_files "${sampleelftext}" "${CMAKE_CURRENT_SOURCE_DIR}/${samplegold}"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    endif()
 
     add_test(NAME "${sample}_disassemble"
       COMMAND "${AIEBU_SOURCE_DIR}/src/python/aiebu/control_asm_disasm.py" "-d" "${sampleelf}" "-o" "${sampledisasm}"

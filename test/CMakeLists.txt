@@ -3,9 +3,8 @@
 
 project(tests CXX C)
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  add_subdirectory(aie2ps-ctrlcode)
-endif()
+add_subdirectory(aie2ps-ctrlcode)
+
 
 if (AIEBU_NATIVE_BUILD)
  add_subdirectory(aie2-ctrlcode)
