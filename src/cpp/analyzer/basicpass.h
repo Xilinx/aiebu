@@ -35,7 +35,11 @@ template <typename aie2p_type> struct basic_node {
   basic_node_state m_state;
   basic_node(const aie2p_type *op, size_t size,
              basic_node_state state = original)
-    : m_op(op), m_size(size), m_state(state) {}
+      : m_op(op), m_size(size), m_state(state) {}
+  ~basic_node() {
+    if (m_state == fresh)
+      delete m_op;
+  }
 };
 
 

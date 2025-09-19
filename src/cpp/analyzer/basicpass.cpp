@@ -169,7 +169,7 @@ public:
     : aie2p_basicpass<XAie_OpHdr>(nodes, aiebu_assembler::buffer_type::elf_aie2), m_stream(stream) {}
 
   void transform() override {
-    for (const auto node : m_nodes) {
+    for (const auto &node : m_nodes) {
       switch (node.m_op->Op) {
       case XAIE_IO_WRITE:
         stringify_w32(node.m_op, m_stream);
