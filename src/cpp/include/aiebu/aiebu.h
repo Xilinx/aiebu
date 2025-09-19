@@ -18,7 +18,8 @@ enum aiebu_error_code {
   aiebu_invalid_offset,
   aiebu_invalid_internal_error,
   aiebu_invalid_input,
-  aiebu_invalid_elf
+  aiebu_invalid_elf,
+  aiebu_invalid_opcode
 };
 
 enum aiebu_assembler_buffer_type {
