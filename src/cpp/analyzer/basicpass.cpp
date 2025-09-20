@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 
+#include <iomanip>
 #include <iostream>
 #include <ostream>
 
 #include "basicpass.h"
+#include "passmanager.h"
+
 #include "utils.h"
 #include "aiebu/aiebu_error.h"
 
@@ -163,10 +166,11 @@ size_t stringify_merge_sync(const XAie_OpHdr *ptr, std::ostream &ss_ops_) {
 class XAie_OpHdr_print : public aie2p_basicpass<XAie_OpHdr> {
 private:
   std::ostream &m_stream;
+  std::list<basic_node<XAie_OpHdr>> &m_nodes;
 
 public:
-  explicit XAie_OpHdr_print(std::list<basic_node<XAie_OpHdr>> &nodes, std::ostream &stream)
-    : aie2p_basicpass<XAie_OpHdr>(nodes, aiebu_assembler::buffer_type::elf_aie2), m_stream(stream) {}
+  XAie_OpHdr_print(std::list<basic_node<XAie_OpHdr>> &nodes, std::ostream &stream)
+    : m_stream(stream), m_nodes(nodes) {}
 
   void transform() override {
     for (const auto &node : m_nodes) {
@@ -223,9 +227,12 @@ public:
 };
 
 class XAie_OpHdr_drop_preempt : public aie2p_basicpass<XAie_OpHdr> {
+private:
+  std::list<basic_node<XAie_OpHdr>> &m_nodes;
+
 public:
   explicit XAie_OpHdr_drop_preempt(std::list<basic_node<XAie_OpHdr>> &nodes)
-    : aie2p_basicpass<XAie_OpHdr>(nodes, aiebu_assembler::buffer_type::elf_aie2) {}
+    : m_nodes(nodes)  {}
 
   void transform() override {
     for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it) {
@@ -311,15 +318,8 @@ itemize(const ELFIO::section *buffer) {
   return nodes;
 }
 
-void passmanager::run_transforms(ELFIO::section *psec) {
-  std::list<basic_node<XAie_OpHdr>> nodes = itemize(psec);
-  XAie_OpHdr_print printer1(nodes, std::cout);
-  printer1.transform();
-  XAie_OpHdr_drop_preempt nopreempt(nodes);
-  nopreempt.transform();
-  XAie_OpHdr_print printer2(nodes, std::cout);
-  printer2.transform();
-
+void serialize_nodes(ELFIO::section *psec,
+                         std::list<basic_node<XAie_OpHdr>> &nodes) {
   std::stringstream store;
   const char *ptr = psec->get_data();
   XAie_TxnHeader hdr;
@@ -335,6 +335,19 @@ void passmanager::run_transforms(ELFIO::section *psec) {
   store.write(reinterpret_cast<const char *>(&hdr), sizeof(hdr));
   psec->free_data();
   psec->set_data(store.str());
+}
+
+void passmanager::adjust_relocations() {}
+
+void passmanager::run_transforms(ELFIO::section *psec) {
+  std::list<basic_node<XAie_OpHdr>> nodes = itemize(psec);
+  XAie_OpHdr_print printer1(nodes, std::cout);
+  printer1.transform();
+  XAie_OpHdr_drop_preempt nopreempt(nodes);
+  nopreempt.transform();
+  XAie_OpHdr_print printer2(nodes, std::cout);
+  printer2.transform();
+  serialize_nodes(psec, nodes);
 }
 
 }

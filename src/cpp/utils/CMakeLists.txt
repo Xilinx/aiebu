@@ -3,3 +3,4 @@
 
 add_subdirectory(asm)
 add_subdirectory(dump)
+add_subdirectory(transform)
