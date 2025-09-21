@@ -238,9 +238,10 @@ public:
     for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it) {
       switch (it->m_op->Op) {
       case XAIE_IO_PREEMPT:
-        it->m_state = dropped;
+        it->m_state = basic_node_state::dropped;
         m_nodes.erase(it);
-        m_nodes.insert(it, basic_node(reinterpret_cast<const XAie_OpHdr *>(new XAie_NoOpHdr()), fresh));
+        m_nodes.insert(it, basic_node(reinterpret_cast<const XAie_OpHdr *>(new XAie_NoOpHdr()),
+                                      sizeof(XAie_NoOpHdr), basic_node_state::fresh));
         break;
       default:
         break;
@@ -319,7 +320,7 @@ itemize(const ELFIO::section *buffer) {
 }
 
 void serialize_nodes(ELFIO::section *psec,
-                         std::list<basic_node<XAie_OpHdr>> &nodes) {
+                     std::list<basic_node<XAie_OpHdr>> &nodes) {
   std::stringstream store;
   const char *ptr = psec->get_data();
   XAie_TxnHeader hdr;
@@ -337,16 +338,23 @@ void serialize_nodes(ELFIO::section *psec,
   psec->set_data(store.str());
 }
 
-void passmanager::adjust_relocations() {}
+void passmanager::adjust_relocations() {
+  // TBD
+  // We should iterate over patch op nodes and update the original relocation entries in the ELF
+}
 
 void passmanager::run_transforms(ELFIO::section *psec) {
   std::list<basic_node<XAie_OpHdr>> nodes = itemize(psec);
-  XAie_OpHdr_print printer1(nodes, std::cout);
-  printer1.transform();
+  if (m_debug) {
+    XAie_OpHdr_print printer1(nodes, std::cout);
+    printer1.transform();
+  }
   XAie_OpHdr_drop_preempt nopreempt(nodes);
   nopreempt.transform();
-  XAie_OpHdr_print printer2(nodes, std::cout);
-  printer2.transform();
+  if (m_debug) {
+    XAie_OpHdr_print printer2(nodes, std::cout);
+    printer2.transform();
+  }
   serialize_nodes(psec, nodes);
 }
 

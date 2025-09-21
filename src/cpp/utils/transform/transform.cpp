@@ -22,13 +22,15 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
 
   try {
     global_options.add_options()(
-      "j,transform",
-      "Name of JSON file with requested ctrlcode transform patterns",
-      cxxopts::value<std::string>()->default_value("unspecified"))(
+        "j,transform",
+        "Name of JSON file with requested ctrlcode transform patterns",
+        cxxopts::value<std::string>()->default_value("unspecified"))(
         "o,output", "Name of the output ELF file",
         cxxopts::value<std::string>()->default_value("unspecified"))(
-          "filename", "Input file name", cxxopts::value<std::string>())
-      ("help,h", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
+        "filename", "Input file name", cxxopts::value<std::string>())(
+        "help,h", "show help message and exit",
+        cxxopts::value<bool>()->default_value("false"))
+      ("d,debug", "dump ctrlcode after each transform", cxxopts::value<bool>()->default_value("false"))
       ("v,version", "show version and exit", cxxopts::value<bool>()->default_value("false"));
     global_options.parse_positional({"filename"});
 
@@ -84,8 +86,14 @@ int main(int argc, char* argv[])
 
   ELFIO::elfio ebin;
   ebin.load(result["filename"].as<std::string>());
+  // We fail in the save even without any transforms. First this needs to be
+  // debugged and resolved before we can save any transformed ctrlcode. Once
+  // this bug is fixed commen out the ebi.save() from here.
   ebin.save(result["output"].as<std::string>());
-  aiebu::passmanager passm(ebin);
-//  ebin.save(result["output"].as<std::string>());
+  // Run the transforms
+  aiebu::passmanager passm(ebin, result["debug"].as<bool>());
+  passm.run_transforms();
+  // Now save the ELF with transformed ctrlcode
+  ebin.save(result["output"].as<std::string>());
   return 0;
 }
