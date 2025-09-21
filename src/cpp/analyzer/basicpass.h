@@ -11,11 +11,17 @@
 
 namespace aiebu {
 
+enum class pass_kind {
+  print,
+  drop_preempt,
+  add_loadpdi
+};
+
 
 enum class basic_node_state {
   original, // original ctrlcode node from input ELF is in pristine condition
-  dropped, // original node from input ELF has been removed from the ctrlcode list
-  fresh // a new node has been created and added to the ctrlcode list
+  dropped,  // original node from input ELF has been removed from the ctrlcode list
+  added     // a new node has been created and added to the ctrlcode list
 };
 
 template <typename aie2p_type> struct basic_node {
@@ -28,7 +34,7 @@ template <typename aie2p_type> struct basic_node {
       : m_op(op), m_size(size), m_state(state) {}
 
   ~basic_node() {
-    if (m_state == basic_node_state::fresh)
+    if (m_state == basic_node_state::added)
       delete m_op;
   }
 };
@@ -50,6 +56,5 @@ public:
 
 
 }
-
 
 #endif

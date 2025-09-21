@@ -241,12 +241,33 @@ public:
         it->m_state = basic_node_state::dropped;
         m_nodes.erase(it);
         m_nodes.insert(it, basic_node(reinterpret_cast<const XAie_OpHdr *>(new XAie_NoOpHdr()),
-                                      sizeof(XAie_NoOpHdr), basic_node_state::fresh));
+                                      sizeof(XAie_NoOpHdr), basic_node_state::added));
         break;
       default:
         break;
       }
     }
+  }
+};
+
+class XAie_OpHdr_add_loadpdi : public aie2p_basicpass<XAie_OpHdr> {
+private:
+  std::list<basic_node<XAie_OpHdr>> &m_nodes;
+  uint16_t m_pdiid;
+  uint64_t m_pdisize;
+
+public:
+  explicit XAie_OpHdr_add_loadpdi(std::list<basic_node<XAie_OpHdr>> &nodes, uint16_t pdiid, uint64_t pdisize)
+    : m_nodes(nodes), m_pdiid(pdiid), m_pdisize(pdisize) {}
+
+  void transform() override {
+    XAie_LoadPdiHdr *load = new XAie_LoadPdiHdr();
+    load->Op = XAIE_IO_LOADPDI;
+    load->PdiId = m_pdiid;
+    load->PdiSize = m_pdisize;
+    m_nodes.insert(m_nodes.begin(),
+                   basic_node(reinterpret_cast<const XAie_OpHdr *>(load),
+                              sizeof(XAie_LoadPdiHdr), basic_node_state::added));
   }
 };
 
@@ -345,16 +366,23 @@ void passmanager::adjust_relocations() {
 
 void passmanager::run_transforms(ELFIO::section *psec) {
   std::list<basic_node<XAie_OpHdr>> nodes = itemize(psec);
+  // Example transform sequence for what should really be driven by user request via a JSON file
   if (m_debug) {
     XAie_OpHdr_print printer1(nodes, std::cout);
     printer1.transform();
   }
+
   XAie_OpHdr_drop_preempt nopreempt(nodes);
   nopreempt.transform();
+
   if (m_debug) {
     XAie_OpHdr_print printer2(nodes, std::cout);
     printer2.transform();
   }
+
+  // The loadpdi opcode details like id, size, etc. should come from the caller
+  XAie_OpHdr_add_loadpdi loadpdi(nodes, 0x10, 0x800);
+  loadpdi.transform();
   serialize_nodes(psec, nodes);
 }
 
