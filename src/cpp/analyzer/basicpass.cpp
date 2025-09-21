@@ -15,6 +15,9 @@
 
 namespace aiebu {
 
+// All the stringify code below has been copied from transaction.cpp and uses
+// legacy C++ coding style
+
 constexpr unsigned int field_width = 32;
 
 inline std::ostream& op_format(std::ostream& strm) {
