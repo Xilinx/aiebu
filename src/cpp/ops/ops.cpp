@@ -101,7 +101,9 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
         //    we send "arg index" as symbol name and arg offset in apply_offset_57
         if (!m_opcode->get_code_name().compare("apply_offset_57") && !arg.get_name().compare("offset"))
         {
-          if (val == state->m_control_packet_index || val == offset_type_marker)       // NOLINT
+          if (state->m_ctrlpkt_id_map.find(val) != state->m_ctrlpkt_id_map.end())
+            sval = state->m_ctrlpkt_id_map[val];
+          else if (val == offset_type_marker)
             sval = "control-code-" + std::to_string(colnum);
 
           size_t index = state->find_label_entry(m_args[0].substr(1));
@@ -114,16 +116,14 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
                                  + "." + std::to_string(pagenum),
                                  state->get_shim_dma_patching());
             ++index;
+
           }
-          if (val == state->m_control_packet_index && !arg.get_name().compare("offset") && m_args.size() == 4)
-            state->m_controlpacket_padname = m_args[3];
+
 
           // arg 0 to 6 and be patched in CERT.
           // Beyond that its elfloader/host responsibility to patch mandatorily
           if (val > 6 && val != offset_type_marker)
             std::cout <<"WARNING: Apply_offset_57 has arg index " << val << " > 6, Should be mandatorily patched in host!!!\n";
-          if (val == state->m_control_packet_index)
-            val = offset_type_marker;
           else if (val != offset_type_marker)
           {
             // val is arg index, to get offset x2
@@ -131,21 +131,6 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
           }
 
           index = state->find_label_entry(m_args[0].substr(1));
-          if (!arg.get_name().compare("offset") && m_args.size() == 4)
-          {
-            auto usymbo = m_args[3].substr(1);
-            if (state->m_scratchpad.find(usymbo) != state->m_scratchpad.end())
-            {
-              auto num_entries = state->parse_num_arg(m_args[1]);
-              for (uint32_t numbd = 0; numbd < num_entries; ++numbd)
-              {
-                auto label = state->get_label_at(index);
-                state->m_patch[m_args[3]].emplace_back(label);
-                ++index;
-              }
-            }
-          }
-
         }
         if (!state->is_optimization_enabled_for_op(m_opcode->get_code_name())){
           ret.push_back(val & BYTE_MASK);

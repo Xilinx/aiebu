@@ -28,26 +28,19 @@ fill_scratchpad(std::shared_ptr<section_writer> padwriter, const std::map<std::s
 
 void
 aie2ps_encoder::
-fill_control_packet_symbols(std::shared_ptr<section_writer> padwriter,const uint32_t col,const std::string& controlpacket_padname,
-                            std::vector<symbol>& syms,
-                            const std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpads)
+fill_controlpkt(std::shared_ptr<section_writer> ctrlpktwriter, const std::vector<char>& ctrlpkt)
 {
-  if (controlpacket_padname.empty())
-    return;
+  for (auto& val : ctrlpkt)
+    ctrlpktwriter->write_byte(val);
+}
 
-  if (scratchpads.find(controlpacket_padname) == scratchpads.end())
-    throw error(error::error_code::invalid_asm, "controlpacket padname " +
-                 controlpacket_padname + " not present in scratchpads\n");
-
-  auto& pad = scratchpads.at(controlpacket_padname);
+void
+aie2ps_encoder::
+fill_control_packet_symbols(std::shared_ptr<section_writer> ctrlpktwriter,
+                            std::vector<symbol>& syms)
+{
   for (auto& sym : syms)
-  {
-    if (sym.get_colnum() != col)
-      continue;
-    sym.set_section_name(get_PadSectionName(col));
-    sym.set_pos(sym.get_pos() + pad->get_offset());
-    padwriter->add_symbol(sym);
-  }
+    ctrlpktwriter->add_symbol(sym);
 }
 
 std::vector<std::shared_ptr<writer>>
@@ -61,27 +54,28 @@ process(std::shared_ptr<preprocessed_output> input)
   auto& totalsyms = tinput->get_symbols();
   m_debug.set_annotations(tinput->get_annotations());
   uint32_t optimizatiom_level = tinput->get_optimization_level();
+  auto& ctrlpkt = tinput->get_ctrlpkt();
+  auto& ctrlpkt_id_map = tinput->get_ctrlpkt_id_map();
 
   // for each colnum encode each page
   for (auto coldata: totalcoldata) {
     auto colnum = coldata.first;
-    std::string controlpacket_padname;
     for (auto& lpage : coldata.second->m_pages)
-    {
-      auto cp_name = page_writer(lpage, coldata.second->m_scratchpad, coldata.second->m_labelpageindex,
-                                 coldata.second->m_control_packet_index, optimizatiom_level);
-      if (!cp_name.empty())
-        controlpacket_padname = cp_name.substr(1);
+      page_writer(lpage, coldata.second->m_scratchpad, coldata.second->m_labelpageindex,
+                                 ctrlpkt_id_map, optimizatiom_level);
+
+    if (coldata.second->m_scratchpad.size()) {
+      auto padwriter = std::make_shared<section_writer>(get_PadSectionName(colnum), code_section::data);
+      fill_scratchpad(padwriter, coldata.second->m_scratchpad);
+      twriter.push_back(padwriter); 
     }
 
-    if (!coldata.second->m_scratchpad.size())
-      continue;
-
-    auto padwriter = std::make_shared<section_writer>(get_PadSectionName(colnum), code_section::data);
-    fill_scratchpad(padwriter, coldata.second->m_scratchpad);
-    fill_control_packet_symbols(padwriter, colnum, controlpacket_padname, totalsyms, coldata.second->m_scratchpad);
-
-    twriter.push_back(padwriter);
+    for (const auto& pair : ctrlpkt_id_map) {
+      auto ctrlpktwriter = std::make_shared<section_writer>(pair.second, code_section::data);
+      fill_controlpkt(ctrlpktwriter, ctrlpkt[pair.second]);
+      fill_control_packet_symbols(ctrlpktwriter, totalsyms);
+      twriter.push_back(ctrlpktwriter); 
+    }
   }
 
   // Report
@@ -121,11 +115,10 @@ findKey(const std::map<std::string, std::vector<std::string>>& myMap, const std:
   throw error(error::error_code::invalid_asm, "No key found corresponding to value:" + value + "\n");
 }
 
-
-std::string
+void
 aie2ps_encoder::
 page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
-            std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index, uint32_t optimization_level)
+  std::map<std::string, uint32_t>& labelpageindex, std::map<uint32_t, std::string>& ctrlpkt_id_map, uint32_t optimization_level)
 {
   // encode page
   std::vector<uint8_t> page_header = { 0xFF, 0xFF, 0x00, 0x00,
@@ -149,7 +142,7 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
   std::vector<std::shared_ptr<asm_data>> all;
   all.insert(all.end(), lpage.m_text.begin(), lpage.m_text.end());
   all.insert(all.end(), lpage.m_data.begin(), lpage.m_data.end());
-  std::shared_ptr<assembler_state> page_state = create_assembler_state(m_isa, all, scratchpad, labelpageindex, control_packet_index, optimization_level,false);
+  std::shared_ptr<assembler_state> page_state = create_assembler_state(m_isa, all, scratchpad, labelpageindex, ctrlpkt_id_map, optimization_level,false);
 
   auto textwriter = std::make_shared<section_writer>(get_TextSectionName(colnum, pagenum), code_section::text);
   auto datawriter = std::make_shared<section_writer>(get_DataSectionName(colnum, pagenum), code_section::data);
@@ -231,7 +224,6 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
   twriter.push_back(datawriter);
   m_report.addpage(lpage, page_state, textwriter->tell(), datawriter->tell());
 
-  return page_state->m_controlpacket_padname;
   // TODO add size and generate report
 }
 
@@ -243,7 +235,6 @@ patch57(const std::shared_ptr<section_writer> textwriter, std::shared_ptr<sectio
   uint64_t bd1 = datawriter->read_word(offset + 1*4); // NOLINT
   uint64_t bd2 = datawriter->read_word(offset + 2*4); // NOLINT
   uint64_t bd8 = datawriter->read_word(offset + 8*4); // NOLINT
-
   uint64_t arg = ((bd8 & 0x1FF) << 48) + ((bd2 & 0xFFFF) << 32) + (bd1 & 0xFFFFFFFF); // NOLINT
   patch = arg + patch;
   datawriter->write_word_at(offset + 1*4, patch & 0xFFFFFFFF); // NOLINT

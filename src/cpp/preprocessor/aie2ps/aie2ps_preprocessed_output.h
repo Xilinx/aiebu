@@ -28,6 +28,8 @@ class aie2ps_preprocessed_output : public preprocessed_output
   bool isdebug = true;
   uint32_t m_optimization_level = 0;
   std::shared_ptr<const partition_info> m_partition;
+  std::map<std::string, std::vector<char>> m_ctrlpkt;
+  std::map<uint32_t, std::string> m_ctrlpkt_id_map;
 public:
 
   explicit aie2ps_preprocessed_output(std::shared_ptr<const partition_info> partition): m_partition(std::move(partition)) {}
@@ -77,6 +79,26 @@ public:
   uint32_t get_optimization_level()
   {
     return m_optimization_level;
+  }
+
+  void set_ctrlpkt(std::map<std::string, std::vector<char>>& ctrlpkt)
+  {
+    m_ctrlpkt = ctrlpkt;
+  }
+
+  std::map<std::string, std::vector<char>>& get_ctrlpkt()
+  {
+    return m_ctrlpkt;
+  }
+
+  std::map<uint32_t, std::string>& get_ctrlpkt_id_map()
+  {
+    return m_ctrlpkt_id_map;
+  }
+
+  void set_ctrlpkt_id_map( std::map<uint32_t, std::string>& ctrlpkt_id_map)
+  {
+    m_ctrlpkt_id_map = ctrlpkt_id_map;
   }
 };
 

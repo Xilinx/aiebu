@@ -34,7 +34,8 @@ protected:
   };
 
   symbol::patch_schema control_packet_patching = symbol::patch_schema::control_packet_57;
-
+  std::map<uint32_t, std::string> m_ctrlpkt_id_map;
+ 
   void aiecompiler_json_parser(const boost::property_tree::ptree& pt);
   void dmacompiler_json_parser(const boost::property_tree::ptree& pt);
   void readmetajson(std::istream& patch_json);
@@ -76,6 +77,17 @@ public:
   {
     return get_data("control_code");
   }
+
+  std::map<std::string, std::vector<char>>& get_controlpkt()
+  {
+    return m_controlpkt;
+  }
+
+ std::map<uint32_t, std::string>& get_ctrlpkt_id_map()
+ {
+   return m_ctrlpkt_id_map;
+ }
+
 };
 
 
@@ -90,9 +102,8 @@ class asm_config_preprocessor_input : public preprocessor_input
 {
 protected: // NOLINT
   std::map<std::string, std::map<std::string, std::shared_ptr<asm_preprocessor_input>>> m_preprocessor_input;
-
+//  std::map<uint32_t, std::string> ctrlpkt_map_id;
 public:
-
   const std::map<std::string, std::map<std::string, std::shared_ptr<asm_preprocessor_input>>>&
   get_kernel_map() const { return m_preprocessor_input; }
 
@@ -101,6 +112,7 @@ public:
                     const std::vector<std::string>& flags,
                     const std::vector<std::string>& paths)
   {
+
     for (const auto& [unused, pic] : pinstance)
     {
       auto tname = pic.get<std::string>("id");

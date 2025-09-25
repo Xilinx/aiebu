@@ -70,19 +70,20 @@ namespace aiebu {
     if (!control_packet_patch_pt)
       return;
     const auto patchs = control_packet_patch_pt.get();
+
     for (auto pat : patchs)
     {
       auto patch = pat.second;
-      uint32_t control_packet_size = m_data[".ctrldata"].size();
+      auto ctrlpkt_id = get_32_bit_property(patch, "xrt_id");
+      auto ctrpkt_buf = m_ctrlpkt_id_map.at(ctrlpkt_id);
+      uint32_t control_packet_size = m_controlpkt[ctrpkt_buf].size(); 
       uint32_t control_packet_offset = get_32_bit_property(patch, "offset");
       // Check if the control packet offset is within the control packet size
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
       uint32_t offset = control_packet_offset - m_control_packet_offset_correction;
 
-      // TODO added symbols name hardcoded to ".pad.0" and col 0
-      // this will change once compiler decide on how to generate multi col control packet design
-      add_symbol({name, offset, 0, 0, addend, 0, ".pad.0", control_packet_patching});
+      add_symbol({name, offset, 0, 0, addend, 0, ctrpkt_buf, control_packet_patching});
     }
   }
 
@@ -97,12 +98,31 @@ namespace aiebu {
     const auto external_buffers = pt_external_buffers.get();
     for (auto& external_buffer : external_buffers)
     {
+      // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
+      auto arg = get_32_bit_property(external_buffer.second, "xrt_id");
+      std::string name = std::to_string(arg + ARG_OFFSET);
+      if (external_buffer.second.get<bool>("ctrl_pkt_buffer", false)) {
+        m_control_packet_index = arg;
+        std::string path = external_buffer.second.get<std::string>("path", "default_path");
+        std::string ctrl_pkt_name = "." + external_buffer.second.get<std::string>("name", "default_name");
+        std::vector<char> ctrl_pkt_code;
+        auto paths = get_include_paths();
+        auto filepath = findFilePath(path, paths);
+        ctrl_pkt_code = readfile(filepath);
+        m_controlpkt[ctrl_pkt_name] = ctrl_pkt_code;
+        m_ctrlpkt_id_map.insert({arg, ctrl_pkt_name});
+      }
+
+    }
+
+    for (auto& external_buffer : external_buffers)
+    {
       const auto pt_coalesed_buffers = external_buffer.second.get_child_optional("coalesed_buffers");
       // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
       auto arg = get_32_bit_property(external_buffer.second, "xrt_id");
       std::string name = std::to_string(arg + ARG_OFFSET);
-      if (external_buffer.second.get<bool>("ctrl_pkt_buffer", false))
-        m_control_packet_index = arg;
+      if (external_buffer.second.get<bool>("ctrl_pkt_buffer", false)) 
+        continue;
 
       if (pt_coalesed_buffers)
         extract_coalesed_buffers(name, external_buffer.second);
@@ -135,6 +155,8 @@ namespace aiebu {
       auto patch = pat.second;
       uint32_t control_packet_offset = get_32_bit_property(patch, "offset");
       uint32_t control_packet_size = m_data[".ctrldata"].size();
+
+
       uint32_t arg_index = get_32_bit_property(patch, "xrt_arg_id");
       // check if the offset is less than the size of the control packet
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);

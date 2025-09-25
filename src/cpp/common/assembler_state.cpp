@@ -15,10 +15,10 @@ assembler_state::
 assembler_state(std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> isa,
                 std::vector<std::shared_ptr<asm_data>>& data,
                 std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
-                std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index,
+                std::map<std::string, uint32_t>& labelpageindex, std::map<uint32_t, std::string>& ctrlpkt_id_map,
                 uint32_t optimize_level, bool makeunique)
                 : m_isa(std::move(isa)), m_data(data), m_scratchpad(scratchpad),
-                  m_labelpageindex(labelpageindex), m_control_packet_index(control_packet_index)
+                  m_labelpageindex(labelpageindex), m_ctrlpkt_id_map(ctrlpkt_id_map)
 {
   process_optimization(optimize_level);
   process(makeunique);
@@ -121,7 +121,6 @@ process(bool makeunique)
       if (!name.compare("apply_offset_57") && makeunique)
         apply_label_map[data->get_file() + ":" + data->get_operation()->get_args()[0].substr(1)]
                  = std::stoul(data->get_operation()->get_args()[1]);
-
     } else {
       throw error(error::error_code::internal_error, "Unknown type found!!!");
     }

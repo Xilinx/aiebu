@@ -25,9 +25,9 @@ public:
                                                  std::vector<std::shared_ptr<asm_data>>& data,
                                                  std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
                                                  std::map<std::string, uint32_t>& labelpageindex,
-                                                 uint32_t control_packet_index, uint32_t optimize_level, bool makeunique)
+                                                 std::map<uint32_t, std::string>& ctrlpkt_id_map, uint32_t optimize_level, bool makeunique)
   {
-    return std::make_shared<assembler_state_aie2ps>(isa, data, scratchpad, labelpageindex, control_packet_index, optimize_level, makeunique);
+    return std::make_shared<assembler_state_aie2ps>(isa, data, scratchpad, labelpageindex, ctrlpkt_id_map, optimize_level, makeunique);
   }
 
   virtual std::shared_ptr<preprocessed_output>
@@ -61,9 +61,11 @@ public:
       else
         std::cout << "Invalid flag: " << flag << ", ignored !!!" << std::endl;
     }
-
+    auto& controlpkts = tinput->get_controlpkt();
+    auto& ctrlpkt_id_map = tinput->get_ctrlpkt_id_map();
     toutput->set_optmization(optimize);
-
+    toutput->set_ctrlpkt(controlpkts);
+    toutput->set_ctrlpkt_id_map(ctrlpkt_id_map);
     toutput->set_annotations(parser->get_annotations());
 
     for (auto col: collist)
@@ -78,8 +80,8 @@ public:
       {
         // create state
         std::vector<std::shared_ptr<asm_data>> data = coldata.get_label_asmdata(label);
-        std::shared_ptr<assembler_state> state = create_assembler_state(m_isa, data, scratchpad, label_page_index, 0, optimize, true);
-        // create pages
+        std::shared_ptr<assembler_state> state = create_assembler_state(m_isa, data, scratchpad, label_page_index, ctrlpkt_id_map, optimize, true);  
+      // create pages
         pager(PAGE_SIZE).pagify(*state, col, pages, relative_page_index);
         label_page_index[get_pagelabel(label)] = relative_page_index;
         relative_page_index = pages.size();

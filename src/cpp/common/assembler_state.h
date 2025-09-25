@@ -113,7 +113,7 @@ protected:
   std::vector<std::string> m_labellist;
   std::map<std::string, std::vector<std::string>> m_dependent_labelmap;
   std::set<std::string> m_opt_opcodes;
-
+  ///std::map<uint32_t, std::string> m_ctrlpkt_id_map;
   inline std::string gen_label_name(bool makeunique, const std::shared_ptr<asm_data> data)
   {
     return makeunique ? data->get_file() + ":" + data->get_operation()->get_name() : data->get_operation()->get_name();
@@ -141,7 +141,7 @@ protected:
   assembler_state(std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> isa,
                   std::vector<std::shared_ptr<asm_data>>& data,
                   std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
-                  std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index,
+                  std::map<std::string, uint32_t>& labelpageindex, std::map<uint32_t, std::string>& ctrlpkt_id_map,
                   uint32_t optimize_level, bool makeunique);
   assembler_state(const assembler_state& rhs) = default;
   assembler_state& operator=(const assembler_state& rhs) = default;
@@ -157,8 +157,7 @@ public:
   std::map<std::string, std::shared_ptr<scratchpad_info>>& m_scratchpad;
   std::map<std::string, std::vector<std::string>> m_patch;
   std::map<std::string, uint32_t>& m_labelpageindex;
-  uint32_t m_control_packet_index;
-  std::string m_controlpacket_padname;
+  std::map<uint32_t, std::string>& m_ctrlpkt_id_map;
 
   HEADER_ACCESS_GET_SET(offset_type, pos);
 
@@ -290,9 +289,9 @@ class assembler_state_aie2ps : public assembler_state
   assembler_state_aie2ps(std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> isa,
                          std::vector<std::shared_ptr<asm_data>>& data,
                          std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
-                         std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index,
+                         std::map<std::string, uint32_t>& labelpageindex, std::map<uint32_t, std::string>& ctrlpkt_id_map,
                          uint32_t optimize_level, bool makeunique)
-                  : assembler_state(isa, data, scratchpad, labelpageindex, control_packet_index, optimize_level, makeunique)
+                  : assembler_state(isa, data, scratchpad, labelpageindex, ctrlpkt_id_map, optimize_level, makeunique)
   {
     //shim_dma_patching = symbol::patch_schema::shim_dma_57;
     //control_packet_patching = symbol::patch_schema::control_packet_57;
@@ -354,9 +353,9 @@ class assembler_state_aie4 : public assembler_state
   assembler_state_aie4(std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> isa,
                        std::vector<std::shared_ptr<asm_data>>& data,
                        std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
-                       std::map<std::string, uint32_t>& labelpageindex, uint32_t control_packet_index,
+                       std::map<std::string, uint32_t>& labelpageindex, std::map<uint32_t, std::string>& ctrlpkt_id_map,
                        uint32_t optimize_level, bool makeunique)
-                  : assembler_state(isa, data, scratchpad, labelpageindex, control_packet_index, optimize_level, makeunique)
+                  : assembler_state(isa, data, scratchpad, labelpageindex, ctrlpkt_id_map, optimize_level, makeunique)
   {
     //shim_dma_patching = symbol::patch_schema::shim_dma_57_aie4;
     //control_packet_patching = symbol::patch_schema::control_packet_57_aie4;

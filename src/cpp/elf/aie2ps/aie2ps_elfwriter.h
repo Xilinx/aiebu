@@ -20,7 +20,7 @@ public:
 class aie2ps_config_elf_writer: public elf_writer
 {
   constexpr static unsigned char ob_abi = 0x46;
-  constexpr static unsigned char version = 0x03;
+  constexpr static unsigned char version = 0x04;
   const std::string const_configuration = "configuration";
   const std::string xrt_configuration = ".note.xrt.configuration";
   const std::string const_kernel_signature = "kernel.signature";

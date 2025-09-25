@@ -18,6 +18,7 @@ class preprocessor_input
 {
 protected:
   std::map<std::string, std::vector<char>> m_data;
+  std::map<std::string, std::vector<char>> m_controlpkt;
   std::vector<symbol> m_sym;
 
   class argument {

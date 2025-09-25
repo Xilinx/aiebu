@@ -26,9 +26,9 @@ public:
                          std::vector<std::shared_ptr<asm_data>>& data,
                          std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpad,
                          std::map<std::string, uint32_t>& labelpageindex,
-                         uint32_t control_packet_index, uint32_t optimize_level, bool makeunique) override
+                         std::map<uint32_t, std::string>& ctrlpkt_id_map, uint32_t optimize_level, bool makeunique) override
   {
-    return std::make_shared<assembler_state_aie4>(isa, data, scratchpad, labelpageindex, control_packet_index, optimize_level, makeunique);
+    return std::make_shared<assembler_state_aie4>(isa, data, scratchpad, labelpageindex, ctrlpkt_id_map, optimize_level, makeunique);
   }
 
   void
@@ -37,7 +37,6 @@ public:
     offset = offset - textwriter->tell();
     uint64_t bd0 = datawriter->read_word(offset);
     uint64_t bd1 = datawriter->read_word(offset + 1*4);             // NOLINT
-
     uint64_t arg = (bd1 & 0xFFFFFFFF) + ((bd0 & 0x1FFFFFF) << 32); // NOLINT
     patch = arg + patch;
     datawriter->write_word_at(offset + 1*4, patch & 0xFFFFFFFF);    // NOLINT
