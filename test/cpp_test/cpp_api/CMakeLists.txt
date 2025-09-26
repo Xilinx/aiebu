@@ -44,6 +44,7 @@ if(Boost_VERSION VERSION_GREATER 1.70)
   add_test(NAME "aie2ps_cpp_eff_net_coal_md5sum"
     COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake" "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal.elf" "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_coal/gold.md5"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  set_tests_properties("aie2ps_cpp_eff_net_coal_md5sum" PROPERTIES DEPENDS "aie2ps_cpp_eff_net_coal")
 
 # add_test(NAME "aie2ps_cpp_eff_net_ctrlpacket_md5sum"
 #   COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake" "${CMAKE_CURRENT_BINARY_DIR}/eff_net_ctrlpacket.elf" "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_ctrlpacket/gold.md5"
