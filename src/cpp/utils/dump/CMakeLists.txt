@@ -13,10 +13,10 @@ set_target_properties(aiebu_dump_objects PROPERTIES
 
 target_include_directories(aiebu_dump_objects
   PRIVATE
+  ${AIEBU_ELFIO_SRC_DIR}
   ${AIEBU_SOURCE_DIR}/src/cpp/include
   ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include
   ${AIEBU_SOURCE_DIR}/src/cpp
-  ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO
   ${AIEBU_SOURCE_DIR}/src/cpp/disassembler
   ${AIEBU_SOURCE_DIR}/src/cpp/common
   ${AIEBU_SOURCE_DIR}/src/cpp/ops
