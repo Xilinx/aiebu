@@ -10,10 +10,10 @@
 # unfortunately doesn't prevent CMake from still wanting to include
 # subdir/cmake_install.cmake.  This function just creates an empty
 # subdir/cmake_install.cmake file.
-function(aiebu_add_subdirectory_disable_install_target subdir)
+function(aiebu_add_subdirectory_disable_install_target subdir bindir)
   set(CMAKE_SKIP_INSTALL_RULES TRUE)
-  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${subdir})
-  file(TOUCH ${CMAKE_CURRENT_BINARY_DIR}/${subdir}/cmake_install.cmake)
+  file(MAKE_DIRECTORY ${bindir})
+  file(TOUCH ${bindir}/cmake_install.cmake)
   add_subdirectory(${ARGV})
   set(CMAKE_SKIP_INSTALL_RULES FALSE)
 endfunction()

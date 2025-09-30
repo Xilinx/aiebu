@@ -34,7 +34,7 @@ if (NOT MSVC)
   target_compile_options(${AIEBU_PREEMPTION_EXE} PRIVATE -Wno-missing-field-initializers)
 endif()
 
-target_include_directories(${AIEBU_PREEMPTION_EXE} PRIVATE ${AIEBU_AIE_RT_HEADER_DIR})
+target_include_directories(${AIEBU_PREEMPTION_EXE} PRIVATE ${AIEBU_AIE-RT_HEADER_DIR})
 target_link_libraries(${AIEBU_PREEMPTION_EXE} xaiengine)
 
 # Create the working directory for custom command generated files
@@ -68,7 +68,7 @@ endif()
 
 target_include_directories(${AIEBU_COPY_EXE}
   PRIVATE
-  ${AIEBU_AIE_RT_HEADER_DIR}
+  ${AIEBU_AIE-RT_HEADER_DIR}
   ${AIEBU_SOURCE_DIR}/src/cpp/include
 )
 
