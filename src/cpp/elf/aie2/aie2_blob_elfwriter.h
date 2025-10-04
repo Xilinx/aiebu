@@ -59,7 +59,7 @@ public:
        }
     }
     if (dstr_sec)
-      add_dynamic_section_segment();
+      add_dynamic_section();
     std::vector<char> configuration_vec(4);
     auto col = mconfig_writer->get_partition_info()->get_numcolumn();
     std::memcpy(configuration_vec.data(), &col, sizeof(uint32_t));

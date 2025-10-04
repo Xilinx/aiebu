@@ -24,6 +24,8 @@ add_section(const elf_section& data)
     const ELFIO::section* lsec = m_elfio.sections[data.get_link()];
     sec->set_link(lsec->get_index());
   }
+  // set section address
+  sec->set_address(data.get_addr());
   return sec;
 }
 
@@ -92,34 +94,11 @@ add_reldyn_section(std::vector<symbol>& syms)
 
 void
 elf_writer::
-add_dynamic_section_segment()
+add_dynamic_section()
 {
-  // add dynamic section
-  elf_section sec_data;
-  sec_data.set_name(".dynamic");
-  sec_data.set_type(ELFIO::SHT_DYNAMIC);
-  sec_data.set_flags(ELFIO::SHF_ALLOC);
-  sec_data.set_align(phdr_align);
-  //sec_data.set_buffer();
-  sec_data.set_link(".dynstr");
-
-  ELFIO::section *dyn_sec = add_section(sec_data);
-  dyn_sec->set_entry_size(m_elfio.get_default_entry_size(ELFIO::SHT_DYNAMIC));
-  dyn_sec->set_info( 0 );
-
-  ELFIO::dynamic_section_accessor dyn(m_elfio, dyn_sec);
+  ELFIO::dynamic_section_accessor dyn(m_elfio, dynamic_sec);
   dyn.add_entry(ELFIO::DT_RELA, rel_sec->get_index());
   dyn.add_entry(ELFIO::DT_RELASZ, rel_sec->get_size());
-
-
-  elf_segment seg_data;
-  seg_data.set_type(ELFIO::PT_DYNAMIC);
-  seg_data.set_flags(ELFIO::PF_W | ELFIO::PF_R);
-  seg_data.set_vaddr(0x0);
-  seg_data.set_paddr(0x0);
-  seg_data.set_link(".dynamic");
-  seg_data.set_align(phdr_align);
-  add_segment(seg_data);
 }
 
 void
@@ -173,6 +152,9 @@ add_text_data_section(const std::vector<std::shared_ptr<writer>>& mwriter, std::
     sec_data.set_align(align);
     sec_data.set_buffer(buffer->get_data());
     sec_data.set_link("");
+    // set section address equal to segment virtual address as segment:section has 1:1 mapping
+    cur_addr = get_virtual_addr(prev_virtual_addr, prev_seg_size);
+    sec_data.set_addr(cur_addr);
 
     elf_segment seg_data;
     seg_data.set_type(ELFIO::PT_LOAD);
@@ -180,7 +162,8 @@ add_text_data_section(const std::vector<std::shared_ptr<writer>>& mwriter, std::
       seg_data.set_flags(ELFIO::PF_X | ELFIO::PF_R);
     else
       seg_data.set_flags(ELFIO::PF_W | ELFIO::PF_R);
-    seg_data.set_vaddr(0x0);
+    // set segment virtual address
+    seg_data.set_vaddr(cur_addr);
     seg_data.set_paddr(0x0);
     seg_data.set_link(buffer->get_name()+index_string);
     seg_data.set_align(text_align);
@@ -192,6 +175,10 @@ add_text_data_section(const std::vector<std::shared_ptr<writer>>& mwriter, std::
       auto lsyms = buffer->get_symbols();
       syms.insert(syms.end(), lsyms.begin(), lsyms.end());
     }
+
+    // Update for next iteration
+    prev_virtual_addr = cur_addr;
+    prev_seg_size = buffer->get_data().size();
   }
   return section_index_list;
 }
@@ -247,7 +234,6 @@ init_dynamic_sections()
 
     dsym_sec = m_elfio.sections.add(".dynsym");
     dsym_sec->set_type( ELFIO::SHT_DYNSYM );
-    dsym_sec->set_flags(ELFIO::SHF_ALLOC);
     dsym_sec->set_addr_align( phdr_align );
     dsym_sec->set_entry_size(m_elfio.get_default_entry_size(ELFIO::SHT_SYMTAB));
     dsym_sec->set_link( dstr_sec->get_index() );
@@ -256,10 +242,16 @@ init_dynamic_sections()
 
     rel_sec = m_elfio.sections.add( ".rela.dyn" );
     rel_sec->set_type( ELFIO::SHT_RELA );
-    rel_sec->set_flags(ELFIO::SHF_ALLOC);
     rel_sec->set_addr_align(phdr_align);
     rel_sec->set_entry_size(m_elfio.get_default_entry_size(ELFIO::SHT_RELA));
     rel_sec->set_link( dsym_sec->get_index() );
+
+    dynamic_sec = m_elfio.sections.add( ".dynamic" );
+    dynamic_sec->set_type( ELFIO::SHT_DYNAMIC );
+    dynamic_sec->set_addr_align( phdr_align );
+    dynamic_sec->set_link( dstr_sec->get_index() );
+    dynamic_sec->set_entry_size(m_elfio.get_default_entry_size(ELFIO::SHT_DYNAMIC));
+    dynamic_sec->set_info( 0 );
   });
 }
 
@@ -286,7 +278,7 @@ process(std::vector<std::shared_ptr<writer>>& mwriter)
 {
   process_common_helper(mwriter, "");
   if (dstr_sec)
-    add_dynamic_section_segment();
+    add_dynamic_section();
   return finalize();
 }
 
@@ -307,6 +299,20 @@ add_group(const std::string& name, const std::vector<uint32_t>& member, ELFIO::E
 
   const ELFIO::section* lsec = m_elfio.sections[".symtab"];
   sec->set_link(lsec->get_index());
+}
+
+// align address to 16 bytes.
+uint64_t
+elf_writer::align_address(uint64_t address)
+{
+  return (address + 15) & ~15ULL;
+}
+
+// Calcualte the next section address based on previous section address and size.
+uint64_t
+elf_writer::get_virtual_addr(uint64_t prev_virtual_addr, uint64_t prev_seg_size)
+{
+  return align_address(prev_virtual_addr + prev_seg_size);
 }
 
 }

@@ -35,6 +35,7 @@ class elf_section
   uint64_t m_align;
   int m_info;
   std::string m_link;
+  uint64_t m_addr = 0x0;
 public:
   HEADER_ACCESS_GET_SET(std::string, name);
   HEADER_ACCESS_GET_SET(int, type);
@@ -44,6 +45,7 @@ public:
   HEADER_ACCESS_GET_SET(uint64_t, align);
   HEADER_ACCESS_GET_SET(std::vector<uint8_t>,  buffer);
   HEADER_ACCESS_GET_SET(std::string, link);
+  HEADER_ACCESS_GET_SET(uint64_t, addr);
 
 };
 
@@ -81,13 +83,16 @@ protected:  // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
   ELFIO::section* dynamic_sec = nullptr;
   std::once_flag dynamic_flag;
   uid_md5 m_uid;
+  uint64_t prev_virtual_addr = 0;
+  uint64_t cur_addr = 0;
+  uint64_t prev_seg_size = 0;
 
   ELFIO::section* add_section(const elf_section& data);
   ELFIO::segment* add_segment(const elf_segment& data);
   ELFIO::string_section_accessor add_dynstr_section();
   void add_dynsym_section(ELFIO::string_section_accessor* stra, std::vector<symbol>& syms, const std::string& index_string);
   void add_reldyn_section(std::vector<symbol>& syms);
-  void add_dynamic_section_segment();
+  void add_dynamic_section();
   std::vector<char> finalize();
   std::vector<uint32_t> add_text_data_section(const std::vector<std::shared_ptr<writer>>& mwriter, std::vector<symbol>& syms, const std::string& index_string);
   void add_note(ELFIO::Elf_Word type, const std::string& name, const std::vector<char>& dec);
@@ -99,6 +104,8 @@ protected:  // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
   std::string get_group_name(uint32_t index) {return ".group."+ std::to_string(index); }
   std::string get_section_prefix(uint32_t index) {return "."+ std::to_string(index); }
   void add_group(const std::string& name, const std::vector<uint32_t>& member, ELFIO::Elf_Word info_index);
+  uint64_t get_virtual_addr(uint64_t prev_virtual_addr, uint64_t prev_seg_size);
+  uint64_t align_address(uint64_t address);
 
 public:
 
