@@ -20,10 +20,14 @@ add_compile_options(
   /W2           # warning level
   /Zi           # generate pdb files even in release mode
   /sdl          # enable security checks
-  /Qspectre     # compile with the Spectre mitigations switch
   /ZH:SHA_256   # enable secure source code hashing
   /guard:cf     # enable compiler control guard feature (CFG) to prevent attackers from redirecting execution to unsafe locations
   )
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  add_compile_options(/Qspectre>)  # compile with the Spectre mitigations switch
+endif()
+
 add_link_options(
   /DEBUG      # instruct linker to create debugging info
   /guard:cf   # enable linker control guard feature (CFG) to prevent attackers from redirecting execution to unsafe locations
