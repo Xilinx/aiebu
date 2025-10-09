@@ -96,9 +96,10 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
         // For opcode is 'apply_offset_57' and arg is 'offset',
         // if val is 0xFFFF means we need to patch the host address of 1st page of controlcode
         // and we can patch in host and firmware, we send "control-code-X" as symbol name and 0xFFFF in apply_offset_57
-        // if val == self.state->control_packet_index, we add "control-code-X" as symbol name and 0xFFFF in apply_offset_57
-        // if val is not 0xFFFF or self.state->control_packet_index, we can do patching in cert or host so add symbol info in elf
-        //    we send "arg index" as symbol name and arg offset in apply_offset_57
+        // if val == 0xFFFF, we add "control-code-X" as symbol name and 0xFFFF in apply_offset_57
+        // if val is not 0xFFFF , we can do patching in cert or host so add symbol info in elf
+        // we send "arg index" as symbol name and arg offset in apply_offset_57
+        // m_ctrlpkt_id_map contains control packet id (xrt_id) as key and symbol name as value
         if (!m_opcode->get_code_name().compare("apply_offset_57") && !arg.get_name().compare("offset"))
         {
           if (state->m_ctrlpkt_id_map.find(val) != state->m_ctrlpkt_id_map.end())
@@ -116,9 +117,7 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
                                  + "." + std::to_string(pagenum),
                                  state->get_shim_dma_patching());
             ++index;
-
           }
-
 
           // arg 0 to 6 and be patched in CERT.
           // Beyond that its elfloader/host responsibility to patch mandatorily

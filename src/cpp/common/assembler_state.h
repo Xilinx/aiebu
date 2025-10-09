@@ -113,7 +113,6 @@ protected:
   std::vector<std::string> m_labellist;
   std::map<std::string, std::vector<std::string>> m_dependent_labelmap;
   std::set<std::string> m_opt_opcodes;
-  ///std::map<uint32_t, std::string> m_ctrlpkt_id_map;
   inline std::string gen_label_name(bool makeunique, const std::shared_ptr<asm_data> data)
   {
     return makeunique ? data->get_file() + ":" + data->get_operation()->get_name() : data->get_operation()->get_name();

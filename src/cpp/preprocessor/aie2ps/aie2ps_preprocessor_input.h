@@ -83,13 +83,11 @@ public:
     return m_controlpkt;
   }
 
- std::map<uint32_t, std::string>& get_ctrlpkt_id_map()
- {
-   return m_ctrlpkt_id_map;
- }
-
+  std::map<uint32_t, std::string>& get_ctrlpkt_id_map()
+  {
+    return m_ctrlpkt_id_map;
+  }
 };
-
 
 class aie2ps_preprocessor_input : public asm_preprocessor_input
 {
@@ -102,7 +100,6 @@ class asm_config_preprocessor_input : public preprocessor_input
 {
 protected: // NOLINT
   std::map<std::string, std::map<std::string, std::shared_ptr<asm_preprocessor_input>>> m_preprocessor_input;
-//  std::map<uint32_t, std::string> ctrlpkt_map_id;
 public:
   const std::map<std::string, std::map<std::string, std::shared_ptr<asm_preprocessor_input>>>&
   get_kernel_map() const { return m_preprocessor_input; }
