@@ -26,6 +26,18 @@ private:
   bool m_debug;
 
 private:
+  void fixup_section_addresses() {
+    for (auto & seg : m_elf.segments) {
+      seg->set_virtual_address( seg->get_offset());
+      seg->set_physical_address( seg->get_offset());
+    }
+    for (auto & sec : m_elf.sections) {
+      if (sec->get_type() != ELFIO::SHT_PROGBITS)
+        continue;
+      if (is_pm_ctrlpkt(sec->get_name()) || is_ctrldata(sec->get_name()))
+        continue;
+    }
+  }
   void run_transforms(ELFIO::section *psec);
   void adjust_relocations();
 
@@ -34,14 +46,15 @@ public:
 
   void run_transforms() {
     // Currently we are running a precannded sequence of transforms.
-    ELFIO::Elf_Half sec_num = m_elf.sections.size();
-    for ( int i = 0; i < sec_num; ++i ) {
-      ELFIO::section *psec = m_elf.sections[i];
-      if (psec->get_type() != ELFIO::SHT_PROGBITS)
+    for (auto & section : m_elf.sections) {
+//    ELFIO::Elf_Half sec_num = m_elf.sections.size();
+//    for ( int i = 0; i < sec_num; ++i ) {
+//      ELFIO::section *psec = m_elf.sections[i];
+      if (section->get_type() != ELFIO::SHT_PROGBITS)
         continue;
-      if (is_pm_ctrlpkt(psec->get_name()) || is_ctrldata(psec->get_name()))
+      if (is_pm_ctrlpkt(section->get_name()) || is_ctrldata(section->get_name()))
         continue;
-      run_transforms(psec);
+      run_transforms(section.get());
     }
     adjust_relocations();
   }

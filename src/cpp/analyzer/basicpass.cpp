@@ -268,9 +268,9 @@ public:
     load->Op = XAIE_IO_LOADPDI;
     load->PdiId = m_pdiid;
     load->PdiSize = m_pdisize;
-    m_nodes.insert(m_nodes.begin(),
-                   basic_node(reinterpret_cast<const XAie_OpHdr *>(load),
-                              sizeof(XAie_LoadPdiHdr), basic_node_state::added));
+    m_nodes.emplace(m_nodes.begin(),
+                    reinterpret_cast<const XAie_OpHdr *>(load),
+                    sizeof(XAie_LoadPdiHdr), basic_node_state::added);
   }
 };
 
@@ -344,14 +344,14 @@ itemize(const ELFIO::section *buffer) {
 }
 
 void serialize_nodes(ELFIO::section *psec,
-                     std::list<basic_node<XAie_OpHdr>> &nodes) {
+                     const std::list<basic_node<XAie_OpHdr>> &nodes) {
   std::stringstream store;
   const char *ptr = psec->get_data();
   XAie_TxnHeader hdr;
   std::memcpy(&hdr, ptr, sizeof(hdr));
   hdr.NumOps = nodes.size();
   store.write(reinterpret_cast<const char *>(&hdr), sizeof(hdr));
-  for (auto node : nodes) {
+  for (auto & node : nodes) {
     store.write(reinterpret_cast<const char *>(node.m_op), node.m_size);
   }
   store.seekp(0, std::ios_base::end);
