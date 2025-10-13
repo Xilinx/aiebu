@@ -42,7 +42,7 @@ endif()
 
 # Get number of commits between HEAD and master
 execute_process(
-  COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD ^origin/master
+  COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD ^origin/main-ge
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   OUTPUT_VARIABLE AIEBU_BRANCH_COMMITS
   OUTPUT_STRIP_TRAILING_WHITESPACE

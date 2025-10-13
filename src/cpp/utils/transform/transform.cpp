@@ -12,6 +12,10 @@
 
 namespace aiebu {
 
+#ifndef EM_AIECTRLCODE
+constexpr ELFIO::Elf_Half EM_AIECTRLCODE = 269; // AMD / Xilinx AIEngine ctrlcode
+#endif
+
 cxxopts::ParseResult main_helper(int argc, const char* const *argv,
                                  const std::string & executable,
                                  const std::string & description)
@@ -59,6 +63,120 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
   }
 }
 
+bool is_legacy_elf_with_unset_address(const ELFIO::elfio &ebin)
+{
+  for (auto &seg : ebin.segments) {
+    if (seg->get_virtual_address() != 0)
+      return false;
+    if (seg->get_physical_address() != 0)
+      return false;
+  }
+  return true;
+}
+
+ELFIO::elfio upgrade_legacy_elf_assign_adddress(ELFIO::elfio &ebin)
+{
+  // Upgrading address in exisiting ELF does not work. We need to create a new
+  // ELF with contents from exisiting ELF and then
+  // [1] update the flags
+  // [2] drop segment entries for sections that are not used for execution
+  // [3] update the address
+  //
+  ELFIO::elfio nbin;
+  nbin.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2LSB);
+  nbin.set_os_abi(ebin.get_os_abi());
+  nbin.set_abi_version(ebin.get_abi_version());
+  nbin.set_type( ebin.get_type() );
+  nbin.set_machine( EM_AIECTRLCODE);
+  nbin.set_flags(ebin.get_flags());
+
+  std::vector<std::pair<int, size_t>> offsets;
+  for (auto &sec : ebin.sections) {
+    // The following two sections are automatically added by ELFIO
+    if (sec->get_name() == "")
+      continue;
+    if (sec->get_name() == ".shstrtab")
+      continue;
+    nbin.sections.add(sec->get_name());
+  }
+
+  for (auto &sec : ebin.sections) {
+    auto offset = sec->get_offset();
+    const std::string name = sec->get_name();
+    auto it = std::find_if(nbin.sections.begin(), nbin.sections.end(), [&name](auto &n) {
+      return n->get_name() == name;
+    });
+
+    *it = std::move(sec);
+    if ((*it)->get_type() != ELFIO::SHT_PROGBITS) {
+      // Remove the ALLOC flags from sections except text and data
+      auto flags = (*it)->get_flags();
+      flags &= ~ELFIO::SHF_ALLOC;
+      (*it)->set_flags(flags);
+    }
+    offsets.emplace_back((*it)->get_index(), offset);
+  }
+
+  for (auto &seg : ebin.segments) {
+    auto type = seg->get_type();
+    if ((type != ELFIO::PT_LOAD) && (type != ELFIO::PT_PHDR))
+      continue;
+    auto nseg = nbin.segments.add();
+    size_t offset = seg->get_offset();
+    nseg->set_type(seg->get_type());
+    nseg->set_flags(type);
+    nseg->set_align(seg->get_align());
+    auto it = std::find_if(offsets.begin(), offsets.end(), [offset](std::pair<int, size_t> n) {
+        return n.second == offset;
+    });
+    if (it == offsets.end())
+      continue;
+    // Bind the segment to its section
+    nseg->add_section_index(it->first, seg->get_align());
+  }
+
+  // Force the layout of the ELF
+  std::ostringstream nullstream;
+  nbin.save(nullstream);
+  nullstream.str("");
+
+  for (auto & sec : nbin.sections) {
+    std::cout << '[' << sec->get_index() << "] " << sec->get_name() << ": 0x" << std::hex << sec->get_offset() << ": 0x" << std::hex << sec->get_address() << std::dec << "\n";;
+  }
+
+  for (auto & seg : nbin.segments) {
+    std::cout << '[' << seg->get_index() << "] " << std::hex << seg->get_offset() << std::dec << '(' << seg->get_sections_num() << ")\n";;
+  }
+
+  // Update the address of the each section to match its offset
+  for (auto &sec : nbin.sections) {
+    sec->set_address(sec->get_offset());
+  }
+
+  for (auto &seg : nbin.segments) {
+    if (!seg->get_sections_num())
+      continue;
+    // Update the address of the each segment which has a section
+    auto offset = nbin.sections[seg->get_section_index_at(0)]->get_offset();
+    seg->set_virtual_address(offset);
+    seg->set_physical_address(offset);
+  }
+
+  // Force the layout of the ELF
+  nullstream.str("");
+  nbin.save(nullstream);
+
+  for (auto & sec : nbin.sections) {
+    std::cout << '[' << sec->get_index() << "] " << sec->get_name() << ": 0x" << std::hex << sec->get_offset() << ": 0x" << std::hex << sec->get_address() << std::dec << "\n";;
+  }
+
+  for (auto & seg : nbin.segments) {
+    std::cout << '[' << seg->get_index() << "] " << std::hex << seg->get_offset() << std::dec << '(' << seg->get_sections_num() << ")\n";;
+  }
+
+  return nbin;
+}
+
 } //namespace aiebu::utilities
 
 int main(int argc, char* argv[])
@@ -87,99 +205,29 @@ int main(int argc, char* argv[])
   ELFIO::elfio ebin;
   ebin.load(result["filename"].as<std::string>());
 
-  ELFIO::Elf_Half seg_num = ebin.segments.size();
-  for ( int i = 0; i < seg_num; ++i ) {
-    ELFIO::segment *pseg = ebin.segments[i];
-    auto count = pseg->get_sections_num();
-    std::cout << "seg[" << i << "] 0x" << std::hex << pseg->get_offset() << std::dec << "\n";
-    for (auto s = 0; s < count; s++) {
-      auto idx = pseg->get_section_index_at(s);
-      auto sec = ebin.sections[idx];
-      auto off = sec->get_offset();
-      std::cout << sec->get_name() << " " << off << "\n";
-    }
-    pseg->set_virtual_address( pseg->get_offset());
-    pseg->set_physical_address( pseg->get_offset());
+  if (aiebu::is_legacy_elf_with_unset_address(ebin)) {
+    ebin = aiebu::upgrade_legacy_elf_assign_adddress(ebin);
   }
 
-
-  ELFIO::elfio nbin;
-  nbin.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2LSB);
-  nbin.set_os_abi(ebin.get_os_abi());
-  nbin.set_abi_version(ebin.get_abi_version());
-  nbin.set_type( ebin.get_type() );
-  nbin.set_machine( ebin.get_machine());
-  nbin.set_flags(ebin.get_flags());
-
-  size_t cursor = 0x4000000;
-  std::vector<std::pair<int, size_t>> offsets;
-  for (auto &sec : ebin.sections) {
-    if (sec->get_name() == "")
-      continue;
-    if (sec->get_name() == ".shstrtab")
-      continue;
-    nbin.sections.add(sec->get_name());
-  }
-
-  auto nsec = nbin.sections.begin();
   for (auto & sec : ebin.sections) {
-    cursor  = (cursor + sec->get_addr_align() - 1) & ~(sec->get_addr_align() - 1);
-    offsets.emplace_back(sec->get_index(), sec->get_offset());
-    cursor += sec->get_size();
-    //const std::string name = sec->get_name();
-    //auto it = std::find_if(nbin.sections.begin(), nbin.sections.end(), [&name](auto &n) {
-    //  return n->get_name() == name;
-    //});
-
-    *nsec = std::move(sec);
-    (*nsec)->set_address((*nsec)->get_offset());
-    if ((*nsec)->get_type() != ELFIO::SHT_PROGBITS) {
-      auto flags = (*nsec)->get_flags();
-      flags &= ~ELFIO::SHF_ALLOC;
-      (*nsec)->set_flags(flags);
-    }
-    nsec++;
+    std::cout << '[' << sec->get_index() << "] " << sec->get_name() << ": 0x" << std::hex << sec->get_offset() << ": 0x" << std::hex << sec->get_address() << std::dec << "\n";;
   }
 
-  for (auto &seg : ebin.segments) {
-    auto type = seg->get_type();
-    if ((type != ELFIO::PT_LOAD) && (type != ELFIO::PT_PHDR))
-      continue;
-    auto nseg = nbin.segments.add();
-    size_t offset = seg->get_offset();
-    nseg->set_type(seg->get_type());
-    nseg->set_flags(type);
-    nseg->set_align(seg->get_align());
-    auto it = std::find_if(offsets.begin(), offsets.end(), [offset](std::pair<int, size_t> n) {
-        return n.second == offset;
-    });
-    if (it == offsets.end())
-      continue;
-    nseg->add_section_index(it->first, seg->get_align());
-    nseg->set_virtual_address(it->second);
-    nseg->set_physical_address(it->second);
-  }
-
-  for (auto & sec : nbin.sections) {
-    std::cout << '[' << sec->get_index() << "] " << sec->get_name() << ": 0x" << std::hex << sec->get_offset() << std::dec << "\n";;
-  }
-
-  for (auto & seg : nbin.segments) {
+  for (auto & seg : ebin.segments) {
     std::cout << '[' << seg->get_index() << "] " << std::hex << seg->get_offset() << std::dec << '(' << seg->get_sections_num() << ")\n";;
   }
 
-
-  nbin.save(result["output"].as<std::string>());
+//  nbin.save(result["output"].as<std::string>());
   // We fail in the save even without any transforms. First this needs to be
   // debugged and resolved before we can save any transformed ctrlcode. Once
   // this bug is fixed comment out the ebi.save() from here.
   int i = 0;
   std::cin >> i;
-//  ebin.save(result["output"].as<std::string>());
+
   // Run the transforms
-  aiebu::passmanager passm(nbin, result["debug"].as<bool>());
-  passm.run_transforms();
+  aiebu::passmanager passm(ebin, result["debug"].as<bool>());
+  //passm.run_transforms();
   // Now save the ELF with transformed ctrlcode
-  nbin.save(result["output"].as<std::string>());
+  ebin.save(result["output"].as<std::string>());
   return 0;
 }
