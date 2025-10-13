@@ -12,10 +12,6 @@
 
 namespace aiebu {
 
-#ifndef EM_AIECTRLCODE
-constexpr ELFIO::Elf_Half EM_AIECTRLCODE = 269; // AMD / Xilinx AIEngine ctrlcode
-#endif
-
 cxxopts::ParseResult main_helper(int argc, const char* const *argv,
                                  const std::string & executable,
                                  const std::string & description)
@@ -205,6 +201,7 @@ int main(int argc, char* argv[])
   ELFIO::elfio ebin;
   ebin.load(result["filename"].as<std::string>());
 
+#if 1
   if (aiebu::is_legacy_elf_with_unset_address(ebin)) {
     ebin = aiebu::upgrade_legacy_elf_assign_adddress(ebin);
   }
@@ -223,11 +220,32 @@ int main(int argc, char* argv[])
   // this bug is fixed comment out the ebi.save() from here.
   int i = 0;
   std::cin >> i;
-
+#endif
   // Run the transforms
   aiebu::passmanager passm(ebin, result["debug"].as<bool>());
-  //passm.run_transforms();
+  passm.run_transforms();
+
+  std::ostringstream nullstream;
+  ebin.save(nullstream);
+
+    // Update the address of the each section to match its offset
+  for (auto &sec : ebin.sections) {
+    sec->set_address(sec->get_offset());
+  }
+
+  for (auto &seg : ebin.segments) {
+    if (!seg->get_sections_num())
+      continue;
+    // Update the address of the each segment which has a section
+    auto offset = ebin.sections[seg->get_section_index_at(0)]->get_offset();
+    seg->set_virtual_address(offset);
+    seg->set_physical_address(offset);
+  }
+
+  nullstream.str("");
+
   // Now save the ELF with transformed ctrlcode
   ebin.save(result["output"].as<std::string>());
+
   return 0;
 }
