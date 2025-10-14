@@ -59,6 +59,11 @@ while getopts ":rph" o; do
 done
 shift $((OPTIND-1))
 
+here=$PWD
+cd $BUILDDIR
+
 compile Debug $build_python
 
 compile Release $build_python
+
+cd $here

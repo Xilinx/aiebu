@@ -133,7 +133,8 @@ ELFIO::elfio upgrade_legacy_elf_assign_adddress(ELFIO::elfio &ebin)
 
   // Force the layout of the ELF
   std::ostringstream nullstream;
-  nbin.save(nullstream);
+  if (!nbin.save(nullstream))
+    throw error(error::error_code::internal_error, "ELF layout generation failed\n");
   nullstream.str("");
 
   for (auto & sec : nbin.sections) {
@@ -160,7 +161,8 @@ ELFIO::elfio upgrade_legacy_elf_assign_adddress(ELFIO::elfio &ebin)
 
   // Force the layout of the ELF
   nullstream.str("");
-  nbin.save(nullstream);
+  if (!nbin.save(nullstream))
+    throw error(error::error_code::internal_error, "ELF layout generation failed\n");
 
   for (auto & sec : nbin.sections) {
     std::cout << '[' << sec->get_index() << "] " << sec->get_name() << ": 0x" << std::hex << sec->get_offset() << ": 0x" << std::hex << sec->get_address() << std::dec << "\n";;
@@ -201,7 +203,7 @@ int main(int argc, char* argv[])
   ELFIO::elfio ebin;
   ebin.load(result["filename"].as<std::string>());
 
-#if 1
+#if 0
   if (aiebu::is_legacy_elf_with_unset_address(ebin)) {
     ebin = aiebu::upgrade_legacy_elf_assign_adddress(ebin);
   }
@@ -225,6 +227,7 @@ int main(int argc, char* argv[])
   aiebu::passmanager passm(ebin, result["debug"].as<bool>());
   passm.run_transforms();
 
+#if 0
   std::ostringstream nullstream;
   ebin.save(nullstream);
 
@@ -243,9 +246,10 @@ int main(int argc, char* argv[])
   }
 
   nullstream.str("");
-
+#endif
   // Now save the ELF with transformed ctrlcode
-  ebin.save(result["output"].as<std::string>());
+  if(!ebin.save(result["output"].as<std::string>()))
+    return 1;
 
   return 0;
 }

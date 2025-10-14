@@ -26,10 +26,20 @@ inline bool is_pm_ctrlpkt(const std::string& name)
   return !name.substr(0,8).compare(".ctrlpkt");
 }
 
+inline void elf_debug_dump(const ELFIO::elfio &nbin) {
+  for (auto & sec : nbin.sections) {
+    std::cout << '[' << sec->get_index() << "] " << sec->get_name() << ": 0x" << std::hex << sec->get_offset() << ": 0x" << std::hex << sec->get_address() << std::dec << "\n";;
+  }
+
+  for (auto & seg : nbin.segments) {
+    std::cout << '[' << seg->get_index() << "] " << std::hex << seg->get_offset() << std::dec << '(' << seg->get_sections_num() << ")\n";;
+  }
+}
 
 class passmanager {
 private:
   ELFIO::elfio &m_elf;
+  ELFIO::elfio m_nbin;
   bool m_debug;
 
 private:
@@ -56,13 +66,12 @@ private:
     // [2] drop segment entries for sections that are not used for execution
     // [3] update the address
     //
-    ELFIO::elfio nbin;
-    nbin.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2LSB);
-    nbin.set_os_abi(m_elf.get_os_abi());
-    nbin.set_abi_version(m_elf.get_abi_version());
-    nbin.set_type( m_elf.get_type() );
-    nbin.set_machine( EM_AIECTRLCODE);
-    nbin.set_flags(m_elf.get_flags());
+    m_nbin.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2LSB);
+    m_nbin.set_os_abi(m_elf.get_os_abi());
+    m_nbin.set_abi_version(m_elf.get_abi_version());
+    m_nbin.set_type( m_elf.get_type() );
+    m_nbin.set_machine( EM_AIECTRLCODE);
+    m_nbin.set_flags(m_elf.get_flags());
 
     std::vector<std::pair<int, size_t>> offsets;
     for (auto &sec : m_elf.sections) {
@@ -71,13 +80,13 @@ private:
         continue;
       if (sec->get_name() == ".shstrtab")
         continue;
-      nbin.sections.add(sec->get_name());
+      m_nbin.sections.add(sec->get_name());
     }
 
     for (auto &sec : m_elf.sections) {
       auto offset = sec->get_offset();
       const std::string name = sec->get_name();
-      auto it = std::find_if(nbin.sections.begin(), nbin.sections.end(), [&name](auto &n) {
+      auto it = std::find_if(m_nbin.sections.begin(), m_nbin.sections.end(), [&name](auto &n) {
         return n->get_name() == name;
       });
 
@@ -95,7 +104,7 @@ private:
       auto type = seg->get_type();
       if ((type != ELFIO::PT_LOAD) && (type != ELFIO::PT_PHDR))
         continue;
-      auto nseg = nbin.segments.add();
+      auto nseg = m_nbin.segments.add();
       size_t offset = seg->get_offset();
       nseg->set_type(seg->get_type());
       nseg->set_flags(type);
@@ -109,13 +118,20 @@ private:
       nseg->add_section_index(it->first, seg->get_align());
     }
 
-    adjust_addresses(nbin);
-#if 0
     // Force the layout of the ELF
     std::ostringstream nullstream;
-    nbin.save(nullstream);
+    if (!m_nbin.save(nullstream))
+      throw error(error::error_code::internal_error, "ELF layout generation failed\n");
     nullstream.str("");
 
+    adjust_addresses(m_nbin);
+
+    // Force the layout of the ELF
+    nullstream.str("");
+    if (!m_nbin.save(nullstream))
+      throw error(error::error_code::internal_error, "ELF layout generation failed\n");
+
+#if 0
     for (auto & sec : nbin.sections) {
       std::cout << '[' << sec->get_index() << "] " << sec->get_name() << ": 0x" << std::hex << sec->get_offset() << ": 0x" << std::hex << sec->get_address() << std::dec << "\n";;
     }
@@ -138,28 +154,24 @@ private:
       seg->set_physical_address(offset);
     }
 #endif
-    // Force the layout of the ELF
-    std::ostringstream nullstream;
+    elf_debug_dump(m_nbin);
+    m_elf = std::move(m_nbin);
     nullstream.str("");
-    nbin.save(nullstream);
+    if (!m_elf.save(nullstream))
+      throw error(error::error_code::internal_error, "ELF layout generation failed\n");
 
-    for (auto & sec : nbin.sections) {
-      std::cout << '[' << sec->get_index() << "] " << sec->get_name() << ": 0x" << std::hex << sec->get_offset() << ": 0x" << std::hex << sec->get_address() << std::dec << "\n";;
-    }
+    elf_debug_dump(m_elf);
+    std::ostringstream nullstream2;
+    if (!m_elf.save(nullstream2))
+      throw error(error::error_code::internal_error,
+                  "ELF layout generation failed\n");
 
-    for (auto & seg : nbin.segments) {
-      std::cout << '[' << seg->get_index() << "] " << std::hex << seg->get_offset() << std::dec << '(' << seg->get_sections_num() << ")\n";;
-    }
-
-    m_elf = std::move(nbin);
-    nullstream.str("");
-    m_elf.save(nullstream);
+    if (!m_elf.save("/tmp/b.elf"))
+      throw error(error::error_code::internal_error,
+                  "ELF layout generation failed\n");
   }
 
   void adjust_addresses(ELFIO::elfio &nelf) {
-    std::ostringstream nullstream;
-    nelf.save(nullstream);
-    nullstream.str("");
     // Update the address of the each section to match its offset
     for (auto &sec : nelf.sections) {
       sec->set_address(sec->get_offset());
@@ -188,8 +200,11 @@ public:
       upgrade_legacy_elf_assign_adddress();
     }
 
-//    m_elf.save("/tmp/a.elf");
-    // Currently we are running a precannded sequence of transforms.
+    std::ostringstream nullstream;
+    if (!m_elf.save(nullstream))
+      throw error(error::error_code::internal_error, "ELF layout generation failed\n");
+    nullstream.str("");
+    // Currently we are running a precaned sequence of transforms.
     for (auto &section : m_elf.sections) {
       if (section->get_type() != ELFIO::SHT_PROGBITS)
         continue;
@@ -197,8 +212,13 @@ public:
         continue;
       run_transforms(section.get());
     }
-//    m_elf.save("/tmp/b.elf");
-//    adjust_addresses(m_elf);
+    //m_elf.save("/tmp/b.elf");
+    //std::ostringstream nullstream;
+    if (!m_elf.save(nullstream))
+      throw error(error::error_code::internal_error, "ELF layout generation failed\n");
+
+    adjust_addresses(m_elf);
+    nullstream.str("");
     adjust_relocations();
   }
 };
