@@ -17,6 +17,7 @@ target_include_directories(aiebu_transform_objects
   ${AIEBU_SOURCE_DIR}/src/cpp/cxxopts/include
   ${AIEBU_SOURCE_DIR}/src/cpp
   ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO
+  ${Boost_INCLUDE_DIRS}
   )
 
 add_executable(aiebu-transform $<TARGET_OBJECTS:aiebu_transform_objects>)
