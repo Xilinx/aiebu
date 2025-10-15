@@ -38,7 +38,15 @@ inline void elf_debug_dump(const ELFIO::elfio &nbin) {
 
 class passmanager {
 private:
+  // Passed by the client but updated by this transformer
   ELFIO::elfio &m_elf;
+  // m_bin is a private copy of a working ELF object used by
+  // upgrade_legacy_elf_assign_adddress() which is std::move'd back into
+  // client's ELF object, m_elf.
+  // Please note that m_bin object's life cycle should really be limited
+  // to upgrade_legacy_elf_assign_adddress(). However, when m_nbin goes out
+  // of scope it leads to failures inside ELFIO. The bug seems to be in
+  // std::move of ELFIO header object which should be debugged separately.
   ELFIO::elfio m_nbin;
   bool m_debug;
 
@@ -142,14 +150,6 @@ private:
 
     if (m_debug)
       elf_debug_dump(m_elf);
-    std::ostringstream nullstream2;
-    if (!m_elf.save(nullstream2))
-      throw error(error::error_code::internal_error,
-                  "ELF layout generation failed\n");
-
-    if (!m_elf.save("/tmp/b.elf"))
-      throw error(error::error_code::internal_error,
-                  "ELF layout generation failed\n");
   }
 
   void adjust_addresses(ELFIO::elfio &nelf) {

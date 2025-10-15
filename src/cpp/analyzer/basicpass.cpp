@@ -397,7 +397,7 @@ void passmanager::run_transforms(ELFIO::section *psec) {
   }
 
   // The loadpdi opcode details like id, size, etc. should come from the caller
-  // The code here is merely representative
+  // The code here is merely representative of what plumbing should be done
   XAie_OpHdr_add_loadpdi loadpdi(nodes, 0x10, 0x800);
   loadpdi.transform();
   serialize_nodes(psec, nodes);
