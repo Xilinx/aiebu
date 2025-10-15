@@ -25,6 +25,12 @@ enum class basic_node_state {
 };
 
 template <typename aie2p_type> struct basic_node {
+  // m_op may point to an existing node in the current ELF when
+  // basic_node does not own the memory. The client would set
+  // m_state to "original" as a hint to basic_node.
+  // If the client explicitly allocates a aie2p_type node on the
+  // heap then they would set m_state to "added" which is used as
+  // a hint for basic_node to own the memory of m_op.
   const aie2p_type *m_op;
   size_t m_size;
   basic_node_state m_state;
