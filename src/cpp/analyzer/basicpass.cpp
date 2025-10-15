@@ -245,7 +245,7 @@ public:
       {
         it->m_state = basic_node_state::dropped;
         it = m_nodes.erase(it);
-        XAie_NoOpHdr *noop = new XAie_NoOpHdr();
+        auto noop = new XAie_NoOpHdr();
         noop->Op = XAIE_IO_NOOP;
         m_nodes.emplace(it, reinterpret_cast<const XAie_OpHdr *>(noop),
                         sizeof(XAie_NoOpHdr), basic_node_state::added);
@@ -269,7 +269,7 @@ public:
     : m_nodes(nodes), m_pdiid(pdiid), m_pdisize(pdisize) {}
 
   void transform() override {
-    XAie_LoadPdiHdr *load = new XAie_LoadPdiHdr();
+    auto load = new XAie_LoadPdiHdr();
     load->Op = XAIE_IO_LOADPDI;
     load->PdiId = m_pdiid;
     load->PdiSize = m_pdisize;
@@ -397,6 +397,7 @@ void passmanager::run_transforms(ELFIO::section *psec) {
   }
 
   // The loadpdi opcode details like id, size, etc. should come from the caller
+  // The code here is merely representative
   XAie_OpHdr_add_loadpdi loadpdi(nodes, 0x10, 0x800);
   loadpdi.transform();
   serialize_nodes(psec, nodes);
