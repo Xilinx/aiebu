@@ -16,7 +16,6 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
                                  const std::string & executable,
                                  const std::string & description)
 {
-  std::string target_name;
   std::vector<std::string> subcmd_options;
   cxxopts::Options global_options(executable, description);
 

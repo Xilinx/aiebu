@@ -19,12 +19,17 @@ enum class pass_kind {
 
 
 enum class basic_node_state {
-  original, // original ctrlcode node from input ELF is in pristine condition
-  dropped,  // original node from input ELF has been removed from the ctrlcode list
-  added     // a new node has been created and added to the ctrlcode list
+  original, // it is the original ctrlcode node from input ELF and is in
+            // pristine condition
+  dropped,  // it is the original ctrlcode node from input ELF but has been
+            // removed from the ctrlcode list
+  added,     // it is a new node which has been created and added to the ctrlcode
+            // list
+  zombie
 };
 
-template <typename aie2p_type> struct basic_node {
+template <typename aie2p_type>
+struct basic_node {
   // m_op may point to an existing node in the current ELF when
   // basic_node does not own the memory. The client would set
   // m_state to "original" as a hint to basic_node.
@@ -39,9 +44,22 @@ template <typename aie2p_type> struct basic_node {
              basic_node_state state = basic_node_state::original)
       : m_op(op), m_size(size), m_state(state) {}
 
+  basic_node(basic_node &&other) noexcept
+    : m_op(other.m_op), m_size(other.size), m_state(other.state) {
+    other.m_op = nullptr;
+    other.m_size = 0;
+    other.m_state = basic_node_state::zombie;
+  }
+
+  basic_node(const basic_node &other) = delete;
+  basic_node& operator =(basic_node const&other) = delete;
+  basic_node &operator=(basic_node &&other) = delete;
+
   ~basic_node() {
-    if (m_state == basic_node_state::added)
+    if (m_state == basic_node_state::added) {
       delete m_op;
+      m_op = nullptr;
+    }
   }
 };
 
