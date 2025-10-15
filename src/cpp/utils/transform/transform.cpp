@@ -203,50 +203,10 @@ int main(int argc, char* argv[])
   ELFIO::elfio ebin;
   ebin.load(result["filename"].as<std::string>());
 
-#if 0
-  if (aiebu::is_legacy_elf_with_unset_address(ebin)) {
-    ebin = aiebu::upgrade_legacy_elf_assign_adddress(ebin);
-  }
-
-  for (auto & sec : ebin.sections) {
-    std::cout << '[' << sec->get_index() << "] " << sec->get_name() << ": 0x" << std::hex << sec->get_offset() << ": 0x" << std::hex << sec->get_address() << std::dec << "\n";;
-  }
-
-  for (auto & seg : ebin.segments) {
-    std::cout << '[' << seg->get_index() << "] " << std::hex << seg->get_offset() << std::dec << '(' << seg->get_sections_num() << ")\n";;
-  }
-
-//  nbin.save(result["output"].as<std::string>());
-  // We fail in the save even without any transforms. First this needs to be
-  // debugged and resolved before we can save any transformed ctrlcode. Once
-  // this bug is fixed comment out the ebi.save() from here.
-  int i = 0;
-  std::cin >> i;
-#endif
   // Run the transforms
   aiebu::passmanager passm(ebin, result["debug"].as<bool>());
   passm.run_transforms();
 
-#if 0
-  std::ostringstream nullstream;
-  ebin.save(nullstream);
-
-    // Update the address of the each section to match its offset
-  for (auto &sec : ebin.sections) {
-    sec->set_address(sec->get_offset());
-  }
-
-  for (auto &seg : ebin.segments) {
-    if (!seg->get_sections_num())
-      continue;
-    // Update the address of the each segment which has a section
-    auto offset = ebin.sections[seg->get_section_index_at(0)]->get_offset();
-    seg->set_virtual_address(offset);
-    seg->set_physical_address(offset);
-  }
-
-  nullstream.str("");
-#endif
   // Now save the ELF with transformed ctrlcode
   if(!ebin.save(result["output"].as<std::string>()))
     return 1;

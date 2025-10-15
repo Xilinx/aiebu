@@ -9,6 +9,7 @@
 #include "passmanager.h"
 
 #include "utils.h"
+#include "code_section.h"
 #include "aiebu/aiebu_error.h"
 
 #include "xaiengine.h"
@@ -241,11 +242,15 @@ public:
     for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it) {
       switch (it->m_op->Op) {
       case XAIE_IO_PREEMPT:
+      {
         it->m_state = basic_node_state::dropped;
-        m_nodes.erase(it);
-        m_nodes.insert(it, basic_node(reinterpret_cast<const XAie_OpHdr *>(new XAie_NoOpHdr()),
-                                      sizeof(XAie_NoOpHdr), basic_node_state::added));
+        it = m_nodes.erase(it);
+        XAie_NoOpHdr *noop = new XAie_NoOpHdr();
+        noop->Op = XAIE_IO_NOOP;
+        m_nodes.emplace(it, reinterpret_cast<const XAie_OpHdr *>(noop),
+                        sizeof(XAie_NoOpHdr), basic_node_state::added);
         break;
+      }
       default:
         break;
       }
@@ -280,9 +285,15 @@ itemize(const ELFIO::section *buffer) {
   const char *ptr = buffer->get_data();
   auto Hdr = (const XAie_TxnHeader *)(ptr);
   const auto num_ops = Hdr->NumOps;
-  ptr += sizeof(*Hdr);
   std::list<basic_node<XAie_OpHdr>> nodes;
 
+  if ((Hdr->Major == AIE2P_OPT_MAJOR_VER) &&
+      (Hdr->Minor == AIE2P_OPT_MINOR_VER)) {
+    // Only legacy transaction binary format supported today
+    return nodes;
+  }
+
+  ptr += sizeof(*Hdr);
   for (auto i = 0U; i < num_ops; i++) {
     auto op_hdr = (const XAie_OpHdr *)(ptr);
     size_t size = 0;
@@ -369,6 +380,8 @@ void passmanager::adjust_relocations() {
 
 void passmanager::run_transforms(ELFIO::section *psec) {
   std::list<basic_node<XAie_OpHdr>> nodes = itemize(psec);
+  if (!nodes.size())
+    return;
   // Example transform sequence for what should really be driven by user request via a JSON file
   if (m_debug) {
     XAie_OpHdr_print printer1(nodes, std::cout);

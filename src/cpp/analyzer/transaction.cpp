@@ -14,6 +14,7 @@
 
 #include "xaiengine.h"
 #include "transaction.hpp"
+#include "code_section.h"
 
 namespace {
 static const std::array<std::string_view, 5> preempt_code_table{"#NOOP",
@@ -22,8 +23,8 @@ static const std::array<std::string_view, 5> preempt_code_table{"#NOOP",
                                                                 "#AIE_REGISTERS",
                                                                 "#INVALID"};
 
-constexpr uint8_t MAJOR_VER = 1;
-constexpr uint8_t MINOR_VER = 0;
+constexpr uint8_t MAJOR_VER = aiebu::AIE2P_OPT_MAJOR_VER;
+constexpr uint8_t MINOR_VER = aiebu::AIE2P_OPT_MINOR_VER;
 }
 
 template <unsigned int N>

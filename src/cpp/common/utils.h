@@ -55,6 +55,7 @@ namespace aiebu {
     }
 
 constexpr uint32_t DEFAULT_COLUMN = 4;
+
 class partition_info {
   union {
     struct {
