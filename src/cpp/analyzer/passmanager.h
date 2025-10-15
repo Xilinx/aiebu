@@ -83,6 +83,8 @@ private:
       m_nbin.sections.add(sec->get_name());
     }
 
+    // Populate the new ELF object with relevant sections and segments from
+    // existing ELF object
     for (auto &sec : m_elf.sections) {
       auto offset = sec->get_offset();
       const std::string name = sec->get_name();
@@ -118,7 +120,7 @@ private:
       nseg->add_section_index(it->first, seg->get_align());
     }
 
-    // Force the layout of the ELF
+    // Force the layout of the new ELF
     std::ostringstream nullstream;
     if (!m_nbin.save(nullstream))
       throw error(error::error_code::internal_error, "ELF layout generation failed\n");
