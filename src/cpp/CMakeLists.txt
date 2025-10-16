@@ -10,7 +10,8 @@ add_library(aiebu_library_objects OBJECT
   analyzer/reporter.cpp
   analyzer/transaction.cpp
   analyzer/packets.cpp
-  analyzer/basicpass.cpp
+  analyzer/passmanager.cpp
+  analyzer/aie2p_passes.cpp
   assembler/aiebu_assembler.cpp
   assembler/assembler.cpp
   common/aiebu_error.cpp

@@ -57,14 +57,15 @@ struct basic_node {
 
   ~basic_node() {
     if (m_state == basic_node_state::added) {
-      std::free((void *)m_op);
+      std::free((void*)m_op); // NOLINT
       m_op = nullptr;
     }
   }
 };
 
 
-template <typename aie2p_type> class aie2p_basicpass {
+template <typename aie2p_type>
+class aie2p_basicpass {
 public:
   aie2p_basicpass() = default;
   virtual ~aie2p_basicpass() = default;
