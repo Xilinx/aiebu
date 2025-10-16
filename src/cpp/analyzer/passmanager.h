@@ -6,6 +6,7 @@
 
 #include "aiebu/aiebu_error.h"
 #include <sstream>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_section.hpp>
@@ -52,6 +53,7 @@ private:
   // when using m_elf. The bug seems to be in std::move of ELFIO header
   // object -- from m_nbin to m_elf -- which should be debugged separately.
   ELFIO::elfio m_nbin;
+  boost::property_tree::ptree m_spec;
   bool m_debug;
 
 private:
@@ -189,7 +191,8 @@ private:
   }
 
 public:
-  explicit passmanager(ELFIO::elfio &elf, bool debug) : m_elf(elf), m_debug(debug) {}
+  explicit passmanager(ELFIO::elfio &elf, const boost::property_tree::ptree &spec,
+                       bool debug = false) : m_elf(elf), m_spec(std::move(spec)), m_debug(debug) {}
 
   void run_transforms() {
     pretransform();

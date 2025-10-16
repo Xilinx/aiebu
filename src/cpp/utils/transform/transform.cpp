@@ -2,6 +2,7 @@
 // Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
 
 #include <boost/format.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <cxxopts.hpp>
 #include <string>
 #include <iostream>
@@ -23,7 +24,7 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
     global_options.add_options()(
         "j,transform",
         "Name of JSON file with requested ctrlcode transform patterns",
-        cxxopts::value<std::string>()->default_value("unspecified"))(
+        cxxopts::value<std::string>()->default_value("unspecified.json"))(
         "o,output", "Name of the output ELF file",
         cxxopts::value<std::string>()->default_value("unspecified.elf"))(
         "filename", "Input file name", cxxopts::value<std::string>())(
@@ -84,10 +85,14 @@ int main(int argc, char* argv[])
     return 1;
 
   ELFIO::elfio ebin;
-  ebin.load(result["filename"].as<std::string>());
+  if (!ebin.load(result["filename"].as<std::string>()))
+    return 1;
+
+  boost::property_tree::ptree spec;
+  boost::property_tree::read_json(result["transform"].as<std::string>(), spec);
 
   // Run the transforms
-  aiebu::passmanager passm(ebin, result["debug"].as<bool>());
+  aiebu::passmanager passm(ebin, spec, result["debug"].as<bool>());
   passm.run_transforms();
 
   // Now save the ELF with transformed ctrlcode

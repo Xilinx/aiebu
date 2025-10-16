@@ -116,27 +116,43 @@ void passmanager::adjust_relocations() {
 }
 
 void passmanager::run_transforms(ELFIO::section *psec) {
+  boost::property_tree::ptree items = m_spec.get_child("allpasses");
+  const std::string name = psec->get_name();
+  auto it = std::find_if(items.begin(), items.end(), [name](auto n) {
+    return n.second.template get_optional<std::string>("section") == name;
+  });
+  if (it == items.end())
+    return;
+
   std::list<basic_node<XAie_OpHdr>> nodes = itemize(psec);
   if (!nodes.size())
     return;
-  // Example transform sequence for what should really be driven by user request via a JSON file
-  if (m_debug) {
-    XAie_OpHdr_print printer1(nodes, std::cout);
-    printer1.transform();
+
+  const boost::property_tree::ptree passes = it->second.get_child("passes");
+  for (const auto &pass : passes) {
+    auto passname = pass.second.get_optional<std::string>("pass");
+    if (passname.get() == "null") {
+      XAie_OpHdr_null nullpass(nodes);
+      nullpass.transform();
+    }
+    else if (passname.get() == "loadpdi") {
+      auto pdiid = pass.second.get_optional<int>("pdiid");
+      auto pdisize = pass.second.get_optional<int>("pdisize");
+      XAie_OpHdr_add_loadpdi loadpdi(nodes, pdiid.get(), pdisize.get());
+      loadpdi.transform();
+    }
+    else if (passname.get() == "nopreempt") {
+      XAie_OpHdr_drop_preempt nopreempt(nodes);
+      nopreempt.transform();
+    }
+    else if (passname.get() == "print") {
+      XAie_OpHdr_print printer(nodes, std::cout);
+      printer.transform();
+    } else {
+      throw error(error::error_code::internal_error, "Pass " + passname.get() + " not supported\n");
+    }
   }
 
-  XAie_OpHdr_drop_preempt nopreempt(nodes);
-  nopreempt.transform();
-
-  if (m_debug) {
-    XAie_OpHdr_print printer2(nodes, std::cout);
-    printer2.transform();
-  }
-
-  // The loadpdi opcode details like id, size, etc. should come from the caller
-  // The code here is merely representative of what plumbing should be done
-  XAie_OpHdr_add_loadpdi loadpdi(nodes, 0x10, 0x800);
-  loadpdi.transform();
   serialize_nodes(psec, nodes);
 }
 

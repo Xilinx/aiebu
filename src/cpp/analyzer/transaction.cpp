@@ -312,7 +312,7 @@ private:
     size_t stringify_loadpdi(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_LoadPdiHdr *)(ptr);
         ss_ops_ << op_format << "XAIE_IO_LOADPDI " << "#" <<  std::dec << mp_header->PdiId << ", 0x" <<
-                   mp_header->PdiSize << "0x" << mp_header->PdiAddress << std::endl;
+                   mp_header->PdiSize << ", 0x" << mp_header->PdiAddress << std::endl;
         return sizeof(XAie_LoadPdiHdr);
     }
 

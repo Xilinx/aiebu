@@ -1,0 +1,24 @@
+{
+  "allpasses": [
+    {
+      "section": ".ctrltext",
+      "passes": [
+	{
+	  "pass": "null"
+	},
+	{
+	  "pass": "loadpdi",
+	  "pdiid": 10,
+	  "pdisize": 800
+	},
+	{
+	  "pass": "print",
+	  "sync": "console"
+	},
+	{
+	  "pass": "nopreempt"
+	}
+      ]
+    }
+  ]
+}
