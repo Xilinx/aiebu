@@ -19,13 +19,13 @@ enum class pass_kind {
 
 
 enum class basic_node_state {
-  original, // it is the original ctrlcode node from input ELF and is in
+  original, // original ctrlcode node from input ELF which is in the
             // pristine condition
-  dropped,  // it is the original ctrlcode node from input ELF but has been
+  dropped,  // original ctrlcode node from input ELF but has been
             // removed from the ctrlcode list
-  added,     // it is a new node which has been created and added to the ctrlcode
-            // list
-  zombie
+  added,    // a new node which has been created and added to the ctrlcode
+            // list. basic_node should perform life cycle management of this node
+  zombie    // an empty node
 };
 
 template <typename aie2p_type>
@@ -52,12 +52,12 @@ struct basic_node {
   }
 
   basic_node(const basic_node &other) = delete;
-  basic_node& operator =(basic_node const&other) = delete;
+  basic_node &operator=(basic_node const&other) = delete;
   basic_node &operator=(basic_node &&other) = delete;
 
   ~basic_node() {
     if (m_state == basic_node_state::added) {
-      delete m_op;
+      std::free((void *)m_op);
       m_op = nullptr;
     }
   }

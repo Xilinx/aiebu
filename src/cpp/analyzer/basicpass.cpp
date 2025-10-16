@@ -31,6 +31,17 @@ inline std::ostream& dec_format(std::ostream& strm) {
   return strm;
 }
 
+template <typename opnode> opnode *allocXaie() {
+  // Need to use C classic malloc/free since the XAie op nodes do not have
+  // C++ object model. This prevents usage of delete operator in the free path
+  // as we have to first cast the basic_node::m_op of type XAie_OpHdr to the
+  // right XAie op node before calling delete which will make basic_node
+  // destructor code ugly.
+  auto result = reinterpret_cast<opnode *>(std::malloc(sizeof(opnode)));
+  std::memset(result, 0, sizeof(opnode));
+  return result;
+}
+
 const std::array<std::string_view, 5> preempt_code_table{"#NOOP",
                                                          "#MEM_TILE",
                                                          "#AIE_TILE",
@@ -245,7 +256,7 @@ public:
       {
         it->m_state = basic_node_state::dropped;
         it = m_nodes.erase(it);
-        auto noop = new XAie_NoOpHdr();
+        auto noop = allocXaie<XAie_NoOpHdr>();
         noop->Op = XAIE_IO_NOOP;
         m_nodes.emplace(it, reinterpret_cast<const XAie_OpHdr *>(noop),
                         sizeof(XAie_NoOpHdr), basic_node_state::added);
@@ -269,7 +280,7 @@ public:
     : m_nodes(nodes), m_pdiid(pdiid), m_pdisize(pdisize) {}
 
   void transform() override {
-    auto load = new XAie_LoadPdiHdr();
+    auto load = allocXaie<XAie_LoadPdiHdr>();
     load->Op = XAIE_IO_LOADPDI;
     load->PdiId = m_pdiid;
     load->PdiSize = m_pdisize;
