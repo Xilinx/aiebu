@@ -6,6 +6,7 @@ else()
   # This enables valgrind but we should not include (CTest) when we
   # are a submodule as it may conflict with configurations of the
   # parent project
+  set(CTEST_TEST_TIMEOUT 3600)
   include (CTest)
   set(CMAKE_CTEST_ARGUMENTS "--output-on-failure")
 endif()
