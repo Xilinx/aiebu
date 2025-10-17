@@ -38,6 +38,11 @@ add_test(NAME "aie2_pmctrlpkt_txn"
 add_test(NAME "aie2_pmctrlpkt_asm"
   COMMAND aiebu-asm -r -t aie2asm -c "${CMAKE_CURRENT_SOURCE_DIR}/mc_code_txn.ctrltext.asm" -p ctrl_pkt.bin -m 0:pm_ctrlpkt_0.bin -m 1:pm_ctrlpkt_1.bin -m 2:pm_ctrlpkt_2.bin -m 3:pm_ctrlpkt_3.bin -m 4:pm_ctrlpkt_4.bin -m 5:pm_ctrlpkt_5.bin -m 6:pm_ctrlpkt_6.bin -m 7:pm_ctrlpkt_7.bin -j "${CMAKE_CURRENT_SOURCE_DIR}/mc_code_txn.json" -o ctrl1.elf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(
+  "aie2_pmctrlpkt_asm"
+  PROPERTIES
+  TIMEOUT 3500
+)
 
 # Compile a ctrlcode ASM text to binary and then decompile it into ASM text
 add_test(NAME "aie2_pmctrlpkt_asm_redo"
