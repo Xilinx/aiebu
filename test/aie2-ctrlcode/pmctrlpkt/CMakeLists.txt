@@ -48,11 +48,21 @@ set_tests_properties(
 add_test(NAME "aie2_pmctrlpkt_asm_redo"
   COMMAND aiebu-asm -r -t aie2asm -c "ctrl1.ctrltext.asm" -p ctrl_pkt.bin -m 0:pm_ctrlpkt_0.bin -m 1:pm_ctrlpkt_1.bin -m 2:pm_ctrlpkt_2.bin -m 3:pm_ctrlpkt_3.bin -m 4:pm_ctrlpkt_4.bin -m 5:pm_ctrlpkt_5.bin -m 6:pm_ctrlpkt_6.bin -m 7:pm_ctrlpkt_7.bin -j "${CMAKE_CURRENT_SOURCE_DIR}/mc_code_txn.json" -o ctrl2.elf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(
+  "aie2_pmctrlpkt_asm_redo"
+  PROPERTIES
+  TIMEOUT 3500
+)
 
 # Compare the two ctrlcodes: ASM text to decompiled ASM text
 add_test(NAME "aie2_pmctrlpkt_asm_compare"
   COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol ctrl1.ctrltext.asm ctrl2.ctrltext.asm
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(
+  "aie2_pmctrlpkt_asm_compare"
+  PROPERTIES
+  TIMEOUT 3500
+)
 
 # Compare the md5sum of ELF generated in aie2_mc_code_txn_txn test with that of the golden file
 add_test(NAME "aie2_pmctrlpkt_txn_md5sum"
