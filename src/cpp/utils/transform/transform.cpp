@@ -59,6 +59,11 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
   }
 }
 
+bool check_buffer_type(const std::string &filename) {
+  const std::vector<char> buffer = aiebu::readfile(filename);
+  return (aiebu::identify_buffer_type(buffer) != aiebu::aiebu_assembler::buffer_type::elf_aie2) ? false : true;
+}
+
 } //namespace aiebu::utilities
 
 int main(int argc, char* argv[])
@@ -79,9 +84,7 @@ int main(int argc, char* argv[])
   if (!result.arguments().size())
     return 1;
 
-  const std::vector<char> buffer = aiebu::readfile(result["filename"].as<std::string>());
-  if (aiebu::identify_buffer_type(buffer) !=
-      aiebu::aiebu_assembler::buffer_type::elf_aie2)
+  if (!aiebu::check_buffer_type(result["filename"].as<std::string>()))
     return 1;
 
   ELFIO::elfio ebin;

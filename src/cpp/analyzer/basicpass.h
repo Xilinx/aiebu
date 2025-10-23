@@ -4,8 +4,6 @@
 #ifndef AIEBU_BASICPASS_H_
 #define AIEBU_BASICPASS_H_
 
-#include <string>
-#include <list>
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_section.hpp>
 
@@ -38,16 +36,22 @@ struct basic_node {
   // a hint for basic_node to own the memory of m_op.
   const aie2p_type *m_op;
   size_t m_size;
+  size_t m_original_offset;
+  size_t m_transformed_offset;
   basic_node_state m_state;
 
-  basic_node(const aie2p_type *op, size_t size,
+  basic_node(const aie2p_type *op, size_t size, size_t offset,
              basic_node_state state = basic_node_state::original)
-      : m_op(op), m_size(size), m_state(state) {}
+    : m_op(op), m_size(size), m_original_offset(offset), m_transformed_offset(0), m_state(state) {}
 
   basic_node(basic_node &&other) noexcept
-    : m_op(other.m_op), m_size(other.size), m_state(other.state) {
+      : m_op(other.m_op), m_size(other.size),
+        m_original_offset(other.m_original_offset),
+        m_transformed_offset(other.m_transformed_offset), m_state(other.state) {
     other.m_op = nullptr;
     other.m_size = 0;
+    other.m_original_offset = 0;
+    other.m_transformed_offset = 0;
     other.m_state = basic_node_state::zombie;
   }
 

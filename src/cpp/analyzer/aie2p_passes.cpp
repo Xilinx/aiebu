@@ -225,11 +225,12 @@ void XAie_OpHdr_drop_preempt::transform() {
     case XAIE_IO_PREEMPT:
     {
       it->m_state = basic_node_state::dropped;
+      size_t original_offset = it->m_original_offset;
       it = m_nodes.erase(it);
       auto noop = allocXaie<XAie_NoOpHdr>();
       noop->Op = XAIE_IO_NOOP;
       m_nodes.emplace(it, reinterpret_cast<const XAie_OpHdr *>(noop),
-                      sizeof(XAie_NoOpHdr), basic_node_state::added);
+                      sizeof(XAie_NoOpHdr), original_offset, basic_node_state::added);
       break;
     }
     default:
@@ -243,9 +244,10 @@ void XAie_OpHdr_add_loadpdi::transform() {
   load->Op = XAIE_IO_LOADPDI;
   load->PdiId = m_pdiid;
   load->PdiSize = m_pdisize;
-  m_nodes.emplace(m_nodes.begin(),
-                  reinterpret_cast<const XAie_OpHdr *>(load),
-                  sizeof(XAie_LoadPdiHdr), basic_node_state::added);
+  auto it = m_nodes.begin();
+  size_t original_offset = it->m_original_offset;
+  m_nodes.emplace(it, reinterpret_cast<const XAie_OpHdr *>(load),
+                  sizeof(XAie_LoadPdiHdr), original_offset, basic_node_state::added);
 }
 
 }

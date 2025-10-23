@@ -1,4 +1,5 @@
 {
+  "_comment": "Each top level pass object specifies the section name for which the top level pass object is applicable and an array of passes where keyword pass specfifies the pass name with additional pass specific details",
   "allpasses": [
     {
       "section": ".ctrltext",

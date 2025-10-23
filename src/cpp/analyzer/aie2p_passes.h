@@ -4,6 +4,8 @@
 #ifndef AIEBU_AIE2P_PASSES_H_
 #define AIEBU_AIE2P_PASSES_H_
 
+#include <list>
+
 #include "basicpass.h"
 #include "xaiengine.h"
 
