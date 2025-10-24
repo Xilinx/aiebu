@@ -80,12 +80,12 @@ else()
   set(AIEBU_INSTALL_STAGING_DIR     ${CMAKE_BINARY_DIR}/opt/xilinx/aiebu)
 endif()
 
-set(AIEBU_INSTALL_LIB_DIR           "${AIEBU_INSTALL_DIR}/lib")
-set(AIEBU_INSTALL_INCLUDE_DIR       "${AIEBU_INSTALL_DIR}/include")
-set(AIEBU_INSTALL_CMAKE_DIR         "${AIEBU_INSTALL_DIR}/share/cmake/${PROJECT_NAME}")
-set(AIEBU_PYTHON_INSTALL_DIR        "${AIEBU_INSTALL_DIR}/lib/python3")
-set(AIEBU_SPECIFICATION_INSTALL_DIR "${AIEBU_INSTALL_DIR}/share/specification")
-set(AIEBU_GEN_DIR                   "${AIEBU_BINARY_DIR}/lib/gen")
+set(AIEBU_INSTALL_LIB_DIR           ${AIEBU_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR})
+set(AIEBU_INSTALL_INCLUDE_DIR       ${AIEBU_INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR})
+set(AIEBU_INSTALL_CMAKE_DIR         ${AIEBU_INSTALL_DIR}/share/cmake/${PROJECT_NAME})
+set(AIEBU_PYTHON_INSTALL_DIR        ${AIEBU_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/python3)
+set(AIEBU_SPECIFICATION_INSTALL_DIR ${AIEBU_INSTALL_DIR}/share/specification)
+set(AIEBU_GEN_DIR                   ${AIEBU_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/gen)
 
 # If this repository is used as a submodule, the parent repository may
 # set the following variables in CMake to make aiebu point to the
