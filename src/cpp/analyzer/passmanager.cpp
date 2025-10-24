@@ -232,12 +232,14 @@ private:
     serialize_nodes(psec);
   }
 
-  const basic_node<XAie_OpHdr> &find_node(size_t offset) const {
+
+  std::list<basic_node<XAie_OpHdr>>::const_iterator find_node(size_t offset) const {
     auto it = std::find_if(m_nodes.begin(), m_nodes.end(), [offset](auto &n) {
       return (n.m_original_offset <= offset) && (offset < (n.m_original_offset + n.m_size));
     });
-    return *it;
+    return it;
   }
+
 
   void adjust_relocations()
   {
@@ -248,6 +250,7 @@ private:
     auto tsec= m_elf.sections[".ctrltext"];
     auto tsec_index = tsec->get_index();
 
+    // Stores symbol to its index
     std::map<std::string, ELFIO::Elf_Xword> ctrltext_symbols;
     // Go through all symbols and identify the ones which are used in the ctrltext
     ELFIO::symbol_section_accessor symb(m_elf, dsec);
@@ -273,10 +276,13 @@ private:
     auto rsec = m_elf.sections[".rela.dyn"];
     if (!rsec)
       return;
-    ELFIO::relocation_section_accessor reloc(m_elf, rsec );
+    ELFIO::relocation_section_accessor reloc(m_elf, rsec);
 
-    // Go through all relocations which use symbols pointing to ctrltext and
+    // Go through all relocations with symbols pointing to ctrltext and
     // adjust the address where these symbols will be used
+    // TODO: This algorithm is O(N^2).
+    // Need to rework find_node() implementation and its usage in this loop to
+    // improve performance
     const auto reloc_num = reloc.get_entries_num();
     for (ELFIO::Elf_Xword i = 0; i < reloc_num; ++i) {
       ELFIO::Elf64_Addr offset = 0;
@@ -292,18 +298,19 @@ private:
         continue;
 
       // Find the node this symbol was patched in
-      const basic_node<XAie_OpHdr> &node = find_node(offset);
-      if (node.m_state != basic_node_state::original) {
+      const auto nodei = find_node(offset);
+      if ((nodei == m_nodes.end()) || (nodei->m_state != basic_node_state::original)) {
         // We should drop/invalidate this relocation as it is either orphaned or a newly added node
         reloc.set_entry(i, offset, it->second,
                         (char)symbol::patch_schema::unknown, addend);
       }
       else {
-        auto new_address = node.m_transformed_offset + (offset - node.m_original_offset);
+        auto new_address = nodei->m_transformed_offset + (offset - nodei->m_original_offset);
         reloc.set_entry(i, new_address, it->second, type, addend);
       }
     }
   }
+
 
   bool compare_section_layout() const
   {
@@ -318,6 +325,7 @@ private:
     return true;
   }
 
+
   unsigned int find_section_original_index(const std::string &secname) const
   {
     unsigned i = ~0;
@@ -327,6 +335,7 @@ private:
     }
     return i;
   }
+
 
   bool is_legacy_elf_with_unset_address() const
   {
@@ -355,7 +364,6 @@ private:
     m_nbin.set_machine( EM_AIECTRLCODE);
     m_nbin.set_flags(m_elf.get_flags());
 
-    std::vector<std::pair<int, size_t>> offsets;
     for (auto &sec : m_elf.sections) {
       // The following two sections are automatically added by ELFIO
       if (sec->get_name() == "")
@@ -365,6 +373,8 @@ private:
       m_nbin.sections.add(sec->get_name());
     }
 
+    // Temporary table of section to its original offset
+    std::vector<std::pair<int, size_t>> offsets;
     // Populate the new ELF object with relevant sections and segments from
     // existing ELF object
     for (auto &sec : m_elf.sections) {
@@ -374,6 +384,7 @@ private:
         return n->get_name() == name;
       });
 
+      // Move the section as is from the old ELF into the new ELF
       *it = std::move(sec);
       if ((*it)->get_type() != ELFIO::SHT_PROGBITS) {
         // Remove the ALLOC flags from sections except text and data
@@ -384,6 +395,7 @@ private:
       offsets.emplace_back((*it)->get_index(), offset);
     }
 
+    // Create new segments using attributes from the old segments
     for (auto &seg : m_elf.segments) {
       auto type = seg->get_type();
       if ((type != ELFIO::PT_LOAD) && (type != ELFIO::PT_PHDR))
@@ -393,12 +405,14 @@ private:
       nseg->set_type(seg->get_type());
       nseg->set_flags(type);
       nseg->set_align(seg->get_align());
+
+      // Find which section was the old segment pointing to before using offset as the key
       auto it = std::find_if(offsets.begin(), offsets.end(), [offset](std::pair<int, size_t> n) {
         return n.second == offset;
       });
       if (it == offsets.end())
         continue;
-      // Bind the segment to its section
+      // Bind the new segment to its new section
       nseg->add_section_index(it->first, seg->get_align());
     }
 
@@ -408,6 +422,8 @@ private:
 
     if (m_debug)
       elf_debug_dump(m_nbin);
+
+    // Now move over the newly created ELF back to the original ELF
     m_elf = std::move(m_nbin);
 
     elf_layout(m_elf);
@@ -415,6 +431,7 @@ private:
     if (m_debug)
       elf_debug_dump(m_elf);
   }
+
 
   void adjust_addresses(ELFIO::elfio &nelf) {
     // Update the address of the each section to match its offset
@@ -436,6 +453,7 @@ private:
     }
   }
 
+
   void pretransform()
   {
     if (!is_legacy_elf_with_unset_address())
@@ -448,6 +466,13 @@ private:
 public:
   passmanager_impl(ELFIO::elfio &elf, const boost::property_tree::ptree &spec,
                        bool debug = false) : m_elf(elf), m_spec(spec), m_debug(debug) {}
+
+  ~passmanager_impl() = default;
+
+  passmanager_impl(const passmanager_impl &) = delete;
+  passmanager_impl(passmanager_impl &&) = delete;
+  passmanager_impl &operator=(const passmanager_impl &) = delete;
+  passmanager_impl& operator=(passmanager_impl &&) = delete;
 
   void run_transforms() {
     for (auto &sec : m_elf.sections) {
