@@ -201,14 +201,12 @@ private:
     if (it == items.end())
       return;
 
-    //std::list<basic_node<XAie_OpHdr>> nodes = itemize(psec);
-    //if (!nodes.size())
-    //      return;
     itemize(psec);
     if (!m_nodes.size())
       return;
 
     const boost::property_tree::ptree passes = it->second.get_child("passes");
+    // Now run the passes as defined by user in the JSON specification
     for (const auto &pass : passes) {
       auto passname = pass.second.get_optional<std::string>("pass");
       if (passname.get() == "null") {
@@ -216,10 +214,10 @@ private:
         nullpass.transform();
       }
       else if (passname.get() == "loadpdi") {
-      auto pdiid = pass.second.get_optional<int>("pdiid");
-      auto pdisize = pass.second.get_optional<int>("pdisize");
-      XAie_OpHdr_add_loadpdi loadpdi(m_nodes, pdiid.get(), pdisize.get());
-      loadpdi.transform();
+        auto pdiid = pass.second.get_optional<int>("pdiid");
+        auto pdisize = pass.second.get_optional<int>("pdisize");
+        XAie_OpHdr_add_loadpdi loadpdi(m_nodes, pdiid.get(), pdisize.get());
+        loadpdi.transform();
       }
       else if (passname.get() == "nopreempt") {
         XAie_OpHdr_drop_preempt nopreempt(m_nodes);
@@ -237,10 +235,10 @@ private:
   }
 
   const basic_node<XAie_OpHdr> &find_node(size_t offset) const {
-      auto it = std::find_if(m_nodes.begin(), m_nodes.end(), [offset](auto &n) {
-        return (n.m_original_offset <= offset) && (offset < (n.m_original_offset + n.m_size));
-      });
-      return *it;
+    auto it = std::find_if(m_nodes.begin(), m_nodes.end(), [offset](auto &n) {
+      return (n.m_original_offset <= offset) && (offset < (n.m_original_offset + n.m_size));
+    });
+    return *it;
   }
 
   void adjust_relocations()
@@ -253,7 +251,7 @@ private:
     auto tsec_index = tsec->get_index();
 
     std::map<std::string, ELFIO::Elf_Xword> ctrltext_symbols;
-
+    // Go through all symbols and identify the ones which are used in the ctrltext
     ELFIO::symbol_section_accessor symb(m_elf, dsec);
     const auto sym_num = symb.get_symbols_num();
     for (ELFIO::Elf_Xword i = 0; i < sym_num; ++i) {
@@ -265,14 +263,13 @@ private:
       ELFIO::Elf_Half section = 0;
       unsigned char other = 0;
       symb.get_symbol(i, name, value, size, bind, type, section, other);
-      if (section == tsec_index) {
-        // may require updating the address if ctrltext has changed
-        std::cout << name << " 0x" << std::hex << value << std::dec << "\n";
-        auto it = ctrltext_symbols.find(name);
-        if (it != ctrltext_symbols.end())
-          continue;
-        ctrltext_symbols.insert(it, {name, i});
-      }
+      if (section != tsec_index)
+        continue;
+      // may require updating the address where this symbol is used in the ctrltext
+      auto it = ctrltext_symbols.find(name);
+      if (it != ctrltext_symbols.end())
+        continue;
+      ctrltext_symbols.insert(it, {name, i});
     }
 
     auto rsec = m_elf.sections[".rela.dyn"];
@@ -280,6 +277,8 @@ private:
       return;
     ELFIO::relocation_section_accessor reloc(m_elf, rsec );
 
+    // Go through all relocations which use symbols pointing to ctrltext and
+    // adjust the address where these symbols will be used
     const auto reloc_num = reloc.get_entries_num();
     for (ELFIO::Elf_Xword i = 0; i < reloc_num; ++i) {
       ELFIO::Elf64_Addr offset = 0;
@@ -293,14 +292,18 @@ private:
       auto it = ctrltext_symbols.find(symbolName);
       if (it == ctrltext_symbols.end())
         continue;
-      std::cout << symbolName << " 0x" << std::hex << offset << std::dec << " 0x"
-                << std::hex << addend << std::dec << " 0x" << std::hex << type << std::dec << "\n";
+
+      // Find the node this symbol was patched in
       const basic_node<XAie_OpHdr> &node = find_node(offset);
-      if (node.m_state != basic_node_state::original)
-        // We should drop/invalidate this relocation as it is orphaned
-        reloc.set_entry(i, offset, it->second, (char)symbol::patch_schema::unknown, addend);
-      else
-        reloc.set_entry(i, node.m_transformed_offset + (offset - node.m_original_offset), it->second, type, addend);
+      if (node.m_state != basic_node_state::original) {
+        // We should drop/invalidate this relocation as it is either orphaned or a newly added node
+        reloc.set_entry(i, offset, it->second,
+                        (char)symbol::patch_schema::unknown, addend);
+      }
+      else {
+        auto new_address = node.m_transformed_offset + (offset - node.m_original_offset);
+        reloc.set_entry(i, new_address, it->second, type, addend);
+      }
     }
   }
 
@@ -454,7 +457,7 @@ public:
     }
 
     pretransform();
-    // Currently we are running a precaned sequence of transforms.
+
     for (auto &sec : m_elf.sections) {
       if (sec->get_type() != ELFIO::SHT_PROGBITS)
         continue;
