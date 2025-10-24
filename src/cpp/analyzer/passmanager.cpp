@@ -3,17 +3,15 @@
 
 #include <iostream>
 #include <ostream>
-#include <set>
+#include <map>
 #include <sstream>
 #include <list>
 
 #include "basicpass.h"
 #include "passmanager.h"
 #include "aie2p_passes.h"
-
 #include "code_section.h"
 #include "symbol.h"
-
 #include "aiebu/aiebu_error.h"
 
 #include "xaiengine.h"
@@ -101,7 +99,7 @@ private:
   void itemize(const ELFIO::section *buffer) {
     const char *start = buffer->get_data();
     const char *curr = start;
-    auto Hdr = (const XAie_TxnHeader *)(curr);
+    auto Hdr = reinterpret_cast<const XAie_TxnHeader *>(curr);
     const auto num_ops = Hdr->NumOps;
 
     if ((Hdr->Major == AIE2P_OPT_MAJOR_VER) &&
@@ -112,27 +110,27 @@ private:
 
     curr += sizeof(*Hdr);
     for (auto i = 0U; i < num_ops; i++) {
-      auto op_hdr = (const XAie_OpHdr *)(curr);
+      auto op_hdr = reinterpret_cast<const XAie_OpHdr *>(curr);
       size_t size = 0;
       switch (op_hdr->Op) {
       case XAIE_IO_WRITE: {
-        auto w_hdr = (const XAie_Write32Hdr *)(curr);
+        auto w_hdr = reinterpret_cast<const XAie_Write32Hdr *>(curr);
         size = w_hdr->Size;
         break;
       }
       case XAIE_IO_BLOCKWRITE: {
-        auto bw_header = (const XAie_BlockWrite32Hdr *)(curr);
+        auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr *>(curr);
         size = bw_header->Size;
         break;
       }
       case XAIE_IO_MASKWRITE: {
-        auto mw_header = (const XAie_MaskWrite32Hdr *)(curr);
+        auto mw_header = reinterpret_cast<const XAie_MaskWrite32Hdr *>(curr);
         size = mw_header->Size;
         break;
       }
       case XAIE_IO_MASKPOLL:
       case XAIE_IO_MASKPOLL_BUSY: {
-        auto mp_header = (const XAie_MaskPoll32Hdr *)(curr);
+        auto mp_header = reinterpret_cast<const XAie_MaskPoll32Hdr *>(curr);
         size = mp_header->Size;
         break;
       }
@@ -157,7 +155,7 @@ private:
       case (XAIE_IO_CUSTOM_OP_READ_REGS):
       case (XAIE_IO_CUSTOM_OP_RECORD_TIMER):
       case (XAIE_IO_CUSTOM_OP_MERGE_SYNC): {
-        auto Hdr = (const XAie_CustomOpHdr *)(curr);
+        auto Hdr = reinterpret_cast<const XAie_CustomOpHdr *>(curr);
         size = Hdr->Size;
         break;
       }
@@ -180,7 +178,7 @@ private:
     store.write(reinterpret_cast<const char *>(&hdr), sizeof(hdr));
     for (auto &node : m_nodes) {
       node.m_transformed_offset = store.tellp();
-      store.write(reinterpret_cast<const char *>(node.m_op), node.m_size);
+      store.write(reinterpret_cast<const char *>(node.m_op), static_cast<std::streamsize>(node.m_size));
     }
     store.seekp(0, std::ios_base::end);
     hdr.TxnSize = store.tellp();

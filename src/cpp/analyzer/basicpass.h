@@ -37,12 +37,12 @@ struct basic_node {
   const aie2p_type *m_op;
   size_t m_size;
   size_t m_original_offset;
-  size_t m_transformed_offset;
+  size_t m_transformed_offset = 0;
   basic_node_state m_state;
 
   basic_node(const aie2p_type *op, size_t size, size_t offset,
              basic_node_state state = basic_node_state::original)
-    : m_op(op), m_size(size), m_original_offset(offset), m_transformed_offset(0), m_state(state) {}
+    : m_op(op), m_size(size), m_original_offset(offset), m_state(state) {}
 
   basic_node(basic_node &&other) noexcept
       : m_op(other.m_op), m_size(other.size),
