@@ -194,9 +194,9 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
       // TODO assert
     } else if (data->isOpcode())
     {
-      offset_type pc_low = pagenum * PAGE_SIZE + textwriter->tell() + datawriter->tell();
-      offset_type pc_high = pc_low + (*m_isa)[name]->serializer(data->get_operation()->get_args())->size(*page_state) - 1;
-      m_debug.add_dataline(fid, data->get_linenumber(), pc_high, pc_low, data->get_line(), data->get_annotation_index());
+      //offset_type pc_low = pagenum * PAGE_SIZE + textwriter->tell() + datawriter->tell();
+      //offset_type pc_high = pc_low + (*m_isa)[name]->serializer(data->get_operation()->get_args())->size(*page_state) - 1;
+      //m_debug.add_dataline(fid, data->get_linenumber(), pc_high, pc_low, data->get_line(), data->get_annotation_index());
       std::vector<uint8_t> ret = (*m_isa)[name]->serializer(data->get_operation()->get_args())
                                                ->serialize(page_state, dsym, colnum, pagenum);
       for (auto byte : ret) {
