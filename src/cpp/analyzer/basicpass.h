@@ -45,9 +45,9 @@ struct basic_node {
     : m_op(op), m_size(size), m_original_offset(offset), m_state(state) {}
 
   basic_node(basic_node &&other) noexcept
-      : m_op(other.m_op), m_size(other.size),
+      : m_op(other.m_op), m_size(other.m_size),
         m_original_offset(other.m_original_offset),
-        m_transformed_offset(other.m_transformed_offset), m_state(other.state) {
+        m_transformed_offset(other.m_transformed_offset), m_state(other.m_state) {
     other.m_op = nullptr;
     other.m_size = 0;
     other.m_original_offset = 0;
