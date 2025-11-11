@@ -24,7 +24,7 @@ types:
       There are 2 types of barrier provided, local_barrier and remote_barrier.
       Barrier `lb0..lb15`, which essentially are integer 0..15, are local barriers
       which are used for synchronization across jobs running in same _job-runner_.
-      Barrier `rb0..rb63`, which essentially are integer 1..64, are remote barriers
+      Barrier `rb0..rb7`, which essentially are integer 1..8, are remote barriers
       which are used for synchronization across jobs running on different _job-runner_.
   - name: const
     description: |
@@ -446,7 +446,10 @@ operations:
     description: |
       `local_barrier_id` indicates a barrier resource that is used to synchronize `num_participants`
       number of jobs. _All_ participating jobs must reach this barrier before any participating job
-      can move forward. A job which executes this instruction is blocked till the barrier matures.
+      can move forward. A job which executes this instruction is blocked till the barrier matures. Example:
+      ```
+      LOCAL_BARRIER       $lb0, 2
+      ```
   - mnemonic: REMOTE_BARRIER
     opcode: 0x12
     regular: True
@@ -464,7 +467,10 @@ operations:
       columns. _All_ participating jobs must reach this barrier before any participating job can move forward.
       A job which executes this instruction is blocked till the barrier matures. `party_mask` is the bit map of
       participant columns, where each column takes the bit corresponding to its column index. For any specific
-      remote barrier, only one job in a column can participate in.
+      remote barrier, only one job in a column can participate in. Example:
+      ```
+      REMOTE_BARRIER      $rb0, 0xC
+      ```
   - mnemonic: EOF
     opcode: 0xff
     regular: False

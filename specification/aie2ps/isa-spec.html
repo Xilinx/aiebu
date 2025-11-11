@@ -504,7 +504,7 @@ Global registers <code>r8..r23</code> also have alias name <code>g0..g15</code><
 There are 2 types of barrier provided, local_barrier and remote_barrier.
 Barrier <code>lb0..lb15</code>, which essentially are integer 0..15, are local barriers
 which are used for synchronization across jobs running in same <em>job-runner</em>.
-Barrier <code>rb0..rb63</code>, which essentially are integer 1..64, are remote barriers
+Barrier <code>rb0..rb7</code>, which essentially are integer 1..8, are remote barriers
 which are used for synchronization across jobs running on different <em>job-runner</em>.</p>
 <h2 id="const">const</h2>
 <p>Constant number. The width is specified per-operand and should be 8, 16 or 32 bit.</p>
@@ -1108,7 +1108,9 @@ stored in the <code>dest</code> register.</p>
 </table>
 <p><code>local_barrier_id</code> indicates a barrier resource that is used to synchronize <code>num_participants</code>
 number of jobs. <em>All</em> participating jobs must reach this barrier before any participating job
-can move forward. A job which executes this instruction is blocked till the barrier matures.</p>
+can move forward. A job which executes this instruction is blocked till the barrier matures. Example:</p>
+<pre><code>LOCAL_BARRIER       $lb0, 2
+</code></pre>
 <h2 id="remote_barrier-0x12">REMOTE_BARRIER (0x12)</h2>
 <p>Remote barrier used to synchronize multiple columns.</p>
 <table>
@@ -1137,7 +1139,9 @@ can move forward. A job which executes this instruction is blocked till the barr
 columns. <em>All</em> participating jobs must reach this barrier before any participating job can move forward.
 A job which executes this instruction is blocked till the barrier matures. <code>party_mask</code> is the bit map of
 participant columns, where each column takes the bit corresponding to its column index. For any specific
-remote barrier, only one job in a column can participate in.</p>
+remote barrier, only one job in a column can participate in. Example:</p>
+<pre><code>REMOTE_BARRIER      $rb0, 0xC
+</code></pre>
 <h2 id="eof-0xff">EOF (0xff)</h2>
 <p>Indicates the end of the operation sequence.</p>
 <table>
