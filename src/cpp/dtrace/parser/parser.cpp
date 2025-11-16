@@ -345,9 +345,9 @@ parser::
 expand_write_buffer(const std::string& write_buffer)
 {
     // Regex to extract buffer name and values
-    std::regex buffer_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\[(.*)\]\s*$)");
-    std::smatch buffer;
-    if (!std::regex_match(write_buffer, buffer, buffer_regex)) 
+    boost::regex buffer_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\[(.*)\]\s*$)");
+    boost::smatch buffer;
+    if (!boost::regex_match(write_buffer, buffer, buffer_regex)) 
     {
         DTRACE_ERROR("DTRACE_PARSER_INVALID_WRITE_BUFFER",
             "Invalid write buffer format: " << write_buffer);
@@ -441,60 +441,60 @@ create_action(const std::string& action_string, uint32_t probe_type,
     const std::string& probe_name, uint32_t uC_index)
 {
     std::shared_ptr<dtrace::action::action> action;
-    if (std::regex_search(action_string, dtrace::action::action_name::read_reg_regex))
+    if (boost::regex_search(action_string, dtrace::action::action_name::read_reg_regex))
     {   // Read register action
         action = std::make_shared<dtrace::action::read_reg_action>(
             action_string, probe_type, probe_name
         );
         m_actions[uC_index].push_back(action);
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::mask_write_reg_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::mask_write_reg_regex))
     {   // Mask write register action
         action = std::make_shared<dtrace::action::mask_write_reg_action>(
             action_string, probe_type, probe_name
         );
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::write_reg_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::write_reg_regex))
     {   // Write register action
         action = std::make_shared<dtrace::action::write_reg_action>(
             action_string, probe_type, probe_name
         );
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::timestamp_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::timestamp_regex))
     {   // Timestamp action
         action = std::make_shared<dtrace::action::timestamp_action>(
             action_string, probe_type, probe_name
         );
         m_actions[uC_index].push_back(action);
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::timestamp32_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::timestamp32_regex))
     {   // Timestamp32 action
         action = std::make_shared<dtrace::action::timestamp32_action>(
             action_string, probe_type, probe_name
         );
         m_actions[uC_index].push_back(action);
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::profile_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::profile_regex))
     {   // Profile action
         action = std::make_shared<dtrace::action::profile_action>(
             action_string, probe_type, probe_name
         );
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::print_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::print_regex))
     {   // Print action
         action = std::make_shared<dtrace::action::print_action>(
             action_string, probe_type, probe_name, m_maps
         );
         m_actions[uC_index].push_back(action);
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::printa_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::printa_regex))
     {   // Profile print action
         action = std::make_shared<dtrace::action::printa_action>(
             action_string, probe_type, probe_name, m_maps
         );
         m_actions[uC_index].push_back(action);
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::read_mem_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::read_mem_regex))
     {   // Read memory action
         action = std::make_shared<dtrace::action::read_mem_action>(
             action_string, probe_type, probe_name, m_mem_host_addr_map[uC_index]
@@ -502,7 +502,7 @@ create_action(const std::string& action_string, uint32_t probe_type,
         m_actions[uC_index].push_back(action);
         m_mem_host_addr_map[uC_index] = action->get_mem_host_addr();
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::write_mem_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::write_mem_regex))
     {   // Write memory action
         action = std::make_shared<dtrace::action::write_mem_action>(
             action_string, probe_type, probe_name, m_mem_host_addr_map[uC_index], m_buffer_map
@@ -510,28 +510,28 @@ create_action(const std::string& action_string, uint32_t probe_type,
         m_actions[uC_index].push_back(action);
         m_mem_host_addr_map[uC_index] = action->get_mem_host_addr();
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::break_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::break_regex))
     {   // Break action
         action = std::make_shared<dtrace::action::break_action>(
             action_string, probe_type, probe_name
         );
         m_actions[uC_index].push_back(action);
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::timestamps_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::timestamps_regex))
     {   // Timestamps action
         action = std::make_shared<dtrace::action::timestamps_action>(
             action_string, probe_type, probe_name
         );
         m_actions[uC_index].push_back(action);
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::timestamps32_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::timestamps32_regex))
     {   // Timestamps32 action
         action = std::make_shared<dtrace::action::timestamps32_action>(
             action_string, probe_type, probe_name
         );
         m_actions[uC_index].push_back(action);
     }
-    else if (std::regex_search(action_string, dtrace::action::action_name::operation_regex))
+    else if (boost::regex_search(action_string, dtrace::action::action_name::operation_regex))
     {   // Operation action
         action = std::make_shared<dtrace::action::operation_action>(
             action_string, probe_type, probe_name
@@ -573,13 +573,13 @@ parse_line(const std::string& parse_line)
         return;
 
     // Skip comments
-    std::regex comment_regex(R"(^#(.*)$)");
-    if (std::regex_match(line, comment_regex))
+    boost::regex comment_regex(R"(^#(.*)$)");
+    if (boost::regex_match(line, comment_regex))
         return;
 
     // Parse the line for begin probe
-    std::regex begin_regex(R"(^begin\s*\{?$)");
-    if (std::regex_match(line, begin_regex))
+    boost::regex begin_regex(R"(^begin\s*\{?$)");
+    if (boost::regex_match(line, begin_regex))
     {
         if (m_state != state_type::probe || m_begin_exist)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
@@ -603,8 +603,8 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for end probe
-    std::regex end_regex(R"(^end\s*\{?$)");
-    if (std::regex_match(line, end_regex))
+    boost::regex end_regex(R"(^end\s*\{?$)");
+    if (boost::regex_match(line, end_regex))
     {
         if (m_state != state_type::probe || m_end_exist)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
@@ -650,8 +650,8 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for jprobe
-    std::regex jprobe_regex(R"(^jprobe:([a-zA-Z0-9_\.\/]*)\:(uc[0-9,-]+)\:((line|annotation)[0-9,-]+)\s*\{?$)");
-    if (std::regex_match(line, jprobe_regex))
+    boost::regex jprobe_regex(R"(^jprobe:([a-zA-Z0-9_\.\/]*)\:(uc[0-9,-]+)\:((line|annotation)[0-9,-]+)\s*\{?$)");
+    if (boost::regex_match(line, jprobe_regex))
     {
         if (m_state != state_type::probe)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
@@ -669,8 +669,8 @@ parse_line(const std::string& parse_line)
     }
  
     // Parse the line for tracepoint probe
-    std::regex tracepoint_regex(R"(^tracepoint:(uc[0-9,-]+)\:(id[0-9,-]+)\s*\{?$)");
-    if (std::regex_match(line, tracepoint_regex))
+    boost::regex tracepoint_regex(R"(^tracepoint:(uc[0-9,-]+)\:(id[0-9,-]+)\s*\{?$)");
+    if (boost::regex_match(line, tracepoint_regex))
     {
         if (m_state != state_type::probe)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
@@ -688,8 +688,8 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for profile probe
-    std::regex profile_regex(R"(^profile:(uc[0-9,-]+)\:([0-9]+)hz\s*\{?$)");
-    if (std::regex_match(line, profile_regex))
+    boost::regex profile_regex(R"(^profile:(uc[0-9,-]+)\:([0-9]+)hz\s*\{?$)");
+    if (boost::regex_match(line, profile_regex))
     {
         if (m_state != state_type::probe)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
@@ -707,9 +707,9 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for action and operation
-    std::regex action_regex(R"(^(.+\(.*\).*\)?)$)");
-    std::regex operation_regex(R"(^(\w+)\s*=\s*(.+)$)");
-    if ((std::regex_match(line, action_regex) || std::regex_match(line, operation_regex))
+    boost::regex action_regex(R"(^(.+\(.*\).*\)?)$)");
+    boost::regex operation_regex(R"(^(\w+)\s*=\s*(.+)$)");
+    if ((boost::regex_match(line, action_regex) || boost::regex_match(line, operation_regex))
         && m_state == state_type::action)
     {
         m_state = state_type::action;
@@ -725,15 +725,15 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for write buffer for memory action
-    std::regex buffer_open_regex(R"(^(\w+\[(0x[a-fA-F0-9]+|\d+)\])(?:\s*=\s*(\[.*)?)?$)");
-    std::regex buffer_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\[(.*)\]\s*$)");
-    if (std::regex_match(line, buffer_open_regex) && m_state == state_type::action)
+    boost::regex buffer_open_regex(R"(^(\w+\[(0x[a-fA-F0-9]+|\d+)\])(?:\s*=\s*(\[.*)?)?$)");
+    boost::regex buffer_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\[(.*)\]\s*$)");
+    if (boost::regex_match(line, buffer_open_regex) && m_state == state_type::action)
     {  
         m_state = state_type::buffer_open;
         m_open_buffer = true;
         m_write_buffer += line;
         // single line buffer
-        if (std::regex_match(m_write_buffer, buffer_regex))
+        if (boost::regex_match(m_write_buffer, buffer_regex))
             expand_write_buffer(m_write_buffer);
             
         return;

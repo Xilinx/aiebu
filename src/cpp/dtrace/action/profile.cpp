@@ -35,8 +35,8 @@ profile_action(std::string token, uint32_t probe_type, const std::string& probe_
 
     m_result = fields[0];
 
-    std::smatch action;
-    if (!std::regex_match(fields[1], action, action_name::action_regex))
+    boost::smatch action;
+    if (!boost::regex_match(fields[1], action, action_name::action_regex))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << m_token << "' Expected 'opcode()'");
 

@@ -14,7 +14,7 @@
 
 #include <cstdint>
 #include <map>
-#include <regex>
+#include <boost/regex.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -96,25 +96,29 @@ public:
  * @details
  * This class provides a set of static inline regular expressions that can be used
  * to match specific action patterns in script file.
+ *
+ * @note All regex patterns are hardcoded and guaranteed valid at compile time.
+ * NOLINT comments suppress warnings about potential exceptions during static initialization.
  */
 class action_name
 {
 public:
-    static inline const std::regex timestamp_regex = std::regex(R"(timestamp\()");
-    static inline const std::regex timestamp32_regex = std::regex(R"(timestamp32\()");
-    static inline const std::regex read_reg_regex = std::regex(R"(read_reg\()");
-    static inline const std::regex write_reg_regex = std::regex(R"(\bwrite_reg\()");
-    static inline const std::regex mask_write_reg_regex = std::regex(R"(\bmask_write_reg\()");
-    static inline const std::regex profile_regex = std::regex(R"(opcode\(\))");
-    static inline const std::regex print_regex = std::regex(R"(print\()");
-    static inline const std::regex printa_regex = std::regex(R"(printa\()");
-    static inline const std::regex read_mem_regex = std::regex(R"(read_mem\()");
-    static inline const std::regex write_mem_regex = std::regex(R"(write_mem\()");
-    static inline const std::regex break_regex = std::regex(R"(break\()");
-    static inline const std::regex timestamps_regex = std::regex(R"(timestamps\()");
-    static inline const std::regex timestamps32_regex = std::regex(R"(timestamps32\()");
-    static inline const std::regex operation_regex = std::regex(R"(^(\w+)\s*=\s*(.+)$)");
-    static inline const std::regex action_regex = std::regex(R"((\w+)\((.*)\))");
+    // NOLINT: Hardcoded pattern is guaranteed valid
+    static inline const boost::regex timestamp_regex = boost::regex(R"(timestamp\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex timestamp32_regex = boost::regex(R"(timestamp32\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex read_reg_regex = boost::regex(R"(read_reg\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex write_reg_regex = boost::regex(R"(\bwrite_reg\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex mask_write_reg_regex = boost::regex(R"(\bmask_write_reg\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex profile_regex = boost::regex(R"(opcode\(\))");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex print_regex = boost::regex(R"(print\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex printa_regex = boost::regex(R"(printa\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex read_mem_regex = boost::regex(R"(read_mem\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex write_mem_regex = boost::regex(R"(write_mem\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex break_regex = boost::regex(R"(break\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex timestamps_regex = boost::regex(R"(timestamps\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex timestamps32_regex = boost::regex(R"(timestamps32\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex operation_regex = boost::regex(R"(^(\w+)\s*=\s*(.+)$)");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex action_regex = boost::regex(R"((\w+)\((.*)\))");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
 };
 
 //-------------------------Action Control-------------------------//

@@ -16,7 +16,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
-#include <regex>
+#include <boost/regex.hpp>
 #include <set>
 #include <string>
 #include <unordered_map>

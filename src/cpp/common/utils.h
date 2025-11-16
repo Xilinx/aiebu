@@ -7,7 +7,7 @@
 #include <cassert>
 #include <cstdint>
 #include <limits>
-#include <regex>
+#include <boost/regex.hpp>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -192,7 +192,7 @@ enum class fragment {
   dma,
 };
 
-std::regex get_regex(const std::vector<fragment>& pattern);
+boost::regex get_regex(const std::vector<fragment>& pattern);
 
 constexpr unsigned hexbase = 0x10;
 

@@ -32,8 +32,8 @@ write_mem_action(std::string token, uint32_t probe_type, const std::string& prob
     while (std::getline(token_stream, item, '='))
         fields.push_back(strip(item));
 
-    std::smatch action;
-    if (!std::regex_match(fields[0], action, action_name::action_regex))
+    boost::smatch action;
+    if (!boost::regex_match(fields[0], action, action_name::action_regex))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'write_mem(addr, length, buffer)'");
 

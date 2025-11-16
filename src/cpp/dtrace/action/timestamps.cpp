@@ -33,17 +33,17 @@ timestamps_action(std::string token, uint32_t probe_type, const std::string& pro
             "Invalid token: '" << token << "' Expected 'name[length] = timestamps()'");
 
     // Regex pattern to match '<name>[<length>]' format
-    std::regex buffer_regex(R"(^(.+)\[(.+)\]$)");
-    std::smatch buffer;
-    if (!std::regex_match(fields[0], buffer, buffer_regex))
+    boost::regex buffer_regex(R"(^(.+)\[(.+)\]$)");
+    boost::smatch buffer;
+    if (!boost::regex_match(fields[0], buffer, buffer_regex))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'name[length]'");
 
     m_result = buffer[1];
     std::string length = buffer[2];
 
-    std::smatch action;
-    if (!std::regex_match(fields[1], action, action_name::action_regex))
+    boost::smatch action;
+    if (!boost::regex_match(fields[1], action, action_name::action_regex))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'timestamps()'");
 
