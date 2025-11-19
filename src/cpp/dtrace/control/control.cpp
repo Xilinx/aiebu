@@ -239,23 +239,61 @@ patch_control_buffer(std::unordered_map<uint32_t, uint64_t>& mem_host_addr_map)
             continue; // No memory action locations for this uC, skip patching
         }
 
-        for (const auto& location : m_mem_action_locations.at(uC))
+        for (const auto& location_index : m_mem_action_locations.at(uC))
         {
-            // Extract high and low values from control buffer for uC
-            uint64_t mem_host_addr = 
-                static_cast<uint64_t>(m_control_buffers.at(uC).at(location)) << 
-                dtrace::dtrace_ctrl::forth_byte_shift | 
-                m_control_buffers.at(uC).at(location + 1);
+            uint32_t action_type = 
+                (location_index >> dtrace::dtrace_ctrl::second_byte_shift) & dtrace::dtrace_ctrl::mask_32;
+            uint32_t location = (location_index & dtrace::dtrace_ctrl::mask_16);
 
-            // mem_host_addr for uC
-            mem_host_addr += mem_host_addr_map.at(uC);
-            // Update memory host address high and low values
-            m_control_buffers.at(uC).at(location) = static_cast<uint32_t>(
-                (mem_host_addr >> dtrace::dtrace_ctrl::forth_byte_shift) & 
-                dtrace::dtrace_ctrl::mask_32);
-        
-            m_control_buffers.at(uC).at(location + 1) = static_cast<uint32_t>(
-                mem_host_addr & dtrace::dtrace_ctrl::mask_32);
+            if (action_type == dtrace::action::action_type::mem_write)
+            {
+                // Extract high and low values from control buffer for uC
+                uint64_t mem_host_addr = 
+                    static_cast<uint64_t>(m_control_buffers.at(uC).at(location)) << 
+                    dtrace::dtrace_ctrl::forth_byte_shift | 
+                    m_control_buffers.at(uC).at(location + 1);
+
+                // mem_host_addr for uC
+                mem_host_addr += mem_host_addr_map.at(uC);
+                // Update memory host address high and low values
+                m_control_buffers.at(uC).at(location) = static_cast<uint32_t>(
+                    (mem_host_addr >> dtrace::dtrace_ctrl::forth_byte_shift) & 
+                    dtrace::dtrace_ctrl::mask_32);
+            
+                m_control_buffers.at(uC).at(location + 1) = static_cast<uint32_t>(
+                    mem_host_addr & dtrace::dtrace_ctrl::mask_32);
+            }
+            else if (action_type == dtrace::action::action_type::reg_mask_write)
+            {
+                // Extract header word from control buffer for action to understand mode
+                uint32_t action_header_index = location - 3;
+                uint32_t action_header = m_control_buffers.at(uC).at(action_header_index);
+                uint32_t mode = 
+                    (action_header >> dtrace::dtrace_ctrl::first_byte_shift) & dtrace::dtrace_ctrl::mask_8;
+
+                if (mode == 1) 
+                {// HIGH
+                    uint64_t patched_mem_host_addr = m_control_buffers.at(uC).at(location) +
+                        ((mem_host_addr_map.at(uC) >> dtrace::dtrace_ctrl::forth_byte_shift) & dtrace::dtrace_ctrl::mask_32);
+
+                    m_control_buffers.at(uC).at(location) = static_cast<uint32_t>(
+                        patched_mem_host_addr & dtrace::dtrace_ctrl::mask_32
+                    );
+                }
+                else if (mode == 2)
+                {// LOW
+                    uint64_t patched_mem_host_addr = m_control_buffers.at(uC).at(location) +
+                        ((mem_host_addr_map.at(uC) & dtrace::dtrace_ctrl::mask_32));
+
+                    m_control_buffers.at(uC).at(location) = static_cast<uint32_t>(
+                        patched_mem_host_addr & dtrace::dtrace_ctrl::mask_32
+                    );
+                }
+
+                // Clear first byte in action header to indicate patching done
+                action_header &= ~(0xFF << dtrace::dtrace_ctrl::first_byte_shift);
+                m_control_buffers.at(uC).at(action_header_index) = action_header;
+            }
         }
     }
 }

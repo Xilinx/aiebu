@@ -458,9 +458,12 @@ get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset)
     while (true)
     {
         bool last = action >> dtrace::dtrace_ctrl::second_byte_shift;
-        uint32_t action_type = action & pager_ctrl::mask_probe_ctrl;
-        if (action_type == dtrace::action::action_type::reg_read || 
-            action_type == dtrace::action::action_type::reg_write || 
+        // uint32_t action_type = action & dtrace::dtrace_ctrl::mask_16;
+        uint32_t action_type = action & dtrace::dtrace_ctrl::mask_8;
+        if (action_type == dtrace::action::action_type::reg_read ||
+            action_type == dtrace::action::action_type::reg_write ||
+            action_type == dtrace::action::action_type::handshake_read ||
+            action_type == dtrace::action::action_type::handshake_write ||
             action_type == dtrace::action::action_type::timestamp)
         {   // read register action, write register action, timestamp action
             action_size += dtrace::action::action_ctrl::reg_rw_action_size;

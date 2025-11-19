@@ -51,6 +51,8 @@ namespace dtrace::action
  * - timestamps:     Multiple Timestamp action.
  * - timestamps32:   Multiple Timestamps32 action.
  * - reg_mask_write: Register mask write action.
+ * - handshake_read: Handshake region read action.
+ * - handshake_write:Handshake region write action.
  */
 class action_type
 {
@@ -69,6 +71,8 @@ public:
     static constexpr uint32_t timestamps = ACTION_TIMESTAMPS;
     static constexpr uint32_t timestamps32 = ACTION_TIMESTAMPS32;
     static constexpr uint32_t reg_mask_write = ACTION_REG_MASK_WRITE;
+    static constexpr uint32_t handshake_read = ACTION_HS_READ;
+    static constexpr uint32_t handshake_write = ACTION_HS_WRITE;
 #else
     static constexpr uint32_t reg_read = 0;
     static constexpr uint32_t reg_write = 1;
@@ -83,6 +87,8 @@ public:
     static constexpr uint32_t timestamps = 10;
     static constexpr uint32_t timestamps32 = 11;
     static constexpr uint32_t reg_mask_write = 12;
+    static constexpr uint32_t handshake_read = 13;
+    static constexpr uint32_t handshake_write = 14;
 #endif
 };
 
@@ -104,21 +110,23 @@ class action_name
 {
 public:
     // NOLINT: Hardcoded pattern is guaranteed valid
-    static inline const boost::regex timestamp_regex = boost::regex(R"(timestamp\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex timestamp32_regex = boost::regex(R"(timestamp32\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex read_reg_regex = boost::regex(R"(read_reg\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex write_reg_regex = boost::regex(R"(\bwrite_reg\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex mask_write_reg_regex = boost::regex(R"(\bmask_write_reg\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex profile_regex = boost::regex(R"(opcode\(\))");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex print_regex = boost::regex(R"(print\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex printa_regex = boost::regex(R"(printa\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex read_mem_regex = boost::regex(R"(read_mem\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex write_mem_regex = boost::regex(R"(write_mem\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex break_regex = boost::regex(R"(break\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex timestamps_regex = boost::regex(R"(timestamps\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex timestamps32_regex = boost::regex(R"(timestamps32\()");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex operation_regex = boost::regex(R"(^(\w+)\s*=\s*(.+)$)");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
-    static inline const boost::regex action_regex = boost::regex(R"((\w+)\((.*)\))");  // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const boost::regex timestamp_regex = boost::regex(R"(timestamp\()");              // NOLINT
+    static inline const boost::regex timestamp32_regex = boost::regex(R"(timestamp32\()");          // NOLINT
+    static inline const boost::regex read_reg_regex = boost::regex(R"(read_reg\()");                // NOLINT
+    static inline const boost::regex write_reg_regex = boost::regex(R"(\bwrite_reg\()");            // NOLINT
+    static inline const boost::regex mask_write_reg_regex = boost::regex(R"(\bmask_write_reg\()");  // NOLINT
+    static inline const boost::regex profile_regex = boost::regex(R"(opcode\(\))");                 // NOLINT
+    static inline const boost::regex print_regex = boost::regex(R"(print\()");                      // NOLINT
+    static inline const boost::regex printa_regex = boost::regex(R"(printa\()");                    // NOLINT
+    static inline const boost::regex read_mem_regex = boost::regex(R"(read_mem\()");                // NOLINT
+    static inline const boost::regex write_mem_regex = boost::regex(R"(write_mem\()");              // NOLINT
+    static inline const boost::regex break_regex = boost::regex(R"(break\()");                      // NOLINT
+    static inline const boost::regex timestamps_regex = boost::regex(R"(timestamps\()");            // NOLINT
+    static inline const boost::regex timestamps32_regex = boost::regex(R"(timestamps32\()");        // NOLINT
+    static inline const boost::regex read_handshake_regex = boost::regex(R"(read_handshake\()");    // NOLINT
+    static inline const boost::regex write_handshake_regex = boost::regex(R"(write_handshake\()");  // NOLINT
+    static inline const boost::regex operation_regex = boost::regex(R"(^(\w+)\s*=\s*(.+)$)");       // NOLINT
+    static inline const boost::regex action_regex = boost::regex(R"((\w+)\((.*)\))");               // NOLINT
 };
 
 //-------------------------Action Control-------------------------//
@@ -248,8 +256,16 @@ public:
  */
 class mask_write_reg_action : public action
 {
+private:
+    // Value argument 0 = Normal, 1 = HIGH, 2 = LOW
+    uint32_t m_mode;
+    std::vector<uint32_t> m_write_buffer_values;
+
 public:
-    mask_write_reg_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    mask_write_reg_action(
+        std::string token, uint32_t probe_type, const std::string& probe_name,
+        const std::unordered_map<std::string, std::vector<uint32_t>>& buffer_map
+    );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
@@ -257,6 +273,7 @@ public:
         const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
+    uint32_t get_mode() const { return m_mode; }
 };
 
 //-------------------------Timestamp-------------------------//
@@ -570,6 +587,53 @@ public:
     ) const override;
 };
 
+//-------------------------Read handshake-------------------------//
+/**
+ * @class read_handshake_action
+ *
+ * @brief
+ * dtrace::action::read_handshake_action represents an action to read handshake register.
+ *
+ * @details
+ * This class inherits from the base class `action` and provides functionality
+ * for read handshake action in the control block and serialize the result.
+ */
+class read_handshake_action : public action
+{
+public:
+    read_handshake_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    void actionize(
+        uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
+    ) override;
+    std::string serialize(
+        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        const std::unordered_map<uint32_t, uint32_t>& mapping
+    ) const override;
+};
+
+//-------------------------Write handshake-------------------------//
+/**
+ * @class write_handshake_action
+ *
+ * @brief
+ * dtrace::action::write_handshake_action represents an action to write handshake register.
+ *
+ * @details
+ * This class inherits from the base class `action` and provides functionality
+ * for write handshake action in the control block and serialize the result.
+ */
+class write_handshake_action : public action
+{
+public:
+    write_handshake_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    void actionize(
+        uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
+    ) override;
+    std::string serialize(
+        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        const std::unordered_map<uint32_t, uint32_t>& mapping
+    ) const override;
+};
 
 } // namespace dtrace::action
 #endif // ACTION_CONTROL_H

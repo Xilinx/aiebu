@@ -95,11 +95,25 @@ actionize(std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buff
         // For action type read_mem_action and write_mem_action, store location
         // in the mem_action_locations vector for mem_host_address patching
         if (dynamic_cast<dtrace::action::read_mem_action*>(m_control_actions[i].get()) != nullptr ||
-            dynamic_cast<dtrace::action::write_mem_action*>(m_control_actions[i].get()) != nullptr)
+            dynamic_cast<dtrace::action::write_mem_action*>(m_control_actions[i].get()) != nullptr ||
+            dynamic_cast<dtrace::action::mask_write_reg_action*>(m_control_actions[i].get()) != nullptr)
         {
-            // adding 2 for mem_host_addr high location
+            uint32_t action_type = dtrace::action::action_type::mem_write;
+            if (dynamic_cast<dtrace::action::mask_write_reg_action*>(m_control_actions[i].get()) != nullptr)
+            {
+                auto mask_write_reg_action = 
+                    dynamic_cast<dtrace::action::mask_write_reg_action*>(m_control_actions[i].get());
+                // skip adding location for argument value normal mode
+                if (mask_write_reg_action->get_mode() == 0)
+                    continue;
+
+                action_type = dtrace::action::action_type::reg_mask_write;
+            }
+
+            // adding 2 for mem_host_addr location
             mem_action_locations.push_back(
-                m_control_actions[i]->get_location(false) + 2 
+                (action_type << dtrace::dtrace_ctrl::second_byte_shift) | 
+                (m_control_actions[i]->get_location(false) + 2) 
             );
         }
     }

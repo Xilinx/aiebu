@@ -17,6 +17,8 @@ add_library(dtrace_library_objects OBJECT
   action/timestamps32.cpp
   action/write_mem.cpp
   action/write_register.cpp
+  action/write_handshake.cpp
+  action/read_handshake.cpp
   probe/begin.cpp
   probe/end.cpp
   probe/jprobe.cpp
