@@ -1,0 +1,147 @@
+{
+    "xrt-kernels": [
+        {
+            "name": "DPU",
+            "arguments": [
+                {
+                    "name": "arg0",
+                    "type": "char *",
+                    "offset": "0x00"
+                },
+                {
+                    "name": "arg1",
+                    "type": "char *",
+                    "offset": "0x08"
+                },
+                {
+                    "name": "arg2",
+                    "type": "char *",
+                    "offset": "0x10"
+                },
+                {
+                    "name": "arg3",
+                    "type": "char *",
+                    "offset": "0x18"
+                }
+            ],
+            "instance": [
+                {
+                    "id": "subgraph_0",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_0/control.asm"
+                },
+                {
+                    "id": "subgraph_1",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_1/control.asm"
+                },
+                {
+                    "id": "subgraph_2",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_2/control.asm"
+                },
+                {
+                    "id": "subgraph_3",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_3/control.asm"
+                },
+                {
+                    "id": "subgraph_4",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_4/control.asm"
+                },
+                {
+                    "id": "subgraph_5",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_5/control.asm"
+                },
+                {
+                    "id": "subgraph_6",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_6/control.asm"
+                },
+                {
+                    "id": "subgraph_7",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_7/control.asm"
+                },
+                {
+                    "id": "subgraph_8",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_8/control.asm"
+                },
+                {
+                    "id": "subgraph_9",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_9/control.asm"
+                },
+                {
+                    "id": "subgraph_10",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_10/control.asm"
+                },
+                {
+                    "id": "subgraph_11",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_11/control.asm"
+                },
+                {
+                    "id": "subgraph_12",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_12/control.asm"
+                },
+                {
+                    "id": "subgraph_13",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_13/control.asm"
+                },
+                {
+                    "id": "subgraph_14",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_14/control.asm"
+                },
+                {
+                    "id": "subgraph_15",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_15/control.asm"
+                },
+                {
+                    "id": "subgraph_16",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_16/control.asm"
+                },
+                {
+                    "id": "subgraph_17",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_17/control.asm"
+                },
+                {
+                    "id": "subgraph_18",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_18/control.asm"
+                },
+                {
+                    "id": "subgraph_19",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_19/control.asm"
+                },
+                {
+                    "id": "subgraph_20",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_20/control.asm"
+                },
+                {
+                    "id": "subgraph_21",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_21/control.asm"
+                },
+                {
+                    "id": "subgraph_22",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_22/control.asm"
+                },
+                {
+                    "id": "subgraph_23",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_23/control.asm"
+                },
+                {
+                    "id": "subgraph_24",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_24/control.asm"
+                },
+                {
+                    "id": "subgraph_25",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_25/control.asm"
+                },
+                {
+                    "id": "subgraph_26",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_26/control.asm"
+                },
+                {
+                    "id": "subgraph_27",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_27/control.asm"
+                },
+                {
+                    "id": "subgraph_28",
+                    "ctrl_code_file": "./fused_hw_package_subgraph_28/control.asm"
+                }
+            ]
+        }
+    ]
+}

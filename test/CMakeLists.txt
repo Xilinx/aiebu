@@ -4,6 +4,7 @@
 project(tests CXX C)
 
 add_subdirectory(aie2ps-ctrlcode)
+add_subdirectory(aie4-ctrlcode)
 
 
 if (AIEBU_NATIVE_BUILD)
