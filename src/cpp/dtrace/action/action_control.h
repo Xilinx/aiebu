@@ -109,7 +109,6 @@ public:
 class action_name
 {
 public:
-    // NOLINT: Hardcoded pattern is guaranteed valid
     static inline const boost::regex timestamp_regex = boost::regex(R"(timestamp\()");              // NOLINT
     static inline const boost::regex timestamp32_regex = boost::regex(R"(timestamp32\()");          // NOLINT
     static inline const boost::regex read_reg_regex = boost::regex(R"(read_reg\()");                // NOLINT
@@ -264,7 +263,7 @@ private:
 public:
     mask_write_reg_action(
         std::string token, uint32_t probe_type, const std::string& probe_name,
-        const std::unordered_map<std::string, std::vector<uint32_t>>& buffer_map
+        const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
@@ -461,13 +460,13 @@ class write_mem_action : public action
 {
 private:
     uint32_t m_length;
-    uint64_t m_mem_host_addr;
+    std::vector<uint32_t> m_write_buffer_addr;
     std::vector<uint32_t> m_write_buffer_values;
 
 public:
     write_mem_action(
-        std::string token, uint32_t probe_type, const std::string& probe_name, 
-        uint64_t mem_host_addr, const std::unordered_map<std::string, std::vector<uint32_t>>& buffer_map
+        std::string token, uint32_t probe_type, const std::string& probe_name,
+        const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
@@ -476,7 +475,6 @@ public:
         const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
-    uint64_t get_mem_host_addr() const override;
 };
 
 //-------------------------Break-------------------------//

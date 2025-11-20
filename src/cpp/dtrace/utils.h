@@ -99,6 +99,7 @@ public:
     static constexpr uint32_t mask_16 = 0xFFFF;                                             // Mask for 16-bit unsigned integers    
     static constexpr uint32_t mask_32 = 0xFFFFFFFF;                                         // Mask for 32-bit unsigned integers    
     static constexpr uint32_t empty_buffer_check = 0xFFFFFFFF;                              // Check for empty buffer
+    static constexpr uint32_t handshake_overflow = 0xFBADBEEF;                              // Value used to check handshake overflow
 };
 
 } // namespace dtrace

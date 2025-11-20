@@ -291,7 +291,7 @@ patch_control_buffer(std::unordered_map<uint32_t, uint64_t>& mem_host_addr_map)
                 }
 
                 // Clear first byte in action header to indicate patching done
-                action_header &= ~(0xFF << dtrace::dtrace_ctrl::first_byte_shift);
+                action_header &= ~(dtrace::dtrace_ctrl::mask_8 << dtrace::dtrace_ctrl::first_byte_shift);
                 m_control_buffers.at(uC).at(action_header_index) = action_header;
             }
         }

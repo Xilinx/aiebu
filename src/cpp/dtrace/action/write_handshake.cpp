@@ -43,12 +43,12 @@ write_handshake_action(std::string token, uint32_t probe_type, const std::string
 
     if (m_arguments.size() < 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
-            "Invalid arguments: '" << token << "' write_handshake requires 1 arguments (offset, val)");
+            "Invalid arguments: '" << token << "' write_handshake requires 2 arguments (offset, val)");
 
     // Validate the handshake offset
     if (std::stoul(m_arguments[0], nullptr, 0) % sizeof(uint32_t) != 0)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
-            "Invalid arguments: '" << token << "' write_handshake offset must aligned 4-byte boundary");
+            "Invalid arguments: '" << token << "' write_handshake offset must align 4-byte boundary");
 
     // write handshake offset word offset
     m_arguments[0] = std::to_string(std::stoul(m_arguments[0], nullptr, 0) >> 2);
@@ -97,7 +97,7 @@ serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t
 {
     std::ostringstream output_action;
     uint32_t handshake_value = result_buffer[mapping.at(get_location(false))];
-    if (handshake_value == 0xFBADBEEF)
+    if (handshake_value == dtrace::dtrace_ctrl::handshake_overflow)
     {
         std::stringstream handshake_offset;
         handshake_offset << "0x" << std::hex << (std::stoul(m_arguments[0], nullptr, 0) * sizeof(uint32_t));

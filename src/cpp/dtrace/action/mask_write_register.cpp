@@ -20,7 +20,7 @@ namespace dtrace::action
  */
 mask_write_reg_action::
 mask_write_reg_action(std::string token, uint32_t probe_type, const std::string& probe_name, 
-    const std::unordered_map<std::string, std::vector<uint32_t>>& buffer_map)
+    const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map)
     : action(probe_type, probe_name)
     , m_mode(0)
 {
@@ -57,22 +57,22 @@ mask_write_reg_action(std::string token, uint32_t probe_type, const std::string&
         if (buffer_map.find(write_buffer_name) != buffer_map.end())
         {
             m_result = write_buffer_name;
-            m_write_buffer_values = buffer_map.at(write_buffer_name);
-            // set mode and argument based on HIGH or LOW
+            m_write_buffer_values = buffer_map.at(write_buffer_name).second;
+
+            // set mode and value argument based on HIGH or LOW
+            std::vector<uint32_t> write_buffer_addr = buffer_map.at(write_buffer_name).first;
             std::stringstream argument;
             if (value[1] == "HIGH")
             {// HIGH mode
                 m_mode = 1;
-                argument << "0x" << std::hex << m_write_buffer_values[0];
+                argument << "0x" << std::hex << write_buffer_addr[0];
                 m_arguments[2] = argument.str();
-                m_write_buffer_values[0] = 0;
             }
             else
             {// LOW mode
                 m_mode = 2;
-                argument << "0x" << std::hex << m_write_buffer_values[1];
+                argument << "0x" << std::hex << write_buffer_addr[1];
                 m_arguments[2] = argument.str();
-                m_write_buffer_values[1] = 0;
             }
         }
         else

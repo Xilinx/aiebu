@@ -108,9 +108,9 @@ end
     print(f"read mem = {buf2}")
     
     buf3[4] = {0}
-    mask_write_reg(0x18000, 0x01FFFFFF, HIGH(&buf1))
-    mask_write_reg(0x18004, 0xFFFFFFFC, LOW(&buf1))
-    print(f"buf3 result = {buf1}")
+    mask_write_reg(0x18000, 0x01FFFFFF, HIGH(&buf3))
+    mask_write_reg(0x18004, 0xFFFFFFFC, LOW(&buf3))
+    print(f"buf3 result = {buf3}")
 
     time_taken = [ts6[i] - ts5[i] for i in range(len(ts5))]
     max_time = max(time_taken)

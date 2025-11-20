@@ -358,7 +358,19 @@ expand_write_buffer(const std::string& write_buffer)
     std::string buffer_values = buffer[3];
 
     // Add values to the buffer
-    m_buffer_map[buffer_name] = {};
+    std::vector<uint32_t> buffer_addr = {
+        static_cast<uint32_t>(
+            (m_mem_host_addr_map[m_uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift) 
+            & dtrace::dtrace_ctrl::mask_32
+        ),
+        static_cast<uint32_t>(
+            m_mem_host_addr_map[m_uC_index] & dtrace::dtrace_ctrl::mask_32
+        )
+    };
+    m_buffer_map[buffer_name] = std::make_pair(buffer_addr, std::vector<uint32_t>());
+    
+    std::vector<uint32_t>& buffer_map_values = m_buffer_map.at(buffer_name).second;
+    buffer_map_values.clear();
     uint32_t value;
     std::string item;
     std::istringstream value_stream(buffer_values);
@@ -371,13 +383,18 @@ expand_write_buffer(const std::string& write_buffer)
             continue;
     
         value = std::stoul(item, nullptr, 0);
-        m_buffer_map.at(buffer_name).push_back(value);
+        buffer_map_values.push_back(value);
         buffer_length--;
     }
 
     // Validate the number of values added
     if (buffer_length != 0)
         DTRACE_ERROR("DTRACE_PARSER_WRITE_BUFFER_LENGTH_MISMATCH", "Buffer " << buffer_name);
+
+    // Update the memory host address map
+    m_mem_host_addr_map[m_uC_index] += static_cast<uint64_t>(
+        (buffer_map_values.size()) * dtrace::dtrace_ctrl::word_byte_size
+    );
 
     // Reset state
     m_write_buffer.clear();
@@ -416,19 +433,23 @@ expand_init_buffer(const std::string& init_buffer)
             "Invalid buffer length for buffer " << buffer_name << ": " << buffer_length);
 
     // Initialize the buffer with zeros
-    m_buffer_map[buffer_name] = std::vector<uint32_t>(buffer_length, 0);
+    std::vector<uint32_t> buffer_values(buffer_length, 0);
     // Set the memory host address for the buffer in the buffer map vector
-    m_buffer_map[buffer_name][0] = static_cast<uint32_t>(
-        (m_mem_host_addr_map[m_uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift) & 
-        dtrace::dtrace_ctrl::mask_32
-    );
-    m_buffer_map[buffer_name][1] = static_cast<uint32_t>(
-        m_mem_host_addr_map[m_uC_index] & dtrace::dtrace_ctrl::mask_32
-    );
+    std::vector<uint32_t> buffer_addr = {
+        static_cast<uint32_t>(
+            (m_mem_host_addr_map[m_uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift) 
+            & dtrace::dtrace_ctrl::mask_32
+        ),
+        static_cast<uint32_t>(
+            m_mem_host_addr_map[m_uC_index] & dtrace::dtrace_ctrl::mask_32
+        )
+    };
+    m_buffer_map[buffer_name] = std::make_pair(buffer_addr, buffer_values);
         
     // Update the memory host address map
-    uint64_t mem_length = static_cast<uint64_t>(buffer_length * dtrace::dtrace_ctrl::word_byte_size);
-    m_mem_host_addr_map[m_uC_index] += mem_length; 
+    m_mem_host_addr_map[m_uC_index] += static_cast<uint64_t>(
+        buffer_length * dtrace::dtrace_ctrl::word_byte_size
+    );
 }
 
 //-------------------------parser::probe_add_action-------------------------//
@@ -551,9 +572,8 @@ create_action(const std::string& action_string, uint32_t probe_type,
     else if (boost::regex_search(action_string, dtrace::action::action_name::write_mem_regex))
     {   // Write memory action
         action = std::make_shared<dtrace::action::write_mem_action>(
-            action_string, probe_type, probe_name, m_mem_host_addr_map[uC_index], m_buffer_map
+            action_string, probe_type, probe_name, m_buffer_map
         );
-        m_mem_host_addr_map[uC_index] = action->get_mem_host_addr();
     }
     else if (boost::regex_search(action_string, dtrace::action::action_name::break_regex))
     {   // Break action
