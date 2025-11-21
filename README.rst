@@ -22,7 +22,7 @@ Build Dependencies
 
  * cmake 3.18 or above
  * c++17 compiler
- * Boost (header only)
+ * Boost (header only) minimum version supported is 1.76
  * cxxopts (included as submodule)
  * ELFIO (included as submodule)
  * AMD aie-rt (included as submodule)
@@ -39,6 +39,7 @@ Build Instruction
 =================
 Linux
 -----
+Ubuntu minimum supported version is 24.04
 
 ::
 
