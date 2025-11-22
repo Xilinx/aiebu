@@ -3,6 +3,7 @@
 #include "aie2ps_encoder.h"
 
 #include "aiebu/aiebu_error.h"
+#include "logger.h"
 
 #include <cassert>
 
@@ -12,18 +13,17 @@ void
 aie2ps_encoder::
 fill_scratchpad(std::shared_ptr<section_writer> padwriter, const std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpads)
 {
-  for (const auto& pad : scratchpads)
+  for (auto& pad : scratchpads)
   {
-    const auto& content = pad.second->get_content();
+    auto& content = pad.second->get_content();
     if (content.size())
     {
       assert((void("Pad content size and size doesnt match\n"), content.size() == pad.second->get_size()));
-      padwriter->write_bytes(content);
-    } else {
-      auto size = pad.second->get_size();
-      std::vector<uint8_t> zeros(size, 0x00);
-      padwriter->write_bytes(zeros);
-    }
+      for (auto& val : content)
+        padwriter->write_byte(val);
+    } else
+      for (auto i = 0ul; i < pad.second->get_size(); ++i)
+        padwriter->write_byte(0x00);
   }
 }
 
@@ -31,15 +31,16 @@ void
 aie2ps_encoder::
 fill_controlpkt(std::shared_ptr<section_writer> ctrlpktwriter, const std::vector<char>& ctrlpkt)
 {
-  ctrlpktwriter->write_bytes(ctrlpkt);
+  for (auto& val : ctrlpkt)
+    ctrlpktwriter->write_byte(val);
 }
 
 void
 aie2ps_encoder::
 fill_control_packet_symbols(std::shared_ptr<section_writer> ctrlpktwriter,
-                            const std::vector<symbol>& syms)
+                            std::vector<symbol>& syms)
 {
-  for (const auto& sym : syms)
+  for (auto& sym : syms)
     ctrlpktwriter->add_symbol(sym);
 }
 
@@ -59,7 +60,7 @@ process(std::shared_ptr<preprocessed_output> input)
   m_dump_flag = tinput->get_debug();
 
   // for each colnum encode each page
-  for (const auto& coldata: totalcoldata) {
+  for (auto coldata: totalcoldata) {
     auto colnum = coldata.first;
     for (auto& lpage : coldata.second->m_pages)
       page_writer(lpage, coldata.second->m_scratchpad, coldata.second->m_labelpageindex,
@@ -79,23 +80,24 @@ process(std::shared_ptr<preprocessed_output> input)
     }
   }
 
+  // Report (only if verbose flag is set)
+  if (get_log_level() >= log_level::info)
+    m_report.summary(std::cout);
+
   // Debug JSON serialization
   json dbg_json = m_debug.to_json();
 
-  if (m_dump_flag == asm_dump_flag::full) {
-    // Report
-    m_report.summary(std::cout);
-    // Write to debug_map.json
-    std::ofstream file("debug_map.json");
-    file << dbg_json.dump(4);  // pretty print with 4-space indent
-    file.close();
-  }
+  // Write to debug_map.json
+  std::ofstream file("debug_map.json");
+  file << dbg_json.dump(4);  // pretty print with 4-space indent
+  file.close();
 
   // Optional binary dump if debug flag is not disabled.
   if (m_dump_flag != asm_dump_flag::disable) {
     auto dumpwriter = std::make_shared<section_writer>(".dump", code_section::data);
     std::string dbg_str = dbg_json.dump(); // no indent for compact output
-    dumpwriter->write_bytes(dbg_str);
+    for (char c : dbg_str)
+      dumpwriter->write_byte(c);
     twriter.push_back(dumpwriter);
   }
   return twriter;
@@ -148,13 +150,14 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
   auto textwriter = std::make_shared<section_writer>(get_TextSectionName(colnum, pagenum), code_section::text);
   auto datawriter = std::make_shared<section_writer>(get_DataSectionName(colnum, pagenum), code_section::data);
 
-  textwriter->write_bytes(page_header);
+  for (auto byte : page_header)
+    textwriter->write_byte(byte);
 
   // encode text section
   offset_type offset = textwriter->tell();
   std::vector<symbol> tsym;
   std::string fid;
-  for (const auto& text : lpage.m_text)
+  for (auto text : lpage.m_text)
   {
     //TODO add debug info
     std::string name = text->get_operation()->get_name();
@@ -175,14 +178,16 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
       page_state->set_pos(textwriter->tell() - offset);
       std::vector<uint8_t> ret = (*m_isa)[name]->serializer(text->get_operation()->get_args())
                                                ->serialize(page_state, tsym, colnum, pagenum);
-      textwriter->write_bytes(ret);
+      for (uint8_t byte : ret) {
+        textwriter->write_byte(byte);
+      }
     } else 
       throw error(error::error_code::internal_error, "Invalid operation: " + name + " in TEXT section !!!");
   }
 
   std::vector<symbol> dsym;
   // encode data section
-  for (const auto& data : lpage.m_data)
+  for (auto data : lpage.m_data)
   {
     page_state->set_pos(datawriter->tell() + textwriter->tell() - offset);
     std::string name = data->get_operation()->get_name();
@@ -201,7 +206,9 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
       }
       std::vector<uint8_t> ret = (*m_isa)[name]->serializer(data->get_operation()->get_args())
                                                ->serialize(page_state, dsym, colnum, pagenum);
-      datawriter->write_bytes(ret);
+      for (auto byte : ret) {
+        datawriter->write_byte(byte);
+      }
     } else 
       throw error(error::error_code::internal_error, "Invalid operation: " + name + " in DATA section !!!");
   }

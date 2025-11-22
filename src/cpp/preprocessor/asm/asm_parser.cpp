@@ -130,13 +130,14 @@ parse_lines(const std::vector<char>& data, std::string& file)
     if(line.empty())
       continue;
 
-    if (line[0] == ';') //boost::regex_match(line, COMMENT_REGEX))
+    if (boost::regex_match(line, COMMENT_REGEX))
       continue;
 
     boost::smatch sm;
 
-    // Check for Directive (starts with .) - only check regex if prefix matches
-    if (line[0] == '.' && operate_directive(line))
+    // Check for Directive
+    boost::regex_match(line, sm, DIRCETIVE_REGEX);
+    if (operate_directive(line))
     {
       if (!get_annotation_state())
         continue;
@@ -162,8 +163,8 @@ parse_lines(const std::vector<char>& data, std::string& file)
       continue;
     }
 
-    // check for label - fast check for ':' at end before regex
-    if (line.back() == ':' && boost::regex_match(line, sm, LABEL_REGEX))
+    // check for label
+    if (boost::regex_match(line, sm, LABEL_REGEX))
     {
       if (!get_data_state())
         m_current_label = m_current_label + ":" + sm[1].str();
@@ -219,7 +220,7 @@ operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
   else if (is_annotation_section(args[0]))
     m_parserptr->set_annotation_state();
   else
-    std::cout << "section directive with unknown section found:" << args[0] << std::endl;
+    LOG_WARN("section directive with unknown section found:" << args[0]);
 }
 
 void
@@ -229,17 +230,17 @@ operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
   m_parserptr = parserptr;
   static const boost::regex pattern(R"(\.partition\s+(\d+)(column|core:(\d+)mem))");
   boost::smatch match;
-  std::cout << "PARTITION:" << sm[0].str() << "\n";
+  LOG_INFO("PARTITION:" << sm[0].str());
   std::string line = sm[0].str();
   if (boost::regex_match(line, match, pattern)) {
     if (match[2] == "column") {
-      std::cout << "Column count: " << match[1] << std::endl;
+      LOG_INFO("Column count: " << match[1]);
       m_parserptr->set_numcolumn(to_uinteger<uint32_t>(match[1]));
     } else {
       m_parserptr->set_numcore(to_uinteger<uint32_t>(match[1]));
       m_parserptr->set_nummem(to_uinteger<uint32_t>(match[3]));
-      std::cout << "Core count: " << match[1] << std::endl;
-      std::cout << "Memory size: " << match[3] << std::endl;
+      LOG_INFO("Core count: " << match[1]);
+      LOG_INFO("Memory size: " << match[3]);
     }
   } else
     throw error(error::error_code::invalid_asm, "Invalid format!! " + line + "\n");
@@ -253,7 +254,7 @@ read_include_file(std::string filename)
   if (!file.is_open()) {
     return false;
   }
-//  std::cout << "Reading file:" << filename << std::endl;
+  LOG_INFO("Reading file:" << filename);
   std::string line;
   m_parserptr->set_data_state(false);
 
@@ -368,7 +369,7 @@ read_pad_file(std::string& name, std::string& filename)
     return false;
   }
 
-//  std::cout << "Reading file:" << filename << std::endl;
+  LOG_INFO("Reading file:" << filename);
   std::string line;
   m_parserptr->set_data_state(false);
 
