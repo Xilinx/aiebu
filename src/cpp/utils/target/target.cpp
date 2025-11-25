@@ -10,6 +10,7 @@
 #include "target.h"
 #include "utils.h"
 #include "file_utils.h"
+#include "logger.h"
 
 std::map<uint32_t, std::vector<char> >
 aiebu::utilities::
@@ -338,13 +339,15 @@ target_aie4::assemble(const sub_cmd_options &_options)
 
   cxxopts::Options all_options("Target aie4 Options", m_description);
 
+  std::string log_level_str;
   try {
     all_options.add_options()
             ("outputelf,o", "ELF output file name", cxxopts::value<decltype(output_elffile)>())
             ("asm,c", "ASM File", cxxopts::value<decltype(input_file)>())
             ("j,json", "control packet Patching json file", cxxopts::value<decltype(external_buffers_file)>())
             ("L,libpath", "libs path", cxxopts::value<decltype(libpaths)>())
-            ("f,flag", "flags", cxxopts::value<decltype(flags)>())
+            ("f,flag", "flags (e.g., 'verbose' for detailed output, 'disabledump', 'fulldump')", cxxopts::value<decltype(flags)>())
+            ("log-level", "log level: error, warn, info, debug (default: warn)", cxxopts::value<decltype(log_level_str)>())
             ("help,h", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
     ;
 
@@ -379,6 +382,22 @@ target_aie4::assemble(const sub_cmd_options &_options)
     if (result.count("json"))
       external_buffers_file = result["json"].as<decltype(external_buffers_file)>();
 
+    if (result.count("log-level")) {
+      log_level_str = result["log-level"].as<decltype(log_level_str)>();
+      if (log_level_str == "error")
+        aiebu::set_log_level(aiebu::log_level::error);
+      else if (log_level_str == "warn")
+        aiebu::set_log_level(aiebu::log_level::warn);
+      else if (log_level_str == "info")
+        aiebu::set_log_level(aiebu::log_level::info);
+      else if (log_level_str == "debug")
+        aiebu::set_log_level(aiebu::log_level::debug);
+      else {
+        auto errMsg = boost::format("Invalid log level: %s. Valid options: error, warn, info, debug\n") % log_level_str;
+        throw std::runtime_error(errMsg.str());
+      }
+    }
+
   }
   catch (const cxxopts::exceptions::exception& e) {
     std::cout << all_options.help({"", "Target aie4 Options"});
@@ -408,6 +427,7 @@ aiebu::utilities::
 asm_config_parser::parser(const sub_cmd_options &options)
 {
   std::string json_file;
+  std::string log_level_str;
   cxxopts::Options all_options("Target config Options", m_description);
   uint32_t optimization_level =0;
 
@@ -415,8 +435,9 @@ asm_config_parser::parser(const sub_cmd_options &options)
     all_options.add_options()
             ("o,outputelf", "ELF output file name", cxxopts::value<decltype(output_elffile)>())
             ("j,json", "control packet Patching json file", cxxopts::value<decltype(json_file)>())
-            ("f,flag", "flags", cxxopts::value<decltype(flags)>())
+            ("f,flag", "flags (e.g., 'verbose' for detailed output, 'disabledump', 'fulldump')", cxxopts::value<decltype(flags)>())
             ("O,optimization", "optimization level (1-4)", cxxopts::value<int>()->default_value("0"))
+            ("log-level", "log level: error, warn, info, debug (default: warn)", cxxopts::value<decltype(log_level_str)>())
             ("h,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
     ;
 
@@ -449,6 +470,22 @@ asm_config_parser::parser(const sub_cmd_options &options)
     if (result.count("flag")) {
        auto extra_flags = result["flag"].as<std::vector<std::string>>();
        flags.insert(flags.end(), extra_flags.begin(), extra_flags.end());
+    }
+
+    if (result.count("log-level")) {
+      log_level_str = result["log-level"].as<decltype(log_level_str)>();
+      if (log_level_str == "error")
+        aiebu::set_log_level(aiebu::log_level::error);
+      else if (log_level_str == "warn")
+        aiebu::set_log_level(aiebu::log_level::warn);
+      else if (log_level_str == "info")
+        aiebu::set_log_level(aiebu::log_level::info);
+      else if (log_level_str == "debug")
+        aiebu::set_log_level(aiebu::log_level::debug);
+      else {
+        auto errMsg = boost::format("Invalid log level: %s. Valid options: error, warn, info, debug\n") % log_level_str;
+        throw std::runtime_error(errMsg.str());
+      }
     }
 
   }

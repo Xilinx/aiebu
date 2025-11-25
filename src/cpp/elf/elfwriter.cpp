@@ -2,6 +2,7 @@
 // Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
 
 #include "elfwriter.h"
+#include "logger.h"
 
 namespace aiebu {
 
@@ -118,7 +119,7 @@ elf_writer::
 finalize()
 {
   add_note(NT_XRT_UID, ".note.xrt.UID", m_uid.calculate());
-  std::cout << "UID:" << m_uid.str() << "\n";
+  LOG_INFO("UID:" << m_uid.str());
   std::stringstream stream;
   stream << std::noskipws;
   //m_elfio.save( "hello_32" );

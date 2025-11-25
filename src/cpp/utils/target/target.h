@@ -5,6 +5,7 @@
 
 #include "aiebu/aiebu_assembler.h"
 #include "aiebu/aiebu_error.h"
+#include "logger.h"
 
 #include <filesystem>
 #include <fstream>
@@ -41,7 +42,7 @@ class target
   inline void write_elf(const aiebu::aiebu_assembler& as, const std::string& outfile)
   {
     auto e = as.get_elf();
-    std::cout << "elf size:" << e.size() << "\n";
+    LOG_INFO("elf size:" << e.size());
     std::ofstream output_file(outfile, std::ios_base::binary);
     output_file.write(e.data(), e.size());
   }

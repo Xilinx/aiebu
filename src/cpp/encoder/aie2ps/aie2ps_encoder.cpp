@@ -3,6 +3,7 @@
 #include "aie2ps_encoder.h"
 
 #include "aiebu/aiebu_error.h"
+#include "logger.h"
 
 #include <cassert>
 
@@ -78,6 +79,10 @@ process(std::shared_ptr<preprocessed_output> input)
       twriter.push_back(ctrlpktwriter); 
     }
   }
+
+  // Report (only if verbose flag is set or log level is info or higher)
+  if (get_log_level() >= log_level::info)
+    m_report.summary(std::cout);
 
   // Debug JSON serialization
   json dbg_json = m_debug.to_json();

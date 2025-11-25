@@ -19,6 +19,7 @@ class aie2ps_preprocessor: public preprocessor
 {
   const std::string disable_dump_map = "disabledump";
   const std::string full_dump_map = "fulldump";
+  const std::string verbose_asm = "verbose";
   std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> m_isa;
 public:
   aie2ps_preprocessor() {}
@@ -45,25 +46,32 @@ public:
   {
     //auto keys = tinput->get_keys();
     const std::string prefix = "opt_level_";
-    std::shared_ptr<asm_parser> parser(new asm_parser(tinput->get_ctrlcode_data(), tinput->get_include_paths()));
-    parser->parse_lines();
-    auto collist = parser->get_col_list();
-    isa i;
-    uint32_t optimize = 0;
-    m_isa = i.get_isamap();
-    auto toutput = std::make_shared<aie2ps_preprocessed_output>(parser->get_partition_info());
+    
+    // Process flags before parsing to set global verbose flag
     auto flags = tinput->get_flags();
+    uint32_t optimize = 0;
+    asm_dump_flag debug_flag = asm_dump_flag::text;
     for (const auto& flag: flags)
     {
       if (flag == disable_dump_map)
-        toutput->set_debug(asm_dump_flag::disable);
+        debug_flag = asm_dump_flag::disable;
       else if (flag == full_dump_map)
-        toutput->set_debug(asm_dump_flag::full);
+        debug_flag = asm_dump_flag::full;
+      else if (flag == verbose_asm)
+        enable_verbose_logging();
       else if (flag.find(prefix) == 0)
         optimize = std::stoi(flag.substr(prefix.size()));
       else
         std::cout << "Invalid flag: " << flag << ", ignored !!!" << std::endl;
     }
+    
+    std::shared_ptr<asm_parser> parser(new asm_parser(tinput->get_ctrlcode_data(), tinput->get_include_paths()));
+    parser->parse_lines();
+    auto collist = parser->get_col_list();
+    isa i;
+    m_isa = i.get_isamap();
+    auto toutput = std::make_shared<aie2ps_preprocessed_output>(parser->get_partition_info());
+    toutput->set_debug(debug_flag);
     auto& controlpkts = tinput->get_controlpkt();
     auto& ctrlpkt_id_map = tinput->get_ctrlpkt_id_map();
     toutput->set_optmization(optimize);

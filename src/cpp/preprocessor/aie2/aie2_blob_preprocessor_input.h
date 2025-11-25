@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "file_utils.h"
 #include "preprocessor_input.h"
+#include "asm/asm_parser.h"
 #include <boost/format.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -105,6 +106,8 @@ public:
     {
       if (lib == legacydpuxclbin)
         arg_offset = 1;
+      else if (lib == "verbose")
+        enable_verbose_logging();
       else
         std::cout << "Invalid flag: " << lib << ", ignored !!!" << std::endl;
     }
