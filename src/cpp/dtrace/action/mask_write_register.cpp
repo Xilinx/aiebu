@@ -30,8 +30,8 @@ mask_write_reg_action(std::string token, uint32_t probe_type, const std::string&
     while (std::getline(token_stream, item, '='))
         fields.push_back(strip(item));
 
-    boost::smatch action;
-    if (!boost::regex_match(fields[0], action, action_name::action_regex))
+    aiebu::smatch action;
+    if (!aiebu::regex_match(fields[0], action, action_name::action_regex))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_FORMAT", 
             "Invalid token: '" << token << "' Expected 'mask_write_reg(addr, mask, val)'");
 
@@ -48,9 +48,9 @@ mask_write_reg_action(std::string token, uint32_t probe_type, const std::string&
             "Invalid arguments: '" << token << "' mask_write_reg requires 3 arguments (addr, mask, val)");
 
     // Check if the value argument is a buffer address reference with HIGH() or LOW()
-    boost::smatch value;
-    boost::regex high_low_regex(R"(^(HIGH|LOW)\(&(\w+)\)$)");
-    if (boost::regex_match(m_arguments[2], value, high_low_regex)) 
+    aiebu::smatch value;
+    aiebu::regex high_low_regex(R"(^(HIGH|LOW)\(&(\w+)\)$)");
+    if (aiebu::regex_match(m_arguments[2], value, high_low_regex)) 
     {
         std::string write_buffer_name = value[2];
         // check if write buffer name exists in the map and get the values

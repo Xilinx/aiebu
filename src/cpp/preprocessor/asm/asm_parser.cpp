@@ -114,10 +114,10 @@ asm_parser::
 parse_lines(const std::vector<char>& data, std::string& file)
 {
   //parse asm code
-  const static boost::regex COMMENT_REGEX("^;(.*)$");
-  const static boost::regex LABEL_REGEX("^([a-zA-Z0-9_]+):$");
-  const static boost::regex OP_REGEX("^([.a-zA-Z0-9_]+)(?:[ \\t]+(.+))?$");
-  const static boost::regex DIRCETIVE_REGEX(".^([a-zA-Z0-9_]+)(?:[ \\t]+(.+))?$");
+  const static regex COMMENT_REGEX("^;(.*)$");
+  const static regex LABEL_REGEX("^([a-zA-Z0-9_]+):$");
+  const static regex OP_REGEX("^([.a-zA-Z0-9_]+)(?:[ \\t]+(.+))?$");
+  const static regex DIRCETIVE_REGEX(".^([a-zA-Z0-9_]+)(?:[ \\t]+(.+))?$");
 
   std::string str(data.begin(), data.end());
   std::istringstream isstr(str);
@@ -130,10 +130,10 @@ parse_lines(const std::vector<char>& data, std::string& file)
     if(line.empty())
       continue;
 
-    if (line[0] == ';') //boost::regex_match(line, COMMENT_REGEX))
+    if (line[0] == ';') //regex_match(line, COMMENT_REGEX))
       continue;
 
-    boost::smatch sm;
+    smatch sm;
 
     // Check for Directive (starts with .) - only check regex if prefix matches
     if (line[0] == '.' && operate_directive(line))
@@ -163,7 +163,7 @@ parse_lines(const std::vector<char>& data, std::string& file)
     }
 
     // check for label - fast check for ':' at end before regex
-    if (line.back() == ':' && boost::regex_match(line, sm, LABEL_REGEX))
+    if (line.back() == ':' && regex_match(line, sm, LABEL_REGEX))
     {
       if (!get_data_state())
         m_current_label = m_current_label + ":" + sm[1].str();
@@ -174,7 +174,7 @@ parse_lines(const std::vector<char>& data, std::string& file)
       continue;
     }
     // check for operation
-    else if (boost::regex_match(line, sm, OP_REGEX))
+    else if (regex_match(line, sm, OP_REGEX))
     {
       std::string arg_str = (sm.size() > 2 && sm[2].matched) ? sm[2].str() : "";
       insert_col_asmdata(std::make_shared<asm_data>(std::make_shared<operation>(sm[1].str(), arg_str),
@@ -191,7 +191,7 @@ parse_lines(const std::vector<char>& data, std::string& file)
 
 void
 attach_to_group_directive::
-operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
+operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm)
 {
   m_parserptr = parserptr;
   verify_match(sm, error::error_code::invalid_asm, "Invalid attach_to_group directive argument\n");
@@ -206,7 +206,7 @@ operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
 
 void
 section_directive::
-operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
+operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm)
 {
   m_parserptr = parserptr;
   verify_match(sm, error::error_code::invalid_asm, ".section directive requires arguments\n");
@@ -224,14 +224,15 @@ operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
 
 void
 partition_directive::
-operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
+operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm)
 {
   m_parserptr = parserptr;
-  static const boost::regex pattern(R"(\.partition\s+(\d+)(column|core:(\d+)mem))");
-  boost::smatch match;
-  std::cout << "PARTITION:" << sm[0].str() << "\n";
+  static const regex pattern(R"(\.partition\s+(\d+)(column|core:(\d+)mem))");
+  smatch match;
+//  LOG_INFO("PARTITION:" << sm[0].str());
+  std::cout << "PARTITION:" << sm[0].str() << std::endl;
   std::string line = sm[0].str();
-  if (boost::regex_match(line, match, pattern)) {
+  if (regex_match(line, match, pattern)) {
     if (match[2] == "column") {
       std::cout << "Column count: " << match[1] << std::endl;
       m_parserptr->set_numcolumn(to_uinteger<uint32_t>(match[1]));
@@ -266,7 +267,7 @@ read_include_file(std::string filename)
 
 void
 include_directive::
-operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
+operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm)
 {
   m_parserptr = parserptr;
   //std::vector<std::string> args = splitoption(sm[2].str().c_str(), ',');
@@ -293,7 +294,7 @@ operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
 
 void
 end_of_label_directive::
-operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
+operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm)
 {
   m_parserptr = parserptr;
 
@@ -309,7 +310,7 @@ operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
 
 void
 pad_directive::
-operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm)
+operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm)
 {
   m_parserptr = parserptr;
   verify_match(sm, error::error_code::invalid_asm, ".setpad directive requires arguments\n");
@@ -330,8 +331,8 @@ add_scratchpad(std::string& name, std::string& str) {
     return;
   }
   // Check if the string is a hexadecimal number
-  static const boost::regex hex_regex("0[xX][0-9a-fA-F]+");
-  if (boost::regex_match(str, hex_regex)) {
+  static const regex hex_regex("0[xX][0-9a-fA-F]+");
+  if (regex_match(str, hex_regex)) {
     std::vector<char> empty_vector;
     m_parserptr->insert_scratchpad(name, convert2int(str) * WORD_SIZE, empty_vector);
     return;

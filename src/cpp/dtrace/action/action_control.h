@@ -11,10 +11,10 @@
 #endif
 
 #include <boost/property_tree/ptree.hpp>
+#include "common/regex_wrapper.h"
 
 #include <cstdint>
 #include <map>
-#include <boost/regex.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -109,23 +109,23 @@ public:
 class action_name
 {
 public:
-    static inline const boost::regex timestamp_regex = boost::regex(R"(timestamp\()");              // NOLINT
-    static inline const boost::regex timestamp32_regex = boost::regex(R"(timestamp32\()");          // NOLINT
-    static inline const boost::regex read_reg_regex = boost::regex(R"(read_reg\()");                // NOLINT
-    static inline const boost::regex write_reg_regex = boost::regex(R"(\bwrite_reg\()");            // NOLINT
-    static inline const boost::regex mask_write_reg_regex = boost::regex(R"(\bmask_write_reg\()");  // NOLINT
-    static inline const boost::regex profile_regex = boost::regex(R"(opcode\(\))");                 // NOLINT
-    static inline const boost::regex print_regex = boost::regex(R"(print\()");                      // NOLINT
-    static inline const boost::regex printa_regex = boost::regex(R"(printa\()");                    // NOLINT
-    static inline const boost::regex read_mem_regex = boost::regex(R"(read_mem\()");                // NOLINT
-    static inline const boost::regex write_mem_regex = boost::regex(R"(write_mem\()");              // NOLINT
-    static inline const boost::regex break_regex = boost::regex(R"(break\()");                      // NOLINT
-    static inline const boost::regex timestamps_regex = boost::regex(R"(timestamps\()");            // NOLINT
-    static inline const boost::regex timestamps32_regex = boost::regex(R"(timestamps32\()");        // NOLINT
-    static inline const boost::regex read_handshake_regex = boost::regex(R"(read_handshake\()");    // NOLINT
-    static inline const boost::regex write_handshake_regex = boost::regex(R"(write_handshake\()");  // NOLINT
-    static inline const boost::regex operation_regex = boost::regex(R"(^(\w+)\s*=\s*(.+)$)");       // NOLINT
-    static inline const boost::regex action_regex = boost::regex(R"((\w+)\((.*)\))");               // NOLINT
+    static inline const aiebu::regex timestamp_regex = aiebu::regex(R"(timestamp\()");              // NOLINT
+    static inline const aiebu::regex timestamp32_regex = aiebu::regex(R"(timestamp32\()");          // NOLINT
+    static inline const aiebu::regex read_reg_regex = aiebu::regex(R"(read_reg\()");                // NOLINT
+    static inline const aiebu::regex write_reg_regex = aiebu::regex(R"(\bwrite_reg\()");            // NOLINT
+    static inline const aiebu::regex mask_write_reg_regex = aiebu::regex(R"(\bmask_write_reg\()");  // NOLINT
+    static inline const aiebu::regex profile_regex = aiebu::regex(R"(opcode\(\))");                 // NOLINT
+    static inline const aiebu::regex print_regex = aiebu::regex(R"(print\()");                      // NOLINT
+    static inline const aiebu::regex printa_regex = aiebu::regex(R"(printa\()");                    // NOLINT
+    static inline const aiebu::regex read_mem_regex = aiebu::regex(R"(read_mem\()");                // NOLINT
+    static inline const aiebu::regex write_mem_regex = aiebu::regex(R"(write_mem\()");              // NOLINT
+    static inline const aiebu::regex break_regex = aiebu::regex(R"(break\()");                      // NOLINT
+    static inline const aiebu::regex timestamps_regex = aiebu::regex(R"(timestamps\()");            // NOLINT
+    static inline const aiebu::regex timestamps32_regex = aiebu::regex(R"(timestamps32\()");        // NOLINT
+    static inline const aiebu::regex read_handshake_regex = aiebu::regex(R"(read_handshake\()");    // NOLINT
+    static inline const aiebu::regex write_handshake_regex = aiebu::regex(R"(write_handshake\()");  // NOLINT
+    static inline const aiebu::regex operation_regex = aiebu::regex(R"(^(\w+)\s*=\s*(.+)$)");       // NOLINT
+    static inline const aiebu::regex action_regex = aiebu::regex(R"((\w+)\((.*)\))");               // NOLINT
 };
 
 //-------------------------Action Control-------------------------//

@@ -3,11 +3,11 @@
 #ifndef AIEBU_COMMOM_UTILS_H_
 #define AIEBU_COMMOM_UTILS_H_
 #include "aiebu/aiebu_error.h"
+#include "common/regex_wrapper.h"
 
 #include <cassert>
 #include <cstdint>
 #include <limits>
-#include <boost/regex.hpp>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -192,7 +192,7 @@ enum class fragment {
   dma,
 };
 
-boost::regex get_regex(const std::vector<fragment>& pattern);
+aiebu::regex get_regex(const std::vector<fragment>& pattern);
 
 constexpr unsigned hexbase = 0x10;
 
