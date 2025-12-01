@@ -28,7 +28,7 @@ enum class dtrace_log_level {
 // Error Logging
 #ifndef DTRACE_ERROR
 #define DTRACE_ERROR(rc, fmt, ...) \
-    do { \
+    do { /* NOLINT(cppcoreguidelines-avoid-do-while) */ \
         std::ostringstream output; \
         output << DTRACE_PREFIX "[ERROR] " << __func__ << ":" << __LINE__ << ": " << fmt << "\n"; \
         std::cerr << output.str(); \
@@ -39,7 +39,7 @@ enum class dtrace_log_level {
 // Warning Logging
 #ifndef DTRACE_WARNING
 #define DTRACE_WARNING(fmt, ...) \
-    do { \
+    do { /* NOLINT(cppcoreguidelines-avoid-do-while) */ \
         if (dtrace::get_current_log_level() >= dtrace_log_level::dtrace_warning) { \
             std::ostringstream output; \
             output << DTRACE_PREFIX "[WARNING] " << __func__ << ":" << __LINE__ << ": " << fmt << "\n"; \
@@ -51,7 +51,7 @@ enum class dtrace_log_level {
 // Info Logging
 #ifndef DTRACE_INFO
 #define DTRACE_INFO(fmt, ...) \
-    do { \
+    do { /* NOLINT(cppcoreguidelines-avoid-do-while) */ \
         if (dtrace::get_current_log_level() >= dtrace_log_level::dtrace_info) { \
             std::ostringstream output; \
             output << DTRACE_PREFIX "[INFO] " << __func__ << ":" << __LINE__ << ": " << fmt << "\n"; \
@@ -100,6 +100,11 @@ public:
     static constexpr uint32_t mask_32 = 0xFFFFFFFF;                                         // Mask for 32-bit unsigned integers    
     static constexpr uint32_t empty_buffer_check = 0xFFFFFFFF;                              // Check for empty buffer
     static constexpr uint32_t handshake_overflow = 0xFBADBEEF;                              // Value used to check handshake overflow
+    static constexpr uint32_t decimal_base = 10;                                            // Base for decimal numbers
+    static constexpr uint32_t hexadecimal_base = 16;                                        // Base for hexadecimal numbers
+    static constexpr uint32_t decimal_hexadecimal_base = 0;                                 // Base for both decimal and hexadecimal numbers
+    static constexpr uint32_t label_annotation_length = 10;                                 // Length of label annotation
+    static constexpr uint32_t label_line_length = 4;                                        // Length of label line                                                                             
 };
 
 } // namespace dtrace

@@ -75,7 +75,7 @@ uint64_t
 read_mem_action::
 get_mem_host_addr() const
 {
-    uint64_t mem_length = static_cast<uint64_t>(m_length * dtrace::dtrace_ctrl::word_byte_size);
+    auto mem_length = static_cast<uint64_t>(m_length) * dtrace::dtrace_ctrl::word_byte_size;
     return m_mem_host_addr + mem_length;
 }
 
@@ -98,7 +98,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     );
     set_location(control_buffer, false);
     // aie_addr
-    control_buffer.push_back(std::stoul(m_arguments[0], nullptr, 16));
+    control_buffer.push_back(std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
     // length
     control_buffer.push_back(m_length);
     // mem_host_addr high

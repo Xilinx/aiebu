@@ -52,12 +52,14 @@ read_handshake_action(std::string token, uint32_t probe_type, const std::string&
             "Invalid arguments: '" << token << "' read_handshake requires 1 argument (offset)");
 
     // Validate the handshake offset
-    if (std::stoul(m_arguments[0], nullptr, 0) % 4 != 0)
+    if (std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base) % 4 != 0)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
             "Invalid arguments: '" << token << "' read_handshake offset must align 4-byte boundary");
 
     // write handshake word offset
-    m_arguments[0] = std::to_string(std::stoul(m_arguments[0], nullptr, 0) >> 2);
+    m_arguments[0] = std::to_string(
+        std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base) >> 2
+    );
 }
 
 //-------------------------read_handshake_action::actionize-------------------------//
@@ -79,7 +81,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
         (last << dtrace::dtrace_ctrl::second_byte_shift) | action_type::handshake_read
     );
     // read offset
-    control_buffer.push_back(std::stoul(m_arguments[0], nullptr, 16));
+    control_buffer.push_back(std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
     set_location(control_buffer, false);
     // return value
     control_buffer.push_back(0);
@@ -106,7 +108,7 @@ serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t
     if (handshake_value == dtrace::dtrace_ctrl::handshake_overflow)
     {
         std::stringstream handshake_offset;
-        handshake_offset << "0x" << std::hex << (std::stoul(m_arguments[0], nullptr, 0) * sizeof(uint32_t));
+        handshake_offset << "0x" << std::hex << (std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base) * sizeof(uint32_t));
         output_action << "  " << "print(\"[WARNING] HANDSHAKE OVERFLOW (" << handshake_offset.str() << ")\")\n";
     }
     output_action << "  " << m_result << " = " << handshake_value << "\n";

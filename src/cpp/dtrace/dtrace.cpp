@@ -12,41 +12,10 @@
 #include <memory>
 #include <stdexcept>
 
-namespace aiebu::utilities
-{
-
-std::pair<std::vector<uint32_t>, std::vector<uint32_t>> 
-create_control_buffer(const std::string& script_file, const std::string& map_data)
-{
-    uint32_t uC_index = 0;
-    uint32_t log_level = 1;
-    if (!std::filesystem::exists(script_file))
-        throw std::runtime_error("File" + script_file + "does not exist");
-
-    dtrace::control control(script_file, map_data, log_level);
-    return {control.create_control_buffer(uC_index), control.create_mem_buffer(uC_index)};
-}
-
-void 
-create_result_file(const std::string& script_file, const std::string& map_data, 
-    const std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers,
-    const std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, 
-    const std::string& result_file)
-{
-    uint32_t log_level = 1;
-    if (!std::filesystem::exists(script_file))
-        throw std::runtime_error("File" + script_file + "does not exist");
-
-    dtrace::control control(script_file, map_data, log_level);
-    control.create_result_file(result_buffers, mem_buffers, result_file);
-}
-
-} // namespace aiebu::utilities
-
 extern "C" {
 
 // Intial parse to create control buffer and memory buffer
-static std::unique_ptr<dtrace::control> g_control = nullptr;
+static std::unique_ptr<dtrace::control> g_control = nullptr; // NOLINT 
 
 /**
  * @struct dtrace_buffer_info
@@ -59,13 +28,13 @@ static std::unique_ptr<dtrace::control> g_control = nullptr;
  * control buffer and the memory buffer.
  */
 struct dtrace_buffer_info {
-    uint32_t* buffer_addr; 
-    uint64_t buffer_dma_addr;
+    uint32_t* buffer_addr = nullptr;
+    uint64_t buffer_dma_addr = 0;
     std::vector<uint32_t> control_buffer; 
     std::vector<uint32_t> mem_buffer;
 };
 // multiple uC dtrace
-static std::unordered_map<uint32_t, dtrace_buffer_info> g_dtrace_buffer_info_map;
+static std::unordered_map<uint32_t, dtrace_buffer_info> g_dtrace_buffer_info_map; // NOLINT
 
 //---------------------------multiple uC dtrace---------------------------
 uint32_t 
@@ -131,13 +100,13 @@ get_dtrace_buffer_size(uint64_t* buffers)
             dtrace_buffer_info l_dtrace_buffer_info;
             l_dtrace_buffer_info.buffer_addr = nullptr;
             l_dtrace_buffer_info.buffer_dma_addr = 0; 
-            l_dtrace_buffer_info.control_buffer = std::move(g_control->create_control_buffer(uC_index));
-            l_dtrace_buffer_info.mem_buffer = std::move(g_control->create_mem_buffer(uC_index));
+            l_dtrace_buffer_info.control_buffer = g_control->create_control_buffer(uC_index);
+            l_dtrace_buffer_info.mem_buffer = g_control->create_mem_buffer(uC_index);
 
             uint32_t length = 
                 l_dtrace_buffer_info.control_buffer.size() + l_dtrace_buffer_info.mem_buffer.size();
             // Update the control buffer and memory buffer length and uC index in buffers array
-            buffers[buffer_index] = (static_cast<uint64_t>(length) << 32) | uC_index;
+            buffers[buffer_index] = (static_cast<uint64_t>(length) << 32) | uC_index; // NOLINT
             buffer_index++;
 
             g_dtrace_buffer_info_map[uC_index] = std::move(l_dtrace_buffer_info);
@@ -180,8 +149,8 @@ populate_dtrace_buffer(uint32_t* dtrace_buffer, uint64_t dtrace_buffer_dma)
             // Update control buffer and memory buffer in the global structure after patching
             for (auto& [uC_index, l_dtrace_buffer_info] : g_dtrace_buffer_info_map)
             {
-                l_dtrace_buffer_info.control_buffer = std::move(g_control->create_control_buffer(uC_index));
-                l_dtrace_buffer_info.mem_buffer = std::move(g_control->create_mem_buffer(uC_index));
+                l_dtrace_buffer_info.control_buffer = g_control->create_control_buffer(uC_index);
+                l_dtrace_buffer_info.mem_buffer = g_control->create_mem_buffer(uC_index);
             }
         }
 
@@ -249,10 +218,10 @@ get_dtrace_result_file(const char* result_file)
             // Get control_buffer and mem_buffer from the buffer
             std::vector<uint32_t> control_buffer(
                 buffer.begin(),
-                buffer.begin() + l_dtrace_buffer_info.control_buffer.size()
+                buffer.begin() + l_dtrace_buffer_info.control_buffer.size() // NOLINT
             );
             std::vector<uint32_t> mem_buffer(
-                buffer.begin() + l_dtrace_buffer_info.control_buffer.size(),
+                buffer.begin() + l_dtrace_buffer_info.control_buffer.size(), // NOLINT
                 buffer.end()
             );
             

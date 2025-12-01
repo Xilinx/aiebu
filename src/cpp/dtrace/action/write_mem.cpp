@@ -80,7 +80,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     );
     set_location(control_buffer, false);
     // aie_addr
-    control_buffer.push_back(std::stoul(m_arguments[0], nullptr, 16));
+    control_buffer.push_back(std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
     // length
     control_buffer.push_back(m_length);
     // mem_host_addr high

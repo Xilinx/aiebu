@@ -71,7 +71,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
         (last << dtrace::dtrace_ctrl::second_byte_shift) | action_type::reg_read
     );
     // read address
-    control_buffer.push_back(std::stoul(m_arguments[0], nullptr, 16));
+    control_buffer.push_back(std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
     set_location(control_buffer, false);
     // return value
     control_buffer.push_back(0);

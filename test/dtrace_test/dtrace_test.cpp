@@ -19,6 +19,8 @@
 
 static const uint64_t TRACE_CTRL_CODE_BASE = 0x200000;
 static const uint64_t TRACE_CTRL_CODE_SIZE = 16384; // 8kB
+static const uint32_t word_byte_shift = 32;
+static const uint32_t mask_32 = 0xFFFFFFFF; // NOLINT
 using get_dtrace_col_numbers_t = uint32_t (*)(const char*, const char*, uint32_t*, uint32_t);
 using get_dtrace_buffer_size_t = uint32_t (*)(uint64_t*);
 using populate_dtrace_buffer_t = void (*)(uint32_t*, uint64_t);
@@ -67,15 +69,15 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
     if (status == 0) 
     {
         // allocate dtrace information buffer
-        std::unique_ptr<uint32_t[]> dtrace_buffer = std::make_unique<uint32_t[]>(TRACE_CTRL_CODE_SIZE);
-        std::unique_ptr<uint64_t[]> buffers = std::make_unique<uint64_t[]>(buffers_length);
+        std::unique_ptr<uint32_t[]> dtrace_buffer = std::make_unique<uint32_t[]>(TRACE_CTRL_CODE_SIZE); // NOLINT
+        std::unique_ptr<uint64_t[]> buffers = std::make_unique<uint64_t[]>(buffers_length); // NOLINT
 
         // get dtrace information using get_dtrace_buffer_size api from libdtrace.so
         get_dtrace_buffer_size(buffers.get());
 
         for (uint32_t i = 0; i < buffers_length; ++i) {
-            uint32_t length = static_cast<uint32_t>(buffers[i] >> 32);
-            // uint32_t uC_index = static_cast<uint32_t>(buffers[i] & 0xFFFFFFFF);
+            auto length = static_cast<uint32_t>(buffers[i] >> word_byte_shift);
+            // auto uC_index = static_cast<uint32_t>(buffers[i] & mask_32);
             dtrace_buffer_length += length;
         }
 
@@ -87,7 +89,7 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
         {
             std::ofstream control_buffer_file(output_file, std::ios::binary);
             control_buffer_file.write(reinterpret_cast<const char*>(dtrace_buffer.get()), 
-                dtrace_buffer_length * sizeof(uint32_t));
+                static_cast<std::streamsize>(dtrace_buffer_length * sizeof(uint32_t)));
             control_buffer_file.close();
         }
         dlclose(dtrace_handle);
@@ -103,27 +105,32 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
 
 int main(int argc, char** argv) 
 {
-    if (argc != 4) {
-        std::cerr << "Usage: " << argv[0] << "<dtrace_lib_path> <testcase_path> <output_file>" << std::endl;
+    try {
+        if (argc != 4) {
+            std::cerr << "Usage: " << argv[0] << "<dtrace_lib_path> <testcase_path> <output_file>" << std::endl;
+            return 1;
+        }
+
+        std::string dtrace_lib_path = argv[1];
+        std::string script_file = std::string(argv[2]) + "/script.ct";
+        std::string map_file = std::string(argv[2]) + "/map.json";
+        std::string output_file = argv[3];
+
+        if (!std::filesystem::exists(map_file)) {
+            throw std::runtime_error("[ERROR]: map file does not exist: " + map_file);
+            return 1; 
+        }
+
+        std::ifstream map_file_stream(map_file, std::ios::binary);
+        std::vector<uint8_t> map_buffer((std::istreambuf_iterator<char>(map_file_stream)), 
+            std::istreambuf_iterator<char>());
+        map_file_stream.close();
+        std::string map_data = std::string(map_buffer.begin(), map_buffer.end());
+
+        int ret = run_dtrace_test(dtrace_lib_path, script_file, map_data, output_file);
+        return ret;
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR]: Exception: " << e.what() << std::endl;
         return 1;
     }
-
-    std::string dtrace_lib_path = argv[1];
-    std::string script_file = std::string(argv[2]) + "/script.ct";
-    std::string map_file = std::string(argv[2]) + "/map.json";
-    std::string output_file = argv[3];
-
-    if (!std::filesystem::exists(map_file)) {
-        throw std::runtime_error("[ERROR]: map file does not exist: " + map_file);
-        return 1; 
-    }
-
-    std::ifstream map_file_stream(map_file, std::ios::binary);
-    std::vector<uint8_t> map_buffer((std::istreambuf_iterator<char>(map_file_stream)), 
-        std::istreambuf_iterator<char>());
-    map_file_stream.close();
-    std::string map_data = std::string(map_buffer.begin(), map_buffer.end());
-
-    int ret = run_dtrace_test(dtrace_lib_path, script_file, map_data, output_file);
-    return ret;
 }

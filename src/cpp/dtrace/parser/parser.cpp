@@ -195,15 +195,15 @@ expand_jprobe(uint32_t probe_type, const std::string& probe_name)
 
     std::string label;
     std::vector<int> range;
-    if (probe_fields[3].substr(0, 4) == "line") 
+    if (probe_fields[3].substr(0, dtrace::dtrace_ctrl::label_line_length) == "line") 
     {
-        range = get_list(probe_fields[3].substr(4));
-        label = probe_fields[3].substr(0, 4);
+        range = get_list(probe_fields[3].substr(dtrace::dtrace_ctrl::label_line_length));
+        label = probe_fields[3].substr(0, dtrace::dtrace_ctrl::label_line_length);
     } 
-    else if (probe_fields[3].substr(0, 10) == "annotation") 
+    else if (probe_fields[3].substr(0, dtrace::dtrace_ctrl::label_annotation_length) == "annotation") 
     {
-        range = get_list(probe_fields[3].substr(10));
-        label = probe_fields[3].substr(0, 10);
+        range = get_list(probe_fields[3].substr(dtrace::dtrace_ctrl::label_annotation_length));
+        label = probe_fields[3].substr(0, dtrace::dtrace_ctrl::label_annotation_length);
     }
     else 
     {
@@ -354,7 +354,7 @@ expand_write_buffer(const std::string& write_buffer)
         return;
     }
     std::string buffer_name = buffer[1]; 
-    size_t buffer_length = std::stoul(buffer[2], nullptr, 0);
+    size_t buffer_length = std::stoul(buffer[2], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base);
     std::string buffer_values = buffer[3];
 
     // Add values to the buffer
@@ -371,7 +371,6 @@ expand_write_buffer(const std::string& write_buffer)
     
     std::vector<uint32_t>& buffer_map_values = m_buffer_map.at(buffer_name).second;
     buffer_map_values.clear();
-    uint32_t value;
     std::string item;
     std::istringstream value_stream(buffer_values);
     while (std::getline(value_stream, item, ',')) 
@@ -382,8 +381,9 @@ expand_write_buffer(const std::string& write_buffer)
         if (item.empty())
             continue;
     
-        value = std::stoul(item, nullptr, 0);
-        buffer_map_values.push_back(value);
+        buffer_map_values.push_back(
+            std::stoul(item, nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base)
+        );
         buffer_length--;
     }
 
@@ -427,7 +427,7 @@ expand_init_buffer(const std::string& init_buffer)
     }
 
     std::string buffer_name = buffer[1];
-    size_t buffer_length = std::stoul(buffer[2], nullptr, 0);
+    size_t buffer_length = std::stoul(buffer[2], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base);
     if (buffer_length < 2)
         DTRACE_ERROR("DTRACE_PARSER_INVALID_BUFFER_LENGTH",
             "Invalid buffer length for buffer " << buffer_name << ": " << buffer_length);
@@ -509,7 +509,7 @@ create_action(const std::string& action_string, uint32_t probe_type,
 {
     std::shared_ptr<dtrace::action::action> action;
     if (m_state == state_type::operation_block)
-    {   // Python operation action
+    {   // Python operation action // NOLINT
         action = std::make_shared<dtrace::action::operation_action>(
             action_string, probe_type, probe_name
         );
