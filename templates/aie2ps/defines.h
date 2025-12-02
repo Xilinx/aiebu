@@ -16,7 +16,7 @@ static unsigned int control_op_{{operation.mnemonic.lower()}}(const uint8_t *_pc
 
 // Dispatchers
 {% for operation in operations %}
-static inline unsigned int control_dispatch_{{operation.mnemonic.lower()}}(const uint8_t *pc)
+FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_{{operation.mnemonic.lower()}}(const uint8_t *pc)
 {
   return control_op_{{operation.mnemonic.lower()}}(
     pc{% for arg in operation.arguments if arg.type != 'pad' and arg.type != 'patch_buf' %},

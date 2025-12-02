@@ -38,6 +38,7 @@ constexpr int OPCODE_NOP = 22;
 constexpr int OPCODE_PREEMPT = 25;
 constexpr int OPCODE_LOAD_PDI = 26;
 constexpr int OPCODE_LOAD_CORES = 4;
+constexpr int OPCODE_LOAD_CORES_CP = 32;
 constexpr int OPCODE_LOAD_LAST_PDI = 27;
 constexpr int OPCODE_SAVE_TIMESTAMPS = 28;
 constexpr int OPCODE_SLEEP = 29;
@@ -168,6 +169,10 @@ public:
 
     (*m_isa)["load_cores"] = std::make_shared<isa_op>("load_cores", OPCODE_LOAD_CORES, std::vector<opArg>{
      opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("core_elf_id", opArg::optype::CONST, BIT_WIDTH_32), opArg("core_elf_host_addr_offset", opArg::optype::PAGE_ID, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16),
+    });
+
+    (*m_isa)["load_cores_cp"] = std::make_shared<isa_op>("load_cores_cp", OPCODE_LOAD_CORES_CP, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("core_elf_id", opArg::optype::CONST, BIT_WIDTH_32),
     });
 
     (*m_isa)["load_last_pdi"] = std::make_shared<isa_op>("load_last_pdi", OPCODE_LOAD_LAST_PDI, std::vector<opArg>{
@@ -329,6 +334,10 @@ public:
 
     m_isa_disasm.emplace(OPCODE_START_COND_JOB_PREEMPT, isa_op_disasm("start_cond_job_preempt", OPCODE_START_COND_JOB_PREEMPT, std::vector<opArg>{
       opArg("job_id", opArg::optype::CONST, BIT_WIDTH_16), opArg("size", opArg::optype::JOBSIZE, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16),
+    }));
+
+    m_isa_disasm.emplace(OPCODE_LOAD_CORES_CP, isa_op_disasm("load_cores_cp", OPCODE_LOAD_CORES_CP, std::vector<opArg>{
+      opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("core_elf_id", opArg::optype::CONST, BIT_WIDTH_32),
     }));
 
     m_isa_disasm.emplace(OPCODE_EOF, isa_op_disasm("eof", OPCODE_EOF, std::vector<opArg>{
