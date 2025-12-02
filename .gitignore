@@ -7,3 +7,5 @@ build/Debug*
 build/Release*
 __pycache__
 compile_commands.json
+*.swp
+*.elf

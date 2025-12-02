@@ -1,0 +1,340 @@
+{
+    "external_buffers": {
+        "buffer0": {
+            "xrt_id": 54,
+            "logical_id": 54,
+            "size_in_bytes": 233472,
+            "name": "network_graph.ifm_ddr"
+        },
+        "buffer1": {
+            "xrt_id": 0,
+            "logical_id": 0,
+            "size_in_bytes": 28800,
+            "name": "network_graph.layers[0].wts_ddr"
+        },
+        "buffer2": {
+            "xrt_id": 10,
+            "logical_id": 10,
+            "size_in_bytes": 16896,
+            "name": "network_graph.layers[10].wts_ddr"
+        },
+        "buffer3": {
+            "xrt_id": 11,
+            "logical_id": 11,
+            "size_in_bytes": 33024,
+            "name": "network_graph.layers[11].wts_ddr"
+        },
+        "buffer4": {
+            "xrt_id": 12,
+            "logical_id": 12,
+            "size_in_bytes": 147968,
+            "name": "network_graph.layers[12].wts_ddr"
+        },
+        "buffer5": {
+            "xrt_id": 13,
+            "logical_id": 13,
+            "size_in_bytes": 132096,
+            "name": "network_graph.layers[13].wts_ddr"
+        },
+        "buffer6": {
+            "xrt_id": 14,
+            "logical_id": 14,
+            "size_in_bytes": 66560,
+            "name": "network_graph.layers[14].wts_ddr"
+        },
+        "buffer7": {
+            "xrt_id": 15,
+            "logical_id": 15,
+            "size_in_bytes": 66048,
+            "name": "network_graph.layers[15].wts_ddr"
+        },
+        "buffer8": {
+            "xrt_id": 16,
+            "logical_id": 16,
+            "size_in_bytes": 147712,
+            "name": "network_graph.layers[16].wts_ddr"
+        },
+        "buffer9": {
+            "xrt_id": 17,
+            "logical_id": 17,
+            "size_in_bytes": 66560,
+            "name": "network_graph.layers[17].wts_ddr"
+        },
+        "buffer10": {
+            "xrt_id": 18,
+            "logical_id": 18,
+            "size_in_bytes": 66048,
+            "name": "network_graph.layers[18].wts_ddr"
+        },
+        "buffer11": {
+            "xrt_id": 19,
+            "logical_id": 19,
+            "size_in_bytes": 147712,
+            "name": "network_graph.layers[19].wts_ddr"
+        },
+        "buffer12": {
+            "xrt_id": 1,
+            "logical_id": 1,
+            "size_in_bytes": 4224,
+            "name": "network_graph.layers[1].wts_ddr"
+        },
+        "buffer13": {
+            "xrt_id": 20,
+            "logical_id": 20,
+            "size_in_bytes": 66560,
+            "name": "network_graph.layers[20].wts_ddr"
+        },
+        "buffer14": {
+            "xrt_id": 21,
+            "logical_id": 21,
+            "size_in_bytes": 66048,
+            "name": "network_graph.layers[21].wts_ddr"
+        },
+        "buffer15": {
+            "xrt_id": 22,
+            "logical_id": 22,
+            "size_in_bytes": 147712,
+            "name": "network_graph.layers[22].wts_ddr"
+        },
+        "buffer16": {
+            "xrt_id": 23,
+            "logical_id": 23,
+            "size_in_bytes": 66560,
+            "name": "network_graph.layers[23].wts_ddr"
+        },
+        "buffer17": {
+            "xrt_id": 24,
+            "logical_id": 24,
+            "size_in_bytes": 132096,
+            "name": "network_graph.layers[24].wts_ddr"
+        },
+        "buffer18": {
+            "xrt_id": 25,
+            "logical_id": 25,
+            "size_in_bytes": 591872,
+            "name": "network_graph.layers[25].wts_ddr"
+        },
+        "buffer19": {
+            "xrt_id": 26,
+            "logical_id": 26,
+            "size_in_bytes": 528384,
+            "name": "network_graph.layers[26].wts_ddr"
+        },
+        "buffer20": {
+            "xrt_id": 27,
+            "logical_id": 27,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[27].wts_ddr"
+        },
+        "buffer21": {
+            "xrt_id": 28,
+            "logical_id": 28,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[28].wts_ddr"
+        },
+        "buffer22": {
+            "xrt_id": 29,
+            "logical_id": 29,
+            "size_in_bytes": 590336,
+            "name": "network_graph.layers[29].wts_ddr"
+        },
+        "buffer23": {
+            "xrt_id": 2,
+            "logical_id": 2,
+            "size_in_bytes": 36992,
+            "name": "network_graph.layers[2].wts_ddr"
+        },
+        "buffer24": {
+            "xrt_id": 30,
+            "logical_id": 30,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[30].wts_ddr"
+        },
+        "buffer25": {
+            "xrt_id": 31,
+            "logical_id": 31,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[31].wts_ddr"
+        },
+        "buffer26": {
+            "xrt_id": 32,
+            "logical_id": 32,
+            "size_in_bytes": 590336,
+            "name": "network_graph.layers[32].wts_ddr"
+        },
+        "buffer27": {
+            "xrt_id": 33,
+            "logical_id": 33,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[33].wts_ddr"
+        },
+        "buffer28": {
+            "xrt_id": 34,
+            "logical_id": 34,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[34].wts_ddr"
+        },
+        "buffer29": {
+            "xrt_id": 35,
+            "logical_id": 35,
+            "size_in_bytes": 590336,
+            "name": "network_graph.layers[35].wts_ddr"
+        },
+        "buffer30": {
+            "xrt_id": 36,
+            "logical_id": 36,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[36].wts_ddr"
+        },
+        "buffer31": {
+            "xrt_id": 37,
+            "logical_id": 37,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[37].wts_ddr"
+        },
+        "buffer32": {
+            "xrt_id": 38,
+            "logical_id": 38,
+            "size_in_bytes": 590336,
+            "name": "network_graph.layers[38].wts_ddr"
+        },
+        "buffer33": {
+            "xrt_id": 39,
+            "logical_id": 39,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[39].wts_ddr"
+        },
+        "buffer34": {
+            "xrt_id": 3,
+            "logical_id": 3,
+            "size_in_bytes": 16896,
+            "name": "network_graph.layers[3].wts_ddr"
+        },
+        "buffer35": {
+            "xrt_id": 40,
+            "logical_id": 40,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[40].wts_ddr"
+        },
+        "buffer36": {
+            "xrt_id": 41,
+            "logical_id": 41,
+            "size_in_bytes": 590336,
+            "name": "network_graph.layers[41].wts_ddr"
+        },
+        "buffer37": {
+            "xrt_id": 42,
+            "logical_id": 42,
+            "size_in_bytes": 264192,
+            "name": "network_graph.layers[42].wts_ddr"
+        },
+        "buffer38": {
+            "xrt_id": 43,
+            "logical_id": 43,
+            "size_in_bytes": 528384,
+            "name": "network_graph.layers[43].wts_ddr"
+        },
+        "buffer39": {
+            "xrt_id": 44,
+            "logical_id": 44,
+            "size_in_bytes": 2367488,
+            "name": "network_graph.layers[44].wts_ddr"
+        },
+        "buffer40": {
+            "xrt_id": 45,
+            "logical_id": 45,
+            "size_in_bytes": 2113536,
+            "name": "network_graph.layers[45].wts_ddr"
+        },
+        "buffer41": {
+            "xrt_id": 46,
+            "logical_id": 46,
+            "size_in_bytes": 1056768,
+            "name": "network_graph.layers[46].wts_ddr"
+        },
+        "buffer42": {
+            "xrt_id": 47,
+            "logical_id": 47,
+            "size_in_bytes": 1056768,
+            "name": "network_graph.layers[47].wts_ddr"
+        },
+        "buffer43": {
+            "xrt_id": 48,
+            "logical_id": 48,
+            "size_in_bytes": 2361344,
+            "name": "network_graph.layers[48].wts_ddr"
+        },
+        "buffer44": {
+            "xrt_id": 49,
+            "logical_id": 49,
+            "size_in_bytes": 1056768,
+            "name": "network_graph.layers[49].wts_ddr"
+        },
+        "buffer45": {
+            "xrt_id": 4,
+            "logical_id": 4,
+            "size_in_bytes": 16896,
+            "name": "network_graph.layers[4].wts_ddr"
+        },
+        "buffer46": {
+            "xrt_id": 50,
+            "logical_id": 50,
+            "size_in_bytes": 1056768,
+            "name": "network_graph.layers[50].wts_ddr"
+        },
+        "buffer47": {
+            "xrt_id": 51,
+            "logical_id": 51,
+            "size_in_bytes": 2361344,
+            "name": "network_graph.layers[51].wts_ddr"
+        },
+        "buffer48": {
+            "xrt_id": 52,
+            "logical_id": 52,
+            "size_in_bytes": 1056768,
+            "name": "network_graph.layers[52].wts_ddr"
+        },
+        "buffer49": {
+            "xrt_id": 53,
+            "logical_id": 53,
+            "size_in_bytes": 2113536,
+            "name": "network_graph.layers[53].wts_ddr"
+        },
+        "buffer50": {
+            "xrt_id": 5,
+            "logical_id": 5,
+            "size_in_bytes": 16512,
+            "name": "network_graph.layers[5].wts_ddr"
+        },
+        "buffer51": {
+            "xrt_id": 6,
+            "logical_id": 6,
+            "size_in_bytes": 36992,
+            "name": "network_graph.layers[6].wts_ddr"
+        },
+        "buffer52": {
+            "xrt_id": 7,
+            "logical_id": 7,
+            "size_in_bytes": 16896,
+            "name": "network_graph.layers[7].wts_ddr"
+        },
+        "buffer53": {
+            "xrt_id": 8,
+            "logical_id": 8,
+            "size_in_bytes": 16512,
+            "name": "network_graph.layers[8].wts_ddr"
+        },
+        "buffer54": {
+            "xrt_id": 9,
+            "logical_id": 9,
+            "size_in_bytes": 36992,
+            "name": "network_graph.layers[9].wts_ddr"
+        },
+        "buffer55": {
+            "xrt_id": 55,
+            "logical_id": 55,
+            "size_in_bytes": 2048,
+            "name": "network_graph.ofm_ddr"
+        }
+    }
+}
