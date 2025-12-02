@@ -191,10 +191,10 @@ public:
     std::string regoff = args[idx++].substr(1);
     // Determine the total size including extended storage by counting the number of writes
 
-    static const boost::regex index_regex = get_regex({fragment::index_re});
+    static const aiebu::regex index_regex = get_regex({fragment::index_re});
 
-    boost::smatch matches;
-    if (!boost::regex_match(args[idx], matches, index_regex))
+    aiebu::smatch matches;
+    if (!aiebu::regex_match(args[idx], matches, index_regex))
         throw error(error::error_code::invalid_asm, args[idx]);
 
     if (matches.size() != 2)
@@ -250,11 +250,11 @@ public:
 
     auto op = reinterpret_cast<XAie_MaskWrite32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
-    static const boost::regex mask_regex = get_regex({fragment::begin_anchor_re, fragment::hex_re, fragment::l_brack_re,
+    static const aiebu::regex mask_regex = get_regex({fragment::begin_anchor_re, fragment::hex_re, fragment::l_brack_re,
         fragment::r_brack_re, fragment::end_anchor_re});
 
-    boost::smatch matches;
-    if (!boost::regex_match(args[1], matches, mask_regex))
+    aiebu::smatch matches;
+    if (!aiebu::regex_match(args[1], matches, mask_regex))
         throw error(error::error_code::invalid_asm, args[1]);
 
     if (matches.size() != 2)
@@ -283,11 +283,11 @@ public:
     auto op = reinterpret_cast<XAie_MaskPoll32Hdr *>(m_op);
     op->RegOff = to_uinteger<uint64_t>(regoff);
 
-    static const boost::regex mask_poll_regex = get_regex({fragment::begin_anchor_re, fragment::hex_re, fragment::l_brack_re,
+    static const aiebu::regex mask_poll_regex = get_regex({fragment::begin_anchor_re, fragment::hex_re, fragment::l_brack_re,
         fragment::r_brack_re, fragment::equal_re, fragment::hex_re, fragment::end_anchor_re});
 
-    boost::smatch matches;
-    if (!boost::regex_match(args[idx], matches, mask_poll_regex))
+    aiebu::smatch matches;
+    if (!aiebu::regex_match(args[idx], matches, mask_poll_regex))
         throw error(error::error_code::invalid_asm, args[idx]);
 
     if (matches.size() != 3)
@@ -388,9 +388,9 @@ public:
 
 class XAIE_IO_CUSTOM_OP_TCT_op : public aie2_isa_op {
 private:
-  std::pair<uint8_t, uint8_t> parse_index(const boost::regex &regx, const std::string &token) const {
-    boost::smatch cmatches;
-    if (!boost::regex_match(token, cmatches, regx))
+  std::pair<uint8_t, uint8_t> parse_index(const aiebu::regex &regx, const std::string &token) const {
+    aiebu::smatch cmatches;
+    if (!aiebu::regex_match(token, cmatches, regx))
         throw error(error::error_code::invalid_asm, token);
 
     if (cmatches.size() !=3)
@@ -409,8 +409,8 @@ public:
 
     auto values = get_extended_storage<tct_op_t>();
     unsigned int idx = 0;
-    static const boost::regex row_regex = get_regex({fragment::row, fragment::add_dec_re});
-    static const boost::regex col_regex = get_regex({fragment::column, fragment::add_dec_re});
+    static const aiebu::regex row_regex = get_regex({fragment::row, fragment::add_dec_re});
+    static const aiebu::regex col_regex = get_regex({fragment::column, fragment::add_dec_re});
 
     std::pair<uint8_t, uint8_t> row_val = parse_index(row_regex, args[idx++]);
     std::pair<uint8_t, uint8_t> col_val = parse_index(col_regex, args[idx++]);
@@ -449,9 +449,9 @@ public:
 
     auto values = get_extended_storage<tct_op_t>();
 
-    static const boost::regex regx = get_regex({fragment::column, fragment::equal_re, fragment::dec_re});
-    boost::smatch cmatches;
-    if (!boost::regex_match(args[0], cmatches, regx))
+    static const aiebu::regex regx = get_regex({fragment::column, fragment::equal_re, fragment::dec_re});
+    aiebu::smatch cmatches;
+    if (!aiebu::regex_match(args[0], cmatches, regx))
         throw error(error::error_code::invalid_asm, args[0]);
 
     if (cmatches.size() !=3)

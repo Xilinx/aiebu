@@ -66,6 +66,45 @@ int main(int argc, char ** argv)
     std::ofstream output_file(testcase+".elf", std::ios_base::binary);
     output_file.write(e.data(), e.size());
     output_file.close();
+    auto tbl = as.get_argtbl();
+
+    auto& table = tbl.dump();
+    table[1].xrt_idx = 45;
+    table[1].bd_offset = 100;
+
+    table[5].xrt_idx = 45;
+    table[9].xrt_idx = 45;
+    table[12].xrt_idx = 45;
+    table[16].xrt_idx = 45;
+    table[19].xrt_idx = 45;
+    table[23].xrt_idx = 45;
+    table[26].xrt_idx = 45;
+    table[30].xrt_idx = 45;
+    table[33].xrt_idx = 45;
+    table[37].xrt_idx = 45;
+    table[41].xrt_idx = 45;
+    table[44].xrt_idx = 45;
+    table[48].xrt_idx = 45;
+    table[51].xrt_idx = 45;
+    table[54].xrt_idx = 45;
+    table[57].xrt_idx = 45;
+    table[60].xrt_idx = 45;
+    table[64].xrt_idx = 45;
+    table[67].xrt_idx = 45;
+    table[70].xrt_idx = 45;
+    table[74].xrt_idx = 45;
+    table[77].xrt_idx = 45;
+    table[80].xrt_idx = 45;
+    table[84].xrt_idx = 45;
+    table[87].xrt_idx = 45;
+    table[90].xrt_idx = 45;
+    table[94].xrt_idx = 45;
+
+    as.flush_argtbl(tbl);
+    auto e_modified = as.get_elf();
+    std::ofstream output_file_modified(testcase+"_modified.elf", std::ios_base::binary);
+    output_file_modified.write(e_modified.data(), e_modified.size());
+    output_file_modified.close();
   }
   catch (aiebu::error &ex)
   {

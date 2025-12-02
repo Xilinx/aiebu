@@ -10,6 +10,22 @@
 
 namespace aiebu {
 
+/*!
+ * @struct arginfo
+ *
+ * @brief
+ * arginfo represent a pair of xrt_idx and its BD offset in a
+ * control code.
+ * On AIE2PS and AIE4 platform where we use ASM control code,
+ * APPLY_OFFSET_57 opcode and ctrlpkt has the xrt_idx and BD offset
+ * that the address of xrt_idx (at runtime) needs to be patched. This
+ * struct represent one patch pair (xrt_idx and its BD offset)
+ */
+struct arginfo {
+  uint32_t xrt_idx;
+  uint64_t bd_offset;
+};
+
 // Assembler Class
 
 class aiebu_assembler
@@ -43,6 +59,7 @@ class aiebu_assembler
   private:
     buffer_type m_type;
     buffer_type m_output_type;
+    std::vector<arginfo> arginfo_tbl;
 
   public:
     /*
@@ -116,6 +133,72 @@ class aiebu_assembler
 
     void
     disassemble(const std::filesystem::path &root) const;
+
+    /*
+     * Construct aiebu_assembler from ELF file
+     *
+     * @elf_fnm:     ELF Full path to ELF file
+     */
+    explicit aiebu_assembler(const std::string& elf_fnm);
+
+    /*
+     * Construct aiebu_assembler from ELF buffer
+     *
+     * @buffers:     ELF buffers
+     */
+    explicit aiebu_assembler(const std::vector<char>& buffer);
+
+    /*!
+     * @class argtbl
+     *
+     * @brief
+     * aiebu_assembler::argtbl represents a table of xrt_idx and BD offset.
+     * The table is constructed from an aiebu_assembler object based on the
+     * control code that indicate which xrt_idx should patched into which BD.
+     *
+     * This object can be used to dump the table and modify the xrt_idx and its
+     * BD offset in any entry from an aiebu_assembler object. And then flush it
+     * back to aiebu_assembler so that the xrt_id and its BD offset can be updated
+     * in the control code and .dynamic sections of ELF.
+     *
+     * When using this class to do xrt argument transform
+     *      1. Only host patching is supported.
+     *      2. Only support AIE2PS and AIE4
+     */
+    class argtbl_impl;
+    class argtbl
+    {
+      private:
+        std::shared_ptr<argtbl_impl> handle;
+      public:
+        explicit argtbl(std::shared_ptr<argtbl_impl> in_impl);
+
+        /*
+         * Dump the reference of vetor of xrt argument (xrt_idx)
+         * and BD offset. Caller can modify entries in the vector
+         * in place. Then the whole argtbl object can be flushed
+         * back to aiebu_assembler to update the ELF to do the
+         * xrt_idx transform.
+         */
+        std::vector<arginfo>& dump() const;
+
+    };
+    /*
+     * Get an argtbl object from aiebu_assembler. In this function
+     * aiebu_assember will scan the ELF and construct a table (vector)
+     * of xrt_idx and BD offset. Then it returns an object of this table
+     * which can be used to dump the reference of the table and modify
+     * the table in place.
+     */
+    argtbl get_argtbl();
+
+    /*
+     * Flush the argtbl object to aiebu_assembler. In this function,
+     * aiebu will take the argtbl object and update control code and
+     * patching metadata based on the xrt_idx and BD offset in the
+     * arg table.
+     */
+    void flush_argtbl(const argtbl& arg_table);
 };
 
 } //namespace aiebu

@@ -7,10 +7,10 @@
 #include "utils.h"
 #include "file_utils.h"
 #include "logger.h"
+#include "common/regex_wrapper.h"
 
 #include <map>
 #include <memory>
-#include <boost/regex.hpp>
 #include <stack>
 #include <sstream>
 #include <string>
@@ -28,7 +28,7 @@ inline std::string trim(const std::string& line)
     return (start == end && start == std::string::npos) ? std::string() : line.substr(start, end - start + 1);
 }
 
-inline void verify_match(const boost::smatch& sm, error::error_code ecode, const char* msg)
+inline void verify_match(const smatch& sm, error::error_code ecode, const char* msg)
 {
   if (sm.size() < 3 || !sm[2].matched || sm[2].length() == 0)
     throw error(ecode, msg);
@@ -78,7 +78,7 @@ public:
   std::shared_ptr<asm_parser> m_parserptr;
 public:
   directive() {}
-  virtual void operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm) = 0;
+  virtual void operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm) = 0;
   virtual ~directive() = default;
 };
 
@@ -86,7 +86,7 @@ class attach_to_group_directive: public directive
 {
 public:
   attach_to_group_directive() = default;
-  void operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm) override;
+  void operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm) override;
   ~attach_to_group_directive() override = default;
 };
 
@@ -96,7 +96,7 @@ class include_directive: public directive
   bool read_include_file(std::string filename);
 public:
   include_directive() = default;
-  void operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm) override;
+  void operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm) override;
   ~include_directive() override = default;
 };
 
@@ -104,7 +104,7 @@ class end_of_label_directive: public directive
 {
 public:
   end_of_label_directive() = default;
-  void operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm) override;
+  void operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm) override;
   ~end_of_label_directive() override = default;
 };
 
@@ -130,7 +130,7 @@ public:
   }
   void add_scratchpad(std::string& name, std::string& str);
   pad_directive() = default;
-  void operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm) override;
+  void operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm) override;
   ~pad_directive() override = default;
 };
 
@@ -141,7 +141,7 @@ class section_directive: public directive
   bool is_annotation_section(const std::string& str) {return !str.substr(0,10).compare("annotation"); }
 public:
   section_directive() = default;
-  void operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm) override;
+  void operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm) override;
   ~section_directive() override = default;
 };
 
@@ -149,7 +149,7 @@ class partition_directive: public directive
 {
 public:
   partition_directive() = default;
-  void operate(std::shared_ptr<asm_parser> parserptr, const boost::smatch& sm) override;
+  void operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm) override;
   ~partition_directive() override = default;
   partition_directive(const partition_directive&) = default;
   partition_directive& operator=(const partition_directive&) = default;
@@ -384,9 +384,9 @@ public:
 
   bool operate_directive(const std::string& line)
   {
-    boost::smatch sm;
-    const static boost::regex DIRCETIVE_REGEX("^([.a-zA-Z0-9_]+)(?:[ \\t]+(.+))?$");
-    boost::regex_match(line, sm, DIRCETIVE_REGEX);
+    smatch sm;
+    const static regex DIRCETIVE_REGEX("^([.a-zA-Z0-9_]+)(?:[ \\t]+(.+))?$");
+    regex_match(line, sm, DIRCETIVE_REGEX);
     if (sm.size() == 0)
       return false;
 

@@ -8,13 +8,15 @@
 #include "reporter.h"
 #include "symbol.h"
 #include "utils.h"
-
+#include "file_utils.h"
+#include "transform_manager.h"
 #include "aiebu/aiebu.h"
 #include "aiebu/aiebu_assembler.h"
 #include "aiebu/aiebu_error.h"
 
 #include <map>
 #include <string>
+
 
 namespace aiebu {
 
@@ -117,6 +119,66 @@ disassemble(const std::filesystem::path &root) const
   reporter rep(m_output_type, elf_data);
   rep.disassemble(root, true);
 }
+
+class aiebu_assembler::argtbl_impl
+{
+  std::vector<arginfo>& m_tbl;
+
+  public:
+    explicit argtbl_impl(std::vector<arginfo>& in_tbl)
+      : m_tbl(in_tbl) { }
+
+    std::vector<arginfo>&
+    dump() const
+    {
+      return m_tbl;
+    }
+};
+
+aiebu_assembler::argtbl::
+argtbl(std::shared_ptr<argtbl_impl> in_impl)
+  : handle(std::move(in_impl))
+{}
+
+std::vector<arginfo>&
+aiebu_assembler::argtbl::
+dump() const
+{
+  return handle->dump();
+}
+
+aiebu_assembler::argtbl
+aiebu_assembler::
+get_argtbl()
+{
+  transform_manager trans(elf_data);
+  arginfo_tbl = trans.extract_rela_sections();
+  return argtbl{std::make_shared<argtbl_impl>(arginfo_tbl)};
+}
+
+void
+aiebu_assembler::
+flush_argtbl(const argtbl& arg_table)
+{
+  const auto& table = arg_table.dump();
+  if (table.size() != arginfo_tbl.size())
+    throw error(error::error_code::invalid_input,
+                "Table size mismatch: got " + std::to_string(table.size())
+                + ", expected " + std::to_string(arginfo_tbl.size()));
+
+  transform_manager trans(elf_data);
+  elf_data = trans.update_rela_sections(table);
+}
+
+aiebu_assembler::
+aiebu_assembler(const std::string& elf_fnm)
+{
+  elf_data = readfile(elf_fnm);
+}
+
+aiebu_assembler::
+aiebu_assembler(const std::vector<char>& buffer): elf_data(buffer) { }
+
 }
 
 int

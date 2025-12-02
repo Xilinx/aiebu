@@ -3,7 +3,6 @@
 
 #include <map>
 #include <string>
-#include <boost/regex.hpp>
 
 #include "utils.h"
 #include "version.h"
@@ -26,14 +25,14 @@ static const std::map<fragment, std::string> fragment_table = { // NOLINT
     {fragment::row, "[[:space:]]*r\\[([[:digit:]]+)\\][[:space:]]*"},
 };
 
-boost::regex
+aiebu::regex
 get_regex(const std::vector<fragment>& pattern)
 {
   std::string composite;
   for (auto frag : pattern) {
     composite += fragment_table.at(frag);
   }
-  return boost::regex(composite);
+  return aiebu::regex(composite);
 }
 
 std::string

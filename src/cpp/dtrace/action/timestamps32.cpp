@@ -33,17 +33,17 @@ timestamps32_action(std::string token, uint32_t probe_type, const std::string& p
             "Invalid token: '" << token << "' Expected 'name[length] = timestamps32()'");
     
     // Regex pattern to match '<name>[<length>]' format
-    boost::regex buffer_regex(R"(^(.+)\[(.+)\]$)");
-    boost::smatch buffer;
-    if (!boost::regex_match(fields[0], buffer, buffer_regex))
+    aiebu::regex buffer_regex(R"(^(.+)\[(.+)\]$)");
+    aiebu::smatch buffer;
+    if (!aiebu::regex_match(fields[0], buffer, buffer_regex))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'name[length]'");
 
     m_result = buffer[1];
     std::string length = buffer[2];
 
-    boost::smatch action;
-    if (!boost::regex_match(fields[1], action, action_name::action_regex))
+    aiebu::smatch action;
+    if (!aiebu::regex_match(fields[1], action, action_name::action_regex))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'timestamps32()'");
 
