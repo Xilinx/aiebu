@@ -129,6 +129,7 @@
 <li><a href="#preempt-0x19">PREEMPT (0x19)</a></li>
 <li><a href="#load_pdi-0x1a">LOAD_PDI (0x1a)</a></li>
 <li><a href="#load_cores-0x04">LOAD_CORES (0x04)</a></li>
+<li><a href="#load_cores_cp-0x20">LOAD_CORES_CP (0x20)</a></li>
 <li><a href="#load_last_pdi-0x1b">LOAD_LAST_PDI (0x1b)</a></li>
 <li><a href="#save_timestamps-0x1c">SAVE_TIMESTAMPS (0x1c)</a></li>
 <li><a href="#sleep-0x1d">SLEEP (0x1d)</a></li>
@@ -1427,6 +1428,29 @@ This opcode should take one whole job which in turn should take one whole page.<
 </tbody>
 </table>
 <p>This essentially is same to LOAD_PDI except that CERT will save the elf info for aie cores to different location than the pdi so that cert can do recovery of both during preemption</p>
+<h2 id="load_cores_cp-0x20">LOAD_CORES_CP (0x20)</h2>
+<p>load cores_cp</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x20</th>
+<th>-</th>
+<th>-</th>
+<th>core_elf_id</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>This is to load control packet format core elfs. Compared to the LOAD_CORES, this opcode assumes the control code to load the control packet through shimdma will not take more than a page so that the current page that holds this opcode will not be overwritten. As a result, we can put this control packet loading part right after this opcode and hold everything in one job. The <code>core_elf_id</code> in this opcode and the one in LOAD_CORES are in same id space so that if there are LOAD_CORES and LOAD_CORES_CP, cert can only save the id for the last of these opcodes.</p>
 <h2 id="load_last_pdi-0x1b">LOAD_LAST_PDI (0x1b)</h2>
 <p>load last loaded pdi</p>
 <table>

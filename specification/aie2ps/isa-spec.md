@@ -721,6 +721,17 @@ load cores
 This essentially is same to LOAD_PDI except that CERT will save the elf info for aie cores to different location than the pdi so that cert can do recovery of both during preemption
 
 
+## LOAD_CORES_CP (0x20)
+
+load cores_cp
+
+| 0x20 | - | - | core_elf_id | instruction size |
+| :-: | - | - | - | -: |
+| opcode (8b) | pad (8b) | pad (16b) | const (32b) | 8B |
+
+This is to load control packet format core elfs. Compared to the LOAD_CORES, this opcode assumes the control code to load the control packet through shimdma will not take more than a page so that the current page that holds this opcode will not be overwritten. As a result, we can put this control packet loading part right after this opcode and hold everything in one job. The `core_elf_id` in this opcode and the one in LOAD_CORES are in same id space so that if there are LOAD_CORES and LOAD_CORES_CP, cert can only save the id for the last of these opcodes.
+
+
 ## LOAD_LAST_PDI (0x1b)
 
 load last loaded pdi
