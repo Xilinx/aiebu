@@ -20,7 +20,7 @@
 static const uint64_t TRACE_CTRL_CODE_BASE = 0x200000;
 static const uint64_t TRACE_CTRL_CODE_SIZE = 16384; // 8kB
 static const uint32_t word_byte_shift = 32;
-static const uint32_t mask_32 = 0xFFFFFFFF; // NOLINT
+static const uint32_t mask_32 = 0xFFFFFFFF; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
 using get_dtrace_col_numbers_t = uint32_t (*)(const char*, const char*, uint32_t*, uint32_t);
 using get_dtrace_buffer_size_t = uint32_t (*)(uint64_t*);
 using populate_dtrace_buffer_t = void (*)(uint32_t*, uint64_t);
@@ -69,8 +69,8 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
     if (status == 0) 
     {
         // allocate dtrace information buffer
-        std::unique_ptr<uint32_t[]> dtrace_buffer = std::make_unique<uint32_t[]>(TRACE_CTRL_CODE_SIZE); // NOLINT
-        std::unique_ptr<uint64_t[]> buffers = std::make_unique<uint64_t[]>(buffers_length); // NOLINT
+        std::unique_ptr<uint32_t[]> dtrace_buffer = std::make_unique<uint32_t[]>(TRACE_CTRL_CODE_SIZE); // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+        std::unique_ptr<uint64_t[]> buffers = std::make_unique<uint64_t[]>(buffers_length); // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 
         // get dtrace information using get_dtrace_buffer_size api from libdtrace.so
         get_dtrace_buffer_size(buffers.get());

@@ -509,7 +509,7 @@ create_action(const std::string& action_string, uint32_t probe_type,
 {
     std::shared_ptr<dtrace::action::action> action;
     if (m_state == state_type::operation_block)
-    {   // Python operation action // NOLINT
+    {   // Python operation action // NOLINT(bugprone-branch-clone)
         action = std::make_shared<dtrace::action::operation_action>(
             action_string, probe_type, probe_name
         );

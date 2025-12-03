@@ -15,7 +15,8 @@
 extern "C" {
 
 // Intial parse to create control buffer and memory buffer
-static std::unique_ptr<dtrace::control> g_control = nullptr; // NOLINT 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static std::unique_ptr<dtrace::control> g_control = nullptr;
 
 /**
  * @struct dtrace_buffer_info
@@ -34,7 +35,8 @@ struct dtrace_buffer_info {
     std::vector<uint32_t> mem_buffer;
 };
 // multiple uC dtrace
-static std::unordered_map<uint32_t, dtrace_buffer_info> g_dtrace_buffer_info_map; // NOLINT
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static std::unordered_map<uint32_t, dtrace_buffer_info> g_dtrace_buffer_info_map;
 
 //---------------------------multiple uC dtrace---------------------------
 uint32_t 
@@ -106,7 +108,7 @@ get_dtrace_buffer_size(uint64_t* buffers)
             uint32_t length = 
                 l_dtrace_buffer_info.control_buffer.size() + l_dtrace_buffer_info.mem_buffer.size();
             // Update the control buffer and memory buffer length and uC index in buffers array
-            buffers[buffer_index] = (static_cast<uint64_t>(length) << 32) | uC_index; // NOLINT
+            buffers[buffer_index] = (static_cast<uint64_t>(length) << 32) | uC_index; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
             buffer_index++;
 
             g_dtrace_buffer_info_map[uC_index] = std::move(l_dtrace_buffer_info);
@@ -218,10 +220,10 @@ get_dtrace_result_file(const char* result_file)
             // Get control_buffer and mem_buffer from the buffer
             std::vector<uint32_t> control_buffer(
                 buffer.begin(),
-                buffer.begin() + l_dtrace_buffer_info.control_buffer.size() // NOLINT
+                buffer.begin() + l_dtrace_buffer_info.control_buffer.size() // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
             );
             std::vector<uint32_t> mem_buffer(
-                buffer.begin() + l_dtrace_buffer_info.control_buffer.size(), // NOLINT
+                buffer.begin() + l_dtrace_buffer_info.control_buffer.size(), // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
                 buffer.end()
             );
             

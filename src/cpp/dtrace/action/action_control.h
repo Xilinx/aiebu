@@ -104,6 +104,7 @@ public:
  * to match specific action patterns in script file.
  *
  * @note All regex patterns are hardcoded and guaranteed valid at compile time.
+ * // NOLINT(cert-err58-cpp,bugprone-throwing-static-initialization)
  * NOLINT comments suppress warnings about potential exceptions during static initialization.
  */
 class action_name
