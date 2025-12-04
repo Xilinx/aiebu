@@ -17,32 +17,35 @@ enum class log_level {
   debug = 3    // Debug messages (shown with verbose)
 };
 
-// Global log level (default: errors and warnings)
-inline log_level g_log_level = log_level::warn;
+// Internal function to access log level (thread-safe singleton pattern)
+inline log_level& get_log_level_ref() {
+  static log_level level = log_level::warn;
+  return level;
+}
 
 // Set log level
 inline void set_log_level(log_level level) {
-  g_log_level = level;
+  get_log_level_ref() = level;
 }
 
 // Get log level
 inline log_level get_log_level() {
-  return g_log_level;
+  return get_log_level_ref();
 }
 
 // Enable verbose mode (shows info and debug messages)
 inline void enable_verbose_logging() {
-  g_log_level = log_level::debug;
+  get_log_level_ref() = log_level::debug;
 }
 
 // Disable verbose mode (back to default: errors and warnings)
 inline void disable_verbose_logging() {
-  g_log_level = log_level::warn;
+  get_log_level_ref() = log_level::warn;
 }
 
 } // namespace aiebu
 
-// Logging macros
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 #define LOG_ERROR(msg) \
   do { \
     std::cerr << "[ERROR] " << msg << std::endl; \
@@ -50,24 +53,25 @@ inline void disable_verbose_logging() {
 
 #define LOG_WARN(msg) \
   do { \
-    if (aiebu::g_log_level >= aiebu::log_level::warn) { \
+    if (aiebu::get_log_level_ref() >= aiebu::log_level::warn) { \
       std::cout << "[WARN] " << msg << std::endl; \
     } \
   } while (0)
 
 #define LOG_INFO(msg) \
   do { \
-    if (aiebu::g_log_level >= aiebu::log_level::info) { \
-      std::cout << msg << std::endl; \
+    if (aiebu::get_log_level_ref() >= aiebu::log_level::info) { \
+      std::cout << "[INFO]" << msg << std::endl; \
     } \
   } while (0)
 
 #define LOG_DEBUG(msg) \
   do { \
-    if (aiebu::g_log_level >= aiebu::log_level::debug) { \
+    if (aiebu::get_log_level_ref() >= aiebu::log_level::debug) { \
       std::cout << "[DEBUG] " << msg << std::endl; \
     } \
   } while (0)
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 #endif // AIEBU_COMMON_LOGGER_H
 

@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "file_utils.h"
 #include "preprocessor_input.h"
+#include "logger.h"
 #include <boost/format.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -133,7 +134,7 @@ public:
 
     const auto& pt_xrt_kernel_instance = pt.get_child_optional("xrt-kernels");
     if (!pt_xrt_kernel_instance) {
-      std::cout << "xrt-kernels instance not found returning\n";
+      LOG_WARN("xrt-kernels instance not found, returning");
       return;
     }
     const auto& p_xrt_kernel_instance = pt_xrt_kernel_instance.get();
@@ -160,7 +161,7 @@ public:
         const auto& pinstance = pt_instance.get();
         add_instance(mangled_name, pinstance, flags, paths);
       } else {
-        std::cout << "instance not found\n";
+        LOG_WARN("instance not found");
       }
     }
   }

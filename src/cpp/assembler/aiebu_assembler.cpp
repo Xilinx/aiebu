@@ -10,6 +10,7 @@
 #include "utils.h"
 #include "file_utils.h"
 #include "transform_manager.h"
+#include "logger.h"
 #include "aiebu/aiebu.h"
 #include "aiebu/aiebu_assembler.h"
 #include "aiebu/aiebu_error.h"
@@ -199,19 +200,19 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
 
   if (buffer1 == nullptr && buffer1_size != 0)
   {
-    std::cout << "ERROR: Invalid buffer1 size" << std::endl;
+    LOG_ERROR("Invalid buffer1 size");
     return -(static_cast<int>(aiebu::error::error_code::invalid_input));
   }
 
   if (buffer2 == nullptr && buffer2_size != 0)
   {
-    std::cout << "ERROR: Invalid buffer2 size" << std::endl;
+    LOG_ERROR("Invalid buffer2 size");
     return -(static_cast<int>(aiebu::error::error_code::invalid_input));
   }
 
   if (patch_json == nullptr && patch_json_size !=0)
   {
-    std::cout << "ERROR: Invalid patch json size" << std::endl;
+    LOG_ERROR("Invalid patch json size");
     return -(static_cast<int>(aiebu::error::error_code::invalid_input));
   }
 
@@ -248,12 +249,12 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
   }
   catch (aiebu::error &ex)
   {
-    std::cout << "ERROR: " <<  ex.what() << std::endl;
+    LOG_ERROR(ex.what());
     ret = -(ex.get_code());
   }
   catch (std::exception &ex)
   {
-    std::cout << "ERROR: " <<  ex.what() << std::endl;
+    LOG_ERROR(ex.what());
     ret = -(static_cast<int>(aiebu::error::error_code::internal_error));
   }
   return ret;

@@ -10,6 +10,7 @@
 #include "file_utils.h"
 #include "preprocessor_input.h"
 #include "asm/asm_parser.h"
+#include "logger.h"
 #include <boost/format.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -102,14 +103,27 @@ public:
                         const std::vector<std::string>& /*libpaths*/,
                         const std::map<uint32_t, std::vector<char> >& ctrlpkt) override
   {
+    const std::string loglevel_prefix = "loglevel_";
     for (const auto& lib: libs)
     {
       if (lib == legacydpuxclbin)
         arg_offset = 1;
-      else if (lib == "verbose")
-        enable_verbose_logging();
+      else if (lib.find(loglevel_prefix) == 0) {
+        // Process log level for library API users
+        std::string log_level_str = lib.substr(loglevel_prefix.size());
+        if (log_level_str == "error")
+          set_log_level(log_level::error);
+        else if (log_level_str == "warn")
+          set_log_level(log_level::warn);
+        else if (log_level_str == "info")
+          set_log_level(log_level::info);
+        else if (log_level_str == "debug")
+          set_log_level(log_level::debug);
+        else
+          LOG_WARN("Invalid log level flag: " << lib << ", ignored");
+      }
       else
-        std::cout << "Invalid flag: " << lib << ", ignored !!!" << std::endl;
+        LOG_WARN("Invalid flag: " << lib << ", ignored");
     }
 
     m_data[".ctrltext"] = mc_code;

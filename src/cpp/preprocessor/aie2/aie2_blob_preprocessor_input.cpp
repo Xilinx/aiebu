@@ -4,6 +4,7 @@
 #include <filesystem>
 #include "file_utils.h"
 #include "aie2_blob_preprocessor_input.h"
+#include "logger.h"
 #include "xaiengine.h"
 
 # if defined (AIEBU_NATIVE_BUILD)
@@ -24,7 +25,7 @@ add_preemption_code(uint32_t col)
     auto error_msg = boost::format("Preemption save/restore code for not available for txn buffer with col:(%d)\n") % col;
     throw error(error::error_code::invalid_asm, error_msg.str());
   }
-  std::cout << "Save/Restore preemption code added for col" << col << "\n";
+  LOG_INFO("Save/Restore preemption code added for col " << col);
   m_data[preempt_save].resize(stx_save_restore_map.at(col).first.size());
   std::memcpy(m_data[preempt_save].data(), stx_save_restore_map.at(col).first.data(), stx_save_restore_map.at(col).first.size());
 
@@ -1025,7 +1026,7 @@ add_preemption_code(uint32_t col)
         const auto& pdis = pt_pdis.get();
         add_pdi(mangled_name, pdis, paths);
       } else {
-        std::cout << "PDIs not found\n";
+        LOG_WARN("PDIs not found");
       }
 
       const auto& pt_instance = ctrlcode.get_child_optional("instance");
@@ -1033,7 +1034,7 @@ add_preemption_code(uint32_t col)
         const auto& pinstance = pt_instance.get();
         add_instance(mangled_name, pinstance, paths);
       } else {
-        std::cout << "instance not found\n";
+        LOG_WARN("instance not found");
       }
     }
   }
