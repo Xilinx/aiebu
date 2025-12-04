@@ -12,31 +12,6 @@
 #include "file_utils.h"
 #include "logger.h"
 
-namespace {
-  // Helper function to process log level from flags
-  void process_log_level_flags(const std::vector<std::string>& flags) {
-    const std::string loglevel_prefix = "loglevel_";
-    for (const auto& flag : flags) {
-      if (flag.find(loglevel_prefix) == 0) {
-        std::string log_level_str = flag.substr(loglevel_prefix.size());
-        if (log_level_str == "error")
-          aiebu::set_log_level(aiebu::log_level::error);
-        else if (log_level_str == "warn")
-          aiebu::set_log_level(aiebu::log_level::warn);
-        else if (log_level_str == "info")
-          aiebu::set_log_level(aiebu::log_level::info);
-        else if (log_level_str == "debug")
-          aiebu::set_log_level(aiebu::log_level::debug);
-        else {
-          auto errMsg = boost::format("Invalid log level: %s. Valid options: loglevel_error, loglevel_warn, loglevel_info, loglevel_debug\n") % flag;
-          throw std::runtime_error(errMsg.str());
-        }
-        break; // Only process first log level found
-      }
-    }
-  }
-}
-
 std::map<uint32_t, std::vector<char> >
 aiebu::utilities::
 target_aie2blob::parse_pmctrlpkt(const std::vector<std::string> pm_key_value_pairs)
@@ -133,9 +108,6 @@ target_aie2blob::parseOption(const sub_cmd_options &options)
     auto errMsg = boost::format("Error parsing options: %s\n") % e.what() ;
     throw std::runtime_error(errMsg.str());
   }
-
-  // Process log level from libs
-  process_log_level_flags(m_libs);
 
   if (!m_transaction_file.empty())
     readfile(m_transaction_file, m_transaction_buffer);
@@ -281,9 +253,6 @@ target_aie2ps::assemble(const sub_cmd_options &options)
     throw std::runtime_error(errMsg.str());
   }
 
-  // Process log level from flags
-  process_log_level_flags(flags);
-
   std::vector<char> asmBuffer;
   readfile(input_file, asmBuffer);
 
@@ -346,9 +315,6 @@ target_aie2_config::assemble(const sub_cmd_options &options)
     throw std::runtime_error(errMsg.str());
   }
 
-  // Process log level from flags
-  process_log_level_flags(flags);
-
   std::vector<char> json_buffer;
   if (!json_file.empty())
   {
@@ -357,7 +323,7 @@ target_aie2_config::assemble(const sub_cmd_options &options)
   }
 
   try {
-    aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::aie2_config, {}, {}, libpaths, json_buffer);
+    aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::aie2_config, {}, flags, libpaths, json_buffer);
     write_elf(as, output_elffile);
   }
   catch (aiebu::error &ex) {
@@ -425,9 +391,6 @@ target_aie4::assemble(const sub_cmd_options &_options)
     auto errMsg = boost::format("Error parsing options: %s\n") % e.what() ;
     throw std::runtime_error(errMsg.str());
   }
-
-  // Process log level from flags
-  process_log_level_flags(flags);
 
   std::vector<char> asmBuffer;
   readfile(input_file, asmBuffer);
@@ -500,9 +463,6 @@ asm_config_parser::parser(const sub_cmd_options &options)
     auto errMsg = boost::format("Error parsing options: %s\n") % e.what() ;
     throw std::runtime_error(errMsg.str());
   }
-
-  // Process log level from flags
-  process_log_level_flags(flags);
 
   if (!json_file.empty()) {
     readfile(json_file, json_buffer);

@@ -61,7 +61,7 @@ inline void disable_verbose_logging() {
 #define LOG_INFO(msg) \
   do { \
     if (aiebu::get_log_level_ref() >= aiebu::log_level::info) { \
-      std::cout << "[INFO]" << msg << std::endl; \
+      std::cout << "[INFO] " << msg << std::endl; \
     } \
   } while (0)
 
