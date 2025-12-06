@@ -72,10 +72,10 @@ public:
         else if (log_level_str == "debug")
           set_log_level(log_level::debug);
         else
-          LOG_WARN("Invalid log level flag: " << flag << ", ignored");
+          LOG_WARN() << "Invalid log level flag: " << flag << ", ignored";
       }
       else
-        LOG_WARN("Invalid flag: " << flag << ", ignored");
+        LOG_WARN() << "Invalid flag: " << flag << ", ignored";
     }
     
     std::shared_ptr<asm_parser> parser(new asm_parser(tinput->get_ctrlcode_data(), tinput->get_include_paths()));

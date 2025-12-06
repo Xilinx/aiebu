@@ -42,7 +42,7 @@ class target
   inline void write_elf(const aiebu::aiebu_assembler& as, const std::string& outfile)
   {
     auto e = as.get_elf();
-    LOG_INFO("elf size:" << e.size());
+    LOG_INFO() << "elf size:" << e.size();
     std::ofstream output_file(outfile, std::ios_base::binary);
     output_file.write(e.data(), e.size());
   }
