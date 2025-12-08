@@ -21,9 +21,9 @@ class aie2ps_encoder : public encoder
   std::vector<std::shared_ptr<writer>> twriter;
   asm_report m_report;
   Debug m_debug;
-  asm_dump_flag m_dump_flag;
+  asm_dump_flag m_dump_flag = asm_dump_flag::disable;
 public:
-  aie2ps_encoder() {     
+  aie2ps_encoder() {
     isa i;
     m_isa = i.get_isamap();
   }
@@ -40,7 +40,7 @@ public:
   void fill_scratchpad(std::shared_ptr<section_writer> padwriter,const std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpads);
   void fill_controlpkt(std::shared_ptr<section_writer> padwriter, const std::vector<char>& ctrlpkt);
   void fill_control_packet_symbols(std::shared_ptr<section_writer> ctrlpktwriter, const std::vector<symbol>& syms);
- 
+
   std::string findKey(const std::map<std::string, std::vector<std::string>>& myMap, const std::string& value);
 
   virtual std::shared_ptr<assembler_state>

@@ -4,6 +4,7 @@
 #ifndef AIEBU_BASICPASS_H_
 #define AIEBU_BASICPASS_H_
 
+#include <cstdint>
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_section.hpp>
 

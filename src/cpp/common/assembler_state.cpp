@@ -78,14 +78,15 @@ process(bool makeunique)
         {
           m_jobmap[EOF_ID]->set_end(m_pos);
           m_jobmap[EOF_ID]->set_end_index(index);
-          cjob_id = -1;
+          cjob_id = std::to_string(-1);
         }
       } else if (!name.compare(".eop")) {
         m_jobmap[gen_eop_name(eopnum)] = std::make_shared<job>(gen_eop_name(eopnum), m_pos, index, eopnum, false);
         m_jobids.push_back(gen_eop_name(eopnum));
         ++eopnum;
-      } else
+      } else {
         throw error(error::error_code::internal_error, "Invalid operation:" + name);
+      }
 
       if (!name.compare("local_barrier"))
       {
@@ -207,8 +208,9 @@ uint32_t assembler_state::parse_num_arg(const std::string& str) {
   } else if (is_number(str))
   { //parse numeric string
     return std::stoul(str);
-  } else
+  } else {
     throw symbol_exception();
+  }
 }
 
 void
