@@ -1,0 +1,25 @@
+{
+    "external_buffers": {
+        "buffer0": {
+            "xrt_id": 0,
+            "logical_id": 0,
+            "size_in_bytes": 4,
+            "name": "g.ifm_ddr",
+            "control_packet_patch_locations": [
+                {
+                    "offset": 4,
+                    "xrt_id": 3,
+                    "size": 6,
+                    "operation": "read_add_write"
+                }
+            ]
+        },
+       "buffer1": {
+            "xrt_id": 3,
+            "logical_id": 3,
+            "size_in_bytes": 48,
+            "ctrl_pkt_buffer": true,
+            "path": "ctrlpkt0.dat"
+        }
+    }
+}

@@ -92,13 +92,41 @@ aiebu_assembler(buffer_type type,
   }
 }
 
+aiebu_assembler::
+aiebu_assembler(buffer_type type,
+                const std::vector<char>& config_json_buffer,
+                file_artifact& artifact,
+                const std::vector<std::string>& flags)
+{
+  if (type == buffer_type::aie2_config)
+  {
+    aiebu::assembler a(assembler::elf_type::aie2_config);
+    elf_data = a.process(flags, config_json_buffer, &artifact);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2_config;
+  }
+  else if (type == buffer_type::aie2ps_config)
+  {
+    aiebu::assembler a(assembler::elf_type::aie2ps_config);
+    elf_data = a.process(flags, config_json_buffer, &artifact);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config;
+  }
+  else if (type == buffer_type::aie4_config)
+  {
+    aiebu::assembler a(assembler::elf_type::aie4_config);
+    elf_data = a.process(flags, config_json_buffer, &artifact);
+    m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie4_config;
+  }
+  else {
+    throw error(error::error_code::invalid_buffer_type, "Buffer_type not supported !!!");
+  }
+}
+
 std::vector<char>
 aiebu_assembler::
 get_elf() const
 {
   return elf_data;
 }
-
 
 void
 aiebu_assembler::
@@ -254,6 +282,59 @@ aiebu_assembler(const std::string& elf_fnm)
 aiebu_assembler::
 aiebu_assembler(const std::vector<char>& buffer): elf_data(buffer) { }
 
+class file_artifact_impl
+{
+  public:
+    void add_vfile(const std::string& name, const std::vector<char>& buffer)
+    {
+      m_resolver[name] = buffer;
+    }
+
+    void add_vfile(std::string&& name, std::vector<char>&& buffer)
+    {
+      m_resolver[std::move(name)] = std::move(buffer);
+    }
+
+    const std::vector<char>& get(const std::string& name) const
+    {
+       for (const auto& it : m_resolver) {
+         std::cout << it.first << " : " << it.second.size() << '\n';
+       }
+      auto it = m_resolver.find(name);
+      if (it == m_resolver.end())
+        throw std::runtime_error("File not found: " + name);
+      return it->second;
+    }
+
+  private:
+    std::unordered_map<std::string, std::vector<char>> m_resolver;
+};
+
+file_artifact::
+file_artifact() : pimpl(std::make_unique<file_artifact_impl>())
+{}
+
+file_artifact::~file_artifact() = default;
+
+void
+file_artifact::
+add_vfile(const std::string& name, const std::vector<char>& buffer)
+{
+  pimpl->add_vfile(name, buffer);
+}
+
+void
+file_artifact::
+add_vfile(std::string&& name, std::vector<char>&& buffer)
+{
+  pimpl->add_vfile(std::move(name), std::move(buffer));
+}
+
+const std::vector<char>&
+file_artifact::
+get(const std::string& filename) const {
+        return pimpl->get(filename);
+}
 }
 
 int

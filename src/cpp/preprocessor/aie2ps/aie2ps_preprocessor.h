@@ -46,7 +46,7 @@ public:
   {
     //auto keys = tinput->get_keys();
     const std::string prefix = "opt_level_";
-    
+
     // Process flags before parsing
     auto flags = tinput->get_flags();
     uint32_t optimize = 0;
@@ -78,8 +78,10 @@ public:
         log_warn() << "Invalid flag: " << flag << ", ignored";
     }
     
-    std::shared_ptr<asm_parser> parser(new asm_parser(tinput->get_ctrlcode_data(), tinput->get_include_paths()));
+    std::shared_ptr<asm_parser> parser(new asm_parser(tinput->get_ctrlcode_data(), tinput->get_include_paths(), tinput->get_resolver()));
+
     parser->parse_lines();
+
     auto collist = parser->get_col_list();
     isa i;
     m_isa = i.get_isamap();

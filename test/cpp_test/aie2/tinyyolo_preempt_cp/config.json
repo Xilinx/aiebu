@@ -1,0 +1,48 @@
+{
+  "xrt-kernels": [
+    {
+      "name" : "tinyyolo",
+      "arguments" : [
+        {
+          "name" : "arg0",
+          "type" : "char *",
+          "offset" : "0x00"
+        },
+        {
+          "name" : "arg1",
+          "type" : "char *",
+          "offset" : "0x08"
+        },
+        {
+          "name" : "arg2",
+          "type" : "char *",
+          "offset" : "0x10"
+        },
+        {
+          "name" : "arg3",
+          "type" : "char *",
+          "offset" : "0x18"
+        },
+        {
+          "name" : "arg4",
+          "type" : "char *",
+          "offset" : "0x20"
+        }
+      ],
+        "instance" : [
+                 {
+                   "id" : "cp",
+                   "TXN_ctrl_code_file" : "ml_txn_lp.bin",
+                   "ctrl_packet_file" : "ctrl_pkt0.bin",
+                   "patch_info_file" : "external_buffer_id.json"
+                 }
+        ],
+        "PDIs" : [
+                {
+                  "id" : 0,
+                  "PDI_file" : "00000000-0000-0000-0000-000000001111.pdi"
+                }
+        ]
+    }
+  ]
+}

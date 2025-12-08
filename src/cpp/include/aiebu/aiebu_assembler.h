@@ -9,6 +9,7 @@
 #include <vector>
 
 namespace aiebu {
+//#if 0
 
 /*!
  * @struct instinfo
@@ -37,6 +38,31 @@ namespace aiebu {
   std::vector<arginfo> inst_arginfo;
 };
 
+class file_artifact_impl;
+class file_artifact
+{
+  public:
+    file_artifact();
+    ~file_artifact();
+    /**
+     * Add a virtual file into the artifact by reference.
+     *
+     * Note: it involvs copy of name and the buffer. But the call still
+     * owns the name and buffer
+     */
+    void add_vfile(const std::string& name, const std::vector<char>& buffer);
+    /**
+     * Add a virtual file into the artifact by rvalue.
+     *
+     * Note: there are no extra copy of name and the buffer. But the ownership
+     * of them are transferred.
+     */
+    void add_vfile(std::string&& name, std::vector<char>&& buffer);
+
+    const std::vector<char>& get(const std::string& filename) const;
+  private:
+    std::unique_ptr<file_artifact_impl> pimpl;
+};
 
 // Assembler Class
 
@@ -125,6 +151,21 @@ class aiebu_assembler
               const std::vector<std::string>& libs = {},
               const std::vector<std::string>& libpaths = {},
               const std::vector<char>& patch_json = {});
+
+    /*
+     * In memory api.
+     * Construct aiebu_assembler from config json buffer and in memory buffers
+     * 
+     * @type:               ELF buffer type (aie2_config, aie2ps_config, aie4_config)
+     * @config_json_buffer: Config json content
+     * @artifact:           file_artifact object contains the mapping between file path
+     *                      and its binary
+     */     
+    aiebu_assembler(buffer_type type,
+                    const std::vector<char>& config_json_buffer,
+                    file_artifact& artifact,
+                    const std::vector<std::string>& flags);
+
 
     /*
      * This function return vector with elf content.

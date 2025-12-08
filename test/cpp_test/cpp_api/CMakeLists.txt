@@ -13,6 +13,12 @@ add_executable(${AIE2PS_TESTNAME} aie2ps_test.cpp)
 target_link_libraries(${AIE2PS_TESTNAME} PRIVATE aiebu_static)
 target_include_directories(${AIE2PS_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/include)
 
+set(AIE2_FULLELF_TESTNAME "aie2_full_elf_cpp")
+add_executable(${AIE2_FULLELF_TESTNAME} aie2_full_elf_test.cpp)
+target_link_libraries(${AIE2_FULLELF_TESTNAME} PRIVATE aiebu_static)
+target_include_directories(${AIE2_FULLELF_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/include)
+
+
 if (NOT WIN32)
   target_link_libraries(${AIE2_TESTNAME} PRIVATE pthread)
   target_link_libraries(${AIE2PS_TESTNAME} PRIVATE pthread)
@@ -31,6 +37,14 @@ add_custom_target(aie2psbins ALL
 
 add_test(NAME "aie2ps_cpp_eff_net_coal"
   COMMAND ${AIE2PS_TESTNAME} "eff_net_coal" "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_coal/"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "aie4_move_ddr_to_memtile_ctrlpkt"
+  COMMAND ${AIE2PS_TESTNAME} "move_ddr_to_memtile_ctrlpkt" "${AIEBU_SOURCE_DIR}/test/cpp_test/aie4/move_ddr_to_memtile_ctrlpkt/"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "aie4_move_ddr_to_memtile"
+  COMMAND ${AIE2PS_TESTNAME} "move_ddr_to_memtile" "${AIEBU_SOURCE_DIR}/test/cpp_test/aie4/move_ddr_to_memtile/"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 # add_test(NAME "aie2ps_cpp_eff_net_ctrlpacket"
@@ -62,6 +76,14 @@ add_test(NAME "aie2_cpp_4x4"
 
 add_test(NAME "aie2_cpp_4x8"
   COMMAND ${AIE2_TESTNAME} "${AIEBU_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/gen/preempt_restore_stx_4x8.bin"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "aie2_tinyyolo_preempt"
+  COMMAND ${AIE2_FULLELF_TESTNAME} "tinyyolo_preempt" "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2/tinyyolo_preempt/"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "aie2_tinyyolo_preempt_cp"
+  COMMAND ${AIE2_FULLELF_TESTNAME} "tinyyolo_preempt_cp" "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2/tinyyolo_preempt_cp/"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 set_tests_properties("aie2_cpp_4x4" PROPERTIES LABELS memcheck)

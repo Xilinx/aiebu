@@ -100,4 +100,17 @@ process(const std::vector<char>& buffer1,
   return u;
 }
 
+std::vector<char>
+assembler::
+process(const std::vector<std::string>& flags,
+        const std::vector<char>& patch_json,
+        file_artifact* resolver)
+{
+  m_ppi->set_args({}, patch_json, {}, flags, {}, {}, resolver);
+  auto ppo = m_preprocessor->process(m_ppi);
+  auto w = m_enoder->process(ppo);
+  auto u = m_elfwriter->process(w);
+  return u;
+}
+
 }

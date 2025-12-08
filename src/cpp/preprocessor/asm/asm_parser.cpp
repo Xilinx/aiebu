@@ -265,6 +265,23 @@ read_include_file(std::string filename)
   return true;
 }
 
+bool
+include_directive::
+read_include_buf(std::string name)
+{
+  std::vector<char> data;
+  try {
+    data = m_parserptr->get_resolver()->get(name);
+  } catch (const std::runtime_error& e) {
+    log_error() << "Error reading buffer from resolver: " << e.what();
+    return false;
+  }
+  m_parserptr->set_data_state(false);
+  m_parserptr->parse_lines(data, name);
+  m_parserptr->pop_data_state();
+  return true;
+}
+
 void
 include_directive::
 operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm)
@@ -274,6 +291,13 @@ operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm)
   std::string file = sm[2].str();//args[0];
   if (file.size() >= 2 && file.front() == '"' && file.back() == '"')
     file =  file.substr(1, file.size() - 2);
+
+  if (m_parserptr->get_resolver())
+  {
+    if (read_include_buf(file))
+      return;
+    throw error(error::error_code::internal_error, "buffer " + file + " not exist\n");
+  }
 
   if (is_absolute_path(file))
   {
@@ -343,6 +367,13 @@ add_scratchpad(std::string& name, std::string& str) {
   if (file.front() == '"' && file.back() == '"')
     file = str.substr(1, str.size() - 2);
 
+  if (m_parserptr->get_resolver())
+  {
+    if (read_pad_buf(name, file))
+      return;
+    throw error(error::error_code::internal_error, "buffer " + file + " not exist\n");
+  }
+
   if (is_absolute_path(file))
   {
     if (!read_pad_file(name, file))
@@ -358,7 +389,6 @@ add_scratchpad(std::string& name, std::string& str) {
   }
 
   throw error(error::error_code::internal_error, "File " + file + " not exist\n");
-
 }
 
 bool
@@ -377,6 +407,22 @@ read_pad_file(std::string& name, std::string& filename)
   auto data = std::vector<char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
   m_parserptr->insert_scratchpad(name, data.size(), data);
   file.close();
+  return true;
+}
+
+bool
+pad_directive::
+read_pad_buf(std::string& name, std::string& bufname)
+{
+  std::vector<char> data;
+  m_parserptr->set_data_state(false);
+  try {
+    data = m_parserptr->get_resolver()->get(bufname);
+  } catch (const std::runtime_error& e) {
+    log_error() << "Error reading buffer from resolver: " << e.what();
+    return false;
+  }
+  m_parserptr->insert_scratchpad(name, data.size(), data);
   return true;
 }
 }
