@@ -236,5 +236,7 @@ even_parity_check(uint32_t data) {
 
 std::string version_string();
 
+std::string metrics_report();
+
 }
 #endif // AIEBU_COMMOM_UTILS_H_

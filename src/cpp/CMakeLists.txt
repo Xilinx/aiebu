@@ -26,6 +26,7 @@ add_library(aiebu_library_objects OBJECT
   ops/ops.cpp
   disassembler/disassembler.cpp
   analyzer/transform_manager.cpp
+  common/${AIEBU_OS_SOURCE_DIR}/metrics.cpp
   )
 
 # Remove globle includes in case of submodule XRT as there are conflicts

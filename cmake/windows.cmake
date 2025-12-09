@@ -37,3 +37,5 @@ add_link_options(
 if (NOT ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "ARM64")
     add_link_options(/CETCOMPAT) # enable Control-flow Enforcement Technology (CET) Shadow Stack mitigation
 endif()
+
+set(AIEBU_OS_SOURCE_DIR windows)

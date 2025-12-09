@@ -6,6 +6,7 @@
 
 #include "utils.h"
 #include "version.h"
+#include "metrics.h"
 
 namespace aiebu {
 
@@ -43,4 +44,12 @@ version_string()
   return stream.str();
 }
 
+std::string
+metrics_report()
+{
+  std::stringstream stream;
+  const process_metrics met = get_process_metrics();
+  stream << "CPU " << met.m_cpu_ms << " ms, Memory " << met.m_peak_kb << " KB";
+  return stream.str();
+}
 }

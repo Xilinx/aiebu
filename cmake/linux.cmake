@@ -9,3 +9,5 @@ if (AIEBU_PYTHON STREQUAL "ON")
   find_program (READELF eu-readelf REQUIRED)
 endif()
 add_compile_options(-Wall -Wextra -Werror -fvisibility=hidden)
+
+set(AIEBU_OS_SOURCE_DIR linux)
