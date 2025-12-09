@@ -93,8 +93,8 @@ public:
 
 class include_directive: public directive
 {
-
   bool read_include_file(std::string filename);
+  bool read_include_buf(std::string name);
 public:
   include_directive() = default;
   void operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm) override;
@@ -112,6 +112,7 @@ public:
 class pad_directive: public directive
 {
   bool read_pad_file(std::string& name, std::string& filename);
+  bool read_pad_buf(std::string& name, std::string& bufname);
 public:
   offset_type convert2int(std::string& str)
   {
@@ -299,7 +300,6 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   bool annotation_state = false;
   std::vector<annotation_type> m_annotation_list;
   std::shared_ptr<partition_info> m_partition;
-  bool m_resolver_flag = false;
   const file_artifact* m_resolver;
 public:
   asm_parser(const std::vector<char>& data, const std::vector<std::string>& include_list, const file_artifact* resolver = nullptr):m_data(data),  m_include_list(include_list), m_resolver(resolver)
@@ -307,8 +307,6 @@ public:
     set_data_state(false);
     m_current_col = -1;
     m_partition = std::make_shared<partition_info>(DEFAULT_COLUMN, 0);
-    if (m_resolver)
-      m_resolver_flag = true;
   }
   void set_data_state(bool state) { isdatastack.push(state); }
 
@@ -328,6 +326,7 @@ public:
 
   const std::vector<std::string>& get_include_list() const { return m_include_list; }
   std::string get_current_label() const { return m_current_label; }
+  const file_artifact* get_resolver() const { return m_resolver;}
 
   std::string top_label() const
   {

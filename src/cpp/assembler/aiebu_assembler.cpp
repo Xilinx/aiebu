@@ -297,9 +297,6 @@ class file_artifact_impl
 
     const std::vector<char>& get(const std::string& name) const
     {
-       for (const auto& it : m_resolver) {
-         std::cout << it.first << " : " << it.second.size() << '\n';
-       }
       auto it = m_resolver.find(name);
       if (it == m_resolver.end())
         throw std::runtime_error("File not found: " + name);
