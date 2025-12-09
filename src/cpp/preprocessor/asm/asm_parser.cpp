@@ -426,3 +426,23 @@ read_pad_buf(std::string& name, std::string& bufname)
   return true;
 }
 }
+
+bool
+pad_directive::
+read_pad_file(std::string& name, std::string& filename)
+{
+  std::ifstream file(filename, std::ios::in | std::ios::binary);
+  if (!file.is_open()) {
+    return false;
+  }
+
+//  std::cout << "Reading file:" << filename << std::endl;
+  std::string line;
+  m_parserptr->set_data_state(false);
+
+  auto data = std::vector<char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  m_parserptr->insert_scratchpad(name, data.size(), data);
+  file.close();
+  return true;
+}
+}
