@@ -120,10 +120,10 @@ public:
         else if (log_level_str == "debug")
           set_log_level(log_level::debug);
         else
-          LOG_WARN() << "Invalid log level flag: " << lib << ", ignored";
+          log_warn() << "Invalid log level flag: " << lib << ", ignored";
       }
       else
-        LOG_WARN() << "Invalid flag: " << lib << ", ignored";
+        log_warn() << "Invalid flag: " << lib << ", ignored";
     }
 
     m_data[".ctrltext"] = mc_code;

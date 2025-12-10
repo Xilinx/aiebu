@@ -98,10 +98,10 @@ private:
     buf_type buf;
 };
 
-// Optimized Logger using array-based storage
-class Logger {
+// Optimized logger using array-based storage
+class logger {
 public:
-    Logger() {
+    logger() {
         // Create one log_stream per level (error uses cerr, others use cout)
         streams[to_index(log_level::error)] = std::make_unique<log_stream>(std::cerr, log_level::error);
         streams[to_index(log_level::warn)]  = std::make_unique<log_stream>(std::cout, log_level::warn);
@@ -132,9 +132,9 @@ private:
 };
 
 // Global logger instance
-inline Logger& get_logger() {
-    static Logger logger;
-    return logger;
+inline std::ostream& get_logger(log_level lvl) {
+    static logger instance;
+    return instance(lvl);
 }
 
 // Public API functions
@@ -154,25 +154,21 @@ inline void disable_verbose_logging() noexcept {
     set_log_level(log_level::warn);
 }
 
-// Optimized log functions with static logger reference
-inline std::ostream& LOG_ERROR() noexcept {
-    static Logger& logger = get_logger();
-    return logger(log_level::error);
+// Log functions
+inline std::ostream& log_error() noexcept {
+    return get_logger(log_level::error);
 }
 
-inline std::ostream& LOG_WARN() noexcept {
-    static Logger& logger = get_logger();
-    return logger(log_level::warn);
+inline std::ostream& log_warn() noexcept {
+    return get_logger(log_level::warn);
 }
 
-inline std::ostream& LOG_INFO() noexcept {
-    static Logger& logger = get_logger();
-    return logger(log_level::info);
+inline std::ostream& log_info() noexcept {
+    return get_logger(log_level::info);
 }
 
-inline std::ostream& LOG_DEBUG() noexcept {
-    static Logger& logger = get_logger();
-    return logger(log_level::debug);
+inline std::ostream& log_debug() noexcept {
+    return get_logger(log_level::debug);
 }
 
 } // namespace aiebu

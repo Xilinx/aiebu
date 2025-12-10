@@ -119,7 +119,7 @@ elf_writer::
 finalize()
 {
   add_note(NT_XRT_UID, ".note.xrt.UID", m_uid.calculate());
-  LOG_INFO() << "UID:" << m_uid.str();
+  log_info() << "UID:" << m_uid.str();
   std::stringstream stream;
   stream << std::noskipws;
   //m_elfio.save( "hello_32" );
