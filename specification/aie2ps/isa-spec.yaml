@@ -731,6 +731,34 @@ operations:
       Used to save the register address values. AIE compiler will also add unique identifier while generating control code.
       Values will be saved in the shared data memory. Whenever the allocated shared memory gets fille, CERT will start uC-DMA
       to transfer data from sDM to host memory.
+  - mnemonic: REL_ACQ_SYNC
+    opcode: 0x21
+    regular: True
+    arguments:
+      - type: pad
+        width: 16
+      - name: rel_address
+        type: const
+        width: 32
+      - name: acq_address
+        type: const
+        width: 32
+    brief: Reads the release address and immediately busy-waits on the acquire address to support the release-acquire lock pattern.
+    description: |
+      This operation allows for implementing a release-acquire lock pattern for compact and  fast global-barrier implementation across all participating uC's
+      The compiler is responsible for allocating the locks and  calculating appropriate relaease and aquire addresses.
+      Example:
+      ```
+      ; rel_address and acq_address shall always refer to the same lock.
+      ; rel_address shall contain a release operation on the lock.
+      ; acq_addres shall contain an acquire operation on the lock.
+      ; rel_val possible values are only -1 or 1
+      ; acq_val possible values are only 0 or numUCsParticipatingInLock
+
+      REL_ACQ_SYNC 0x0205720c, 0x02057004 ; barrierId: 0, lockId: 28, release_aquire relVal: 1  acqVal:  3
+
+      ```
+
 directives:
   - mnemonic: .long
     brief: Specifies a 4 byte integer value.

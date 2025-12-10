@@ -43,6 +43,7 @@ constexpr int OPCODE_LOAD_LAST_PDI = 27;
 constexpr int OPCODE_SAVE_TIMESTAMPS = 28;
 constexpr int OPCODE_SLEEP = 29;
 constexpr int OPCODE_SAVE_REGISTER = 30;
+constexpr int OPCODE_REL_ACQ_SYNC = 33;
 constexpr int OPCODE_ALIGN = 0xA5;
 constexpr int BIT_WIDTH_8 = 8;
 constexpr int BIT_WIDTH_16 = 16;
@@ -189,6 +190,10 @@ public:
 
     (*m_isa)["save_register"] = std::make_shared<isa_op>("save_register", OPCODE_SAVE_REGISTER, std::vector<opArg>{
      opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("address", opArg::optype::CONST, BIT_WIDTH_32), opArg("unq_id", opArg::optype::CONST, BIT_WIDTH_32),
+    });
+
+    (*m_isa)["rel_acq_sync"] = std::make_shared<isa_op>("rel_acq_sync", OPCODE_REL_ACQ_SYNC, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("rel_address", opArg::optype::CONST, BIT_WIDTH_32), opArg("acq_address", opArg::optype::CONST, BIT_WIDTH_32),
     });
 
     (*m_isa)[".align"] = std::make_shared<isa_op>(".align", OPCODE_ALIGN, std::vector<opArg>{});
@@ -338,6 +343,9 @@ public:
 
     m_isa_disasm.emplace(OPCODE_LOAD_CORES_CP, isa_op_disasm("load_cores_cp", OPCODE_LOAD_CORES_CP, std::vector<opArg>{
       opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("core_elf_id", opArg::optype::CONST, BIT_WIDTH_32),
+
+    m_isa_disasm.emplace(OPCODE_REL_ACQ_SYNC, isa_op_disasm("rel_acq_sync", OPCODE_REL_ACQ_SYNC, std::vector<opArg>{
+      opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("rel_address", opArg::optype::CONST, BIT_WIDTH_32), opArg("acq_address", opArg::optype::CONST, BIT_WIDTH_32),
     }));
 
     m_isa_disasm.emplace(OPCODE_EOF, isa_op_disasm("eof", OPCODE_EOF, std::vector<opArg>{

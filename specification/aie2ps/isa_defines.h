@@ -44,6 +44,7 @@ static unsigned int control_op_load_last_pdi(const uint8_t *_pc);
 static unsigned int control_op_save_timestamps(const uint8_t *_pc, uint32_t unq_id);
 static unsigned int control_op_sleep(const uint8_t *_pc, uint32_t target);
 static unsigned int control_op_save_register(const uint8_t *_pc, uint32_t address, uint32_t unq_id);
+static unsigned int control_op_rel_acq_sync(const uint8_t *_pc, uint32_t rel_address, uint32_t acq_address);
 
 
 // Dispatchers
@@ -334,6 +335,15 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_save_r
   );
 }
 
+static inline unsigned int control_dispatch_rel_acq_sync(const uint8_t *pc)
+{
+  return control_op_rel_acq_sync(
+    pc,
+    /* rel_address (const) */ *(uint32_t *)(&pc[4]),
+    /* acq_address (const) */ *(uint32_t *)(&pc[8])
+  );
+}
+
 
 // Case statements for regular operations
 
@@ -365,7 +375,8 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_save_r
   case ISA_OPCODE_LOAD_LAST_PDI: pc += control_dispatch_load_last_pdi(pc); break; \
   case ISA_OPCODE_SAVE_TIMESTAMPS: pc += control_dispatch_save_timestamps(pc); break; \
   case ISA_OPCODE_SLEEP: pc += control_dispatch_sleep(pc); break; \
-  case ISA_OPCODE_SAVE_REGISTER: pc += control_dispatch_save_register(pc); break;
+  case ISA_OPCODE_SAVE_REGISTER: pc += control_dispatch_save_register(pc); break; \
+  case ISA_OPCODE_REL_ACQ_SYNC: pc += control_dispatch_rel_acq_sync(pc); break;
 
 
 #endif

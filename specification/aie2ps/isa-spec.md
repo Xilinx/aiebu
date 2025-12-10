@@ -783,6 +783,29 @@ Values will be saved in the shared data memory. Whenever the allocated shared me
 to transfer data from sDM to host memory.
 
 
+## REL_ACQ_SYNC (0x21)
+
+Reads the release address and immediately busy-waits on the acquire address to support the release-acquire lock pattern.
+
+| 0x21 | - | - | rel_address | acq_address | instruction size |
+| :-: | - | - | - | - | -: |
+| opcode (8b) | pad (8b) | pad (16b) | const (32b) | const (32b) | 12B |
+
+This operation allows for implementing a release-acquire lock pattern for compact and  fast global-barrier implementation across all participating uC's
+The compiler is responsible for allocating the locks and  calculating appropriate relaease and aquire addresses.
+Example:
+```
+; rel_address and acq_address shall always refer to the same lock.
+; rel_address shall contain a release operation on the lock.
+; acq_addres shall contain an acquire operation on the lock.
+; rel_val possible values are only -1 or 1
+; acq_val possible values are only 0 or numUCsParticipatingInLock
+
+REL_ACQ_SYNC 0x0205720c, 0x02057004 ; barrierId: 0, lockId: 28, release_aquire relVal: 1  acqVal:  3
+
+```
+
+
 
 # Directives
 The directive syntax is same as that used by GNU assembler <https://sourceware.org/binutils/docs/as/Pseudo-Ops.html>,
