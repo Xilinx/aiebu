@@ -40,7 +40,7 @@ inline bool is_enabled(log_level lvl) noexcept {
 // Null buffer that discards all output for disabled log levels
 class null_buffer : public std::streambuf {
 protected:
-    virtual int_type overflow(int_type c) override {
+    int_type overflow(int_type c) override {
         return traits_type::not_eof(c);
     }
 };
@@ -57,12 +57,12 @@ private:
     class buf_type : public std::streambuf {
     public:
         buf_type(std::ostream& out, log_level lvl)
-            : sink(out), level(lvl), begun(false) {}
+            : sink(out), level(lvl) {}
 
         void set_level(log_level lvl) { level = lvl; }
 
     protected:
-        virtual int_type overflow(int_type ch) override {
+        int_type overflow(int_type ch) override {
             if (!begun) {
                 sink << '[' << to_string(level) << "] ";
                 begun = true;
@@ -73,7 +73,7 @@ private:
             return traits_type::not_eof(ch);
         }
 
-        virtual int sync() override {
+        int sync() override {
             sink.flush();
             begun = false;  // New message next time
             return 0;
@@ -92,7 +92,7 @@ private:
 
         std::ostream& sink;
         log_level level;
-        bool begun;
+        bool begun{false};
     };
 
     buf_type buf;
