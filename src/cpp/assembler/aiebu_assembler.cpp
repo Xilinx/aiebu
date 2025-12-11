@@ -290,9 +290,9 @@ class file_artifact_impl
       m_resolver[name] = buffer;
     }
 
-    void add_vfile(std::string&& name, std::vector<char>&& buffer)
+    void add_vfile(std::string& name, std::vector<char>&& buffer)
     {
-      m_resolver[std::move(name)] = std::move(buffer);
+      m_resolver[name] = std::move(buffer);
     }
 
     const std::vector<char>& get(const std::string& name) const
@@ -322,9 +322,9 @@ add_vfile(const std::string& name, const std::vector<char>& buffer)
 
 void
 file_artifact::
-add_vfile(std::string&& name, std::vector<char>&& buffer)
+add_vfile(std::string& name, std::vector<char>&& buffer)
 {
-  pimpl->add_vfile(std::move(name), std::move(buffer));
+  pimpl->add_vfile(name, std::move(buffer));
 }
 
 const std::vector<char>&

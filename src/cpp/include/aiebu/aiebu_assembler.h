@@ -39,27 +39,44 @@ namespace aiebu {
 };
 
 class file_artifact_impl;
+
+/*
+ * The file_artifact class provides an interface for managing
+ * virtual files (in-memory buffers).
+ * It uses PIMPL (file_artifact_impl) to encapsulate internal data and logic
+ */
 class file_artifact
 {
   public:
     file_artifact();
     ~file_artifact();
-    /**
-     * Add a virtual file into the artifact by reference.
+    /*
+     * Add a virtual file (in-memory buffer) into the artifact by reference.
      *
-     * Note: it involvs copy of name and the buffer. But the call still
+     * Note: it involvs copy of name and the buffer. But the caller still
      * owns the name and buffer
+     * @param name   name of the buffer or virtual file.
+     * @param buffer contents stored as a vector of chars.
      */
     void add_vfile(const std::string& name, const std::vector<char>& buffer);
-    /**
-     * Add a virtual file into the artifact by rvalue.
+    /*
+     * Add a virtual file (in-memory buffer) into the artifact by rvalue.
      *
-     * Note: there are no extra copy of name and the buffer. But the ownership
-     * of them are transferred.
+     * Note: there is no extra copy of the buffer. But the ownership
+     * of the buffer is transferred.
+     *
+     * @param name   name of the buffer or virtual file.
+     * @param buffer contents stored as a vector of chars.
      */
-    void add_vfile(std::string&& name, std::vector<char>&& buffer);
+    void add_vfile(std::string& name, std::vector<char>&& buffer);
 
-    const std::vector<char>& get(const std::string& filename) const;
+    /*
+     * Retrieve the contents of a virual file (in-memory buffer) from the artifact.
+     *
+     * @param name   name of the in-mem buffer/virtual file.
+     * @return buffer contents in a vector of chars.
+     */
+    const std::vector<char>& get(const std::string& name) const;
   private:
     std::unique_ptr<file_artifact_impl> pimpl;
 };
@@ -153,19 +170,22 @@ class aiebu_assembler
               const std::vector<char>& patch_json = {});
 
     /*
-     * In memory api.
+     * In memory api for full elfs.
      * Construct aiebu_assembler from config json buffer and in memory buffers
-     * 
+     *
      * @type:               ELF buffer type (aie2_config, aie2ps_config, aie4_config)
      * @config_json_buffer: Config json content
-     * @artifact:           file_artifact object contains the mapping between file path
-     *                      and its binary
-     */     
+     * @artifact:           file_artifact object contains the mapping between
+     *                      virtual file (in-memory buffer) name and its binary
+     * @flags:              for passing configuration flags to the assembler
+     *                      ex: disabledump (disable debug dump),
+     *                          fulldump (enable debug dump),
+     *                          opt_level_1 (for optimization)
+     */
     aiebu_assembler(buffer_type type,
                     const std::vector<char>& config_json_buffer,
                     file_artifact& artifact,
                     const std::vector<std::string>& flags);
-
 
     /*
      * This function return vector with elf content.

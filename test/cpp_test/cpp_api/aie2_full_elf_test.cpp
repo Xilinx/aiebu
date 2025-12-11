@@ -53,7 +53,7 @@ int main(int argc, char ** argv)
     aiebu::file_artifact resolver;
     std::vector<char> control_code;
     aiebu_ReadFile(testcase_path+"/ml_txn_lp.bin", control_code);
-    resolver.add_vfile("ml_txn_lp.bin", control_code);
+    resolver.add_vfile("ml_txn_lp.bin", std::move(control_code));
     std::vector<char> config_json;
     aiebu_ReadFile(testcase_path+"/config.json", config_json);
     std::vector<char> pdi_file;
