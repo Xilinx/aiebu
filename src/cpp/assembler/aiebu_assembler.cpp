@@ -329,9 +329,11 @@ add_vfile(std::string& name, std::vector<char>&& buffer)
 
 const std::vector<char>&
 file_artifact::
-get(const std::string& filename) const {
-        return pimpl->get(filename);
+get(const std::string& name) const
+{
+  return pimpl->get(name);
 }
+
 }
 
 int
