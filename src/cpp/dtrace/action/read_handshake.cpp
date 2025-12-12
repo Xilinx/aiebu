@@ -81,7 +81,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
         (last << dtrace::dtrace_ctrl::second_byte_shift) | action_type::handshake_read
     );
     // read offset saved in decimal format
-    control_buffer.push_back(std::stoul(m_arguments[0]);
+    control_buffer.push_back(std::stoul(m_arguments[0]));
     set_location(control_buffer, false);
     // return value
     control_buffer.push_back(0);
