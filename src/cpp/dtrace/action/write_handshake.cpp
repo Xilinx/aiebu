@@ -74,8 +74,8 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     control_buffer.push_back(
         (last << dtrace::dtrace_ctrl::second_byte_shift) | action_type::handshake_write
     );
-    // write offset
-    control_buffer.push_back(std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
+    // write offset saved in decimal format
+    control_buffer.push_back(std::stoul(m_arguments[0]));
     set_location(control_buffer, false);
     // write value
     control_buffer.push_back(std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
@@ -102,7 +102,7 @@ serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t
     if (handshake_value == dtrace::dtrace_ctrl::handshake_overflow)
     {
         std::stringstream handshake_offset;
-        handshake_offset << "0x" << std::hex << (std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base) * sizeof(uint32_t));
+        handshake_offset << "0x" << std::hex << (std::stoul(m_arguments[0]) * sizeof(uint32_t));
         output_action << "  " << "print(\"[WARNING] HANDSHAKE OVERFLOW (" << handshake_offset.str() << ")\")\n";
     }
     else
