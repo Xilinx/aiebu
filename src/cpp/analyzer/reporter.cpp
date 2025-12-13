@@ -182,6 +182,16 @@ namespace aiebu {
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
             disassemble_blob(stream);
         }
+        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::unspecified) {
+            // Treat unspecified buffer type as raw binary data
+            try {
+                aiebu::asm_disassembler disasm(m_buffer, stream, true);
+                disasm.run();
+            } catch (const std::exception& ex) {
+                throw error(error::error_code::internal_error,
+                    "Binary disassembler error: " + std::string(ex.what()));
+            }
+        }
         else {
             throw error(error::error_code::invalid_buffer_type,
                   "Invalid buffer type for disassembly");

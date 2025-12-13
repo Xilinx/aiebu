@@ -135,7 +135,8 @@ int main(int argc, char* argv[])
     }
     else if (result["disassemble"].as<bool>()) {
       if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2 ||
-          type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
+          type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction ||
+          type == aiebu::aiebu_assembler::buffer_type::unspecified) {
         rep.disassemble(std::cout);
       }
     }
@@ -145,6 +146,9 @@ int main(int argc, char* argv[])
       }
       else if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
         rep.disassemble(result["filename"].as<std::string>(), true);
+      }
+      else if (type == aiebu::aiebu_assembler::buffer_type::unspecified) {
+        rep.disassemble(std::cout, true);
       }
     }
     else if (result["private-headers"].as<bool>()) {

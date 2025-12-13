@@ -137,11 +137,15 @@ public:
   }
 
   uint16_t read_uint16(const char* data) {
-    return static_cast<uint16_t>(data[0] | (data[1] << byte_shift_8));
+    return static_cast<uint16_t>(static_cast<uint8_t>(data[0])) | 
+           (static_cast<uint16_t>(static_cast<uint8_t>(data[1])) << byte_shift_8);
   }
 
   uint32_t read_uint32(const char* data) {
-    return static_cast<uint32_t>(data[0] | (data[1] << byte_shift_8) | (data[2] << byte_shift_16) | (data[3] << byte_shift_24));
+    return static_cast<uint32_t>(static_cast<uint8_t>(data[0])) | 
+           (static_cast<uint32_t>(static_cast<uint8_t>(data[1])) << byte_shift_8) | 
+           (static_cast<uint32_t>(static_cast<uint8_t>(data[2])) << byte_shift_16) | 
+           (static_cast<uint32_t>(static_cast<uint8_t>(data[3])) << byte_shift_24);
   }
 
   uint32_t get_arg_val(const char* data, uint32_t len) {

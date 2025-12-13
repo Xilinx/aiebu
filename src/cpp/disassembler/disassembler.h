@@ -16,7 +16,12 @@ namespace aiebu {
 
 class asm_disassembler {
 public:
+    // Constructor for ELF input files
     asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream);
+    
+    // Constructor for binary input files
+    asm_disassembler(const std::vector<char>& binary_data, std::ostream& output_stream, bool is_binary);
+    
     ~asm_disassembler() = default;
 
     // Delete copy constructor and copy assignment operator
@@ -34,12 +39,18 @@ private:
     asm_writer m_asm_writer;
     const std::map<uint8_t, isa_op_disasm>* isa_op_map;
     isa_disassembler isa_disasm;
+    std::vector<char> m_binary_data;
+    bool m_is_binary_mode;
 
     void process_sections();
+    void process_binary();
     void print_section_info(const ELFIO::section* section) ;
     void process_text_section(const ELFIO::section* section, std::shared_ptr<disassembler_state> state);
     void process_data_section(const ELFIO::section* section, std::shared_ptr<disassembler_state> state);
     void process_pad_section(const ELFIO::section* /*section*/, std::shared_ptr<disassembler_state> /*state*/);
+    void process_binary_data(const char* data, size_t size, std::shared_ptr<disassembler_state> state);
+    void process_data_section_binary(const char* data, size_t size, std::shared_ptr<disassembler_state> state);
+    size_t detect_binary_header_offset() const;
     bool is_text_section(const std::string& section_name) const;
     bool is_data_section(const std::string& section_name) const;
 };

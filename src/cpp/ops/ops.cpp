@@ -300,9 +300,34 @@ handle_generic_const_arg(const opArg& arg, uint32_t val)
     val = val / 2;
   }
 
-  // Format as hexadecimal string
   std::ostringstream oss;
-  oss << "0x" << std::uppercase << std::hex << val;
+  
+  // Formatting rules based on ISA spec and original assembly patterns:
+  // 1. Addresses: always hex
+  // 2. Large data/value/mask fields (> 0xFFFF): hex (bit patterns, test data)
+  // 3. Small values, counts, IDs: decimal
+  
+  bool format_as_hex = false;
+  std::string arg_name = arg.get_name();
+  
+  if (val == offset_type_marker) {
+    // Special marker 0xFFFF for control code base address patching
+    format_as_hex = true;
+  } else if (arg_name == "address" || arg_name.find("addr") != std::string::npos) {
+    // Memory addresses should always be hex
+    format_as_hex = true;
+  } else if ((arg_name == "data" || arg_name == "value" || arg_name == "mask") && val > 0xFFFF) {
+    // Large data/value/mask fields are typically hex (bit patterns like 0xabcdabcd, 0x80000001)
+    format_as_hex = true;
+  }
+  
+  if (format_as_hex) {
+    oss << "0x" << std::uppercase << std::hex << val;
+  } else {
+    // Format as decimal for small values, counts, IDs, sizes, and flags
+    oss << val;
+  }
+  
   return oss.str();
 }
 
@@ -405,6 +430,11 @@ deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const
             default:
                 throw std::runtime_error("Invalid argument type!");
         }
+    }
+
+    // Write .eop directive before eof instruction
+    if (m_opcode->get_code_name() == "eof") {
+        writer.write_eop();
     }
 
     state->increment_address(size);
