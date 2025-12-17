@@ -15,6 +15,7 @@
 #include "aiebu/aiebu_assembler.h"
 #include "aiebu/aiebu_error.h"
 
+#include <climits>
 #include <map>
 #include <string>
 
@@ -411,7 +412,11 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
 
     aiebu::aiebu_assembler handler((aiebu::aiebu_assembler::buffer_type)type, v1, v2, v3, vlibs, vlibpaths, mctrlpkt);
     velf = handler.get_elf();
-    char *aelf = static_cast<char*>(std::malloc(sizeof(char)*velf.size()));
+
+    if (velf.size() > SSIZE_MAX) {
+      throw std::bad_alloc();
+    }
+    char* aelf = static_cast<char*>(std::malloc(velf.size()));
     std::copy(velf.begin(), velf.end(), aelf);
     *elf_buf = (void*)aelf;
     ret =  static_cast<int>(velf.size());
