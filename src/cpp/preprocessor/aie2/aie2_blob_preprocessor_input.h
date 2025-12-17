@@ -102,7 +102,7 @@ public:
                         const std::vector<std::string>& libs,
                         const std::vector<std::string>& /*libpaths*/,
                         const std::map<uint32_t, std::vector<char> >& ctrlpkt,
-                        file_artifact* /*resolver*/ = nullptr) override
+                        const file_artifact* /*resolver*/ = nullptr) override
   {
     const std::string loglevel_prefix = "loglevel_";
    
@@ -160,7 +160,7 @@ public:
                        const std::vector<std::string>& /*libpaths*/,
                        const std::vector<uint32_t>& pmid_list,
                        const std::vector<std::string>& pdi_list,
-                       file_artifact* /*resolver*/ = nullptr)
+                       const file_artifact* /*resolver*/ = nullptr)
   {
     arg_offset = 0;
     m_data[".ctrltext"] = mc_code;
@@ -235,7 +235,7 @@ public:
                         const std::vector<std::string>& libs,
                         const std::vector<std::string>& libpaths,
                         const std::map<uint32_t, std::vector<char> >& ctrlpkt,
-                        file_artifact* /*resolver*/ = nullptr) override
+                        const file_artifact* /*resolver*/ = nullptr) override
   {
     aie2_blob_preprocessor_input::set_args(mc_code, patch_json, control_packet, libs, libpaths, ctrlpkt);
     resize_scratchpad(preempt_save);
@@ -249,7 +249,7 @@ public:
                 const std::vector<std::string>& libpaths,
                 const std::vector<uint32_t>& pmid_list,
                 const std::vector<std::string>& pdi_list,
-                file_artifact* /*resolver*/ = nullptr) override
+                const file_artifact* /*resolver*/ = nullptr) override
   {
     aie2_blob_preprocessor_input::set_args(mc_code, patch_json, control_packet, flags, libpaths, pmid_list, pdi_list);
     resize_scratchpad(preempt_save);
@@ -360,7 +360,7 @@ public:
                 const std::vector<std::string>& libs,
                 const std::vector<std::string>& libpaths,
                 const std::map<uint32_t, std::vector<char> >& ctrlpkt,
-                file_artifact* /*resolver*/ = nullptr) override
+                const file_artifact* /*resolver*/ = nullptr) override
   {
     const std::vector<char> mc_code = encode(mc_asm_code);
     aie2_blob_transaction_preprocessor_input::set_args(mc_code, patch_json, control_packet, libs, libpaths, ctrlpkt);
@@ -408,10 +408,11 @@ class aie2_config_preprocessor_input : public aie2_blob_transaction_preprocessor
 {
   static constexpr const char* pm_ctrlpkt_type = "pmctrlpkt";
   std::map<std::string, instance_input> kernel_map;
+  const file_artifact* m_artifacts = nullptr;
 protected:
-  void readconfigjson(std::istream& patch_json, const std::vector<std::string>& paths, file_artifact* resolver);
-  void add_pdi(const std::string& kernel, const boost::property_tree::ptree& pinstance, const std::vector<std::string>& paths, file_artifact* resolver);
-  void add_instance(const std::string& kernel, const boost::property_tree::ptree& pinstance,const std::vector<std::string>& paths, file_artifact* resolver);
+  void readconfigjson(std::istream& patch_json, const std::vector<std::string>& paths);
+  void add_pdi(const std::string& kernel, const boost::property_tree::ptree& pinstance, const std::vector<std::string>& paths);
+  void add_instance(const std::string& kernel, const boost::property_tree::ptree& pinstance,const std::vector<std::string>& paths);
 
   std::string get_pdi_name(uint32_t pdi_id)
   {
@@ -429,14 +430,15 @@ public:
                 const std::vector<std::string>& /*libs*/,
                 const std::vector<std::string>& libpaths,
                 const std::map<uint32_t, std::vector<char> >& /*ctrlpkt*/,
-                file_artifact* resolver = nullptr) override  
+                const file_artifact* artifacts = nullptr) override  
 {
     arg_offset = 0;
     if (patch_json.size() !=0)
     {
+      m_artifacts = artifacts;
       vector_streambuf vsb(patch_json);
       std::istream elf_stream(&vsb);
-      readconfigjson(elf_stream, libpaths, resolver);
+      readconfigjson(elf_stream, libpaths);
     }
   }
 

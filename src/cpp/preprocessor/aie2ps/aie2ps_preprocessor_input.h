@@ -27,7 +27,7 @@ protected:
 
   std::vector<std::string> m_libpaths;
   std::vector<std::string> m_flags;
-  file_artifact* m_resolver = nullptr; 
+  const file_artifact* m_artifacts = nullptr;
   uint32_t m_control_packet_index = 0xFFFFFFFF;
   uint32_t m_control_packet_offset_correction = 8;
   enum class offset_type {
@@ -55,19 +55,19 @@ public:
   const std::vector<std::string>& get_include_paths() const { return m_libpaths; }
   uint32_t get_control_packet_index() const { return m_control_packet_index; }
   const std::vector<std::string>& get_flags() const { return m_flags; }
-  const file_artifact* get_resolver() const { return m_resolver; }
+  const file_artifact* get_artifacts() const { return m_artifacts; }
   virtual void set_args(const std::vector<char>& control_code,
                         const std::vector<char>& patch_json,
                         const std::vector<char>& /*buffer2*/,
                         const std::vector<std::string>& flags,
                         const std::vector<std::string>& libpaths,
                         const std::map<uint32_t, std::vector<char> >& /*ctrlpkt*/,
-                        file_artifact* resolver = nullptr) override
+                        const file_artifact* artifacts = nullptr) override
   {
     m_libpaths = libpaths;
     m_flags = flags;
     m_data["control_code"] = control_code;
-    m_resolver = resolver;
+    m_artifacts = artifacts;
     if (patch_json.size() !=0 )
     {
       vector_streambuf vsb(patch_json);
@@ -102,6 +102,7 @@ public:
 
 class asm_config_preprocessor_input : public preprocessor_input
 {
+  const file_artifact* m_artifacts = nullptr;
 protected: // NOLINT
   std::map<std::string, std::map<std::string, std::shared_ptr<asm_preprocessor_input>>> m_preprocessor_input;
 public:
@@ -111,8 +112,7 @@ public:
   void add_instance(const std::string& kernel,
                     const boost::property_tree::ptree& pinstance,
                     const std::vector<std::string>& flags,
-                    const std::vector<std::string>& paths,
-                    file_artifact* resolver)
+                    const std::vector<std::string>& paths)
   {
 
     for (const auto& [unused, pic] : pinstance)
@@ -123,17 +123,16 @@ public:
 
       std::vector<char> ccode;
       std::vector<char> jdata;      
-      ccode = resolver ? resolver->get(ccode_file_name):readfile(ccode_file_name, paths);
+      ccode = m_artifacts->get(ccode_file_name, paths);
       if (!patch_json_file.empty())
-        jdata = resolver ? resolver->get(patch_json_file):readfile(patch_json_file, paths);
-      add_preprocessor_input(kernel, tname, ccode, jdata, flags, paths, resolver);
+        jdata = m_artifacts->get(patch_json_file, paths);
+      add_preprocessor_input(kernel, tname, ccode, jdata, flags, paths, m_artifacts);
     }
   }
 
   void parse_config_json(std::istream& patch_json,
                          const std::vector<std::string>& flags,
-                         const std::vector<std::string>& paths,
-                         file_artifact* resolver)
+                         const std::vector<std::string>& paths)
   {
     boost::property_tree::ptree pt;
     boost::property_tree::read_json(patch_json, pt);
@@ -165,7 +164,7 @@ public:
       const auto& pt_instance = ctrlcode.get_child_optional("instance");
       if (pt_instance) {
         const auto& pinstance = pt_instance.get();
-        add_instance(mangled_name, pinstance, flags, paths, resolver);
+        add_instance(mangled_name, pinstance, flags, paths);
       } else {
         log_warn() << "instance not found";
       }
@@ -178,13 +177,14 @@ public:
                 const std::vector<std::string>& libs,
                 const std::vector<std::string>& libpaths,
                 const std::map<uint32_t, std::vector<char> >& /*ctrlpkt*/,
-                file_artifact* resolver = nullptr) override
+                const file_artifact* artifacts = nullptr) override
   {
     if (patch_json.size() !=0)
     {
+      m_artifacts = artifacts;
       vector_streambuf vsb(patch_json);
       std::istream elf_stream(&vsb);
-      parse_config_json(elf_stream, libs, libpaths, resolver);
+      parse_config_json(elf_stream, libs, libpaths);
     }
   }
 
@@ -193,7 +193,8 @@ public:
                                       const std::vector<char>& /*control_code*/,
                                       const std::vector<char>& /*patch_json*/,
                                       const std::vector<std::string>& /*flags*/,
-                                      const std::vector<std::string>& /*paths*/, file_artifact* relosver) = 0;
+                                      const std::vector<std::string>& /*paths*/,
+                                      const file_artifact* artifacts) = 0;
 
   ~asm_config_preprocessor_input() override = default;
 };
@@ -207,10 +208,11 @@ public:
                               const std::vector<char>& control_code,
                               const std::vector<char>& patch_json,
                               const std::vector<std::string>& flags,
-                              const std::vector<std::string>& paths, file_artifact* resolver) override
+                              const std::vector<std::string>& paths,
+                              const file_artifact* artifacts) override
   {
     auto input = std::make_shared<T>();
-    input->set_args(control_code, patch_json, {}, flags, paths, {}, resolver);
+    input->set_args(control_code, patch_json, {}, flags, paths, {}, artifacts);
     m_preprocessor_input[kernel][instance] = input;
   }
 };

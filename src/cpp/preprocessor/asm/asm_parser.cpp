@@ -250,34 +250,17 @@ bool
 include_directive::
 read_include_file(std::string filename)
 {
-  std::ifstream file(filename);
-  if (!file.is_open()) {
-    return false;
-  }
-  log_info() << "Reading file:" << filename;
-  std::string line;
   m_parserptr->set_data_state(false);
-
-  auto data = std::vector<char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-  m_parserptr->parse_lines(data, filename);
-  file.close();
-  m_parserptr->pop_data_state();
-  return true;
-}
-
-bool
-include_directive::
-read_include_buf(std::string name)
-{
   std::vector<char> data;
+  log_info() << "Reading contents from virtual or disk file:" << filename;
   try {
-    data = m_parserptr->get_resolver()->get(name);
+    if (!m_parserptr->get_artifacts()) return false;
+    data = m_parserptr->get_artifacts()->get(filename, m_parserptr->get_include_list());
   } catch (const std::runtime_error& e) {
-    log_error() << "Error reading buffer from resolver: " << e.what();
+    log_error() << "Error reading buffer from artifacts: " << e.what();
     return false;
   }
-  m_parserptr->set_data_state(false);
-  m_parserptr->parse_lines(data, name);
+  m_parserptr->parse_lines(data, filename);
   m_parserptr->pop_data_state();
   return true;
 }
@@ -292,27 +275,8 @@ operate(std::shared_ptr<asm_parser> parserptr, const smatch& sm)
   if (file.size() >= 2 && file.front() == '"' && file.back() == '"')
     file =  file.substr(1, file.size() - 2);
 
-  if (m_parserptr->get_resolver())
-  {
-    if (read_include_buf(file))
-      return;
-    throw error(error::error_code::internal_error, "buffer " + file + " not exist\n");
-  }
-
-  if (is_absolute_path(file))
-  {
-    if (!read_include_file(file))
-      throw error(error::error_code::internal_error, "File " + file + " not exist\n");
+  if (read_include_file(file))
     return;
-  }
-
-  for (auto& path : m_parserptr->get_include_list())
-  {
-    std::string fullpath = path + "/" + file;
-    if (read_include_file(fullpath))
-      return;
-  }
-
   throw error(error::error_code::internal_error, "File " + file + " not exist\n");
 }
 
@@ -367,27 +331,8 @@ add_scratchpad(std::string& name, std::string& str) {
   if (file.front() == '"' && file.back() == '"')
     file = str.substr(1, str.size() - 2);
 
-  if (m_parserptr->get_resolver())
-  {
-    if (read_pad_buf(name, file))
-      return;
-    throw error(error::error_code::internal_error, "buffer " + file + " not exist\n");
-  }
-
-  if (is_absolute_path(file))
-  {
-    if (!read_pad_file(name, file))
-      throw error(error::error_code::internal_error, "File " + file + " not exist\n");
+  if (read_pad_file(name, file))
     return;
-  }
-
-  for (auto& path : m_parserptr->get_include_list())
-  {
-    std::string fullpath = path + "/" + file;
-    if (read_pad_file(name, fullpath))
-      return;
-  }
-
   throw error(error::error_code::internal_error, "File " + file + " not exist\n");
 }
 
@@ -395,31 +340,15 @@ bool
 pad_directive::
 read_pad_file(std::string& name, std::string& filename)
 {
-  std::ifstream file(filename, std::ios::in | std::ios::binary);
-  if (!file.is_open()) {
-    return false;
-  }
 
-  log_info() << "Reading file:" << filename;
-  std::string line;
+  log_info() << "Reading contents from virtual or disk file:" << filename;
   m_parserptr->set_data_state(false);
-
-  auto data = std::vector<char>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-  m_parserptr->insert_scratchpad(name, data.size(), data);
-  file.close();
-  return true;
-}
-
-bool
-pad_directive::
-read_pad_buf(std::string& name, std::string& bufname)
-{
   std::vector<char> data;
-  m_parserptr->set_data_state(false);
   try {
-    data = m_parserptr->get_resolver()->get(bufname);
+    if (!m_parserptr->get_artifacts()) return false;
+    data = m_parserptr->get_artifacts()->get(filename, m_parserptr->get_include_list());
   } catch (const std::runtime_error& e) {
-    log_error() << "Error reading buffer from resolver: " << e.what();
+    log_error() << "Error reading buffer from artifacts: " << e.what();
     return false;
   }
   m_parserptr->insert_scratchpad(name, data.size(), data);

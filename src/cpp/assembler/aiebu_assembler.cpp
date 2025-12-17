@@ -37,7 +37,7 @@ aiebu_assembler(buffer_type type,
                 const std::vector<char>& patch_json,
                 const std::vector<std::string>& libs,
                 const std::vector<std::string>& libpaths,
-                const std::map<uint32_t, std::vector<char> >& ctrlpkt) : m_type(type)
+                const std::map<uint32_t, std::vector<char> >& ctrlpkt) : m_type(type), artifacts()
 {
   if (type == buffer_type::blob_instr_dpu)
   {
@@ -60,31 +60,31 @@ aiebu_assembler(buffer_type type,
   else if (type == buffer_type::asm_aie2ps)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_asm);
-    elf_data = a.process(buffer1, libs, libpaths, patch_json);
+    elf_data = a.process(buffer1, libs, libpaths, patch_json, {}, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps;
   }
   else if (type == buffer_type::aie2_config)
   {
     aiebu::assembler a(assembler::elf_type::aie2_config);
-    elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
+    elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2_config;
   }
   else if (type == buffer_type::asm_aie4)
   {
     aiebu::assembler a(assembler::elf_type::aie4_asm);
-    elf_data = a.process(buffer1, libs, libpaths, patch_json);
+    elf_data = a.process(buffer1, libs, libpaths, patch_json, {}, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie4;
   }
   else if (type == buffer_type::aie2ps_config)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_config);
-    elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
+    elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config;
   }
   else if (type == buffer_type::aie4_config)
   {
     aiebu::assembler a(assembler::elf_type::aie4_config);
-    elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
+    elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie4_config;
   }
   else {
@@ -95,25 +95,25 @@ aiebu_assembler(buffer_type type,
 aiebu_assembler::
 aiebu_assembler(buffer_type type,
                 const std::vector<char>& config_json_buffer,
-                file_artifact& artifact,
+                const file_artifact& artifacts,
                 const std::vector<std::string>& flags)
 {
   if (type == buffer_type::aie2_config)
   {
     aiebu::assembler a(assembler::elf_type::aie2_config);
-    elf_data = a.process(flags, config_json_buffer, &artifact);
+    elf_data = a.process({}, flags, {}, config_json_buffer, {}, {},&artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2_config;
   }
   else if (type == buffer_type::aie2ps_config)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_config);
-    elf_data = a.process(flags, config_json_buffer, &artifact);
+    elf_data = a.process({}, flags, {}, config_json_buffer, {}, {},&artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config;
   }
   else if (type == buffer_type::aie4_config)
   {
     aiebu::assembler a(assembler::elf_type::aie4_config);
-    elf_data = a.process(flags, config_json_buffer, &artifact);
+    elf_data = a.process({}, flags, {}, config_json_buffer, {}, {},&artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie4_config;
   }
   else {
@@ -287,24 +287,32 @@ class file_artifact_impl
   public:
     void add_vfile(const std::string& name, const std::vector<char>& buffer)
     {
-      m_resolver[name] = buffer;
+      m_artifacts[name] = buffer;
     }
 
     void add_vfile(std::string& name, std::vector<char>&& buffer)
     {
-      m_resolver[name] = std::move(buffer);
+      m_artifacts[name] = std::move(buffer);
     }
 
     const std::vector<char>& get(const std::string& name) const
     {
-      auto it = m_resolver.find(name);
-      if (it == m_resolver.end())
-        throw std::runtime_error("File not found: " + name);
-      return it->second;
+      auto it = m_artifacts.find(name);
+      if (it != m_artifacts.end())
+        return it->second;
+      throw error(error::error_code::invalid_input, "entry not found in artifacts"); 
+    }
+
+    std::vector<char> get(const std::string& name, const std::vector<std::string>& paths) const
+    {
+      auto it = m_artifacts.find(name);
+      if (it != m_artifacts.end()) 
+        return it->second;
+      return readfile(name, paths);
     }
 
   private:
-    std::unordered_map<std::string, std::vector<char>> m_resolver;
+    std::unordered_map<std::string, std::vector<char>> m_artifacts;
 };
 
 file_artifact::
@@ -332,6 +340,13 @@ file_artifact::
 get(const std::string& name) const
 {
   return pimpl->get(name);
+}
+
+std::vector<char>
+file_artifact::
+get(const std::string& name, const std::vector<std::string>& paths) const
+{
+  return pimpl->get(name, paths);
 }
 
 }

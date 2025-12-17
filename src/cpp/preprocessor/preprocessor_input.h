@@ -70,7 +70,7 @@ public:
                         const std::vector<std::string>&,
                         const std::vector<std::string>&,
                         const std::map<uint32_t, std::vector<char> >& ctrlpkt,
-                        file_artifact* /*resolver*/ = nullptr) = 0;
+                        const file_artifact* /*resolver*/ = nullptr) = 0;
 
   const std::vector<std::string> get_keys()
   {

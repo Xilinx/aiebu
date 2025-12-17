@@ -955,7 +955,7 @@ add_preemption_code(uint32_t col)
 
   void
   aie2_config_preprocessor_input::
-  add_pdi(const std::string& kernel, const boost::property_tree::ptree& pdis, const std::vector<std::string>& paths, file_artifact* resolver)
+  add_pdi(const std::string& kernel, const boost::property_tree::ptree& pdis, const std::vector<std::string>& paths)
   {
     for (const auto& [unused, pdi] : pdis)
     {
@@ -963,11 +963,11 @@ add_preemption_code(uint32_t col)
       auto type = pdi.get_optional<std::string>("type");
       if (type && !type.get().compare(pm_ctrlpkt_type))
       {
-        std::vector<char> data = resolver ? resolver->get(pdi.get<std::string>("PDI_file")):readfile(pdi.get<std::string>("PDI_file"), paths);
+        std::vector<char> data = m_artifacts->get(pdi.get<std::string>("PDI_file"),paths);
         kernel_map[kernel].add_common_data(get_pmctrlpkt_name(id), data);
         kernel_map[kernel].add_pm_id(id);
       } else {
-        std::vector<char> data = resolver ? resolver->get(pdi.get<std::string>("PDI_file")):readfile(pdi.get<std::string>("PDI_file"), paths);
+        std::vector<char> data = m_artifacts->get(pdi.get<std::string>("PDI_file"), paths);
         kernel_map[kernel].add_common_data(get_pdi_name(id), data);
         kernel_map[kernel].add_pdi_id(get_pdi_name(id));
       }
@@ -976,7 +976,7 @@ add_preemption_code(uint32_t col)
 
   void
   aie2_config_preprocessor_input::
-  add_instance(const std::string& kernel, const boost::property_tree::ptree& pinstance, const std::vector<std::string>& paths, file_artifact* resolver)
+  add_instance(const std::string& kernel, const boost::property_tree::ptree& pinstance, const std::vector<std::string>& paths)
   {
     for (const auto& [unused, pic] : pinstance)
     {
@@ -985,21 +985,21 @@ add_preemption_code(uint32_t col)
       std::vector<char> txn_code;
 
       std::string tname = pic.get<std::string>("id");
-      txn_code = resolver ? resolver->get(pic.get<std::string>("TXN_ctrl_code_file")):readfile(pic.get<std::string>("TXN_ctrl_code_file"), paths);
+      txn_code = m_artifacts->get(pic.get<std::string>("TXN_ctrl_code_file"), paths);
       if (!pic.get<std::string>("ctrl_packet_file", "").empty())
-        ctrl_pkt_code =  resolver ? resolver->get(pic.get<std::string>("ctrl_packet_file")):readfile(pic.get<std::string>("ctrl_packet_file"), paths);
+        ctrl_pkt_code =  m_artifacts->get(pic.get<std::string>("ctrl_packet_file"), paths);
       if (!pic.get<std::string>("patch_info_file", "").empty())
-        jdata = resolver ? resolver->get(pic.get<std::string>("patch_info_file")):readfile(pic.get<std::string>("patch_info_file"), paths);
+        jdata = m_artifacts->get(pic.get<std::string>("patch_info_file"), paths);
       auto instance = std::make_shared<aie2_blob_transaction_preprocessor_input>();
 
       kernel_map[kernel].add_instance(tname, instance);
-      instance->set_args(txn_code, jdata, ctrl_pkt_code, {}, {}, kernel_map[kernel].get_pm_id_list(), kernel_map[kernel].get_pdi_id_list(), resolver);
+      instance->set_args(txn_code, jdata, ctrl_pkt_code, {}, {}, kernel_map[kernel].get_pm_id_list(), kernel_map[kernel].get_pdi_id_list());
     }
   }
 
   void
   aie2_config_preprocessor_input::
-  readconfigjson(std::istream& patch_json, const std::vector<std::string>& paths, file_artifact* resolver)
+  readconfigjson(std::istream& patch_json, const std::vector<std::string>& paths)
   {
     boost::property_tree::ptree pt;
     boost::property_tree::read_json(patch_json, pt);
@@ -1026,7 +1026,7 @@ add_preemption_code(uint32_t col)
       const auto& pt_pdis = ctrlcode.get_child_optional("PDIs");
       if (pt_pdis) {
         const auto& pdis = pt_pdis.get();
-        add_pdi(mangled_name, pdis, paths, resolver);
+        add_pdi(mangled_name, pdis, paths);
       } else {
         log_warn() << "PDIs not found";
       }
@@ -1034,7 +1034,7 @@ add_preemption_code(uint32_t col)
       const auto& pt_instance = ctrlcode.get_child_optional("instance");
       if (pt_instance) {
         const auto& pinstance = pt_instance.get();
-        add_instance(mangled_name, pinstance, paths, resolver);
+        add_instance(mangled_name, pinstance, paths);
       } else {
         log_warn() << "instance not found";
       }

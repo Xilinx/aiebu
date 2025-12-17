@@ -9,7 +9,6 @@
 #include <vector>
 
 namespace aiebu {
-//#if 0
 
 /*!
  * @struct instinfo
@@ -71,12 +70,22 @@ class file_artifact
     void add_vfile(std::string& name, std::vector<char>&& buffer);
 
     /*
-     * Retrieve the contents of a virual file (in-memory buffer) from the artifact.
+     * Retrieve the contents of a virual file (in-memory buffer) from the artifacts
      *
      * @param name   name of the in-mem buffer/virtual file.
      * @return buffer contents in a vector of chars.
      */
     const std::vector<char>& get(const std::string& name) const;
+    /*
+     * Retrieve the contents of a virual file (in-memory buffer) from the artifact
+     * or file from the disk
+     *
+     * @param name   name of the in-mem buffer/virtual file or physical file.
+     * @param paths  paths to search if the file is in disk
+     * @return buffer contents in a vector of chars.
+     */
+    std::vector<char> get(const std::string& name,
+                          const std::vector<std::string>& paths) const;
   private:
     std::unique_ptr<file_artifact_impl> pimpl;
 };
@@ -115,7 +124,7 @@ class aiebu_assembler
     buffer_type m_type;
     buffer_type m_output_type;
     class argtbl_impl;  // Forward declaration
-
+    file_artifact artifacts;
   public:
     /*
      * Constructor takes buffer type , 2 buffer and a vector of symbols with
@@ -184,7 +193,7 @@ class aiebu_assembler
      */
     aiebu_assembler(buffer_type type,
                     const std::vector<char>& config_json_buffer,
-                    file_artifact& artifact,
+                    const file_artifact& artifact,
                     const std::vector<std::string>& flags);
 
     /*

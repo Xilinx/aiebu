@@ -91,22 +91,10 @@ process(const std::vector<char>& buffer1,
         const std::vector<std::string>& libpaths,
         const std::vector<char>& patch_json,
         const std::vector<char>& buffer2,
-        const std::map<uint32_t, std::vector<char> >& ctrlpkt)
+        const std::map<uint32_t, std::vector<char> >& ctrlpkt,
+        const file_artifact* artifacts)
 {
-  m_ppi->set_args(buffer1, patch_json, buffer2, libs, libpaths, ctrlpkt);
-  auto ppo = m_preprocessor->process(m_ppi);
-  auto w = m_enoder->process(ppo);
-  auto u = m_elfwriter->process(w);
-  return u;
-}
-
-std::vector<char>
-assembler::
-process(const std::vector<std::string>& flags,
-        const std::vector<char>& patch_json,
-        file_artifact* resolver)
-{
-  m_ppi->set_args({}, patch_json, {}, flags, {}, {}, resolver);
+  m_ppi->set_args(buffer1, patch_json, buffer2, libs, libpaths, ctrlpkt, artifacts);
   auto ppo = m_preprocessor->process(m_ppi);
   auto w = m_enoder->process(ppo);
   auto u = m_elfwriter->process(w);
