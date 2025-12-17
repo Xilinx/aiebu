@@ -343,6 +343,7 @@ public:
 
     m_isa_disasm.emplace(OPCODE_LOAD_CORES_CP, isa_op_disasm("load_cores_cp", OPCODE_LOAD_CORES_CP, std::vector<opArg>{
       opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("core_elf_id", opArg::optype::CONST, BIT_WIDTH_32),
+    }));
 
     m_isa_disasm.emplace(OPCODE_REL_ACQ_SYNC, isa_op_disasm("rel_acq_sync", OPCODE_REL_ACQ_SYNC, std::vector<opArg>{
       opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("rel_address", opArg::optype::CONST, BIT_WIDTH_32), opArg("acq_address", opArg::optype::CONST, BIT_WIDTH_32),

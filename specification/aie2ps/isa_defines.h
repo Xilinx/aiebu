@@ -335,7 +335,7 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_save_r
   );
 }
 
-static inline unsigned int control_dispatch_rel_acq_sync(const uint8_t *pc)
+FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_rel_acq_sync(const uint8_t *pc)
 {
   return control_op_rel_acq_sync(
     pc,
