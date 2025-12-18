@@ -15,10 +15,9 @@
 #include "aiebu/aiebu_assembler.h"
 #include "aiebu/aiebu_error.h"
 
-#include <climits>
 #include <map>
 #include <string>
-
+#include <limits>
 
 namespace aiebu {
 
@@ -367,7 +366,8 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         size_t pm_ctrlpkt_size)
 {
   int ret = 0;
-
+  constexpr size_t MAX_ALLOC =
+    static_cast<size_t>(std::numeric_limits<std::ptrdiff_t>::max());
   if (buffer1 == nullptr && buffer1_size != 0)
   {
     aiebu::log_error() << "Invalid buffer1 size";
@@ -413,10 +413,12 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
     aiebu::aiebu_assembler handler((aiebu::aiebu_assembler::buffer_type)type, v1, v2, v3, vlibs, vlibpaths, mctrlpkt);
     velf = handler.get_elf();
 
-    if (velf.size() > SSIZE_MAX) {
+    if (velf.size() > MAX_ALLOC)
       throw std::bad_alloc();
-    }
     char* aelf = static_cast<char*>(std::malloc(velf.size()));
+    if (!aelf)
+      throw std::bad_alloc();
+
     std::copy(velf.begin(), velf.end(), aelf);
     *elf_buf = (void*)aelf;
     ret =  static_cast<int>(velf.size());
