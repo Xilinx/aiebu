@@ -14,8 +14,8 @@
 #include <elfio/elfio_dump.hpp>
 namespace aiebu {
 
-    reporter::reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& buffer) :
-        m_buffer_type(type), m_buffer(buffer)
+    reporter::reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& buffer, const std::string& target_arch) :
+        m_buffer_type(type), m_buffer(buffer), m_target_arch(target_arch)
     {
         if (buffer.empty()) {
             throw error(error::error_code::invalid_input, "Input buffer is empty");
@@ -182,15 +182,10 @@ namespace aiebu {
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
             disassemble_blob(stream);
         }
-        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::unspecified) {
-            // Treat unspecified buffer type as raw binary data
-            try {
-                aiebu::asm_disassembler disasm(m_buffer, stream, true);
-                disasm.run();
-            } catch (const std::exception& ex) {
-                throw error(error::error_code::internal_error,
-                    "Binary disassembler error: " + std::string(ex.what()));
-            }
+        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
+                 m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
+            // Disassemble binary files - delegate to disassemble_blob for evaluation
+            disassemble_blob(stream);
         }
         else {
             throw error(error::error_code::invalid_buffer_type,
@@ -206,8 +201,36 @@ namespace aiebu {
 
     void reporter::disassemble_blob(std::ostream &stream) const
     {
-        transaction tprint(m_buffer.data(), m_buffer.size());
-        stream << tprint.get_all_ops() << std::endl;
+        // Evaluate buffer type and disassemble accordingly
+        if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps) {
+            // Disassemble aie2ps binary file
+            try {
+                aiebu::asm_disassembler disasm(m_buffer, stream, "aie2ps");
+                disasm.run();
+            } catch (const std::exception& ex) {
+                throw error(error::error_code::internal_error,
+                    "AIE2PS binary disassembler error: " + std::string(ex.what()));
+            }
+        }
+        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
+            // Disassemble aie4 binary file
+            try {
+                aiebu::asm_disassembler disasm(m_buffer, stream, "aie4");
+                disasm.run();
+            } catch (const std::exception& ex) {
+                throw error(error::error_code::internal_error,
+                    "AIE4 binary disassembler error: " + std::string(ex.what()));
+            }
+        }
+        else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction) {
+            // Legacy transaction format disassembly
+            transaction tprint(m_buffer.data(), m_buffer.size());
+            stream << tprint.get_all_ops() << std::endl;
+        }
+        else {
+            throw error(error::error_code::invalid_buffer_type,
+                "disassemble_blob called with unsupported buffer type");
+        }
     }
 
     void reporter::disassemble_blob(const std::filesystem::path &root) const

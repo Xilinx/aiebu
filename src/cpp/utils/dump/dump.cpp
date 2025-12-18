@@ -18,6 +18,7 @@ namespace aiebu {
 static const std::set<std::string>
 targets = { //NOLINT
     "aie2ps",
+    "aie4",
     "aie2asm",
     "aie2txn",
     "aie2dpu",
@@ -38,6 +39,8 @@ buffer_type_table = { // NOLINT
   {aiebu::aiebu_assembler::buffer_type::pdi_aie2, "aie2-pdi"},
   {aiebu::aiebu_assembler::buffer_type::pdi_aie2ps, "aie2ps-pdi"},
   {aiebu::aiebu_assembler::buffer_type::unspecified, "unknown"},
+  {aiebu::aiebu_assembler::buffer_type::blob_aie2ps, "aie2ps-binary"},
+  {aiebu::aiebu_assembler::buffer_type::blob_aie4, "aie4-binary"},
 };
 
 
@@ -58,7 +61,7 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
       ("d,disassemble", "Display assembler contents of ctrltext sections if elf file is provided or display control packet \
         in assembled format if control packet binary file is provided", cxxopts::value<bool>()->default_value("false"))
       ("H,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
-      ("m,architecture", "Specify the target architecture as MACHINE (aie2ps/aie2asm/aie2txn/aie2dpu)", cxxopts::value<std::string>()->default_value("unspecified"))
+      ("m,architecture", "Specify the target architecture as MACHINE (aie2ps/aie4/aie2asm/aie2txn/aie2dpu). Required for binary files to select correct ISA.", cxxopts::value<std::string>()->default_value("unspecified"))
       ("D,disassemble-all", "Display assembler contents of all sections", cxxopts::value<bool>()->default_value("false"))
       ("t,syms", "Display contents of the symbols table(s)", cxxopts::value<bool>()->default_value("false"))
       ("r,reloc", "Display relocation entries in the file", cxxopts::value<bool>()->default_value("false"))
@@ -118,6 +121,26 @@ int main(int argc, char* argv[])
 
   const std::vector<char> buffer = aiebu::readfile(result["filename"].as<std::string>());
   aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);
+  std::string target_arch = result["architecture"].as<std::string>();
+
+  // For binary files (unspecified), convert to architecture-specific buffer type
+  if (type == aiebu::aiebu_assembler::buffer_type::unspecified) {
+    if (target_arch == "unspecified") {
+      std::cout << "Warning: Binary file detected without specified architecture.\n";
+      std::cout << "Please use -m option to specify target (aie2ps or aie4) for correct disassembly.\n";
+      std::cout << "Example: aiebu-dump -d -m aie2ps input.bin\n";
+      std::cout << "Defaulting to aie2ps ISA...\n\n";
+      target_arch = "aie2ps";
+    }
+
+    // Set buffer type based on target architecture
+    if (target_arch == "aie4") {
+      type = aiebu::aiebu_assembler::buffer_type::blob_aie4;
+    } else {
+      // Default to aie2ps for any other case
+      type = aiebu::aiebu_assembler::buffer_type::blob_aie2ps;
+    }
+  }
 
   if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet ||
       type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
@@ -127,30 +150,32 @@ int main(int argc, char* argv[])
     }
   }
   else {
-    aiebu::reporter rep(type, buffer);
+    aiebu::reporter rep(type, buffer, target_arch);
     if (result["all-headers"].as<bool>()) {
       if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
         rep.elf_summary(std::cout);
       }
     }
-    else if (result["disassemble"].as<bool>()) {
-      if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2 ||
-          type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction ||
-          type == aiebu::aiebu_assembler::buffer_type::unspecified) {
-        rep.disassemble(std::cout);
+      else if (result["disassemble"].as<bool>()) {
+        if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2 ||
+            type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction ||
+            type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
+            type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
+          rep.disassemble(std::cout);
+        }
       }
-    }
-    else if (result["disassemble-all"].as<bool>()) {
-      if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
-        rep.disassemble(std::cout, true);
+      else if (result["disassemble-all"].as<bool>()) {
+        if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
+          rep.disassemble(std::cout, true);
+        }
+        else if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
+          rep.disassemble(result["filename"].as<std::string>(), true);
+        }
+        else if (type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
+                 type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
+          rep.disassemble(std::cout, true);
+        }
       }
-      else if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
-        rep.disassemble(result["filename"].as<std::string>(), true);
-      }
-      else if (type == aiebu::aiebu_assembler::buffer_type::unspecified) {
-        rep.disassemble(std::cout, true);
-      }
-    }
     else if (result["private-headers"].as<bool>()) {
       rep.ctrlcode_summary(std::cout);
     }

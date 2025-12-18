@@ -51,8 +51,6 @@ identify_buffer_type(const std::vector<char>& buffer)
   if ((data[0] == pdi_magic0) && (data[1] == pdi_magic1))
     return aiebu_assembler::buffer_type::pdi_aie2;
 
-  // TODO: Put the reference to Packet Header and Control Packet here
-  // ctrlpkt identification is WIP
   return identify_control_packet(buffer.data(), buffer.size());
 }
 

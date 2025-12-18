@@ -20,7 +20,7 @@ public:
     asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream);
     
     // Constructor for binary input files
-    asm_disassembler(const std::vector<char>& binary_data, std::ostream& output_stream, bool is_binary);
+    asm_disassembler(const std::vector<char>& binary_data, std::ostream& output_stream, const std::string& target_arch = "aie2ps");
     
     ~asm_disassembler() = default;
 
@@ -41,6 +41,7 @@ private:
     isa_disassembler isa_disasm;
     std::vector<char> m_binary_data;
     bool m_is_binary_mode;
+    std::string m_target_arch;
 
     void process_sections();
     void process_binary();
