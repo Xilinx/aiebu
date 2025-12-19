@@ -14,7 +14,6 @@ namespace aiebu {
         ELFIO::elfio my_elf_reader;
         const aiebu::aiebu_assembler::buffer_type m_buffer_type;
         const std::vector<char> m_buffer;
-        std::string m_target_arch;
         void ctrlcode_blob_summary(std::ostream &stream) const;
         void disassemble_blob(std::ostream &stream) const;
         void disassemble_blob(const std::filesystem::path &root) const;
@@ -32,7 +31,7 @@ namespace aiebu {
         }
     public:
         // Constructor
-        reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& buffer, const std::string& target_arch = "aie2ps");
+        reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& buffer);
 
         // Delete copy and move constructors and assignment operators
         reporter(const reporter&) = delete;               // Copy constructor

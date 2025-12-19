@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
       std::cout << "Warning: Binary file detected without specified architecture.\n";
       std::cout << "Please use -m option to specify target (aie2ps or aie4) for correct disassembly.\n";
       std::cout << "Example: aiebu-dump -d -m aie2ps input.bin\n";
-      std::cout << "Defaulting to aie2ps ISA...\n\n";
+      std::cout << "Defaulting to aie2ps...\n\n";
       target_arch = "aie2ps";
     }
 
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
     }
   }
   else {
-    aiebu::reporter rep(type, buffer, target_arch);
+    aiebu::reporter rep(type, buffer);
     if (result["all-headers"].as<bool>()) {
       if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
         rep.elf_summary(std::cout);
