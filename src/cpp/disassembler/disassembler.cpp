@@ -37,6 +37,9 @@ static constexpr size_t align_16 = 16;                      // 16-byte alignment
 static constexpr size_t ctrltext_string_length = 9;        // Length of ".ctrltext"
 static constexpr size_t ctrldata_string_length = 9;        // Length of ".ctrldata"
 
+// Bit Shift Constants
+static constexpr size_t byte_shift = 8;                    // Bit shift for byte-to-word conversion
+
 // Base class constructor
 asm_disassembler::asm_disassembler(std::ostream& output_stream)
     : m_asm_writer(output_stream), m_target_arch("") {
@@ -152,9 +155,7 @@ void elf_asm_disassembler::run() {
 bin_asm_disassembler::bin_asm_disassembler(const std::vector<char>& binary_data, 
                                           std::ostream& output_stream, 
                                           aiebu_assembler::buffer_type buffer_type)
-    : asm_disassembler(output_stream) {
-    m_binary_data = binary_data;
-    
+    : asm_disassembler(output_stream), m_binary_data(binary_data) {
     // Set target architecture from buffer type
     switch (buffer_type) {
         case aiebu_assembler::buffer_type::blob_aie2ps:
@@ -274,7 +275,7 @@ void bin_asm_disassembler::process_binary() {
         
         // Read cur_page_len from header
         uint16_t cur_page_len = static_cast<uint8_t>(m_binary_data[offset + page_header_cur_len_low]) | 
-                               (static_cast<uint8_t>(m_binary_data[offset + page_header_cur_len_high]) << 8);
+                               (static_cast<uint8_t>(m_binary_data[offset + page_header_cur_len_high]) << byte_shift);
         
         // cur_page_len includes the header itself, so content is (cur_page_len - page_header_size)
         size_t content_size = (cur_page_len > page_header_size) ? 

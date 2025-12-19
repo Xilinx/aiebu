@@ -32,7 +32,7 @@ public:
 
 protected:
     // Protected constructor for derived classes
-    asm_disassembler(std::ostream& output_stream);
+    explicit asm_disassembler(std::ostream& output_stream);
 
     // Common members accessible to derived classes
     asm_writer m_asm_writer;
