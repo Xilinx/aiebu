@@ -142,6 +142,12 @@ int main(int argc, char* argv[])
     }
   }
 
+  // For ELF files, allow -m option to override architecture
+  // This is needed until unique OS ABI is added for AIE4.
+  if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps && target_arch == "aie4") {
+    type = aiebu::aiebu_assembler::buffer_type::elf_aie4;
+  }
+
   if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet ||
       type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
     if (result["disassemble"].as<bool>()) {
@@ -156,26 +162,29 @@ int main(int argc, char* argv[])
         rep.elf_summary(std::cout);
       }
     }
-      else if (result["disassemble"].as<bool>()) {
-        if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2 ||
-            type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction ||
-            type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
-            type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
-          rep.disassemble(std::cout);
-        }
+    else if (result["disassemble"].as<bool>()) {
+      if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2 ||
+          type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps ||
+          type == aiebu::aiebu_assembler::buffer_type::elf_aie4 ||
+          type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction ||
+          type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
+          type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
+        rep.disassemble(std::cout, false);
       }
-      else if (result["disassemble-all"].as<bool>()) {
-        if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
-          rep.disassemble(std::cout, true);
-        }
-        else if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
-          rep.disassemble(result["filename"].as<std::string>(), true);
-        }
-        else if (type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
-                 type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
-          rep.disassemble(std::cout, true);
-        }
+    }
+    else if (result["disassemble-all"].as<bool>()) {
+      if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
+        rep.disassemble(std::cout, true);
       }
+      else if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps ||
+               type == aiebu::aiebu_assembler::buffer_type::elf_aie4) {
+        rep.disassemble(result["filename"].as<std::string>(), true);
+      }
+      else if (type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
+               type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
+        rep.disassemble(std::cout, true);
+      }
+    }
     else if (result["private-headers"].as<bool>()) {
       rep.ctrlcode_summary(std::cout);
     }

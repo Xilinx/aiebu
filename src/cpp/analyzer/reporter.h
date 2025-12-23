@@ -29,6 +29,7 @@ namespace aiebu {
         {
           return !name.substr(0,8).compare(".ctrlpkt");
         }
+
     public:
         // Constructor
         reporter(aiebu::aiebu_assembler::buffer_type type, const std::vector<char>& buffer);

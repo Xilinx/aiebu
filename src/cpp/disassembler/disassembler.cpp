@@ -42,8 +42,20 @@ static constexpr size_t byte_shift = 8;                    // Bit shift for byte
 
 // Base class constructor
 asm_disassembler::asm_disassembler(std::ostream& output_stream)
-    : m_asm_writer(output_stream), m_target_arch("") {
+    : m_asm_writer(output_stream), m_buffer_type(aiebu_assembler::buffer_type::unspecified) {
     isa_op_map = isa_disasm.get_isa_map();
+}
+
+// Create architecture-specific disassembler state based on buffer_type
+std::shared_ptr<disassembler_state> asm_disassembler::create_disassembler_state() const {
+    switch (m_buffer_type) {
+        case aiebu_assembler::buffer_type::elf_aie4:
+        case aiebu_assembler::buffer_type::blob_aie4:
+            return std::make_shared<disassembler_state_aie4>();
+        default:
+            // Default to aie2ps for aie2ps, aie2, aie2p, or unknown architectures
+            return std::make_shared<disassembler_state_aie2ps>();
+    }
 }
 
 // Common helper to write text section header
@@ -136,14 +148,13 @@ void asm_disassembler::process_data_block(const char* data, size_t size,
 }
 
 // ELF disassembler constructor
-elf_asm_disassembler::elf_asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream)
+elf_asm_disassembler::elf_asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream,
+                                          aiebu_assembler::buffer_type buffer_type)
     : asm_disassembler(output_stream) {
     if (!m_elf_reader.load(input_elf_path)) {
         throw error(error::error_code::invalid_elf, "Failed to load ELF:" + input_elf_path + "\n");
     }
-    // Set target architecture from ELF header (EI_OSABI)
-    // For now, default to aie2ps; future: extract from ELF header byte 7
-    m_target_arch = "aie2ps";
+    m_buffer_type = buffer_type;
 }
 
 // ELF disassembler run method
@@ -156,33 +167,11 @@ bin_asm_disassembler::bin_asm_disassembler(const std::vector<char>& binary_data,
                                           std::ostream& output_stream, 
                                           aiebu_assembler::buffer_type buffer_type)
     : asm_disassembler(output_stream), m_binary_data(binary_data) {
-    // Set target architecture from buffer type
-    switch (buffer_type) {
-        case aiebu_assembler::buffer_type::blob_aie2ps:
-            m_target_arch = "aie2ps";
-            break;
-        case aiebu_assembler::buffer_type::blob_aie4:
-            m_target_arch = "aie4";
-            break;
-        default:
-            m_target_arch = "unknown";
-            break;
-    }
-    
-    // TODO: Load architecture-specific ISA when differences emerge between aie2ps and aie4
-    // Currently both use the same ISA specification from specification/aie2ps/isa.h
-    // Future implementation:
-    //   if (m_target_arch == "aie4") {
-    //     // Load aie4-specific ISA from specification/aie4/isa.h
-    //     isa_disasm_aie4 aie4_disasm;
-    //     isa_op_map = aie4_disasm.get_isa_map();
-    //   } else {
-    //     // Load aie2ps ISA (default)
-    //     isa_op_map = isa_disasm.get_isa_map();
-    //   }
+    m_buffer_type = buffer_type;
     
     // Output target architecture information for binary files
-    m_asm_writer.write_directive("; Target Architecture: " + m_target_arch);
+    std::string arch_name = (buffer_type == aiebu_assembler::buffer_type::blob_aie4) ? "aie4" : "aie2ps";
+    m_asm_writer.write_directive("; Target Architecture: " + arch_name);
 }
 
 // Binary disassembler run method
@@ -191,7 +180,7 @@ void bin_asm_disassembler::run() {
 }
 
 void elf_asm_disassembler::process_sections() {
-    auto state = std::make_shared<disassembler_state>();
+    auto state = create_disassembler_state();
     for (const auto& section_ptr : m_elf_reader.sections) {
         const ELFIO::section* section = section_ptr.get();
         const std::string section_name = section->get_name();
@@ -282,7 +271,7 @@ void bin_asm_disassembler::process_binary() {
                              (cur_page_len - page_header_size) : 0;
         
         // Process this page
-        auto state = std::make_shared<disassembler_state>();
+        auto state = create_disassembler_state();
         
         if (content_size > 0) {
             process_binary_data(m_binary_data.data() + offset + page_header_size, 

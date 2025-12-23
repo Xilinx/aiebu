@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+
 #ifndef AIEBU_DISASSEMBLER_H_
 #define AIEBU_DISASSEMBLER_H_
 
@@ -11,6 +12,7 @@
 #include "specification/aie2ps/isa.h"
 #include "ops/ops.h"
 #include "writer.h"
+#include "aiebu/aiebu_assembler.h"
 
 namespace aiebu {
 
@@ -38,7 +40,7 @@ protected:
     asm_writer m_asm_writer;
     const std::map<uint8_t, isa_op_disasm>* isa_op_map;
     isa_disassembler isa_disasm;
-    std::string m_target_arch;  // Set by derived classes based on their input format
+    aiebu_assembler::buffer_type m_buffer_type;  // Set by derived classes based on their input format
 
     // Comments marking start of sections
     void add_text_sec_comment();
@@ -49,13 +51,17 @@ protected:
                            std::shared_ptr<disassembler_state> state);
     void process_data_block(const char* data, size_t size, 
                            std::shared_ptr<disassembler_state> state);
+    
+    // Create architecture-specific disassembler state
+    [[nodiscard]] std::shared_ptr<disassembler_state> create_disassembler_state() const;
 };
 
 // ELF disassembler - handles ELF file format
 class elf_asm_disassembler : public asm_disassembler {
 public:
     // Constructor for ELF input files
-    elf_asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream);
+    elf_asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream,
+                        aiebu_assembler::buffer_type buffer_type = aiebu_assembler::buffer_type::elf_aie2ps);
     
     void run() override;
 
@@ -78,7 +84,7 @@ public:
     // Constructor for binary input files
     bin_asm_disassembler(const std::vector<char>& binary_data, 
                         std::ostream& output_stream, 
-                        aiebu_assembler::buffer_type buffer_type);
+                        aiebu_assembler::buffer_type buffer_type = aiebu_assembler::buffer_type::blob_aie2ps);
     
     void run() override;
 
