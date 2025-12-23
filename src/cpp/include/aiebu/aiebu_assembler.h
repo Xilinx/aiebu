@@ -117,9 +117,15 @@ class aiebu_assembler
       elf_aie2ps_config,
       elf_aie4,
       elf_aie4_config,
+      elf_aie4a,
+      elf_aie4a_config,
+      elf_aiez,
+      elf_aiez_config,
       unspecified,
       blob_aie2ps,    // Raw binary file for aie2ps architecture
       blob_aie4,      // Raw binary file for aie4 architecture
+      blob_aie4a,     // Raw binary file for aie4a architecture
+      blob_aiez,      // Raw binary file for aiez architecture
     };
 
   private:

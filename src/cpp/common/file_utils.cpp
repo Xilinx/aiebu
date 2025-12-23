@@ -24,10 +24,13 @@ constexpr unsigned int word_size = 4;
 // For AIE2 control packets are 8 words (8words * 4bytes/word = 32bytes) aligned
 constexpr unsigned int ctrlpkt_offset_aie2 = 8 * word_size;
 
-// ELF OS ABI values for AIE2 and AIE2PS
+// ELF OS ABI values for AIE architectures
 constexpr unsigned int os_abi_aie2p = 69;
 constexpr unsigned int os_abi_aie2ps = 64;
 constexpr unsigned int os_abi_aie2ps_group = 70;
+constexpr unsigned int os_abi_aie4 = 71;
+constexpr unsigned int os_abi_aie4a = 72;
+constexpr unsigned int os_abi_aiez = 73;
 // ELF header is at least 52 bytes for 32-bit, 64 bytes for 64-bit
 constexpr unsigned int min_elf_header_size = 52;
 // EI_OSABI is at offset 7 in the ELF header
@@ -66,6 +69,12 @@ identify_elf_type(const std::vector<char>& buffer)
       return aiebu_assembler::buffer_type::elf_aie2;
     else if (os_abi == os_abi_aie2ps || os_abi == os_abi_aie2ps_group)
       return aiebu_assembler::buffer_type::elf_aie2ps;
+    else if (os_abi == os_abi_aie4)
+      return aiebu_assembler::buffer_type::elf_aie4;
+    else if (os_abi == os_abi_aie4a)
+      return aiebu_assembler::buffer_type::elf_aie4a;
+    else if (os_abi == os_abi_aiez)
+      return aiebu_assembler::buffer_type::elf_aiez;
     else
       return aiebu_assembler::buffer_type::unspecified;
   }
