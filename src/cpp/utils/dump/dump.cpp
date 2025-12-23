@@ -173,16 +173,14 @@ int main(int argc, char* argv[])
       }
     }
     else if (result["disassemble-all"].as<bool>()) {
-      if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2) {
+      if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2 ||
+          type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
+          type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
         rep.disassemble(std::cout, true);
       }
       else if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps ||
                type == aiebu::aiebu_assembler::buffer_type::elf_aie4) {
         rep.disassemble(result["filename"].as<std::string>(), true);
-      }
-      else if (type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
-               type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
-        rep.disassemble(std::cout, true);
       }
     }
     else if (result["private-headers"].as<bool>()) {
