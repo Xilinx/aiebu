@@ -13,7 +13,7 @@ constexpr unsigned int magic_length = 16;
 constexpr unsigned int elf_magic = 0x464c457f;
 
 // TODO: Add magic numbers for other AIE flavors
-constexpr unsigned int ctrlcode_magic_aie2 = 0x06040100;
+constexpr unsigned int ctrlcode_magic_aie2 = 0x06040001;
 
 // https://github.com/Xilinx/bootgen/blob/master/bootheader-versal.cpp
 constexpr unsigned int pdi_magic0 = 0x000000dd;

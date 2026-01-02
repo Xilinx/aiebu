@@ -41,7 +41,7 @@ target_include_directories(aiebu_library_objects
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${AIEBU_SOURCE_DIR}
   ${AIEBU_ELFIO_SRC_DIR}
-  ${AIEBU_AIE-RT_HEADER_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/aie-rt/include
   ${AIEBU_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
   ${Boost_INCLUDE_DIRS}
 
