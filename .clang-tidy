@@ -312,8 +312,4 @@ CheckOptions:
     value:           '0'
   - key:             modernize-use-using.IgnoreMacros
     value:           '1'
-
-Exclude:
-  - 'src/cpp/aie-rt/**'
-  - 'lib/aie-rt/**'
 ...
