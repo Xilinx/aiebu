@@ -315,4 +315,5 @@ CheckOptions:
 
 Exclude:
   - 'src/cpp/aie-rt/**'
+  - 'lib/aie-rt/**'
 ...
