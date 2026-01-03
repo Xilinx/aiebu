@@ -3,4 +3,7 @@
 ---
 # Disable all checks in this folder.
 Checks: '-*'
+
+# Stop inheriting configuration from parent directories
+InheritParentConfig: false
 ...
