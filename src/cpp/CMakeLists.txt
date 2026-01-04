@@ -71,7 +71,7 @@ if (AIEBU_NATIVE_BUILD)
     AIEBU_NATIVE_BUILD=1
     )
 
-  add_dependencies(aiebu_library_objects ctrlcodelib)
+  #add_dependencies(aiebu_library_objects ctrlcodelib)
 endif()
 
 set_target_properties(aiebu_library_objects PROPERTIES

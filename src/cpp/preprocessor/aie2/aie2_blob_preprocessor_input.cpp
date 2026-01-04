@@ -7,11 +7,7 @@
 #include "logger.h"
 #include "xaiengine.h"
 
-# if defined (AIEBU_NATIVE_BUILD)
-#include "stx_save_restore_map.h"
-#else
 #include "stx_save_restore_map_prebuilt.h"
-#endif
 
 namespace aiebu {
 

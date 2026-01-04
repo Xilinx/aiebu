@@ -13,7 +13,7 @@ add_subdirectory(src/cpp)
 
 add_subdirectory(specification)
 
-add_subdirectory(lib)
+#add_subdirectory(lib)
 if (AIEBU_NATIVE_BUILD)
   add_subdirectory(test)
 endif()
