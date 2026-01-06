@@ -5,7 +5,8 @@
 #include "file_utils.h"
 #include "aie2_blob_preprocessor_input.h"
 #include "logger.h"
-#include "xaiengine.h"
+#include <xaiengine/xaiegbl.h>
+#include <xaiengine/xaie_txn.h>
 
 #include "stx_save_restore_map_prebuilt.h"
 

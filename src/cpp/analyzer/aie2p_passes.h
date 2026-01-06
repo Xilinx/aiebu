@@ -7,7 +7,8 @@
 #include <list>
 
 #include "basicpass.h"
-#include "xaiengine.h"
+#include <xaiengine/xaiegbl.h>
+#include <xaiengine/xaie_txn.h>
 
 namespace aiebu {
 
