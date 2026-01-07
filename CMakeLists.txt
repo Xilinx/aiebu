@@ -13,7 +13,10 @@ add_subdirectory(src/cpp)
 
 add_subdirectory(specification)
 
-#add_subdirectory(lib)
+if (AIEBU_CTRLCODE_CODEGEN)
+  add_subdirectory(lib)
+endif()
+
 if (AIEBU_NATIVE_BUILD)
   add_subdirectory(test)
 endif()

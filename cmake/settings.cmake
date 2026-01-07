@@ -89,32 +89,12 @@ set(AIEBU_GEN_DIR                   ${AIEBU_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/
 
 # If this repository is used as a submodule, the parent repository may
 # set the following variables in CMake to make aiebu point to the
-# parents copy of ELFIO and/or AIE-RT.
-#
-# For example, XRT parent repository can set the following in its
-# CMake for aiebu to inherit the XRT build of aie-rt:
-#   set(AIEBU_AIE-RT_BIN_DIR ${XRT_BINARY_DIR}/src/runtime_src/aie-rt/driver/src)
-#   set(AIEBU_AIE-RT_HEADER_DIR ${AIEBU_AIE-RT_BIN_DIR}/include)
-# or it can set the source dir from which AIEBU should build aie-rt:
-#   set(AIEBU_AIE-RT_SRC_DIR ${XRT_SOURCE_DIR}/src/runtime_src/aie-rt)
-# If no AIEBU_AIE-RT_* variables are set, aiebu will build aie-rt
-# from its own submodule aie-rt in lib/aie-rt.
+# parents copy of ELFIO.
 #
 # For using XRT's copy of ELFIO, XRT can set the following in its
 # CMake for aiebu to inherit:
 #   set(AIEBU_ELFIO_SRC_DIR ${XRT_SOURCE_DIR}/src/runtime_src/core/common/elf)
-if (DEFINED AIEBU_AIE-RT_BIN_DIR AND DEFINED AIEBU_AIE-RT_HEADER_DIR)
-  message("-- AIEBU uses aie-rt binaries from ${AIEBU_AIE-RT_BIN_DIR}")
-  message("-- AIEBU uses aie-rt headers from ${AIEBU_AIE-RT_HEADER_DIR}")
-elseif (NOT DEFINED AIEBU_AIE-RT_SRC_DIR)
-  set(AIEBU_AIE-RT_SRC_DIR ${AIEBU_SOURCE_DIR}/lib/aie-rt)
-endif()
-
-if (DEFINED AIEBU_AIE-RT_SRC_DIR)
-  set(AIEBU_AIE-RT_HEADER_DIR ${AIEBU_BINARY_DIR}/lib/aie-rt/driver/driver-src/include)
-  message("-- AIEBU builds aie-rt binaries from ${AIEBU_AIE-RT_SRC_DIR}")
-  message("-- AIEBU uses aie-rt headers from ${AIEBU_AIE-RT_HEADER_DIR}")
-endif()
+#
 
 if (NOT DEFINED AIEBU_ELFIO_SRC_DIR)
   set(AIEBU_ELFIO_SRC_DIR "${AIEBU_SOURCE_DIR}/src/cpp/ELFIO")
