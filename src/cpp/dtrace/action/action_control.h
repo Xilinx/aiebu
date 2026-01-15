@@ -389,7 +389,7 @@ public:
  * @class count_action
  *
  * @brief
- * dtrace::action::count_action represents an action for count occurance.
+ * dtrace::action::count_action represents an action for count occurrence.
  *
  * @details
  * This class inherits from the base class `action` and provides functionality
