@@ -605,6 +605,24 @@ create_action(const std::string& action_string, uint32_t probe_type,
             action_string, probe_type, probe_name
         );
     }
+    else if (aiebu::regex_search(action_string, dtrace::action::action_name::host_timestamp_regex))
+    {   // Host Timestamp action
+        action = std::make_shared<dtrace::action::host_timestamp_action>(
+            action_string, probe_type, probe_name
+        );
+    }
+    else if (aiebu::regex_search(action_string, dtrace::action::action_name::sleep_regex))
+    {   // Sleep action
+        action = std::make_shared<dtrace::action::sleep_action>(
+            action_string, probe_type, probe_name
+        );
+    }
+    else if (aiebu::regex_search(action_string, dtrace::action::action_name::count_regex))
+    {   // Count action
+        action = std::make_shared<dtrace::action::count_action>(
+            action_string, probe_type, probe_name
+        );
+    }
     else if (aiebu::regex_search(action_string, dtrace::action::action_name::operation_regex))
     {   // Operation action
         action = std::make_shared<dtrace::action::operation_action>(

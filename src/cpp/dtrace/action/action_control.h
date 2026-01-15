@@ -53,6 +53,9 @@ namespace dtrace::action
  * - reg_mask_write: Register mask write action.
  * - handshake_read: Handshake region read action.
  * - handshake_write:Handshake region write action.
+ * - host_timestamp: Host timestamp action.
+ * - sleep:          Sleep action.
+ * - count:          Count action.
  */
 class action_type
 {
@@ -73,6 +76,9 @@ public:
     static constexpr uint32_t reg_mask_write = ACTION_REG_MASK_WRITE;
     static constexpr uint32_t handshake_read = ACTION_HS_READ;
     static constexpr uint32_t handshake_write = ACTION_HS_WRITE;
+    static constexpr uint32_t host_timestamp = ACTION_HOST_TIMESTAMP;
+    static constexpr uint32_t sleep = ACTION_SLEEP;
+    static constexpr uint32_t count = ACTION_COUNT;
 #else
     static constexpr uint32_t reg_read = 0;
     static constexpr uint32_t reg_write = 1;
@@ -89,6 +95,9 @@ public:
     static constexpr uint32_t reg_mask_write = 12;
     static constexpr uint32_t handshake_read = 13;
     static constexpr uint32_t handshake_write = 14;
+    static constexpr uint32_t host_timestamp = 15;
+    static constexpr uint32_t sleep = 16;
+    static constexpr uint32_t count = 17;
 #endif
 };
 
@@ -125,6 +134,9 @@ public:
     static inline const aiebu::regex timestamps32_regex = aiebu::regex(R"(timestamps32\()");        // NOLINT
     static inline const aiebu::regex read_handshake_regex = aiebu::regex(R"(read_handshake\()");    // NOLINT
     static inline const aiebu::regex write_handshake_regex = aiebu::regex(R"(write_handshake\()");  // NOLINT
+    static inline const aiebu::regex host_timestamp_regex = aiebu::regex(R"(host_timestamp\()");    // NOLINT
+    static inline const aiebu::regex sleep_regex = aiebu::regex(R"(sleep\()");                      // NOLINT
+    static inline const aiebu::regex count_regex = aiebu::regex(R"(count\()");                      // NOLINT
     static inline const aiebu::regex operation_regex = aiebu::regex(R"(^(\w+)\s*=\s*(.+)$)");       // NOLINT
     static inline const aiebu::regex action_regex = aiebu::regex(R"((\w+)\((.*)\))");               // NOLINT
 };
@@ -300,6 +312,30 @@ public:
     ) const override;
 };
 
+//-------------------------Host Timestamp-------------------------//
+/**
+ * @class host_timestamp_action
+ *
+ * @brief
+ * dtrace::action::host_timestamp_action represents an action for host timestamp.
+ *
+ * @details
+ * This class inherits from the base class `action` and provides functionality
+ * for host timestamp action in the control block and serialize the result.
+ */
+class host_timestamp_action : public action
+{
+public:
+    host_timestamp_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    void actionize(
+        uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
+    ) override;
+    std::string serialize(
+        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        const std::unordered_map<uint32_t, uint32_t>& mapping
+    ) const override;
+};
+
 //-------------------------Timestamp32-------------------------//
 /**
  * @class timestamp32_action
@@ -315,6 +351,54 @@ class timestamp32_action : public action
 {
 public:
     timestamp32_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    void actionize(
+        uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
+    ) override;
+    std::string serialize(
+        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        const std::unordered_map<uint32_t, uint32_t>& mapping
+    ) const override;
+};
+
+//-------------------------Sleep-------------------------//
+/**
+ * @class sleep_action
+ *
+ * @brief
+ * dtrace::action::sleep_action represents an action for busy wait.
+ *
+ * @details
+ * This class inherits from the base class `action` and provides functionality
+ * for busy wait sleep action in the control block and serialize the result.
+ */
+class sleep_action : public action
+{
+public:
+    sleep_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    void actionize(
+        uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
+    ) override;
+    std::string serialize(
+        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        const std::unordered_map<uint32_t, uint32_t>& mapping
+    ) const override;
+};
+
+//-------------------------Count-------------------------//
+/**
+ * @class count_action
+ *
+ * @brief
+ * dtrace::action::count_action represents an action for count occurance.
+ *
+ * @details
+ * This class inherits from the base class `action` and provides functionality
+ * for count action in the control block and serialize the result.
+ */
+class count_action : public action
+{
+public:
+    count_action(std::string token, uint32_t probe_type, const std::string& probe_name);
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;

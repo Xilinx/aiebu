@@ -464,12 +464,15 @@ get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset)
             action_type == dtrace::action::action_type::reg_write ||
             action_type == dtrace::action::action_type::handshake_read ||
             action_type == dtrace::action::action_type::handshake_write ||
+            action_type == dtrace::action::action_type::host_timestamp ||
             action_type == dtrace::action::action_type::timestamp)
-        {   // read register action, write register action, timestamp action
+        {   // read register action, write register action, timestamp, host_timestamp action
             action_size += dtrace::action::action_ctrl::reg_rw_action_size;
         }
-        else if (action_type == dtrace::action::action_type::timestamp32)
-        {   // timestamp32 action
+        else if (action_type == dtrace::action::action_type::timestamp32 ||
+            action_type == dtrace::action::action_type::sleep ||
+            action_type == dtrace::action::action_type::count)
+        {   // timestamp32, sleep, count action
             action_size += dtrace::action::action_ctrl::timestamp32_action_size;
         }
         else if (action_type == dtrace::action::action_type::mem_read || 
