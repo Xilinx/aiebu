@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2025-2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef AIEBU_SRC_CPP_COMMON_DISASSEMBLER_STATE_H
 #define AIEBU_SRC_CPP_COMMON_DISASSEMBLER_STATE_H
@@ -22,6 +22,7 @@ private:
     std::map<uint32_t, std::string> labels;
     std::map<uint32_t, std::string> external_labels;
     std::map<uint32_t, std::pair<std::string, uint32_t>> local_ptr;
+    std::vector<std::string> pending_ooo_labels;  // Labels from OOO instructions (load_pdi, preempt, load_cores)
 
 public:
     virtual ~disassembler_state() = default;
@@ -50,6 +51,29 @@ public:
 
     void add_external_label(uint32_t address, std::string label) {
         external_labels[address] = std::move(label);
+    }
+
+    // OOO (Out-Of-Order) labels from load_pdi, preempt, load_cores instructions
+    // These reference text sections that come after the current one
+    void add_ooo_label(const std::string& label) {
+        pending_ooo_labels.push_back(label);
+    }
+
+    bool has_pending_ooo_labels() const {
+        return !pending_ooo_labels.empty();
+    }
+
+    std::string get_next_ooo_label() {
+        if (pending_ooo_labels.empty()) return "";
+        std::string label = pending_ooo_labels.front();
+        pending_ooo_labels.erase(pending_ooo_labels.begin());
+        return label;
+    }
+
+    // Peek at next OOO label without removing it
+    std::string peek_next_ooo_label() const {
+        if (pending_ooo_labels.empty()) return "";
+        return pending_ooo_labels.front();
     }
 
     void add_local_ptr(uint32_t address, const std::string& label, uint32_t offset) {

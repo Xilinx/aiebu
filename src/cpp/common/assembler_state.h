@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef _AIEBU_COMMON_ASSEMBLER_STATE_H_
 #define _AIEBU_COMMON_ASSEMBLER_STATE_H_
@@ -162,9 +162,14 @@ public:
 
   void printstate() const;
 
-  inline std::string gen_job_name(bool makeunique, const std::shared_ptr<asm_data> data)
+  inline std::string gen_job_name(bool makeunique, const std::shared_ptr<asm_data> data, uint32_t eopnum)
   {
-    return makeunique ? data->get_file() + ":" + data->get_operation()->get_args()[0] : data->get_operation()->get_args()[0];
+    // Include eopnum in job name to allow same job ID across page boundaries in single file
+    // Format: file:eopN:jobid (e.g., "default:eop0:0", "default:eop1:0")
+    if (makeunique)
+      return data->get_file() + ":eop" + std::to_string(eopnum) + ":" + data->get_operation()->get_args()[0];
+    else
+      return data->get_operation()->get_args()[0];
   }
 
   bool is_number(const std::string& s) const {

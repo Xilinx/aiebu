@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #include "utils.h"
 #include "writer.h"
@@ -121,6 +121,11 @@ void asm_writer::write_label(const std::string& name)
 void asm_writer::write_attach_to_group(int col)
 {
   for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".attach_to_group " << col << '\n'; });
+}
+
+void asm_writer::write_partition(const std::string& partition_str)
+{
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".partition\t " << partition_str << '\n'; });
 }
 
 void asm_writer::write_directive(const std::string& name)

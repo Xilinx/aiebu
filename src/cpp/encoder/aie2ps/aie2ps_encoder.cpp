@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 #include "aie2ps_encoder.h"
 
 #include "aiebu/aiebu_error.h"
 #include "logger.h"
 
 #include <cassert>
+#include <iostream>
 
 namespace aiebu {
 
@@ -168,8 +169,9 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
     // Text section dump is default generated
     if (name == "start_job" || name == "start_job_deferred" || name == "start_cond_job_preempt") {
       pc_low = pagenum * PAGE_SIZE + textwriter->tell();
-      pc_high = pc_low + page_state->m_jobmap[page_state->gen_job_name(false, text)]->get_size() - 1;
-      fid = m_debug.add_function(text->get_file(), name + "_" + page_state->gen_job_name(false, text), pc_high, pc_low, colnum, pagenum);
+      // Note: eopnum=0 passed since makeunique=false means eopnum is not used
+      pc_high = pc_low + page_state->m_jobmap[page_state->gen_job_name(false, text, 0)]->get_size() - 1;
+      fid = m_debug.add_function(text->get_file(), name + "_" + page_state->gen_job_name(false, text, 0), pc_high, pc_low, colnum, pagenum);
     }
     pc_low = pagenum * PAGE_SIZE + textwriter->tell();
     pc_high = pc_low + (*m_isa)[name]->serializer(text->get_operation()->get_args())->size(*page_state) - 1;

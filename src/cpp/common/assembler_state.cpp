@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 #include "assembler_state.h"
 
 #include "utils.h"
@@ -56,7 +56,7 @@ process(bool makeunique)
       if (!name.compare("start_job") || !name.compare("start_job_deferred") || !name.compare("start_cond_job_preempt"))
       {
         clabelname.clear();
-        cjob_id = gen_job_name(makeunique, data);
+        cjob_id = gen_job_name(makeunique, data, eopnum);
         if (m_jobmap.find(cjob_id) != m_jobmap.end())
           throw error(error::error_code::invalid_asm, "Job " + cjob_id + " present multiple time in asm\n");
         m_jobmap[cjob_id] = std::make_shared<job>(cjob_id, m_pos, index, eopnum, !name.compare("start_job_deferred"));
@@ -101,7 +101,7 @@ process(bool makeunique)
       if (!name.compare("launch_job"))
       {
         jobid_type launchjobid;
-        launchjobid = gen_job_name(makeunique, data);
+        launchjobid = gen_job_name(makeunique, data, eopnum);
         m_jobmap[cjob_id]->m_dependentjobs.push_back(launchjobid);
         auto it = m_joblaunchmap.find(launchjobid);
         if (it == m_joblaunchmap.end())

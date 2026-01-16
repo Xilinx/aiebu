@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef _AIEBU_COMMON_WRITER_H_
 #define _AIEBU_COMMON_WRITER_H_
@@ -197,6 +197,7 @@ public:
   void write_directive(const std::string& directive);
   void write_label(const std::string& label);
   void write_attach_to_group(int colnum);
+  void write_partition(const std::string& partition_str);
   void write_operation(const std::string& name, const std::vector<std::string>& args, const std::string& label);
   void write_endl(const std::string& label);
   void write_eop();
