@@ -12,7 +12,8 @@
 // Parts of the code here originally based on
 // https://gitenterprise.xilinx.com/tsiddaga/dynamic_op_dispatch/blob/main/include/transaction.hpp
 
-#include "xaiengine.h"
+#include <xaiengine/xaiegbl.h>
+#include <xaiengine/xaie_txn.h>
 #include "transaction.hpp"
 #include "code_section.h"
 

@@ -143,7 +143,7 @@ protected:
                   std::map<std::string, uint32_t>& labelpageindex, std::map<uint32_t, std::string>& ctrlpkt_id_map,
                   uint32_t optimize_level, bool makeunique);
   assembler_state(const assembler_state& rhs) = default;
-  assembler_state& operator=(const assembler_state& rhs) = default;
+  assembler_state& operator=(const assembler_state& rhs) = delete;
   assembler_state(assembler_state &&s) = default;
 public:
   std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> m_isa;

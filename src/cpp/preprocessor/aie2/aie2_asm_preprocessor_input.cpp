@@ -9,8 +9,8 @@
 #include "asm/asm_parser.h"
 #include "utils.h"
 
-#include "xaiengine.h"
-#include "xaiengine/xaiegbl.h"
+#include <xaiengine/xaiegbl.h>
+#include <xaiengine/xaie_txn.h>
 
 namespace aiebu {
 

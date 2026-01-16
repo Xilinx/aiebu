@@ -10,6 +10,8 @@ add_executable(${DTRACE_TESTNAME} dtrace_test.cpp)
 
 add_dependencies(${DTRACE_TESTNAME} cert_dtrace)
 
+target_link_libraries(${DTRACE_TESTNAME} PRIVATE ${CMAKE_DL_LIBS})
+
 if (MSVC)
   set(DTRACE_LIBRARY_PATH "${DTRACE_SOURCE_DIR}/$<CONFIG>/cert_dtrace.dll")
 else()

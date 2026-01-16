@@ -82,6 +82,14 @@ class transform_manager {
   void process_sections();
 
   /**
+   * @brief Update UUID in .note.xrt.UID section based on all PROGBITS sections
+   *
+   * Computes MD5 hash of all SHT_PROGBITS section data and updates the
+   * existing .note.xrt.UID note section with the new hash value.
+   */
+  void update_uid_section();
+
+  /**
    * @brief Extract column and page from section name
    * @param name Section name (e.g., ".ctrltext.0.1" or ".ctrltext.0.1.id")
    * @return Pair of column and page indices

@@ -39,49 +39,49 @@ aiebu_assembler(buffer_type type,
                 const std::vector<std::string>& libpaths,
                 const std::map<uint32_t, std::vector<char> >& ctrlpkt) : m_type(type), artifacts()
 {
-  if (type == buffer_type::blob_instr_dpu)
+  if (m_type == buffer_type::blob_instr_dpu)
   {
     aiebu::assembler a(assembler::elf_type::aie2_dpu_blob);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
-  else if (type == buffer_type::blob_instr_transaction)
+  else if (m_type == buffer_type::blob_instr_transaction)
   {
     aiebu::assembler a(assembler::elf_type::aie2_transaction_blob);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
-  else if (type == buffer_type::asm_aie2)
+  else if (m_type == buffer_type::asm_aie2)
   {
     aiebu::assembler a(assembler::elf_type::aie2_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
-  else if (type == buffer_type::asm_aie2ps)
+  else if (m_type == buffer_type::asm_aie2ps)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, {}, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps;
   }
-  else if (type == buffer_type::aie2_config)
+  else if (m_type == buffer_type::aie2_config)
   {
     aiebu::assembler a(assembler::elf_type::aie2_config);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2_config;
   }
-  else if (type == buffer_type::asm_aie4)
+  else if (m_type == buffer_type::asm_aie4)
   {
     aiebu::assembler a(assembler::elf_type::aie4_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, {}, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie4;
   }
-  else if (type == buffer_type::aie2ps_config)
+  else if (m_type == buffer_type::aie2ps_config)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_config);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config;
   }
-  else if (type == buffer_type::aie4_config)
+  else if (m_type == buffer_type::aie4_config)
   {
     aiebu::assembler a(assembler::elf_type::aie4_config);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);

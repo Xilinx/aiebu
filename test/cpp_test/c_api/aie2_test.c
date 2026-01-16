@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void usage_exit()
+void usage_exit(void)
 {
   printf("Usage: aie2_c.out <txn.bin> <control_packet.bin> <external_buffer_id.json>\n");
   exit(1);

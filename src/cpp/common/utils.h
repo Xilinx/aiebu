@@ -63,28 +63,28 @@ enum class asm_dump_flag {
 constexpr uint32_t DEFAULT_COLUMN = 4;
 
 class partition_info {
-  union {
-    struct {
+  union partition_union {
+    struct core_mem_info {
       uint32_t core;
       uint32_t mem;
-    };
+    } core_mem;
     uint32_t column;
-  };
+  } partition_union;
   public:
   partition_info() : partition_info(0, 0) {}
-  partition_info(uint32_t core, uint32_t mem): core(core), mem(mem) { }
+  partition_info(uint32_t core, uint32_t mem): partition_union{{core, mem}} { }
 
-  uint32_t get_numcore() const { return core; }
+  uint32_t get_numcore() const { return partition_union.core_mem.core; }
 
-  uint32_t get_numcolumn() const { return column; }
+  uint32_t get_numcolumn() const { return partition_union.column; }
 
-  uint32_t get_nummem() const { return mem; }
+  uint32_t get_nummem() const { return partition_union.core_mem.mem; }
 
-  void set_numcolumn(uint32_t val) { column = val; }
+  void set_numcolumn(uint32_t val) { partition_union.column = val; }
 
-  void set_numcore(uint32_t val) { core = val; }
+  void set_numcore(uint32_t val) { partition_union.core_mem.core = val; }
 
-  void set_nummem(uint32_t val) { mem = val; }
+  void set_nummem(uint32_t val) { partition_union.core_mem.mem = val; }
 };
 
 inline uint8_t low_8(uint32_t num) { return (num >> FIRST_BYTE_SHIFT ) & BYTE_MASK; }

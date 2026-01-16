@@ -43,6 +43,17 @@ public:
     datawriter->write_word_at(offset, (((patch >> 32) & 0x1FFFFFF) | (bd0 & 0xFE000000)));  // NOLINT
   }
 
+  void
+  patch_cp_57(const std::shared_ptr<section_writer> ctrlpktwriter, offset_type offset, uint64_t patch) override
+  {
+    uint64_t bd0 = ctrlpktwriter->read_word(offset + 1*4);
+    uint64_t bd1 = ctrlpktwriter->read_word(offset + 2*4);             // NOLINT
+    uint64_t arg = (bd1 & 0xFFFFFFFF) + ((bd0 & 0x1FFFFFF) << 32); // NOLINT
+    patch = arg + patch;
+    ctrlpktwriter->write_word_at(offset + 2*4, patch & 0xFFFFFFFF);    // NOLINT
+    ctrlpktwriter->write_word_at(offset + 1*4, (((patch >> 32) & 0x1FFFFFF) | (bd0 & 0xFE000000)));  // NOLINT
+  }
+
   void check_partition_info(std::shared_ptr<const partition_info> source, std::shared_ptr<const partition_info> dest) override
   {
     if(dest->get_numcore() != source->get_numcore() || dest->get_nummem() != source->get_nummem())

@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void usage_exit()
+void usage_exit(void)
 {
   printf("Usage: aie2ps_c.out <control_code.asm>\n");
   exit(1);

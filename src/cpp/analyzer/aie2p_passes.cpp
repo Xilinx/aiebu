@@ -6,7 +6,8 @@
 #include "aie2p_passes.h"
 #include "utils.h"
 
-#include "xaiengine.h"
+#include <xaiengine/xaiegbl.h>
+#include <xaiengine/xaie_txn.h>
 
 namespace aiebu {
 

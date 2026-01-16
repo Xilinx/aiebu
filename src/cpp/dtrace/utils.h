@@ -27,7 +27,7 @@ enum class dtrace_log_level {
 
 // Error Logging
 #ifndef DTRACE_ERROR
-#define DTRACE_ERROR(rc, fmt, ...) \
+#define DTRACE_ERROR(rc, fmt) \
     do { /* NOLINT(cppcoreguidelines-avoid-do-while) */ \
         std::ostringstream output; \
         output << DTRACE_PREFIX "[ERROR] " << __func__ << ":" << __LINE__ << ": " << fmt << "\n"; \
@@ -38,7 +38,7 @@ enum class dtrace_log_level {
 
 // Warning Logging
 #ifndef DTRACE_WARNING
-#define DTRACE_WARNING(fmt, ...) \
+#define DTRACE_WARNING(fmt) \
     do { /* NOLINT(cppcoreguidelines-avoid-do-while) */ \
         if (dtrace::get_current_log_level() >= dtrace_log_level::dtrace_warning) { \
             std::ostringstream output; \
@@ -50,7 +50,7 @@ enum class dtrace_log_level {
 
 // Info Logging
 #ifndef DTRACE_INFO
-#define DTRACE_INFO(fmt, ...) \
+#define DTRACE_INFO(fmt) \
     do { /* NOLINT(cppcoreguidelines-avoid-do-while) */ \
         if (dtrace::get_current_log_level() >= dtrace_log_level::dtrace_info) { \
             std::ostringstream output; \

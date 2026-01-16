@@ -20,9 +20,14 @@ run_test="yes"
 function compile {
     local config=$1
     local build_python=$2
+    local ctrlcode_codegen=$3
     local cmakeflags="-DCMAKE_BUILD_TYPE=$config"
     if [[ $build_python == "yes" ]]; then
       cmakeflags="$cmakeflags -DAIEBU_PYTHON=ON"
+    fi
+
+    if [[ $ctrlcode_codegen == "yes" ]]; then
+      cmakeflags="$cmakeflags -DAIEBU_CTRLCODE_CODEGEN=ON"
     fi
 
     if [[ $config == "Debug" ]]; then
@@ -47,18 +52,22 @@ function compile {
 }
 
 build_python="yes"
-usage() { echo "Usage: $0 [-pth]" 1>&2; exit 1; }
+ctrlcode_codegen="no"
+usage() { echo "Usage: $0 [-pthc]" 1>&2; exit 1; }
 
-while getopts ":rtph" o; do
+while getopts ":rtphc" o; do
     case "${o}" in
         p)
             build_python="yes"
             ;;
-	m)
-	    run_memtest="yes"
-	    ;;
+        m)
+            run_memtest="yes"
+            ;;
         t)
             run_test="no"
+            ;;
+        c)
+            ctrlcode_codegen="yes"
             ;;
         h)
             usage
@@ -70,8 +79,8 @@ shift $((OPTIND-1))
 here=$PWD
 cd $BUILDDIR
 
-compile Debug $build_python
+compile Debug $build_python $ctrlcode_codegen
 
-compile Release $build_python
+compile Release $build_python $ctrlcode_codegen
 
 cd $here

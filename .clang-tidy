@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 ---
 # The following configuration was generated with --dump-config and then manually tweaked to suit XRT coding style.
 # The command line used to generate the global src/.clang-tidy is:

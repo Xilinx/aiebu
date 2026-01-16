@@ -75,6 +75,7 @@ class file_artifact
      * @param name   name of the in-mem buffer/virtual file.
      * @return buffer contents in a vector of chars.
      */
+    [[nodiscard]]
     const std::vector<char>& get(const std::string& name) const;
     /*
      * Retrieve the contents of a virual file (in-memory buffer) from the artifact
@@ -84,6 +85,7 @@ class file_artifact
      * @param paths  paths to search if the file is in disk
      * @return buffer contents in a vector of chars.
      */
+    [[nodiscard]]
     std::vector<char> get(const std::string& name,
                           const std::vector<std::string>& paths) const;
   private:
@@ -209,6 +211,7 @@ class aiebu_assembler
      *
      * return: vector of char with elf content
      */
+    [[nodiscard]]
     std::vector<char>
     get_elf() const;
 
@@ -286,6 +289,7 @@ class aiebu_assembler
          /*
           * Get the handle of the argtbl_impl object
           */
+         [[nodiscard]]
          const std::shared_ptr<argtbl_impl>&
          get_handle() const
          {

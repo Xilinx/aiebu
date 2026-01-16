@@ -252,6 +252,9 @@ static void generate_tran_and_elf(const std::string &filename, int type)
         outelffile.write(elf.data(), elf.size());
         outelffile.close();
 
+        XAie_ClearTransaction(&(DevInst));
+        XAie_Finish(&(DevInst));
+        free(txn_ptr);
         as.get_report(std::cout);
 }
 

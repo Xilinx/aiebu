@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Advanced Micro Devices, Inc.
-add_subdirectory(save-restore)
+
+# Re-enable save-restore test in phase2 of decoupling of aiebu from aie-rt
+#add_subdirectory(save-restore)
 
 # MD5 name-based uuid generation was corrected to be
 # identical on all endian systems in 1.71.0 only.

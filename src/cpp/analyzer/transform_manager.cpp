@@ -15,6 +15,8 @@
 #include "ops/ops.h"
 #include "common/symbol.h"
 #include "common/utils.h"
+#include "common/uid_md5.h"
+#include "elf/elfwriter.h"
 #include "analyzer/transform_manager.h"
 
 namespace aiebu {
@@ -120,7 +122,7 @@ modify_apply_offset_57(char* text_section_data, size_t text_section_size, uint32
       // If key found, it's a kernel arg; otherwise it's .ctrlpkt-idx or control-code-idx
       auto lookup_it = xrt_idx_lookup.find(key);
       if (lookup_it != xrt_idx_lookup.end())
-        code->offset = static_cast<uint16_t>(lookup_it->second * num_32bit_register); // Convert xrit_id to register offset
+        code->offset = static_cast<uint16_t>(lookup_it->second * num_32bit_register); // Convert xrt_id to register offset
     }
 
     // Move to next instruction
@@ -147,6 +149,40 @@ process_sections() {
       modify_apply_offset_57(const_cast<char *>(section->get_data()), section->get_size(), num);
 
     ++num;
+  }
+}
+
+/**
+ * @brief Update UUID in .note.xrt.UID section based on all PROGBITS sections
+ *
+ * Computes MD5 hash of all SHT_PROGBITS section data and updates the
+ * existing .note.xrt.UID note section with the new hash value.
+ */
+void
+transform_manager::
+update_uid_section() {
+  uid_md5 uid;
+  for (const auto& section : m_elfio.sections) {
+    if (section->get_type() != ELFIO::SHT_PROGBITS)
+      continue;
+
+    const auto* data = section->get_data();
+    const auto size = section->get_size();
+    if (data && size > 0) {
+      std::vector<uint8_t> section_data(data, data + size);
+      uid.update(section_data);
+    }
+  }
+
+  ELFIO::section* note_sec = m_elfio.sections[".note.xrt.UID"];
+  if (note_sec) {
+    // Update existing .note.xrt.UID section with computed hash
+    const auto& uid_hash = uid.calculate();
+
+    // Clear existing note data and add updated hash
+    ELFIO::note_section_accessor note_writer(m_elfio, note_sec);
+    note_sec->set_data(nullptr, 0);
+    note_writer.add_note(NT_XRT_UID, "XRT", uid_hash.data(), uid_hash.size());
   }
 }
 
@@ -906,6 +942,9 @@ update_rela_sections(const std::vector<arginfo>& entries, const std::string& ker
 
   // Process all .ctrltext sections to update apply_offset_57 opcodes
   process_sections();
+
+  // Update UUID based on all PROGBITS sections
+  update_uid_section();
 
   // Serialize modified ELF back to binary format
   std::stringstream stream;

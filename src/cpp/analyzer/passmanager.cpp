@@ -14,7 +14,8 @@
 #include "symbol.h"
 #include "aiebu/aiebu_error.h"
 
-#include "xaiengine.h"
+#include <xaiengine/xaiegbl.h>
+#include <xaiengine/xaie_txn.h>
 
 namespace aiebu {
 

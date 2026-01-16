@@ -124,7 +124,7 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
           // Beyond that its elfloader/host responsibility to patch mandatorily
           if (val > 6 && val != offset_type_marker)
             log_warn() << "Apply_offset_57 has arg index " << val << " > 6, Should be mandatorily patched in host!!!";
-          else if (val != offset_type_marker)
+          if (val != offset_type_marker)
           {
             // val is arg index, to get offset x2
             val = val * 2;

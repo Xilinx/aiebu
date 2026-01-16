@@ -39,10 +39,14 @@ fill_controlpkt(std::shared_ptr<section_writer> ctrlpktwriter, const std::vector
 void
 aie2ps_encoder::
 fill_control_packet_symbols(std::shared_ptr<section_writer> ctrlpktwriter,
-                            const std::vector<symbol>& syms)
+                            std::vector<symbol>& syms)
 {
-  for (const auto& sym : syms)
+  for (auto& sym : syms) {
+    patch_cp_57(ctrlpktwriter, sym.get_pos(), sym.get_addend());
+    // reset addend
+    sym.set_addend(0);
     ctrlpktwriter->add_symbol(sym);
+  }
 }
 
 std::vector<std::shared_ptr<writer>>
@@ -247,6 +251,18 @@ patch57(const std::shared_ptr<section_writer> textwriter, std::shared_ptr<sectio
   datawriter->write_word_at(offset + 1*4, patch & 0xFFFFFFFF); // NOLINT
   datawriter->write_word_at(offset + 2*4, ((patch >> 32) & 0xFFFF) | (bd2 & 0xFFFF0000)); // NOLINT
   datawriter->write_word_at(offset + 8*4, ((patch >> 48) & 0x1FF) | (bd8 & 0xFFFFFE00));  // NOLINT
+}
+
+void
+aie2ps_encoder::
+patch_cp_57(const std::shared_ptr<section_writer> ctrlpktwriter, offset_type offset, uint64_t patch)
+{
+  uint64_t bd1 = ctrlpktwriter->read_word(offset + 2*4); // NOLINT
+  uint64_t bd2 = ctrlpktwriter->read_word(offset + 3*4); // NOLINT
+  uint64_t arg = ((bd2 & 0xFFFF) << 32) + (bd1 & 0xFFFFFFFF); // NOLINT
+  patch = arg + patch;
+  ctrlpktwriter->write_word_at(offset + 2*4, patch & 0xFFFFFFFF); // NOLINT
+  ctrlpktwriter->write_word_at(offset + 3*4, (((patch >> 32) & 0xFFFF) | (bd2 & 0xFFFF0000))); // NOLINT
 }
 
 }
