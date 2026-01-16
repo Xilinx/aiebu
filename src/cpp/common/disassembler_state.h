@@ -96,20 +96,20 @@ public:
     }
 
     // Common tile conversion - same for all architectures
-    std::string to_tile(uint32_t arg) {
-        uint32_t row = arg & 0x1F;   //NOLINT
-        uint32_t col = (arg >> 5) & 0x7F;  //NOLINT
-        return "TILE_" + std::to_string(col) + "_" + std::to_string(row);
+    std::string to_tile(uint32_t arg) const {
+      uint32_t row = arg & 0x1F;   //NOLINT
+      uint32_t col = (arg >> 5) & 0x7F;  //NOLINT
+      return "TILE_" + std::to_string(col) + "_" + std::to_string(row);
     }
 
     // Pure virtual - architecture-specific actor ID mapping
-    virtual std::string to_actor(uint32_t val, uint32_t tile) = 0;
+    virtual std::string to_actor(uint32_t val, uint32_t tile) const = 0;
 };
 
 // AIE2PS-specific disassembler state
 class disassembler_state_aie2ps : public disassembler_state {
 public:
-    std::string to_actor(uint32_t val, uint32_t tile) override {
+    std::string to_actor(uint32_t val, uint32_t tile) const override {
         uint32_t row = tile & 0x1F;  //NOLINT
 
         if (row == 0) {  //NOLINT
@@ -159,7 +159,7 @@ public:
 // AIE4-specific disassembler state with extended actor ID mappings
 class disassembler_state_aie4 : public disassembler_state {
 public:
-    std::string to_actor(uint32_t val, uint32_t tile) override {
+    std::string to_actor(uint32_t val, uint32_t tile) const override {
         uint32_t row = tile & 0x1F;  //NOLINT
 
         if (row == 0) {  //NOLINT
