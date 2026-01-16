@@ -7,6 +7,9 @@ begin
     tss = timestamp32()
     print(f"begin ts: {tss:d}")
 
+    htss = host_timestamp()
+    print(f"begin host ts = {htss:d}")
+
 @blockopen
 def factorial(n):
     """Return the factorial of n."""
@@ -33,6 +36,7 @@ def factorial(n):
 }
 jprobe:aie_asm_elfs.asm:uc0:line5,7
 {
+    sleep(1000)
     ts1 = timestamp32()
     print("opcode: {}".format(operation))
     print("ucdma write ts: {:d}".format(ts1))
@@ -67,7 +71,8 @@ jprobe:default:uc0:line2
 }
 jprobe:default:uc0:line3
 {
-    print("opcode: {}".format(operation))
+    cnt = count()
+    print("opcode: {} count: {}".format(operation, cnt))
 }
 jprobe:default:uc0:line4
 {
