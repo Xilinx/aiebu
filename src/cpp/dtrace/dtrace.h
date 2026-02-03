@@ -37,7 +37,7 @@ typedef void* dtrace_handle_t;
  * Return:          Handle to the dtrace context, or NULL on failure.
  *
  * This function calculates and returns the length of uC for dynamic tracing based
- * on the provided script file and map data. It returns 0 on success and 1 on failure.
+ * on the provided script file and map data. It returns a handle to the dtrace context.
  * Does not include the log level parameter, log_level is set to error by default.
  */
 DTRACE_EXPORT
@@ -55,7 +55,7 @@ get_dtrace_col_numbers(const char* script_file, const char* map_data,
  * Return:          Handle to the dtrace context, or NULL on failure.
  *
  * This function calculates and returns the length of uC for dynamic tracing based
- * on the provided script file and map data. It returns 0 on success and 1 on failure.
+ * on the provided script file and map data. It returns a handle to the dtrace context.
  */
 DTRACE_EXPORT
 dtrace_handle_t 
@@ -68,11 +68,9 @@ get_dtrace_col_numbers_with_log(const char* script_file, const char* map_data,
  * @dtrace_handle:  Handle to the dtrace context.
  * @buffers:        Array of uC details, where each index contains a uint64_t values
  *                  with high 32-bit as length and low 32-bit for respective uC.
- * Return:          Status of the operation. 0 on success and 1 on failure.
  *
  * This function calculates and returns the length of the control and memory buffers 
  * and uC index needed for dynamic tracing based on the provided script file and map data. 
- * It returns 0 on success and 1 on failure.
  */
 DTRACE_EXPORT
 void
