@@ -21,9 +21,9 @@ static const uint64_t TRACE_CTRL_CODE_BASE = 0x200000;
 static const uint64_t TRACE_CTRL_CODE_SIZE = 16384; // 8kB
 static const uint32_t word_byte_shift = 32;
 static const uint32_t mask_32 = 0xFFFFFFFF; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-using get_dtrace_col_numbers_t = uint32_t (*)(const char*, const char*, uint32_t*, uint32_t);
-using get_dtrace_buffer_size_t = uint32_t (*)(uint64_t*);
-using populate_dtrace_buffer_t = void (*)(uint32_t*, uint64_t);
+using get_dtrace_col_numbers_t = void* (*)(const char*, const char*, uint32_t*, uint32_t);
+using get_dtrace_buffer_size_t = void (*)(void*, uint64_t*);
+using populate_dtrace_buffer_t = void (*)(void*, uint32_t*, uint64_t);
 
 int 
 run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_file, 
@@ -35,22 +35,22 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
     }
 
     // load dtrace compiler
-    void* dtrace_handle = dlopen(dtrace_lib_path.c_str(), RTLD_LAZY);
-    if (!dtrace_handle) {
+    void* dtrace_lib_handle = dlopen(dtrace_lib_path.c_str(), RTLD_LAZY);
+    if (!dtrace_lib_handle) {
         std::cerr << "[ERROR]: failed to load dtrace library" << std::endl;
         return 1;
     }
 
     // load and check functions from dtrace compiler
     auto get_dtrace_col_numbers = 
-        reinterpret_cast<get_dtrace_col_numbers_t>(dlsym(dtrace_handle, "get_dtrace_col_numbers_with_log"));
+        reinterpret_cast<get_dtrace_col_numbers_t>(dlsym(dtrace_lib_handle, "get_dtrace_col_numbers_with_log"));
     auto get_dtrace_buffer_size = 
-        reinterpret_cast<get_dtrace_buffer_size_t>(dlsym(dtrace_handle, "get_dtrace_buffer_size"));
+        reinterpret_cast<get_dtrace_buffer_size_t>(dlsym(dtrace_lib_handle, "get_dtrace_buffer_size"));
     auto populate_dtrace_buffer = 
-        reinterpret_cast<populate_dtrace_buffer_t>(dlsym(dtrace_handle, "populate_dtrace_buffer"));
+        reinterpret_cast<populate_dtrace_buffer_t>(dlsym(dtrace_lib_handle, "populate_dtrace_buffer"));
     if (!get_dtrace_col_numbers || !get_dtrace_buffer_size || !populate_dtrace_buffer) {
         std::cerr << "[ERROR]: failed to load dtrace functions" << std::endl;
-        dlclose(dtrace_handle);
+        dlclose(dtrace_lib_handle);
         return 1;
     }
 
@@ -58,22 +58,20 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
     uint32_t buffers_length = 0;
     uint32_t dtrace_log_level = 1; // default log level
     // get dtrace number of column using get_dtrace_col_numbers api from libdtrace.so
-    uint32_t status = 
+    void* dtrace_handle = 
         get_dtrace_col_numbers(script_file.c_str(), map_file.c_str(), &buffers_length, dtrace_log_level);
-    if (status != 0) {
-        std::cerr << "[ERROR]: dtrace failed with status: " << status << std::endl;
-        dlclose(dtrace_handle);
+    if (!dtrace_handle) {
+        std::cerr << "[ERROR]: dtrace compiler failed" << std::endl;
+        dlclose(dtrace_lib_handle);
         return 1;
     }
-
-    if (status == 0) 
-    {
+    else {
         // allocate dtrace information buffer
         std::unique_ptr<uint32_t[]> dtrace_buffer = std::make_unique<uint32_t[]>(TRACE_CTRL_CODE_SIZE); // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
         std::unique_ptr<uint64_t[]> buffers = std::make_unique<uint64_t[]>(buffers_length); // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 
         // get dtrace information using get_dtrace_buffer_size api from libdtrace.so
-        get_dtrace_buffer_size(buffers.get());
+        get_dtrace_buffer_size(dtrace_handle, buffers.get());
 
         for (uint32_t i = 0; i < buffers_length; ++i) {
             auto length = static_cast<uint32_t>(buffers[i] >> word_byte_shift);
@@ -82,7 +80,7 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
         }
 
         // create dtrace buffer using populate_dtrace_buffer api from libdtrace.so
-        populate_dtrace_buffer(dtrace_buffer.get(), TRACE_CTRL_CODE_BASE);
+        populate_dtrace_buffer(dtrace_handle, dtrace_buffer.get(), TRACE_CTRL_CODE_BASE);
 
         // create control_buffer.dat file
         if (dtrace_buffer_length > 0) 
@@ -92,14 +90,8 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
                 static_cast<std::streamsize>(dtrace_buffer_length * sizeof(uint32_t)));
             control_buffer_file.close();
         }
-        dlclose(dtrace_handle);
+        dlclose(dtrace_lib_handle);
         return 0;
-    } 
-    else 
-    {
-        std::cerr << "[ERROR]: dtrace complier failed" << std::endl;
-        dlclose(dtrace_handle);
-        return 1;
     }
 }
 
