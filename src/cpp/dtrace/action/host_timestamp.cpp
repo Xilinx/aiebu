@@ -87,7 +87,7 @@ serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t
     uint64_t high = 
         static_cast<uint64_t>(result_buffer[mapping.at(get_location(false))]) << dtrace::dtrace_ctrl::forth_byte_shift;
     uint64_t low = result_buffer[mapping.at(get_location(false) + 1)];
-    output_action << "  " << m_result << " = " << (high + low) << " ns \n";
+    output_action << "  " << m_result << " = " << (high + low) << "\n";
     return output_action.str();
 }
 

@@ -20,7 +20,7 @@
 static const uint64_t TRACE_CTRL_CODE_BASE = 0x200000;
 static const uint64_t TRACE_CTRL_CODE_SIZE = 16384; // 8kB
 static const uint32_t word_byte_shift = 32;
-static const uint32_t mask_32 = 0xFFFFFFFF; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+// static const uint32_t mask_32 = 0xFFFFFFFF; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
 using get_dtrace_col_numbers_t = void* (*)(const char*, const char*, uint32_t*, uint32_t);
 using get_dtrace_buffer_size_t = void (*)(void*, uint64_t*);
 using populate_dtrace_buffer_t = void (*)(void*, uint32_t*, uint64_t);
