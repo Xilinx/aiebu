@@ -186,7 +186,7 @@ format(const std::vector<uint32_t>& result_buffer) const
  */
 std::string
 printa_action::
-serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>&, 
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
     const std::unordered_map<uint32_t, uint32_t>&) const
 {
     std::ostringstream output_action;

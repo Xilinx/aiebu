@@ -200,7 +200,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) = 0;
     virtual std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const = 0;
     uint32_t get_location(bool is_mem_buffer) const;
@@ -226,7 +226,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -250,7 +250,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -282,7 +282,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
     uint32_t get_mode() const { return m_mode; }
@@ -307,7 +307,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -331,7 +331,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -355,7 +355,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -379,7 +379,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -403,7 +403,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -434,7 +434,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -466,7 +466,7 @@ public:
     std::pair<std::string, uint32_t> get_opcode(const uint32_t& value)  const;
     std::string format(const std::vector<uint32_t>& result_buffer) const;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -493,7 +493,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -524,7 +524,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
     uint64_t get_mem_host_addr() const override;
@@ -557,7 +557,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -584,7 +584,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -611,7 +611,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -638,7 +638,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -665,7 +665,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -689,7 +689,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };
@@ -713,7 +713,7 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::string serialize(
-        const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const override;
 };

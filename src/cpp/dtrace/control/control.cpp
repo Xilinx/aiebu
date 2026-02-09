@@ -317,8 +317,8 @@ patch_control_buffer(std::unordered_map<uint32_t, uint64_t>& mem_host_addr_map)
  */
 void 
 control::
-create_result_file(const std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers, 
-    const std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, 
+create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers, 
+    std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, 
     const std::string& output_file) const
 {
     uint32_t uC_index = 0;  // uC_index 0 for begin and end probes

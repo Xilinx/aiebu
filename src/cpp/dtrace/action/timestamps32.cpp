@@ -89,7 +89,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 std::string
 timestamps32_action::
-serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>&, 
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     
@@ -98,6 +98,8 @@ serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t
         // action location + length word + timestamp value
         uint32_t location = mapping.at(get_location(false)) + 1 + i;
         result.push_back(result_buffer[location]);
+        // reset value after serialization
+        result_buffer[location] = 0;
     }
 
     std::ostringstream output_action;

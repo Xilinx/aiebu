@@ -141,7 +141,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 std::string
 mask_write_reg_action::
-serialize(const std::vector<uint32_t>&, const std::vector<uint32_t>& mem_buffer, 
+serialize(std::vector<uint32_t>&, std::vector<uint32_t>& mem_buffer, 
     const std::unordered_map<uint32_t, uint32_t>&) const
 {
     std::ostringstream output_action;
@@ -156,6 +156,9 @@ serialize(const std::vector<uint32_t>&, const std::vector<uint32_t>& mem_buffer,
             readable_result << "  0x" << std::hex << mem_buffer[i];
             if (i < index+length - 1)
                 readable_result << "\n";
+
+            // reset value after serialization
+            mem_buffer[i] = 0;
         }
         output_action << "  " << m_result << " = \"\"\"\n" << readable_result.str() << "\"\"\"\n";
     }

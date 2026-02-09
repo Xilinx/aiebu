@@ -127,7 +127,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 std::string
 read_mem_action::
-serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>& mem_buffer, 
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     std::ostringstream readable_result;
@@ -141,6 +141,8 @@ serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t
         if (i < index+length - 1)
             readable_result << "\n";
         aie_addr += dtrace::dtrace_ctrl::word_byte_size;
+        // reset value after serialization
+        mem_buffer[i] = 0;
     }
     std::ostringstream output_action;
     output_action << "  " << m_result << " = \"\"\"\n" << readable_result.str() << "\"\"\"\n";

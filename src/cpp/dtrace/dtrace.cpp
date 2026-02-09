@@ -258,8 +258,28 @@ get_dtrace_result_file(dtrace_handle_t dtrace_handle, const char* result_file)
             result_buffers[uC_index] = std::move(control_buffer);
             mem_buffers[uC_index] = std::move(mem_buffer);
         }
+
         // Create the result file
         handle->g_control->create_result_file(result_buffers, mem_buffers, result_file);
+
+        // Iterate over and copy back modified buffers for each uC in global map
+        for (const auto& [uC_index, l_dtrace_buffer_info] : handle->g_dtrace_buffer_info_map)
+        {
+            std::vector<uint32_t> buffer;
+            buffer.insert(
+                buffer.end(), result_buffers[uC_index].begin(), result_buffers[uC_index].end()
+            );
+            buffer.insert(
+                buffer.end(), mem_buffers[uC_index].begin(), mem_buffers[uC_index].end()
+            );
+            
+            // Populate modified buffer back to the dtrace buffer address
+            std::memcpy(
+                l_dtrace_buffer_info.buffer_addr,
+                buffer.data(),
+                buffer.size() * sizeof(uint32_t)
+            );
+        }
     }
     catch (const std::exception& e)
     {

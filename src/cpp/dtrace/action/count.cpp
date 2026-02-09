@@ -78,11 +78,14 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 std::string
 count_action::
-serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>&, 
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     std::ostringstream output_action;
-    output_action << "  " << m_result << " = " << result_buffer[mapping.at(get_location(false))] << "\n";
+    uint32_t location = mapping.at(get_location(false));
+    output_action << "  " << m_result << " = " << result_buffer[location] << "\n";
+    // reset value after serialization
+    result_buffer[location] = 0;
     return output_action.str();
 }
 

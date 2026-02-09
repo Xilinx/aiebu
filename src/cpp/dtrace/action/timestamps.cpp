@@ -94,7 +94,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 std::string
 timestamps_action::
-serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>&, 
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     
@@ -105,6 +105,9 @@ serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t
         uint64_t high = static_cast<uint64_t>(result_buffer[location]) << dtrace::dtrace_ctrl::forth_byte_shift;
         uint64_t low = result_buffer[location + 1];
         result.push_back(high + low);
+        // reset value after serialization
+        result_buffer[location] = 0;
+        result_buffer[location + 1] = 0;
     }
 
     std::ostringstream output_action;

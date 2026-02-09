@@ -100,18 +100,20 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 std::string
 read_handshake_action::
-serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>&, 
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     std::ostringstream output_action;
-    uint32_t handshake_value = result_buffer[mapping.at(get_location(false))];
-    if (handshake_value == dtrace::dtrace_ctrl::handshake_overflow)
+    uint32_t location = mapping.at(get_location(false));
+    if (result_buffer[location] == dtrace::dtrace_ctrl::handshake_overflow)
     {
         std::stringstream handshake_offset;
         handshake_offset << "0x" << std::hex << (std::stoul(m_arguments[0]) * sizeof(uint32_t));
         output_action << "  " << "print(\"[WARNING] HANDSHAKE OVERFLOW (" << handshake_offset.str() << ")\")\n";
     }
-    output_action << "  " << m_result << " = " << handshake_value << "\n";
+    output_action << "  " << m_result << " = " << result_buffer[location] << "\n";
+    // reset value after serialization
+    result_buffer[location] = 0;
     return output_action.str();
 }
 

@@ -80,14 +80,19 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 std::string
 timestamp_action::
-serialize(const std::vector<uint32_t>& result_buffer, const std::vector<uint32_t>&, 
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     std::ostringstream output_action;
+    uint32_t location_h = mapping.at(get_location(false));
+    uint32_t location_l = mapping.at(get_location(false) + 1);
     uint64_t high = 
-        static_cast<uint64_t>(result_buffer[mapping.at(get_location(false))]) << dtrace::dtrace_ctrl::forth_byte_shift;
-    uint64_t low = result_buffer[mapping.at(get_location(false) + 1)];
+        static_cast<uint64_t>(result_buffer[location_h]) << dtrace::dtrace_ctrl::forth_byte_shift;
+    uint64_t low = result_buffer[location_l];
     output_action << "  " << m_result << " = " << (high + low) << "\n";
+    // reset value after serialization
+    result_buffer[location_h] = 0;
+    result_buffer[location_l] = 0;
     return output_action.str();
 }
 

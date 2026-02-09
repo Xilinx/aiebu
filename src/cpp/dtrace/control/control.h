@@ -46,8 +46,8 @@ public:
     std::set<uint32_t> m_control_uC_indices;
     bool m_mem_action_present;
     void patch_control_buffer(std::unordered_map<uint32_t, uint64_t>& mem_host_addr_map);
-    void create_result_file(const std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers, 
-        const std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, 
+    void create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers, 
+        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, 
         const std::string& output_file) const;
     std::vector<uint32_t> create_control_buffer(uint32_t uC) const;
     std::vector<uint32_t> create_mem_buffer(uint32_t uC) const;
