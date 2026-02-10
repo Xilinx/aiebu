@@ -56,6 +56,7 @@ namespace dtrace::action
  * - host_timestamp: Host timestamp action.
  * - sleep:          Sleep action.
  * - count:          Count action.
+ * - host_timestamps:Multiple Host timestamp action.
  */
 class action_type
 {
@@ -79,6 +80,7 @@ public:
     static constexpr uint32_t host_timestamp = ACTION_HOST_TIMESTAMP;
     static constexpr uint32_t sleep = ACTION_SLEEP;
     static constexpr uint32_t count = ACTION_COUNT;
+    static constexpr uint32_t host_timestamps = ACTION_HOST_TIMESTAMPS;
 #else
     static constexpr uint32_t reg_read = 0;
     static constexpr uint32_t reg_write = 1;
@@ -98,6 +100,7 @@ public:
     static constexpr uint32_t host_timestamp = 15;
     static constexpr uint32_t sleep = 16;
     static constexpr uint32_t count = 17;
+    static constexpr uint32_t host_timestamps = 18;
 #endif
 };
 
@@ -137,6 +140,7 @@ public:
     static inline const aiebu::regex host_timestamp_regex = aiebu::regex(R"(host_timestamp\()");    // NOLINT
     static inline const aiebu::regex sleep_regex = aiebu::regex(R"(sleep\()");                      // NOLINT
     static inline const aiebu::regex count_regex = aiebu::regex(R"(count\()");                      // NOLINT
+    static inline const aiebu::regex host_timestamps_regex = aiebu::regex(R"(host_timestamps\()");  // NOLINT
     static inline const aiebu::regex operation_regex = aiebu::regex(R"(^(\w+)\s*=\s*(.+)$)");       // NOLINT
     static inline const aiebu::regex action_regex = aiebu::regex(R"((\w+)\((.*)\))");               // NOLINT
 };
@@ -598,7 +602,7 @@ public:
  *
  * @details
  * This class inherits from the base class `action` and provides functionality
- * formultiple  timestamp action in the control block and serialize the result.
+ * for multiple timestamp action in the control block and serialize the result.
  */
 class timestamps_action : public action
 {
@@ -634,6 +638,33 @@ private:
 
 public:
     timestamps32_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    void actionize(
+        uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
+    ) override;
+    std::string serialize(
+        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        const std::unordered_map<uint32_t, uint32_t>& mapping
+    ) const override;
+};
+
+//-------------------------Host Timestamps-------------------------//
+/**
+ * @class host_timestamps_action
+ *
+ * @brief
+ * dtrace::action::host_timestamps_action represents an action for multiple host timestamp.
+ *
+ * @details
+ * This class inherits from the base class `action` and provides functionality
+ * for multiple host timestamp action in the control block and serialize the result.
+ */
+class host_timestamps_action : public action
+{
+private:
+    uint32_t m_length;
+    
+public:
+    host_timestamps_action(std::string token, uint32_t probe_type, const std::string& probe_name);
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;

@@ -466,7 +466,7 @@ get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset)
             action_type == dtrace::action::action_type::handshake_write ||
             action_type == dtrace::action::action_type::host_timestamp ||
             action_type == dtrace::action::action_type::timestamp)
-        {   // read register action, write register action, timestamp, host_timestamp action
+        {   // read register action, write register action, timestamp, host timestamp action
             action_size += dtrace::action::action_ctrl::reg_rw_action_size;
         }
         else if (action_type == dtrace::action::action_type::timestamp32 ||
@@ -484,8 +484,9 @@ get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset)
         {   // break action
             action_size += dtrace::action::action_ctrl::break_action_size;
         }
-        else if (action_type == dtrace::action::action_type::timestamps)
-        {   // timestamps action
+        else if (action_type == dtrace::action::action_type::timestamps ||
+            action_type == dtrace::action::action_type::host_timestamps)
+        {   // timestamps action, host timestamps action
             uint32_t action_length = source[action_offset + 1];
             action_size += (
                 dtrace::action::action_ctrl::timestamps_action_size + 

@@ -538,6 +538,12 @@ create_action(const std::string& action_string, uint32_t probe_type,
             action_string, probe_type, probe_name
         );
     }
+    else if (aiebu::regex_search(action_string, dtrace::action::action_name::host_timestamps_regex))
+    {   // Host Timestamp action
+        action = std::make_shared<dtrace::action::host_timestamps_action>(
+            action_string, probe_type, probe_name
+        );
+    }
     else if (aiebu::regex_search(action_string, dtrace::action::action_name::timestamp_regex))
     {   // Timestamp action
         action = std::make_shared<dtrace::action::timestamp_action>(

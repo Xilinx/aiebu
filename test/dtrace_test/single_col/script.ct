@@ -84,8 +84,11 @@ jprobe:default:uc0:line4
 }
 tracepoint:uc0:id4-5
 {
-    @ts4[5] = timestamps()
+    ts4[5] = timestamps()
     print(f"{probename}: page load timestamps: {ts4}")
+
+    ts10[5] = host_timestamps()
+    print(f"{probename}: page load host timestamps: {ts10}")
 }
 tracepoint:uc0:id6
 {

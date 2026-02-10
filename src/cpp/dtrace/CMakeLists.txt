@@ -20,6 +20,7 @@ add_library(dtrace_library_objects OBJECT
   action/write_handshake.cpp
   action/read_handshake.cpp
   action/host_timestamp.cpp
+  action/host_timestamps.cpp
   action/sleep.cpp
   action/count.cpp
   probe/begin.cpp
