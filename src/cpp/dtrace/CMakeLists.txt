@@ -49,9 +49,14 @@ add_library(cert_dtrace SHARED
   $<TARGET_OBJECTS:dtrace_library_objects>
   )
 
-install(TARGETS cert_dtrace
+add_library(cert_dtrace_static STATIC
+  $<TARGET_OBJECTS:dtrace_library_objects>
+  )
+
+install(TARGETS cert_dtrace cert_dtrace_static
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR}/dtrace COMPONENT ${AIEBU_DEV_COMPONENT}
   RUNTIME DESTINATION ${AIEBU_INSTALL_LIB_DIR}/dtrace COMPONENT ${AIEBU_DEV_COMPONENT}
+  ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR}/dtrace COMPONENT ${AIEBU_DEV_COMPONENT}
   )
 
 install(FILES
