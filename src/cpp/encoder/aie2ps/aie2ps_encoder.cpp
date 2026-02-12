@@ -14,24 +14,6 @@ namespace aiebu {
 
 void
 aie2ps_encoder::
-fill_scratchpad(std::shared_ptr<section_writer> padwriter, const std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpads)
-{
-  for (const auto& pad : scratchpads)
-  {
-    const auto& content = pad.second->get_content();
-    if (content.size())
-    {
-      assert((void("Pad content size and size doesnt match\n"), content.size() == pad.second->get_size()));
-      padwriter->write_bytes(content);
-    } else {
-      auto size = pad.second->get_size();
-      padwriter->write_default_bytes(size);
-    }
-  }
-}
-
-void
-aie2ps_encoder::
 fill_controlpkt(std::shared_ptr<section_writer> ctrlpktwriter, const std::vector<char>& ctrlpkt)
 {
   ctrlpktwriter->write_bytes(ctrlpkt);
@@ -106,12 +88,6 @@ process(std::shared_ptr<preprocessed_output> input)
       for (auto& lpage : coldata.second->m_pages)
         page_writer(lpage, coldata.second->m_scratchpad, coldata.second->m_labelpageindex, ctrlpkt_id_map,
                     optimizatiom_level, nullptr, nullptr);
-    }
-
-    if (coldata.second->m_scratchpad.size()) {
-      auto padwriter = std::make_shared<section_writer>(get_PadSectionName(colnum), code_section::data);
-      fill_scratchpad(padwriter, coldata.second->m_scratchpad);
-      twriter.push_back(padwriter);
     }
 
     for (const auto& pair : ctrlpkt_id_map) {
@@ -245,6 +221,7 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
     if (text->isOpcode())
     {
       page_state->set_pos(textwriter->tell() - text_base);
+      page_state->set_is_save_restore_op(text->get_is_save_restore());  // Track if this is save/restore op
       std::vector<uint8_t> ret = (*m_isa)[name]->serializer(args)
                                                ->serialize(page_state, tsym, colnum, pagenum);
       textwriter->write_bytes(ret);
@@ -325,6 +302,12 @@ patch57(const std::shared_ptr<section_writer> textwriter, std::shared_ptr<sectio
   uint64_t bd2 = datawriter->read_word(offset + 2*4); // NOLINT
   uint64_t bd8 = datawriter->read_word(offset + 8*4); // NOLINT
   uint64_t arg = ((bd8 & 0x1FF) << 48) + ((bd2 & 0xFFFF) << 32) + (bd1 & 0xFFFFFFFF); // NOLINT
+  // Add log for debugging patching
+  log_info() << "aie2ps_encoder::patch57: offset=" << offset
+             << ", patch=0x" << std::hex << patch
+             << ", arg=0x" << std::hex << arg
+             << ", after patch=0x" << std::hex << patch + arg
+             << std::dec << std::endl;
   patch = arg + patch;
   datawriter->write_word_at(offset + 1*4, patch & 0xFFFFFFFF); // NOLINT
   datawriter->write_word_at(offset + 2*4, ((patch >> 32) & 0xFFFF) | (bd2 & 0xFFFF0000)); // NOLINT

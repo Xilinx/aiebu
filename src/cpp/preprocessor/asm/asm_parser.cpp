@@ -174,7 +174,7 @@ std::vector<uint32_t>
 asm_parser::
 get_col_list()
 {
-  // get col list
+  // get col list (sorted order since unordered_map doesn't preserve insertion order)
   std::vector<uint32_t> keys;
 
   std::transform(
@@ -182,6 +182,7 @@ get_col_list()
     m_col.end(),
     std::back_inserter(keys),
     [](const std::unordered_map<uint32_t, col_data>::value_type &pair){return pair.first;});
+  std::sort(keys.begin(), keys.end());
   return keys;
 }
 
@@ -420,7 +421,8 @@ parse_lines(const std::vector<char>& data, std::string& file)
       } else
         insert_col_asmdata(std::make_shared<asm_data>(operation(sm[1].str(), ""), operation_type::label,
                                                       code_section::unknown, 0, (uint32_t)-1, linenumber,
-                                                      parse_file_idx));
+                                                      parse_file_idx, is_save_restore_routine()));
+
       continue;
     }
     // check for operation
@@ -440,9 +442,10 @@ parse_lines(const std::vector<char>& data, std::string& file)
       else if (regex_match(op_name, sm, LOAD_OR_PREEMPT_COND_RE)) {
         handle_load_or_preempt_cond(op_name, arg_str, sm);
       }
+
       insert_col_asmdata(std::make_shared<asm_data>(operation(op_name, arg_str), operation_type::op,
                                                     code_section::unknown, 0, (uint32_t)-1, linenumber,
-                                                    parse_file_idx));
+                                                    parse_file_idx, is_save_restore_routine()));
       if (!op_name.compare("eof"))
         set_data_state(true);
     }
@@ -1169,12 +1172,14 @@ asm_parser::inject_hintmap_save_restore(int col,
 
   m_current_col = col;
   set_data_state(false);
+  set_save_restore_routine(true);  // Mark as save/restore routine
   parse_lines(save_chars, save_file_mod);
   pop_data_state();
 
   set_data_state(false);
   parse_lines(restore_chars, restore_file_mod);
   pop_data_state();
+  set_save_restore_routine(false);  // Clear save/restore routine flag
 }
 
 // ---------------------------------------------------------------------------
@@ -1298,12 +1303,14 @@ asm_parser::inject_default_save_restore(int col,
 
   m_current_col = col;
   set_data_state(false);
+  set_save_restore_routine(true);  // Mark as save/restore routine
   parse_lines(save_chars, save_file_mod);
   pop_data_state();
 
   set_data_state(false);
   parse_lines(restore_chars, restore_file_mod);
   pop_data_state();
+  set_save_restore_routine(false);  // Clear save/restore routine flag
 }
 
 // ---------------------------------------------------------------------------
@@ -1567,13 +1574,19 @@ operate(std::shared_ptr<asm_parser> parserptr,
 void
 pad_directive::
 operate(std::shared_ptr<asm_parser> parserptr,
-        const std::string& /*directive_line*/,
+        const std::string& directive_line,
         const std::string& args_tail)
 {
   m_parserptr = parserptr;
   verify_nonempty_args(args_tail, error::error_code::invalid_asm, ".setpad directive requires arguments\n");
 
   std::vector<std::string> args = splitoption(args_tail.c_str(), ',');
+
+  // .setpad should only be part of save/restore routines
+  if (!m_parserptr->should_skip_setpad_in_save_restore()) {
+    log_warn() << "Warning: Directive \"" << directive_line << "\" found outside save/restore routine for target: "
+               << m_parserptr->get_target_type() << "\n";
+  }
 
   add_scratchpad(args[0], args[1]);
 }
