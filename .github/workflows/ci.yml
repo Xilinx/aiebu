@@ -142,7 +142,7 @@ jobs:
       if: runner.os == 'Linux' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
       uses: actions/upload-artifact@v4
       with:
-        name: aiebu_release_linux
+        name: aiebu_release_${{ matrix.os }}
         path: ${{github.workspace}}/build/Release/AIEBU-*-Linux.tar.gz
 
     - name: Upload (Windows)
