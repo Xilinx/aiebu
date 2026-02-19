@@ -33,8 +33,7 @@ add_link_options(
   /guard:cf   # enable linker control guard feature (CFG) to prevent attackers from redirecting execution to unsafe locations
   )
 
-
-if (NOT ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "ARM64")
+if (NOT ${CMAKE_CXX_COMPILER} MATCHES "(arm64|ARM64)")
     add_link_options(/CETCOMPAT) # enable Control-flow Enforcement Technology (CET) Shadow Stack mitigation
 endif()
 

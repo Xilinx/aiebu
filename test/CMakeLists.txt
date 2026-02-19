@@ -16,5 +16,7 @@ add_subdirectory(cpp_test)
 # AIEBU is built as a submodule from XRT
 if (NOT AIEBU_SUBMODULE)
   add_subdirectory(cmake-test)
-  add_subdirectory(dtrace_test)
+  if (NOT CMAKE_CXX_COMPILER MATCHES "(arm64|ARM64)")
+    add_subdirectory(dtrace_test)
+  endif()
 endif()
