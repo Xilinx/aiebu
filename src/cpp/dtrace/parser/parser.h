@@ -78,7 +78,6 @@ private:
     int m_position;
     std::unordered_map<std::string, boost::property_tree::ptree> m_maps;
     std::string m_write_buffer;
-    // std::unordered_map<std::string, std::vector<uint32_t>> m_buffer_map;
     std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>> m_buffer_map;
     std::vector<int> get_list(const std::string& token) const;
     std::pair<int, int> lookup_control_code_location(const std::string& probe_name) const;

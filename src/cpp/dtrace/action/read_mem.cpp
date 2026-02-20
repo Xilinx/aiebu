@@ -21,10 +21,11 @@ namespace dtrace::action
  *  Memory buffer host address for read memory action in control buffer.
  */
 read_mem_action::
-read_mem_action(std::string token, uint32_t probe_type, const std::string& probe_name, 
-    uint64_t mem_host_addr)
+read_mem_action(std::string token, uint32_t probe_type, const std::string& probe_name, uint64_t mem_host_addr,
+    const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map)
     : action(probe_type, probe_name)
     , m_mem_host_addr(mem_host_addr)
+    , m_read_buffer_initialized(false)
 {
     std::vector<std::string> fields;
     std::stringstream token_stream(token);
@@ -57,6 +58,22 @@ read_mem_action(std::string token, uint32_t probe_type, const std::string& probe
 
     // Parse the length string as hexadecimal or decimal
     m_length = std::stoull(m_arguments[1], nullptr, 0);
+
+    // check if write buffer name exists in the map and get the values
+    if (buffer_map.find(m_result) != buffer_map.end())
+    {
+        m_read_buffer_initialized = true;
+        m_read_buffer_addr = buffer_map.at(m_result).first;
+    }
+    else
+    {
+        m_read_buffer_addr.push_back(
+            (m_mem_host_addr >> dtrace::dtrace_ctrl::forth_byte_shift) & dtrace::dtrace_ctrl::mask_32
+        );
+        m_read_buffer_addr.push_back(
+            m_mem_host_addr & dtrace::dtrace_ctrl::mask_32
+        );
+    }
 }
 
 //-------------------------read_mem_action::get_mem_host_addr-------------------------//
@@ -69,14 +86,15 @@ read_mem_action(std::string token, uint32_t probe_type, const std::string& probe
  *
  * This function calculates the memory length by converting the second argument 
  * (action length) in `m_arguments` into word bytes. It then adds this memory length to the 
- * base memory host address (`m_mem_host_addr`) and returns the result.
+ * base memory host address (`m_mem_host_addr`) and returns the result. 
+ * If read buffer is already initialized, return base memory host address without adding memory length.
  */
 uint64_t
 read_mem_action::
 get_mem_host_addr() const
 {
     auto mem_length = static_cast<uint64_t>(m_length) * dtrace::dtrace_ctrl::word_byte_size;
-    return m_mem_host_addr + mem_length;
+    return m_read_buffer_initialized ? m_mem_host_addr : (m_mem_host_addr + mem_length);
 }
 
 //-------------------------read_mem_action::actionize-------------------------//
@@ -102,16 +120,15 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     // length
     control_buffer.push_back(m_length);
     // mem_host_addr high
-    control_buffer.push_back(
-        (m_mem_host_addr >> dtrace::dtrace_ctrl::forth_byte_shift) & dtrace::dtrace_ctrl::mask_32
-    );
+    control_buffer.push_back(m_read_buffer_addr[0]);
     // mem_host_addr low
-    control_buffer.push_back(m_mem_host_addr & dtrace::dtrace_ctrl::mask_32);
+    control_buffer.push_back(m_read_buffer_addr[1]);
 
     // mem buffer
     set_location(mem_buffer, true);
     // values
-    mem_buffer.insert(mem_buffer.end(), m_length, 0);
+    if (!m_read_buffer_initialized)
+        mem_buffer.insert(mem_buffer.end(), m_length, 0);
 }
 
 //-------------------------read_mem_action::serialize-------------------------//

@@ -518,11 +518,13 @@ class read_mem_action : public action
 private:
     uint32_t m_length;
     uint64_t m_mem_host_addr;
+    bool m_read_buffer_initialized;
+    std::vector<uint32_t> m_read_buffer_addr;
 
 public:
     read_mem_action(
-        std::string token, uint32_t probe_type, const std::string& probe_name, 
-        uint64_t mem_host_addr
+        std::string token, uint32_t probe_type, const std::string& probe_name, uint64_t mem_host_addr,
+        const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer

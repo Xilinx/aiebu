@@ -577,7 +577,7 @@ create_action(const std::string& action_string, uint32_t probe_type,
     else if (aiebu::regex_search(action_string, dtrace::action::action_name::read_mem_regex))
     {   // Read memory action
         action = std::make_shared<dtrace::action::read_mem_action>(
-            action_string, probe_type, probe_name, m_mem_host_addr_map[uC_index]
+            action_string, probe_type, probe_name, m_mem_host_addr_map[uC_index], m_buffer_map
         );
         m_mem_host_addr_map[uC_index] = action->get_mem_host_addr();
     }
