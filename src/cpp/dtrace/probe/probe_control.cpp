@@ -110,10 +110,9 @@ actionize(std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buff
                 action_type = dtrace::action::action_type::reg_mask_write;
             }
 
-            // adding 2 for mem_host_addr location
             mem_action_locations.push_back(
                 (action_type << dtrace::dtrace_ctrl::second_byte_shift) | 
-                (m_control_actions[i]->get_location(false) + 2) 
+                (m_control_actions[i]->get_location(false)) 
             );
         }
     }
