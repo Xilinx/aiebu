@@ -221,10 +221,8 @@ get_dtrace_result_file(dtrace_handle_t dtrace_handle, const char* result_file)
 {
     try
     {
-        // dtrace handle unique pointer
-        auto handle = std::unique_ptr<dtrace_command_handle>(
-            static_cast<dtrace_command_handle*>(dtrace_handle)
-        );
+        // dtrace handle
+        auto* handle = static_cast<dtrace_command_handle*>(dtrace_handle);
 
         // Initialize the result buffers and memory buffers vector
         std::unordered_map<uint32_t, std::vector<uint32_t>> result_buffers;
