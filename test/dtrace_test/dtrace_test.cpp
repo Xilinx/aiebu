@@ -21,9 +21,11 @@ static const uint64_t TRACE_CTRL_CODE_BASE = 0x200000;
 static const uint64_t TRACE_CTRL_CODE_SIZE = 16384; // 8kB
 static const uint32_t word_byte_shift = 32;
 // static const uint32_t mask_32 = 0xFFFFFFFF; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-using get_dtrace_col_numbers_t = void* (*)(const char*, const char*, uint32_t*, uint32_t);
+using create_dtrace_handle_t = void* (*)(const char*, const char*, uint32_t);
+using get_dtrace_col_numbers_t = void (*)(void*, uint32_t*);
 using get_dtrace_buffer_size_t = void (*)(void*, uint64_t*);
 using populate_dtrace_buffer_t = void (*)(void*, uint32_t*, uint64_t);
+using destroy_dtrace_handle_t = void (*)(void*);
 
 int 
 run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_file, 
@@ -42,13 +44,19 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
     }
 
     // load and check functions from dtrace compiler
+    auto create_dtrace_handle = 
+        reinterpret_cast<create_dtrace_handle_t>(dlsym(dtrace_lib_handle, "create_dtrace_handle"));
     auto get_dtrace_col_numbers = 
-        reinterpret_cast<get_dtrace_col_numbers_t>(dlsym(dtrace_lib_handle, "get_dtrace_col_numbers_with_log"));
+        reinterpret_cast<get_dtrace_col_numbers_t>(dlsym(dtrace_lib_handle, "get_dtrace_col_numbers"));
     auto get_dtrace_buffer_size = 
         reinterpret_cast<get_dtrace_buffer_size_t>(dlsym(dtrace_lib_handle, "get_dtrace_buffer_size"));
     auto populate_dtrace_buffer = 
         reinterpret_cast<populate_dtrace_buffer_t>(dlsym(dtrace_lib_handle, "populate_dtrace_buffer"));
-    if (!get_dtrace_col_numbers || !get_dtrace_buffer_size || !populate_dtrace_buffer) {
+    auto destroy_dtrace_handle = 
+        reinterpret_cast<destroy_dtrace_handle_t>(dlsym(dtrace_lib_handle, "destroy_dtrace_handle"));
+    if (!create_dtrace_handle || !get_dtrace_col_numbers || !get_dtrace_buffer_size || 
+        !populate_dtrace_buffer || !destroy_dtrace_handle) 
+    {
         std::cerr << "[ERROR]: failed to load dtrace functions" << std::endl;
         dlclose(dtrace_lib_handle);
         return 1;
@@ -57,15 +65,18 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
     uint32_t dtrace_buffer_length = 0;
     uint32_t buffers_length = 0;
     uint32_t dtrace_log_level = 1; // default log level
-    // get dtrace number of column using get_dtrace_col_numbers api from libdtrace.so
+    // get dtrace handle using create_dtrace_handle api from libdtrace.so
     void* dtrace_handle = 
-        get_dtrace_col_numbers(script_file.c_str(), map_file.c_str(), &buffers_length, dtrace_log_level);
+        create_dtrace_handle(script_file.c_str(), map_file.c_str(), dtrace_log_level);
     if (!dtrace_handle) {
         std::cerr << "[ERROR]: dtrace compiler failed" << std::endl;
         dlclose(dtrace_lib_handle);
         return 1;
     }
     else {
+        // get dtrace number of column using get_dtrace_col_numbers api from libdtrace.so
+        get_dtrace_col_numbers(dtrace_handle, &buffers_length);
+
         // allocate dtrace information buffer
         std::unique_ptr<uint32_t[]> dtrace_buffer = std::make_unique<uint32_t[]>(TRACE_CTRL_CODE_SIZE); // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
         std::unique_ptr<uint64_t[]> buffers = std::make_unique<uint64_t[]>(buffers_length); // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
@@ -90,6 +101,9 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
                 static_cast<std::streamsize>(dtrace_buffer_length * sizeof(uint32_t)));
             control_buffer_file.close();
         }
+
+        // destroy dtrace handle using destroy_dtrace_handle api from libdtrace.so
+        destroy_dtrace_handle(dtrace_handle);
         dlclose(dtrace_lib_handle);
         return 0;
     }

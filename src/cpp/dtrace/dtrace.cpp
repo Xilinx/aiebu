@@ -48,9 +48,8 @@ struct dtrace_command_handle {
     std::unordered_map<uint32_t, dtrace_buffer_info> g_dtrace_buffer_info_map;
 };
 
-dtrace_handle_t 
-get_dtrace_col_numbers(const char* script_file, const char* map_data, 
-    uint32_t* buffers_length)
+dtrace_handle_t
+create_dtrace_handle(const char* script_file, const char* map_data, uint32_t log_level)
 {
     try
     {
@@ -58,14 +57,9 @@ get_dtrace_col_numbers(const char* script_file, const char* map_data,
         auto handle = std::make_unique<dtrace_command_handle>();
 
         // Initialize the memory host address map and dtrace compiler control object
-        // set the log level to default error level
-        uint32_t log_level = 1;
-        handle->g_control = 
+        // and set the log level
+        handle->g_control =
             std::make_unique<dtrace::control>(script_file, map_data, log_level);
-
-        // Get the number of uC in the script file
-        uint32_t number_uC = handle->g_control->m_control_uC_indices.size();
-        *buffers_length = number_uC;
 
         return static_cast<dtrace_handle_t>(handle.release());
     }
@@ -76,30 +70,21 @@ get_dtrace_col_numbers(const char* script_file, const char* map_data,
     }
 }
 
-dtrace_handle_t 
-get_dtrace_col_numbers_with_log(const char* script_file, const char* map_data, 
-    uint32_t* buffers_length, uint32_t log_level)
+void
+get_dtrace_col_numbers(dtrace_handle_t dtrace_handle, uint32_t* buffers_length)
 {
     try
     {
-        // Create new dtrace handle
-        auto handle = std::make_unique<dtrace_command_handle>();
-
-        // Initialize the memory host address map and dtrace compiler control object
-        // and set the log level
-        handle->g_control = 
-            std::make_unique<dtrace::control>(script_file, map_data, log_level);
+        // dtrace handle
+        auto* handle = static_cast<dtrace_command_handle*>(dtrace_handle);
 
         // Get the number of uC in the script file
         uint32_t number_uC = handle->g_control->m_control_uC_indices.size();
         *buffers_length = number_uC;
-
-        return static_cast<dtrace_handle_t>(handle.release());
     }
     catch (const std::exception& e)
     {
         std::cerr << e.what();
-        return nullptr; // Failure
     }
 }
 
@@ -278,6 +263,22 @@ get_dtrace_result_file(dtrace_handle_t dtrace_handle, const char* result_file)
                 buffer.size() * sizeof(uint32_t)
             );
         }
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what();
+    }
+}
+
+void
+destroy_dtrace_handle(dtrace_handle_t dtrace_handle)
+{
+    try
+    {
+        // dtrace handle destruction
+        std::unique_ptr<dtrace_command_handle> handle(
+            static_cast<dtrace_command_handle*>(dtrace_handle)
+        );
     }
     catch (const std::exception& e)
     {
