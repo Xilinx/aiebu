@@ -490,7 +490,7 @@ get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset)
             uint32_t action_length = source[action_offset + 1];
             action_size += (
                 dtrace::action::action_ctrl::timestamps_action_size + 
-                (action_length * dtrace::action::action_ctrl::timestamps_value)
+                (action_length * dtrace::action::action_ctrl::timestamps_value_size)
             );
         }
         else if (action_type == dtrace::action::action_type::timestamps32)

@@ -62,9 +62,9 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     );
     set_location(control_buffer, false);
     // timestamp high
-    control_buffer.push_back(0);
+    control_buffer.push_back(dtrace::dtrace_ctrl::result_value_init);
     // timestamp low
-    control_buffer.push_back(0);
+    control_buffer.push_back(dtrace::dtrace_ctrl::result_value_init);
 }
 
 //-------------------------host_timestamp_action::serialize-------------------------//

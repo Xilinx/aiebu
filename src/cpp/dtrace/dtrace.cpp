@@ -61,6 +61,8 @@ create_dtrace_handle(const char* script_file, const char* map_data, uint32_t log
         handle->g_control =
             std::make_unique<dtrace::control>(script_file, map_data, log_level);
 
+        // Returns an opaque raw handle.
+        // Transfer ownership to caller; caller must call destroy_dtrace_handle().
         return static_cast<dtrace_handle_t>(handle.release());
     }
     catch (const std::exception& e)

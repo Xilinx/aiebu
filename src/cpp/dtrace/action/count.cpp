@@ -62,7 +62,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     );
     set_location(control_buffer, false);
     // count value
-    control_buffer.push_back(0);
+    control_buffer.push_back(dtrace::dtrace_ctrl::result_value_init);
 }
 
 //-------------------------count_action::serialize-------------------------//

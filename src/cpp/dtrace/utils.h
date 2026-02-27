@@ -100,6 +100,7 @@ public:
     static constexpr uint32_t mask_32 = 0xFFFFFFFF;                                         // Mask for 32-bit unsigned integers    
     static constexpr uint32_t empty_buffer_check = 0xFFFFFFFF;                              // Check for empty buffer
     static constexpr uint32_t handshake_overflow = 0xFBADBEEF;                              // Value used to check handshake overflow
+    static constexpr uint32_t result_value_init = 0xFBADCAFE;                               // Initial value for action result
     static constexpr uint32_t decimal_base = 10;                                            // Base for decimal numbers
     static constexpr uint32_t hexadecimal_base = 16;                                        // Base for hexadecimal numbers
     static constexpr uint32_t decimal_hexadecimal_base = 0;                                 // Base for both decimal and hexadecimal numbers

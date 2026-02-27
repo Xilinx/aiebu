@@ -73,7 +73,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     // timestamp length
     control_buffer.push_back(m_length);
     // timestamp value for the length
-    control_buffer.insert(control_buffer.end(), m_length, 0);
+    control_buffer.insert(control_buffer.end(), m_length, dtrace::dtrace_ctrl::result_value_init);
 }
 
 //-------------------------timestamps32_action::serialize-------------------------//

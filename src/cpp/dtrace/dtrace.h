@@ -35,7 +35,8 @@ typedef void* dtrace_handle_t;
  * @map_data:       Map data containing details of control code.
  * @log_level:      Log level for debugging.
  *
- * Returns a handle to the dynamic tracing context, or NULL on failure.
+ * @return Opaque raw handle to the dynamic tracing context owned by the caller, or NULL on failure.
+ * @note The caller must release this handle by calling destroy_dtrace_handle().
  */
 DTRACE_EXPORT
 dtrace_handle_t

@@ -75,9 +75,9 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     // timestamp values for m_length
     for (size_t i = 0; i < m_length; ++i)
     {   // timestamp high values
-        control_buffer.push_back(0);
+        control_buffer.push_back(dtrace::dtrace_ctrl::result_value_init);
         // timestamp low values
-        control_buffer.push_back(0);
+        control_buffer.push_back(dtrace::dtrace_ctrl::result_value_init);
     }
 }
 

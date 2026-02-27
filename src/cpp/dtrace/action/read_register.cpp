@@ -74,7 +74,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     control_buffer.push_back(std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
     set_location(control_buffer, false);
     // return value
-    control_buffer.push_back(0);
+    control_buffer.push_back(dtrace::dtrace_ctrl::result_value_init);
 }
 
 //-------------------------read_reg_action::serialize-------------------------//

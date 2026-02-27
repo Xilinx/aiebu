@@ -128,7 +128,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     set_location(mem_buffer, true);
     // values
     if (!m_read_buffer_initialized)
-        mem_buffer.insert(mem_buffer.end(), m_length, 0);
+        mem_buffer.insert(mem_buffer.end(), m_length, dtrace::dtrace_ctrl::result_value_init);
 }
 
 //-------------------------read_mem_action::serialize-------------------------//

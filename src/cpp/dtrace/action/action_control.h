@@ -153,20 +153,18 @@ public:
  * dtrace::action::action_ctrl defines constants used to create control block and action control.
  *
  * @details
- * The class provides a set of static constexpr values that are used for different
- * purposes such as page size, byte shifts, action sizes, and  masks in dtrace compiler.
- * The trace_page_size is conditionally defined based on the CERT_TRACE_CONTROL_H macro.
+ * The class provides a set of static constexpr values that are used for action size in dtrace compiler.
  */
 class action_ctrl
 {
 public:
-    static constexpr uint32_t break_action_size = 1;                                        // Size of a break action
-    static constexpr uint32_t timestamp32_action_size = 2;                                  // Size of a 32-bit timestamp action
-    static constexpr uint32_t timestamps_action_size = 2;                                   // Size of a multiple timestamp action
-    static constexpr uint32_t timestamps_value = 2;                                         // Low and high value for timestamp
-    static constexpr uint32_t reg_rw_action_size = 3;                                       // Size of a register read/write action
-    static constexpr uint32_t reg_mask_w_action_size = 4;                                   // Size of a register read/write action
-    static constexpr uint32_t mem_rw_action_size = 5;                                       // Size of a memory read/write action
+    static constexpr uint32_t break_action_size = 1;            // Size of a break action
+    static constexpr uint32_t timestamp32_action_size = 2;      // Size of a 32-bit timestamp action
+    static constexpr uint32_t timestamps_action_size = 2;       // Size of a multiple timestamp action
+    static constexpr uint32_t timestamps_value_size = 2;        // Size of value (Low and high) for timestamp
+    static constexpr uint32_t reg_rw_action_size = 3;           // Size of a register read/write action
+    static constexpr uint32_t reg_mask_w_action_size = 4;       // Size of a register read/write action
+    static constexpr uint32_t mem_rw_action_size = 5;           // Size of a memory read/write action
 };
 
 //-------------------------Action class-------------------------//
