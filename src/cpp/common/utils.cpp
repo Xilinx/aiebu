@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
-
+// Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
 #include <map>
 #include <string>
+#include <sstream>
 
 #include "utils.h"
 #include "version.h"
@@ -36,12 +36,42 @@ get_regex(const std::vector<fragment>& pattern)
   return aiebu::regex(composite);
 }
 
+// Lifted from earlier revision of version.h.in
+// Removed build date, which cannot be embedded in binaries.
 std::string
 version_string()
 {
-  std::stringstream stream;
-  version::print(stream);
-  return stream.str();
+  std::stringstream output;
+  output << "     AIEBU Build Version: " << aiebu_build_version << '\n';
+  output << "    Build Version Branch: " << aiebu_build_version_branch << '\n';
+  output << "      Build Version Hash: " << aiebu_build_version_hash << '\n';
+  output << " Build Version Hash Date: " << aiebu_build_version_hash_date << '\n';
+
+  std::string modified_files(aiebu_modified_files);
+  if (modified_files.empty())
+    return output.str();
+
+  const std::string& delimiters = ",";      // Our delimiter
+  std::string::size_type last_pos = 0;
+  int running_index = 1;
+  while (last_pos < modified_files.length() + 1) {
+    if (running_index == 1)
+      output << "  Current Modified Files: ";
+    else
+      output << "                          ";
+
+    output << running_index++ << ") ";
+
+    auto pos = modified_files.find_first_of(delimiters, last_pos);
+
+    if (pos == std::string::npos)
+      pos = modified_files.length();
+
+    output << modified_files.substr(last_pos, pos - last_pos) << '\n';
+
+    last_pos = pos + 1;
+  }
+  return output.str();
 }
 
 std::string

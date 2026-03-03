@@ -1,10 +1,7 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- * Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
- */
-
-#ifndef _AIEBU_VERSION_H_
-#define _AIEBU_VERSION_H_
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
+#ifndef AIEBU_VERSION_H_
+#define AIEBU_VERSION_H_
 
 static const char aiebu_build_version[] = "@AIEBU_VERSION_STRING@";
 
@@ -13,10 +10,6 @@ static const char aiebu_build_version_branch[] = "@AIEBU_BRANCH@";
 static const char aiebu_build_version_hash[] = "@AIEBU_HASH@";
 
 static const char aiebu_build_version_hash_date[] = "@AIEBU_HASH_DATE@";
-
-static const char aiebu_build_version_date_rfc[] = "@AIEBU_DATE_RFC@";
-
-static const char aiebu_build_version_date[] = "@AIEBU_DATE@";
 
 static const char aiebu_modified_files[] = "@AIEBU_MODIFIED_FILES@";
 
@@ -29,49 +22,5 @@ static const char aiebu_modified_files[] = "@AIEBU_MODIFIED_FILES@";
 #define AIEBU_PATCH @AIEBU_VERSION_PATCH@
 #define AIEBU_HEAD_COMMITS @AIEBU_HEAD_COMMITS@
 #define AIEBU_BRANCH_COMMITS @AIEBU_BRANCH_COMMITS@
-
-#ifdef __cplusplus
-#include <iostream>
-#include <string>
-
-namespace aiebu::version {
-
-inline void
-print(std::ostream & output)
-{
-  output << "     AIEBU Build Version: " << aiebu_build_version << std::endl;
-  output << "    Build Version Branch: " << aiebu_build_version_branch << std::endl;
-  output << "      Build Version Hash: " << aiebu_build_version_hash << std::endl;
-  output << " Build Version Hash Date: " << aiebu_build_version_hash_date << std::endl;
-  output << "      Build Version Date: " << aiebu_build_version_date_rfc << std::endl;
-
-  std::string modified_files(aiebu_modified_files);
-  if (modified_files.empty())
-    return;
-
-  const std::string& delimiters = ",";      // Our delimiter
-  std::string::size_type last_pos = 0;
-  int running_index = 1;
-  while (last_pos < modified_files.length() + 1) {
-    if (running_index == 1)
-      output << "  Current Modified Files: ";
-    else
-      output << "                          ";
-
-    output << running_index++ << ") ";
-
-    auto pos = modified_files.find_first_of(delimiters, last_pos);
-
-    if (pos == std::string::npos)
-      pos = modified_files.length();
-
-    output << modified_files.substr(last_pos, pos - last_pos) << std::endl;
-
-    last_pos = pos + 1;
-  }
-}
-
-} // namespace aiebu::version
-#endif // __cplusplus
 
 #endif
