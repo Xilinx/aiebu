@@ -3,6 +3,10 @@
 ;text
 ;
 START_JOB 0
+.section annotation
+id: 6
+name: start_restore_1c1
+description: start restore 1c1
 UC_DMA_WRITE_DES_SYNC	 @UCBD_label_0
 APPLY_OFFSET_57	 @DMAWRITE_data_0, 1, 65535, @preempt_buffer1
 APPLY_OFFSET_57	 @DMAWRITE_data_1, 1, 65535, @preempt_buffer1
@@ -17,11 +21,13 @@ MASK_POLL_32	 0x2149ed4, 0x1f8003c, 0x0
 UC_DMA_WRITE_DES_SYNC	 @UCBD_label_3
 END_JOB
 
-.eop
-
 START_JOB 1
   LOAD_LAST_PDI
 END_JOB
+.section annotation
+id: 7
+name: end_restore_1c1
+description: end restore 1c1
 
 EOF
 

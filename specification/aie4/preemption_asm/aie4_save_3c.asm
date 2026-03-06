@@ -4,6 +4,10 @@
 ;
 .setpad	 preempt_buffer, 0x240000
 START_JOB 0
+.section annotation
+id: 0
+name: start_save
+description: start save
 UC_DMA_WRITE_DES_SYNC	 @UCBD_label_0
 END_JOB
 
@@ -26,6 +30,10 @@ MASK_POLL_32	 0x2058570, 0x1f8003c, 0x0
 MASK_POLL_32	 0x4018570, 0x1f8003c, 0x0
 MASK_POLL_32	 0x4058570, 0x1f8003c, 0x0
 END_JOB
+.section annotation
+id: 1
+name: end_save
+description: end save
 
 .eop
 

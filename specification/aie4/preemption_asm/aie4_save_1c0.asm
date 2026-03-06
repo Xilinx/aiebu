@@ -4,6 +4,10 @@
 ;
 .setpad	 preempt_buffer0, 0xc0000
 START_JOB 0
+.section annotation
+id: 0
+name: start_save_1c0
+description: start save 1c0
 UC_DMA_WRITE_DES_SYNC	 @UCBD_label_0
 APPLY_OFFSET_57	 @DMAWRITE_data_125, 1, 65535, @preempt_buffer0
 APPLY_OFFSET_57	 @DMAWRITE_data_126, 1, 65535, @preempt_buffer0
@@ -12,6 +16,10 @@ UC_DMA_WRITE_DES_SYNC	 @UCBD_label_2
 MASK_POLL_32	 0x18570, 0x1f8003c, 0x0
 MASK_POLL_32	 0x58570, 0x1f8003c, 0x0
 END_JOB
+.section annotation
+id: 1
+name: end_save_1c0
+description: end save 1c0
 
 .eop
 
