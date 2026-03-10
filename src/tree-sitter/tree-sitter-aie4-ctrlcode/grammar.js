@@ -1,7 +1,7 @@
 /**
- * @file AMD aie4 ctrlcode parser for tree-sitter
- * Grammar derived from test/aie4-ctrlcode/*.asm and
- * src/tree-sitter/tree-sitter-aie2p/grammar.js
+ * @file AMD aie4 / aie2ps ctrlcode parser for tree-sitter
+ * Grammar derived from test/aie4-ctrlcode/*.asm, test/aie2ps-ctrlcode/*.asm,
+ * and src/tree-sitter/tree-sitter-aie2p/grammar.js
  * @license MIT
  */
 
@@ -30,8 +30,16 @@ module.exports = grammar({
       $.include_directive,
       $.endl_directive,
       $.align_directive,
-      $.long_directive
+      $.long_directive,
+      $.section_directive
     ),
+
+    section_directive: $ => seq(
+      '.section',
+      $.section_name
+    ),
+
+    section_name: $ => token(seq(/\./, /[a-zA-Z_][a-zA-Z0-9_]*/)),
 
     partition_directive: $ => seq(
       '.partition',
@@ -85,18 +93,19 @@ module.exports = grammar({
       $.wait_uc_dma_statement,
       $.save_timestamps_statement,
       $.preempt_statement,
+      $.nop_statement,
       $.eof_marker
     ),
 
     start_job_statement: $ => seq(
-      'START_JOB',
+      token(choice('START_JOB', 'start_job')),
       $.decint
     ),
 
-    end_job_statement: $ => 'END_JOB',
+    end_job_statement: $ => token(choice('END_JOB', 'end_job')),
 
     uc_dma_write_des_sync_statement: $ => seq(
-      'UC_DMA_WRITE_DES_SYNC',
+      token(choice('UC_DMA_WRITE_DES_SYNC', 'uC_DMA_WRITE_DES_SYNC')),
       $.address
     ),
 
@@ -129,7 +138,7 @@ module.exports = grammar({
 
     uc_dma_bd_statement: $ => seq(
       'UC_DMA_BD',
-      $.decint,
+      choice($.decint, $.hexint),
       ',',
       $.hexint,
       ',',
@@ -150,14 +159,14 @@ module.exports = grammar({
     ),
 
     write_32_statement: $ => seq(
-      'WRITE_32',
+      token(choice('WRITE_32', 'write_32')),
       $.hexint,
       ',',
       $.hexint
     ),
 
     wait_tcts_statement: $ => seq(
-      'WAIT_TCTS',
+      token(choice('WAIT_TCTS', 'wait_tcts')),
       $.tile_spec,
       ',',
       $.channel_spec,
@@ -170,11 +179,12 @@ module.exports = grammar({
     channel_spec: $ => token(choice(
       seq('SHIM_MM2S_', /\d+/),
       seq('MEM_S2MM_', /\d+/),
+      seq('MEM_MM2S_', /\d+/),
       seq('TILE_S2MM_', /\d+/)
     )),
 
     local_barrier_statement: $ => seq(
-      'LOCAL_BARRIER',
+      token(choice('LOCAL_BARRIER', 'local_barrier')),
       $.local_barrier_reg,
       ',',
       $.decint
@@ -183,14 +193,14 @@ module.exports = grammar({
     local_barrier_reg: $ => token(seq(/\$lb/, /\d+/)),
 
     uc_dma_write_des_statement: $ => seq(
-      'uC_DMA_WRITE_DES',
+      token(choice('uC_DMA_WRITE_DES', 'uc_dma_write_des')),
       $.register_ref,
       ',',
       $.address
     ),
 
     wait_uc_dma_statement: $ => seq(
-      'WAIT_uC_DMA',
+      token(choice('WAIT_uC_DMA', 'wait_uc_dma')),
       $.register_ref
     ),
 
@@ -210,7 +220,9 @@ module.exports = grammar({
       $.address
     ),
 
-    eof_marker: $ => 'EOF',
+    nop_statement: $ => token(choice('NOP', 'nop')),
+
+    eof_marker: $ => token(choice('EOF', 'eof')),
 
     label_definition: $ => seq(
       $.identifier,
