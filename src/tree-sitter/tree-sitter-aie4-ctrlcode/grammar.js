@@ -36,10 +36,13 @@ module.exports = grammar({
 
     section_directive: $ => seq(
       '.section',
-      $.section_name
+      $.section_name,
+      optional(seq(',', $.section_flags))
     ),
 
-    section_name: $ => token(seq(/\./, /[a-zA-Z_][a-zA-Z0-9_]*/)),
+    section_name: $ => token(/\.?[A-Za-z0-9_.]+/),
+
+    section_flags: $ => token(/"[^"]*"/),
 
     partition_directive: $ => seq(
       '.partition',
@@ -99,41 +102,44 @@ module.exports = grammar({
 
     start_job_statement: $ => seq(
       token(choice('START_JOB', 'start_job')),
-      $.decint
+      choice($.decint, $.hexint)
     ),
 
     end_job_statement: $ => token(choice('END_JOB', 'end_job')),
 
     uc_dma_write_des_sync_statement: $ => seq(
-      token(choice('UC_DMA_WRITE_DES_SYNC', 'uC_DMA_WRITE_DES_SYNC')),
+      token(choice('UC_DMA_WRITE_DES_SYNC', 'uC_DMA_WRITE_DES_SYNC', 'uc_dma_write_des_sync')),
       $.address
     ),
 
     mask_write_32_statement: $ => seq(
-      'MASK_WRITE_32',
+      token(choice('MASK_WRITE_32', 'mask_write_32')),
       $.hexint,
       ',',
-      $.hexint,
+      choice($.hexint, $.decint),
       ',',
-      $.hexint
+      choice($.hexint, $.decint)
     ),
 
     mask_poll_32_statement: $ => seq(
-      'MASK_POLL_32',
+      token(choice('MASK_POLL_32', 'mask_poll_32')),
       $.hexint,
       ',',
-      $.hexint,
+      choice($.hexint, $.decint),
       ',',
-      $.hexint
+      choice($.hexint, $.decint)
     ),
 
     apply_offset_statement: $ => seq(
-      token(seq('APPLY_OFFSET_', /\d+/)),
+      token(choice(
+        seq('APPLY_OFFSET_', /\d+/),
+        seq('apply_offset_', /\d+/)
+      )),
       $.address,
       ',',
-      $.decint,
+      choice($.decint, $.hexint),
       ',',
-      $.decint
+      choice($.decint, $.hexint)
     ),
 
     uc_dma_bd_statement: $ => seq(
@@ -152,8 +158,8 @@ module.exports = grammar({
     ),
 
     load_pdi_statement: $ => seq(
-      'LOAD_PDI',
-      $.decint,
+      token(choice('LOAD_PDI', 'load_pdi')),
+      choice($.decint, $.hexint),
       ',',
       $.address
     ),
@@ -171,7 +177,7 @@ module.exports = grammar({
       ',',
       $.channel_spec,
       ',',
-      $.decint
+      choice($.decint, $.hexint)
     ),
 
     tile_spec: $ => token(seq('TILE_', /\d+/, '_', /\d+/)),
@@ -180,27 +186,29 @@ module.exports = grammar({
       seq('SHIM_MM2S_', /\d+/),
       seq('MEM_S2MM_', /\d+/),
       seq('MEM_MM2S_', /\d+/),
-      seq('TILE_S2MM_', /\d+/)
+      seq('TILE_S2MM_', /\d+/),
+      seq('MM2S_', /\d+/),
+      seq('S2MM_', /\d+/)
     )),
 
     local_barrier_statement: $ => seq(
       token(choice('LOCAL_BARRIER', 'local_barrier')),
       $.local_barrier_reg,
       ',',
-      $.decint
+      choice($.decint, $.hexint)
     ),
 
     local_barrier_reg: $ => token(seq(/\$lb/, /\d+/)),
 
     uc_dma_write_des_statement: $ => seq(
-      token(choice('uC_DMA_WRITE_DES', 'uc_dma_write_des')),
+	token(choice('uC_DMA_WRITE_DES', 'uc_dma_write_des', 'UC_DMA_WRITE_DES')),
       $.register_ref,
       ',',
       $.address
     ),
 
     wait_uc_dma_statement: $ => seq(
-      token(choice('WAIT_uC_DMA', 'wait_uc_dma')),
+	token(choice('WAIT_uC_DMA', 'wait_uc_dma', 'WAIT_UC_DMA')),
       $.register_ref
     ),
 
