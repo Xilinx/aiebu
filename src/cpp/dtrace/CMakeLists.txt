@@ -54,15 +54,16 @@ add_library(cert_dtrace_static STATIC
   $<TARGET_OBJECTS:dtrace_library_objects>
   )
 
+if (NOT WIN32)
+  # On linux use cert_dtrace.a.  The target name is cert_dtrace_static but the
+  # output name is cert_dtrace.
+  set_target_properties(cert_dtrace_static PROPERTIES OUTPUT_NAME "cert_dtrace")
+endif()
+
+
 install(TARGETS cert_dtrace cert_dtrace_static
   EXPORT aiebu-targets
   LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_COMPONENT}
   RUNTIME DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_COMPONENT}
   ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT}
-  )
-
-install(FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/dtrace.h
-  DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}/dtrace
-  CONFIGURATIONS Debug Release COMPONENT ${AIEBU_DEV_COMPONENT}
   )
