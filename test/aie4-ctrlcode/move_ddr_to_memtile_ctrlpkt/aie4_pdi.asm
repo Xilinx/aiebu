@@ -2,7 +2,7 @@
 ; Code
 ;
 START_JOB 4
-  uC_DMA_WRITE_DES_SYNC @uc_dma_bd_pdi
+  UC_DMA_WRITE_DES_SYNC @uc_dma_bd_pdi
 END_JOB
 
 EOF
@@ -81,12 +81,12 @@ uc_dma_bd_pdi:
   UC_DMA_BD    0, 0x000081B0, @WRITE_label_9, 1, 0, 1
 ; slave tile ctl 32b slot0 0_0 for tct 0_0. packet routing for master 0 arbiter 0
   UC_DMA_BD    0, 0x000081D0, @WRITE_label_6, 1, 0, 1
-; slave north 32b 0_0 packet routing for tct of 0_1 
+; slave north 32b 0_0 packet routing for tct of 0_1
   UC_DMA_BD    0, 0x000081C0, @WRITE_label_8, 1, 0, 1
 ; slave north 32b slot0 0_0 for tct 0_1. packet routing for master 0 arbiter 0
   UC_DMA_BD    0, 0x00008210, @WRITE_label_5, 1, 0, 1
 ;
-; tcts to uC 
+; tcts to uC
 ;
 ; master of uc 32b 0_0 packet routing for all master arbiter 0
   UC_DMA_BD    0, 0x00008190, @WRITE_label_10, 1, 0, 1

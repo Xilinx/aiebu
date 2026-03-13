@@ -3,8 +3,8 @@
 ;
 
 START_JOB 0
-  uC_DMA_WRITE_DES    $r0, @uc_dma_bd0
-  WAIT_uC_DMA         $r0
+  UC_DMA_WRITE_DES    $r0, @uc_dma_bd0
+  WAIT_UC_DMA         $r0
   LOCAL_BARRIER       $lb0, 2
 END_JOB
 
@@ -12,13 +12,13 @@ START_JOB 1
   LOCAL_BARRIER       $lb0, 2
   WRITE_32            0x1A0634, 0x80000000
   WAIT_TCTS           TILE_0_1, MEM_MM2S_0, 1
-  uC_DMA_WRITE_DES_SYNC @uc_dma_bd1
+  UC_DMA_WRITE_DES_SYNC @uc_dma_bd1
 END_JOB
 
 START_JOB 2
-  uC_DMA_WRITE_DES_SYNC @uc_dma_bd2
-  uC_DMA_WRITE_DES    $r0, @uc_dma_bd3
-  WAIT_uC_DMA         $r0
+  UC_DMA_WRITE_DES_SYNC @uc_dma_bd2
+  UC_DMA_WRITE_DES    $r0, @uc_dma_bd3
+  WAIT_UC_DMA         $r0
   LOCAL_BARRIER       $lb1, 2
 END_JOB
 
