@@ -2,7 +2,7 @@
 
 ..
     comment:: SPDX-License-Identifier: MIT
-    comment:: Copyright (C) 2024 Advanced Micro Devices, Inc.
+    comment:: Copyright (C) 2024-2026 Advanced Micro Devices, Inc.
 
 ============================
 AIE Binary Utilities (AIEBU)
@@ -20,7 +20,7 @@ Init workspace, including submodules
 Build Dependencies
 ==================
 
- * cmake 3.18 or above
+ * cmake 3.18 or above (3.24 on windows)
  * c++17 compiler
  * Boost (header only) minimum version supported is 1.76
  * cxxopts (included as submodule)
