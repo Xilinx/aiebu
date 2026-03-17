@@ -24,10 +24,9 @@ template <typename opnode> opnode *allocXaie() {
 }
 
 class XAie_OpHdr_null : public aie2p_basicpass<XAie_OpHdr> {
-  std::list<basic_node<XAie_OpHdr>> &m_nodes;
+  //std::list<basic_node<XAie_OpHdr>> &m_nodes;
 public:
-  explicit XAie_OpHdr_null(std::list<basic_node<XAie_OpHdr>> &nodes)
-    : m_nodes(nodes)  {}
+  explicit XAie_OpHdr_null(std::list<basic_node<XAie_OpHdr>> &/*nodes*/) {}
 
   void transform() override;
 };
