@@ -426,12 +426,12 @@ expand_init_buffer(const std::string& init_buffer)
 
     std::string buffer_name = buffer[1];
     size_t buffer_length = std::stoul(buffer[2], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base);
-    if (buffer_length < 2)
+    if (buffer_length < 1)
         DTRACE_ERROR("DTRACE_PARSER_INVALID_BUFFER_LENGTH",
             "Invalid buffer length for buffer " << buffer_name << ": " << buffer_length);
 
-    // Initialize the buffer with zeros
-    std::vector<uint32_t> buffer_values(buffer_length, 0);
+    // Initialize the buffer with default value and set host address for buffer in buffer map
+    std::vector<uint32_t> buffer_values(buffer_length, dtrace::dtrace_ctrl::result_value_init);
     // Set the memory host address for the buffer in the buffer map vector
     std::vector<uint32_t> buffer_addr = {
         static_cast<uint32_t>(
