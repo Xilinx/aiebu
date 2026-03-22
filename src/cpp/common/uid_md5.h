@@ -35,22 +35,23 @@ public:
 
     constexpr size_t element_size = sizeof(digest[0]);
 
-    if constexpr (element_size == 1)
-      return sig;
-
-    // Different boost versions model digest_type differently:
-    // 1. typedef unsigned int(digest_type)[4];
-    // 2. typedef unsigned char digest_type[16];
-    // For case 1. the following code swaps the bytes of each integer in
-    // the signature. This solves the little endian issue of integer bytes
-    // stored in the reverse order than in which they are printed.
-
-    auto tcurr = sig.begin();
-    auto done = sig.end();
-    while (tcurr < done) {
+    // Early-exit doesn't work here. If sizeof(digest[0]] == 1
+    // then the compiler would complain about unreachable code
+    // because the if is compiled at compile time.
+    if constexpr (element_size != 1) {
+      // Different boost versions model digest_type differently:
+      // 1. typedef unsigned int(digest_type)[4];
+      // 2. typedef unsigned char digest_type[16];
+      // For case 1. the following code swaps the bytes of each integer in
+      // the signature. This solves the little endian issue of integer bytes
+      // stored in the reverse order than in which they are printed.
+      auto tcurr = sig.begin();
+      auto done = sig.end();
+      while (tcurr < done) {
         auto tend = tcurr + element_size;
         std::reverse(tcurr, tend);
         tcurr = tend;
+      }
     }
 
     return sig;
