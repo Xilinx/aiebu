@@ -118,7 +118,7 @@ install(FILES
   include/aiebu/aiebu_assembler.h
   include/aiebu/aiebu_error.h
   DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}/aiebu
-  CONFIGURATIONS Debug Release COMPONENT ${AIEBU_DEV_COMPONENT}
+  COMPONENT ${AIEBU_DEV_COMPONENT}
 )
 
 # Build dynamic tracing library
