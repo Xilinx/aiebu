@@ -4,8 +4,8 @@
 START_JOB 1
     APPLY_OFFSET_57         @ctl_mm2s0_a_bd0_col0, 1, 3
     UC_DMA_WRITE_DES_SYNC   @UCBD_label_0
-    uC_DMA_WRITE_DES_SYNC   @uc_dma_bd_cp
-; enqueue cp bd0 
+    UC_DMA_WRITE_DES_SYNC   @uc_dma_bd_cp
+; enqueue cp bd0
     WRITE_32                0x00018564, 0x80000000
     MASK_POLL_32            0x1C000, 0xFFFFFFFF, 0xCAFECAFE
     LOCAL_BARRIER           $lb0, 2

@@ -3,8 +3,8 @@
 ;
 
 START_JOB 0
-  uC_DMA_WRITE_DES    $r0, @uc_dma_bd0
-  WAIT_uC_DMA         $r0
+  UC_DMA_WRITE_DES    $r0, @uc_dma_bd0
+  WAIT_UC_DMA         $r0
   LOCAL_BARRIER       $lb0, 2
 END_JOB
 

@@ -11,8 +11,8 @@ END_JOB
 
 START_JOB 2
   LOCAL_BARRIER       $lb0, 2
-  uC_DMA_WRITE_DES    $r0, @uc_dma_bd0
-  WAIT_uC_DMA         $r0
+  UC_DMA_WRITE_DES    $r0, @uc_dma_bd0
+  WAIT_UC_DMA         $r0
   LOCAL_BARRIER       $lb1, 2
 END_JOB
 
@@ -31,7 +31,7 @@ START_JOB 3
 ; enqueue bd0 0_5
   WRITE_32            0x09ACE04, 0x80000000
 ; wait tct
-  WAIT_TCTS           TILE_0_0, SHIM_MM2S_0, 1 
+  WAIT_TCTS           TILE_0_0, SHIM_MM2S_0, 1
   WAIT_TCTS           TILE_0_1, MEM_S2MM_0, 1
   WAIT_TCTS           TILE_0_2, TILE_S2MM_0, 1
   WAIT_TCTS           TILE_0_3, TILE_S2MM_0, 1
