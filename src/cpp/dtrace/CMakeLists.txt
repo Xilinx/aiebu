@@ -60,10 +60,10 @@ if (NOT WIN32)
   set_target_properties(cert_dtrace_static PROPERTIES OUTPUT_NAME "cert_dtrace")
 endif()
 
-
-install(TARGETS cert_dtrace cert_dtrace_static
+# As long as we support static linking of targets depend on static cert, the
+# cert static library must be released.
+install(TARGETS cert_dtrace_static
   EXPORT aiebu-targets
-  LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_COMPONENT}
-  RUNTIME DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_COMPONENT}
+  LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_COMPONENT} NAMELINK_COMPONENT ${AIEBU_DEV_COMPONENT}
   ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT}
   )
