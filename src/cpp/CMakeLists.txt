@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 
 # In arm compiler we dont have static libs so not building utility
 if (AIEBU_NATIVE_BUILD OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL ARM64)
@@ -103,13 +103,12 @@ add_library(aiebu_static STATIC
 if (MSVC)
   target_link_libraries(aiebu_static advapi32)
 else()
-  # On linux use xrt_coreutil.a
+  # On linux use aiebu_static.a
   set_target_properties(aiebu_static PROPERTIES OUTPUT_NAME "aiebu")
 endif()
 
 install (TARGETS aiebu_static
   EXPORT aiebu-targets
-  LIBRARY DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_COMPONENT} NAMELINK_COMPONENT ${AIEBU_DEV_COMPONENT}
   ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT}
 )
 
