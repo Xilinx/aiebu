@@ -13,6 +13,14 @@ static const char aiebu_build_version_hash_date[] = "@AIEBU_HASH_DATE@";
 
 static const char aiebu_modified_files[] = "@AIEBU_MODIFIED_FILES@";
 
+static const char aiebu_boost_version_string[] = "@AIEBU_BOOST_VERSION_STRING@";
+
+static const char aiebu_regex_engine[] = "@AIEBU_REGEX_ENGINE@";
+
+static const char aiebu_cxx_compiler_id[] = "@AIEBU_CXX_COMPILER_ID@";
+
+static const char aiebu_cxx_compiler_version[] = "@AIEBU_CXX_COMPILER_VERSION@";
+
 #define AIEBU_DRIVER_VERSION "@AIEBU_VERSION_STRING@,@AIEBU_HASH@"
 
 #define AIEBU_VERSION(major, minor) ((major << 16) + (minor))

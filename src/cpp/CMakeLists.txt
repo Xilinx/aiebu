@@ -18,6 +18,7 @@ add_library(aiebu_library_objects OBJECT
   common/writer.cpp
   common/assembler_state.cpp
   common/utils.cpp
+  common/build_info.cpp
   common/file_utils.cpp
   elf/elfwriter.cpp
   preprocessor/aie2/aie2_blob_preprocessor_input.cpp

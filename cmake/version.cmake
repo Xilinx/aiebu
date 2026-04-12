@@ -82,6 +82,10 @@ execute_process(
 
 string(TIMESTAMP AIEBU_DATE "%Y-%m-%d %H:%M:%S")
 
+set(AIEBU_BOOST_VERSION_STRING "${Boost_VERSION_STRING}")
+set(AIEBU_CXX_COMPILER_ID "${CMAKE_CXX_COMPILER_ID}")
+set(AIEBU_CXX_COMPILER_VERSION "${CMAKE_CXX_COMPILER_VERSION}")
+
 configure_file(
   ${AIEBU_SOURCE_DIR}/cmake/config/version.h.in
   ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/gen/version.h

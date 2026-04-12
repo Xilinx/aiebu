@@ -5,7 +5,7 @@
 #include <sstream>
 
 #include "utils.h"
-#include "version.h"
+#include "common/build_info.h"
 #include "metrics.h"
 
 namespace aiebu {
@@ -36,18 +36,22 @@ get_regex(const std::vector<fragment>& pattern)
   return aiebu::regex(composite);
 }
 
-// Lifted from earlier revision of version.h.in
-// Removed build date, which cannot be embedded in binaries.
 std::string
 version_string()
 {
+  const build_info bi = get_build_info();
   std::stringstream output;
-  output << "     AIEBU Build Version: " << aiebu_build_version << '\n';
-  output << "    Build Version Branch: " << aiebu_build_version_branch << '\n';
-  output << "      Build Version Hash: " << aiebu_build_version_hash << '\n';
-  output << " Build Version Hash Date: " << aiebu_build_version_hash_date << '\n';
+  output << "     AIEBU Build Version: " << bi.build_version << '\n';
+  output << "    Build Version Branch: " << bi.build_version_branch << '\n';
+  output << "      Build Version Hash: " << bi.build_version_hash << '\n';
+  output << " Build Version Hash Date: " << bi.build_version_hash_date << '\n';
+  output << "           Boost version: " << bi.boost_version_string << '\n';
+  output << "            Regex engine: " << bi.regex_engine << '\n';
+  output << "         CXX compiler ID: " << bi.cxx_compiler_id << '\n';
+  output << "    CXX compiler version: " << bi.cxx_compiler_version << '\n';
+  output << "            Version code: " << bi.version_code << '\n';
 
-  std::string modified_files(aiebu_modified_files);
+  std::string modified_files(bi.modified_files);
   if (modified_files.empty())
     return output.str();
 
