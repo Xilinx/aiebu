@@ -86,6 +86,16 @@ set(AIEBU_BOOST_VERSION_STRING "${Boost_VERSION_STRING}")
 set(AIEBU_CXX_COMPILER_ID "${CMAKE_CXX_COMPILER_ID}")
 set(AIEBU_CXX_COMPILER_VERSION "${CMAKE_CXX_COMPILER_VERSION}")
 
+# Debug / Release / etc. at configure time (single-config), or multi-config summary.
+if(CMAKE_BUILD_TYPE)
+  set(AIEBU_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+elseif(CMAKE_CONFIGURATION_TYPES)
+  string(REPLACE ";" ", " _AIEBU_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}")
+  set(AIEBU_BUILD_TYPE "multi-config (${_AIEBU_CONFIGURATION_TYPES})")
+else()
+  set(AIEBU_BUILD_TYPE "unspecified")
+endif()
+
 configure_file(
   ${AIEBU_SOURCE_DIR}/cmake/config/version.h.in
   ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/gen/version.h

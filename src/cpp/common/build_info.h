@@ -18,6 +18,7 @@ struct build_info {
   std::string_view regex_engine;
   std::string_view cxx_compiler_id;
   std::string_view cxx_compiler_version;
+  std::string_view build_type;
   std::uint32_t version_code;
   int patch;
   int head_commits;

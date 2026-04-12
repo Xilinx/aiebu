@@ -21,6 +21,8 @@ static const char aiebu_cxx_compiler_id[] = "@AIEBU_CXX_COMPILER_ID@";
 
 static const char aiebu_cxx_compiler_version[] = "@AIEBU_CXX_COMPILER_VERSION@";
 
+static const char aiebu_build_type[] = "@AIEBU_BUILD_TYPE@";
+
 #define AIEBU_DRIVER_VERSION "@AIEBU_VERSION_STRING@,@AIEBU_HASH@"
 
 #define AIEBU_VERSION(major, minor) ((major << 16) + (minor))

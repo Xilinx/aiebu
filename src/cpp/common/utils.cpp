@@ -49,6 +49,7 @@ version_string()
   output << "            Regex engine: " << bi.regex_engine << '\n';
   output << "         CXX compiler ID: " << bi.cxx_compiler_id << '\n';
   output << "    CXX compiler version: " << bi.cxx_compiler_version << '\n';
+  output << "              Build type: " << bi.build_type << '\n';
   output << "            Version code: " << bi.version_code << '\n';
 
   std::string modified_files(bi.modified_files);

@@ -19,6 +19,7 @@ get_build_info()
     aiebu_regex_engine,
     aiebu_cxx_compiler_id,
     aiebu_cxx_compiler_version,
+    aiebu_build_type,
     static_cast<std::uint32_t>(AIEBU_VERSION_CODE),
     AIEBU_PATCH,
     AIEBU_HEAD_COMMITS,
