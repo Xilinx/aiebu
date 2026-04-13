@@ -11,6 +11,7 @@
 #   C (compressed), O (ordered), R (GNU retain), E (exclude)
 #
 # Normalize ELF header Machine: to match gold files (col_0.gold et al.),
-# which expect WE32100 instead of the eu-readelf name "m32".
+# which expect WE32100. Ancient versions of eu-readelf report "m32" which
+# skews the gold comparison.
 
 eu-readelf -a $1 | sed "/Key to Flags/,+3d" | sed '/^[[:space:]]*Machine:/s/m32/WE32100/' > "$2"
