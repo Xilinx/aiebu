@@ -1,0 +1,40 @@
+{
+    "xrt-kernels": [
+        {
+            "name": "DPU",
+            "arguments": [
+                {
+                    "name": "arg0",
+                    "type": "char *",
+                    "offset": "0x00"
+                },
+                {
+                    "name": "arg1",
+                    "type": "char *",
+                    "offset": "0x08"
+                },
+                {
+                    "name": "arg2",
+                    "type": "char *",
+                    "offset": "0x10"
+                },
+                {
+                    "name": "arg3",
+                    "type": "char *",
+                    "offset": "0x18"
+                },
+                {
+                    "name": "arg4",
+                    "type": "char *",
+                    "offset": "0x20"
+                }
+            ],
+            "instance": [
+                {
+                    "id": "aie4_models",
+                    "ctrl_code_file": "./control.asm"
+                }
+            ]
+        }
+    ]
+}
