@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef AIEBU_TRANSFORM_MANAGER_H_
 #define AIEBU_TRANSFORM_MANAGER_H_
@@ -10,6 +10,7 @@
 #include <elfio/elfio.hpp>
 #include "specification/aie2ps/isa.h"
 #include "common/symbol.h"
+#include "elf/aie_elf_constants.h"
 
 namespace aiebu {
 
@@ -242,7 +243,14 @@ public:
   /**
    * @brief Load and validate ELF data
    * @param elf_data Vector containing ELF binary data
-   * @throws error if ELF data is invalid or not AIE2PS/AIE4 format
+   *
+   * Supported ELF versions:
+   * - Version 0x02 (non-config): OS ABI 0x45/0x46 (aie2p, aie2ps_group)
+   * - Version 0x03 (legacy config): OS ABI 0x46 (aie2ps_group)
+   * - Version 0x10 (aie2p config): OS ABI 0x45 (aie2p)
+   * - Version 0x20 (config with .target): OS ABI 0x40/0x45/0x46/0x4B/0x56/0x69
+   *
+   * @throws error if ELF data is invalid or not supported format
    */
   void load_elf(const std::vector<char>& elf_data);
 
@@ -298,7 +306,12 @@ public:
    * For C++ mangled names, matches the exact identifier (e.g., "DPU" matches "_Z3DPUPcPc"
    * but not "_Z4DPU1PcPc"). Automatically updates length prefixes (_Z3DPU -> _Z4XCVB).
    * For non-mangled names, does exact string matching.
-   * Only supports OS ABI 0x46 and ABI version 0x3.
+   *
+   * Supported ELF versions:
+   * - Version 0x02 (non-config): OS ABI 0x45/0x46 (aie2p, aie2ps_group)
+   * - Version 0x03 (legacy config): OS ABI 0x46 (aie2ps_group)
+   * - Version 0x10 (aie2p config): OS ABI 0x45 (aie2p)
+   * - Version 0x20 (config with .target): OS ABI 0x40/0x45/0x46/0x4B/0x56/0x69
    *
    * @throws error if format unsupported, sections missing, or name not found
    */

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 #ifndef AIEBU_ASSEMBLER_H_
 #define AIEBU_ASSEMBLER_H_
 #include <cstdint>
@@ -111,9 +111,13 @@ class aiebu_assembler
       asm_aie2ps,
       asm_aie2,
       asm_aie4,
+      asm_aie4a,
+      asm_aie4z,
       aie2_config,
       aie2ps_config,
       aie4_config,
+      aie4a_config,
+      aie4z_config,
       elf_aie2,
       elf_aie2ps,
       pdi_aie2,
@@ -123,9 +127,15 @@ class aiebu_assembler
       elf_aie2ps_config,
       elf_aie4,
       elf_aie4_config,
+      elf_aie4a,
+      elf_aie4a_config,
+      elf_aie4z,
+      elf_aie4z_config,
       unspecified,
       blob_aie2ps,    // Raw binary file for aie2ps architecture
       blob_aie4,      // Raw binary file for aie4 architecture
+      blob_aie4a,     // Raw binary file for aie4a architecture
+      blob_aie4z,     // Raw binary file for aie4z architecture
     };
 
   private:

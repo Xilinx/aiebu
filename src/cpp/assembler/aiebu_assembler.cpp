@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 #include "assembler.h"
 #include "elfwriter.h"
 #include "encoder.h"
@@ -74,8 +74,11 @@ aiebu_assembler(buffer_type type,
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2_config;
   }
-  else if (m_type == buffer_type::asm_aie4)
+  else if (m_type == buffer_type::asm_aie4 ||
+           m_type == buffer_type::asm_aie4a ||
+           m_type == buffer_type::asm_aie4z)
   {
+    // All aie4 family uses same elf_type - specific OSABI determined from .target directive
     aiebu::assembler a(assembler::elf_type::aie4_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, {}, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie4;
@@ -86,8 +89,11 @@ aiebu_assembler(buffer_type type,
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config;
   }
-  else if (m_type == buffer_type::aie4_config)
+  else if (m_type == buffer_type::aie4_config ||
+           m_type == buffer_type::aie4a_config ||
+           m_type == buffer_type::aie4z_config)
   {
+    // All aie4 family config uses same elf_type - specific OSABI determined from .target directive
     aiebu::assembler a(assembler::elf_type::aie4_config);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie4_config;

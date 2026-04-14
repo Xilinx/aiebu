@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 #include "asm_parser.h"
 #include "preprocessor/aie4/aie4_save_restore_map_prebuilt.h"
 
@@ -1445,4 +1445,5 @@ read_pad_file(std::string& name, std::string& filename)
   m_parserptr->insert_scratchpad(name, static_cast<offset_type>(data.size()), data);
   return true;
 }
+
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include <boost/format.hpp>
 #include <cxxopts.hpp>
@@ -29,7 +29,7 @@ void main_helper(int argc, char** argv,
       .allow_unrecognised_options()
       .add_options()
       ("h,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
-      ("t,target", "supported targets aie2ps/aie2asm/aie2txn/aie2dpu/aie2_config/aie4/aie2ps_config/aie4_config", cxxopts::value<decltype(target_name)>())
+      ("t,target", "supported targets aie2ps/aie2asm/aie2txn/aie2dpu/aie2_config/aie4/aie2ps_config/aie4_config (specific aie4 variant determined from .target directive in ASM)", cxxopts::value<decltype(target_name)>())
       ("v,version", "show version and exit", cxxopts::value<bool>()->default_value("false"))
       ;
 

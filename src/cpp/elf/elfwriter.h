@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef _AIEBU_ELF_ELF_WRITER_H_
 #define _AIEBU_ELF_ELF_WRITER_H_
@@ -142,6 +142,12 @@ public:
     seg->set_memory_size(0x0);
 
   }
+
+  // Methods to update OS ABI and version after construction (for .target directive support)
+  void set_os_abi(unsigned char abi) { m_elfio.set_os_abi(abi); }
+  void set_abi_version(unsigned char version) { m_elfio.set_abi_version(version); }
+  unsigned char get_os_abi() const { return m_elfio.get_os_abi(); }
+  unsigned char get_abi_version() const { return m_elfio.get_abi_version(); }
 
   virtual std::vector<char> process(std::vector<std::shared_ptr<writer>>& mwriter);
 

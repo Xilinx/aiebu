@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 #ifndef AIEBU_UTILITIES_TARGET_H_
 #define AIEBU_UTILITIES_TARGET_H_
 
@@ -123,11 +123,19 @@ class target_aie2_config: public target
   explicit target_aie2_config(const std::string& name): target(name, "aie2_config", "generate aie2 config elf") {}
 };
 
+/**
+ * @brief AIE4 family ASM target
+ *
+ * Handles all aie4 family architectures (aie4, aie4a, aie4z).
+ * The specific architecture is determined from .target directive in ASM.
+ * User only needs to specify -t aie4 (not aie4a or aie4z).
+ */
 class target_aie4: public target
 {
   public:
   void assemble(const sub_cmd_options &_options) override;
-  explicit target_aie4(const std::string& name): target(name, "aie4", "aie4 asm assembler") {}
+  explicit target_aie4(const std::string& name)
+    : target(name, "aie4", "aie4 family asm assembler (aie4/aie4a/aie4z - specific target from .target directive)") {}
 };
 
 class asm_config_parser: public target
@@ -150,11 +158,19 @@ class target_aie2ps_config: public asm_config_parser
   explicit target_aie2ps_config(const std::string& name): asm_config_parser(name, "aie2ps_config", "generate aie2ps config elf") {}
 };
 
+/**
+ * @brief AIE4 family config target
+ *
+ * Handles all aie4 family config (aie4, aie4a, aie4z).
+ * The specific architecture is determined from .target directive in ASM.
+ * User only needs to specify -t aie4_config (not aie4a_config or aie4z_config).
+ */
 class target_aie4_config: public asm_config_parser
 {
   public:
   void assemble(const sub_cmd_options &_options) override;
-  explicit target_aie4_config(const std::string& name): asm_config_parser(name, "aie4_config", "generate aie4 config elf") {}
+  explicit target_aie4_config(const std::string& name)
+    : asm_config_parser(name, "aie4_config", "generate aie4 family config elf (specific target from .target directive)") {}
 };
 } //namespace aiebu::utilities
 

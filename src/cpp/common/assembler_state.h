@@ -164,7 +164,8 @@ public:
 
   inline std::string gen_job_name(bool makeunique, const std::shared_ptr<asm_data> data, uint32_t eopnum)
   {
-    // Include eopnum in job name to allow same job ID across page boundaries in single file
+    // Include eopnum in job name to allow same job ID across page boundaries in single file.
+    // This is needed to support disassembler, as it combines everything into one ASM file.
     // Format: file:eopN:jobid (e.g., "default:eop0:0", "default:eop1:0")
     if (makeunique)
       return data->get_qualify_eop_name(eopnum);

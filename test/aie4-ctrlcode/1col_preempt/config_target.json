@@ -1,0 +1,295 @@
+{
+  "xrt-kernels": [
+    {
+      "name" : "DPU",
+      "arguments" : [
+          {
+              "name": 0,
+              "type": "char *",
+              "offset": "0x0"
+          },
+          {
+              "name": 1,
+              "type": "char *",
+              "offset": "0x8"
+          },
+          {
+              "name": 2,
+              "type": "char *",
+              "offset": "0x10"
+          },
+          {
+              "name": 3,
+              "type": "char *",
+              "offset": "0x18"
+          },
+          {
+              "name": 4,
+              "type": "char *",
+              "offset": "0x20"
+          },
+          {
+              "name": 5,
+              "type": "char *",
+              "offset": "0x28"
+          },
+          {
+              "name": 6,
+              "type": "char *",
+              "offset": "0x30"
+          },
+          {
+              "name": 7,
+              "type": "char *",
+              "offset": "0x38"
+          },
+          {
+              "name": 8,
+              "type": "char *",
+              "offset": "0x40"
+          },
+          {
+              "name": 9,
+              "type": "char *",
+              "offset": "0x48"
+          },
+          {
+              "name": 10,
+              "type": "char *",
+              "offset": "0x50"
+          },
+          {
+              "name": 11,
+              "type": "char *",
+              "offset": "0x58"
+          },
+          {
+              "name": 12,
+              "type": "char *",
+              "offset": "0x60"
+          },
+          {
+              "name": 13,
+              "type": "char *",
+              "offset": "0x68"
+          },
+          {
+              "name": 14,
+              "type": "char *",
+              "offset": "0x70"
+          },
+          {
+              "name": 15,
+              "type": "char *",
+              "offset": "0x78"
+          },
+          {
+              "name": 16,
+              "type": "char *",
+              "offset": "0x80"
+          },
+          {
+              "name": 17,
+              "type": "char *",
+              "offset": "0x88"
+          },
+          {
+              "name": 18,
+              "type": "char *",
+              "offset": "0x90"
+          },
+          {
+              "name": 19,
+              "type": "char *",
+              "offset": "0x98"
+          },
+          {
+              "name": 20,
+              "type": "char *",
+              "offset": "0xA0"
+          },
+          {
+              "name": 21,
+              "type": "char *",
+              "offset": "0xA8"
+          },
+          {
+              "name": 22,
+              "type": "char *",
+              "offset": "0xB0"
+          },
+          {
+              "name": 23,
+              "type": "char *",
+              "offset": "0xB8"
+          },
+          {
+              "name": 24,
+              "type": "char *",
+              "offset": "0xC0"
+          },
+          {
+              "name": 25,
+              "type": "char *",
+              "offset": "0xC8"
+          },
+          {
+              "name": 26,
+              "type": "char *",
+              "offset": "0xD0"
+          },
+          {
+              "name": 27,
+              "type": "char *",
+              "offset": "0xD8"
+          },
+          {
+              "name": 28,
+              "type": "char *",
+              "offset": "0xE0"
+          },
+          {
+              "name": 29,
+              "type": "char *",
+              "offset": "0xE8"
+          },
+          {
+              "name": 30,
+              "type": "char *",
+              "offset": "0xF0"
+          },
+          {
+              "name": 31,
+              "type": "char *",
+              "offset": "0xF8"
+          },
+          {
+              "name": 32,
+              "type": "char *",
+              "offset": "0x100"
+          },
+          {
+              "name": 33,
+              "type": "char *",
+              "offset": "0x108"
+          },
+          {
+              "name": 34,
+              "type": "char *",
+              "offset": "0x110"
+          },
+          {
+              "name": 35,
+              "type": "char *",
+              "offset": "0x118"
+          },
+          {
+              "name": 36,
+              "type": "char *",
+              "offset": "0x120"
+          },
+          {
+              "name": 37,
+              "type": "char *",
+              "offset": "0x128"
+          },
+          {
+              "name": 38,
+              "type": "char *",
+              "offset": "0x130"
+          },
+          {
+              "name": 39,
+              "type": "char *",
+              "offset": "0x138"
+          },
+          {
+              "name": 40,
+              "type": "char *",
+              "offset": "0x140"
+          },
+          {
+              "name": 41,
+              "type": "char *",
+              "offset": "0x148"
+          },
+          {
+              "name": 42,
+              "type": "char *",
+              "offset": "0x150"
+          },
+          {
+              "name": 43,
+              "type": "char *",
+              "offset": "0x158"
+          },
+          {
+              "name": 44,
+              "type": "char *",
+              "offset": "0x160"
+          },
+          {
+              "name": 45,
+              "type": "char *",
+              "offset": "0x168"
+          },
+          {
+              "name": 46,
+              "type": "char *",
+              "offset": "0x170"
+          },
+          {
+              "name": 47,
+              "type": "char *",
+              "offset": "0x178"
+          },
+          {
+              "name": 48,
+              "type": "char *",
+              "offset": "0x180"
+          },
+          {
+              "name": 49,
+              "type": "char *",
+              "offset": "0x188"
+          },
+          {
+              "name": 50,
+              "type": "char *",
+              "offset": "0x190"
+          },
+          {
+              "name": 51,
+              "type": "char *",
+              "offset": "0x198"
+          },
+          {
+              "name": 52,
+              "type": "char *",
+              "offset": "0x1A0"
+          },
+          {
+              "name": 53,
+              "type": "char *",
+              "offset": "0x1A8"
+          },
+          {
+              "name": 54,
+              "type": "char *",
+              "offset": "0x1B0"
+          },
+          {
+              "name": 55,
+              "type": "char *",
+              "offset": "0x1B8"
+          }
+      ],
+      "instance" : [
+          {
+            "id" : "dpu",
+            "ctrl_code_file" : "./test_target.asm"
+          }
+      ]
+    }
+  ]
+}
