@@ -4,6 +4,7 @@
 
 #include "utils.h"
 
+#include "regex_wrapper.h"
 #include "aiebu/aiebu_error.h"
 
 #include <functional>
@@ -162,7 +163,7 @@ process(bool makeunique)
  * 4. If string is numeric string: it will convert to decimal
  */
 uint32_t assembler_state::parse_num_arg(const std::string& str) {
-  const std::unordered_map<std::string, std::function<uint32_t(const std::string&)>> handlers = {
+  static const std::unordered_map<std::string, std::function<uint32_t(const std::string&)>> handlers = {
     {"@", [this](const std::string& s) -> uint32_t {
           //If string start with '@': it can be either pad name or label name
           auto key = s.substr(1);
@@ -190,6 +191,7 @@ uint32_t assembler_state::parse_num_arg(const std::string& str) {
     }
   }
 
+  /*
   if (str.rfind("tile_") == 0)
   {
     // Parse and return perticular col and row 32bit base address eg: tile_0_1
@@ -202,13 +204,28 @@ uint32_t assembler_state::parse_num_arg(const std::string& str) {
     uint32_t col = std::stoi(str.substr(col_start));
     uint32_t row = std::stoi(str.substr(row_start));
     return (((col & col_mask) << col_shift) | (row & row_mask));
-  } else if (str.rfind("0x") == 0)
+  }
+  */
+  static const regex kTileRe{R"(^tile_(\d+)_(\d+)$)"};
+  smatch m;
+  if (regex_match(str, m, kTileRe) && (m.size() == 3))
+  {
+    constexpr static size_t row_mask = 0x1F;
+    constexpr static size_t col_mask = 0x7F;
+    constexpr static size_t col_shift = 5;
+    const uint32_t col = std::stoi(m[1].str());
+    const uint32_t row = std::stoi(m[2].str());
+    return (((col & col_mask) << col_shift) | (row & row_mask));
+  }
+  else if (str.rfind("0x") == 0)
   { //parse hex string
-    return std::stoul(str.substr(2), nullptr , HEX_BASE);
-  } else if (is_number(str))
+    return std::stoul(str, nullptr , HEX_BASE);
+  }
+  else if (is_number(str))
   { //parse numeric string
     return std::stoul(str);
-  } else {
+  }
+  else {
     throw symbol_exception();
   }
 }
