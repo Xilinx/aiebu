@@ -186,6 +186,7 @@ AIEBU-DUMP Command line utility
 -  [-D \| --disassemble-all ]
 -  [-t \| --syms ]
 -  [-r \| --reloc ]
+-  [-P \| --private arg ] [--pc arg ] [--page-index arg ] [--uc-index arg ]
 
 **DESCRIPTION**
 
@@ -193,7 +194,7 @@ AIEBU-DUMP Command line utility
    files. This is used in displaying various sections of the binary
    files and ELF files like dumping their headers, displaying specific
    sections of the ELF files like symbol tables, relocation entries,
-   etc.
+   debug information, trace probes, and opcode details.
 
 **OPTIONS**
 ::
@@ -210,12 +211,24 @@ AIEBU-DUMP Command line utility
 -  
 -  -H, --help show help message and exit
 -  
--  -m, --architecture arg Specify the target architecture as MACHINE (aie2ps/aie2asm/aie2txn/aie2dpu) (default: unspecified)
+-  -m, --architecture arg Specify the target architecture as MACHINE (aie2ps/aie4/aie2asm/aie2txn/aie2dpu) (default: unspecified)
+-
 -  -D, --disassemble-all Display assembler contents of all sections
 -  
 -  -t, --syms Display contents of the symbols table(s)
 -  
 -  -r, --reloc Display relocation entries in the file
+-  
+-  -P, --private arg Display object format specific debug information
+-  Supported arguments:
+-  * trace-probe: Display trace probe information from .dump section
+-  * opcode-info: Display opcode information by PC and page index
+-  
+-  --pc arg Program counter value for opcode-info lookup (default: unspecified)
+-  
+-  --page-index arg Page index for opcode-info lookup (default: unspecified)
+-  
+-  --uc-index arg Microcontroller (column) index filter for opcode-info lookup (optional, default: unspecified)
 
 
 **EXAMPLE**
@@ -239,3 +252,19 @@ AIEBU-DUMP Command line utility
   - If the user wants to display the contents of the control code assembly, premption_save control code assembly and preemption_restore control code assembly, the control packet unpacking etc in text format then use option -D. This essentially displays the assembler contents of all sections of the ELF. This is not implemented yet. The ELF file is given as input and the output is displayed on the console.
 
   - ``./aiebu-dump <path_to_filename.elf>/<filename.elf> -D``
+
+- Display trace probe information
+
+  - To display all trace probes from the debug section of an ELF file, use the ``--private trace-probe`` option. This will extract and list all trace probe entries formatted as ``jprobe:<filename>:uc<column>:line<line_number> ( on <operation> )``. The ELF file is given as input and the output is displayed on the console.
+
+  - ``./aiebu-dump --private trace-probe <path_to_filename.elf>/<filename.elf>``
+
+- Display opcode information by PC and page index
+
+  - To display opcode information for a specific program counter (PC) and page index, use the ``--private opcode-info`` option with ``--pc`` and ``--page-index`` arguments. The optional ``--uc-index`` argument filters results by microcontroller (column) index.
+
+  - ``./aiebu-dump --private opcode-info --pc 0x48 --page-index 0 <path_to_filename.elf>/<filename.elf>``
+
+  - ``./aiebu-dump --private opcode-info --pc 0x48 --page-index 0 --uc-index 0 <path_to_filename.elf>/<filename.elf>``
+
+  - If the specified PC/page combination is found, the output displays the opcode details (operation, size, line number, source file). If not found, "Not found!" is displayed.
