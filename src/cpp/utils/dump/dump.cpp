@@ -8,8 +8,10 @@
 #include <iostream>
 #include <map>
 
+#include "aiebu/aiebu_error.h"
 #include "analyzer/reporter.h"
 #include "analyzer/packets.h"
+#include "tools/debug_tools.h"
 #include "common/file_utils.h"
 #include "common/utils.h"
 
@@ -58,13 +60,19 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
       ("f,file-headers", "Display the contents of the overall file header", cxxopts::value<bool>()->default_value("false"))
       ("p,private-headers", "Display opcode frequency in the control code binary", cxxopts::value<bool>()->default_value("false"))
       ("x,all-headers", "Display contents of all elf headers", cxxopts::value<bool>()->default_value("false"))
-      ("d,disassemble", "Display assembler contents of ctrltext sections if elf file is provided or display control packet \
-        in assembled format if control packet binary file is provided", cxxopts::value<bool>()->default_value("false"))
+      ("d,disassemble", "Display assembler contents of ctrltext sections if elf file is provided or display control packet in assembled format if control packet binary file is provided", 
+        cxxopts::value<bool>()->default_value("false"))
       ("H,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
-      ("m,architecture", "Specify the target architecture as MACHINE (aie2ps/aie4/aie2asm/aie2txn/aie2dpu). Required for binary files to select correct ISA.", cxxopts::value<std::string>()->default_value("unspecified"))
+      ("m,architecture", "Specify the target architecture as MACHINE (aie2ps/aie4/aie2asm/aie2txn/aie2dpu). Required for binary files to select correct ISA.", 
+        cxxopts::value<std::string>()->default_value("unspecified"))
       ("D,disassemble-all", "Display assembler contents of all sections", cxxopts::value<bool>()->default_value("false"))
       ("t,syms", "Display contents of the symbols table(s)", cxxopts::value<bool>()->default_value("false"))
       ("r,reloc", "Display relocation entries in the file", cxxopts::value<bool>()->default_value("false"))
+      ("P,private","Display object format specific contents\narg:\ntrace-probe   Display probe information\nopcode-info   Display opcode information\n", 
+        cxxopts::value<std::string>()->default_value("unspecified"))
+      ("pc", "Program counter for opcode-info", cxxopts::value<std::string>()->default_value("unspecified"))
+      ("page-index", "Page index for opcode-info", cxxopts::value<std::string>()->default_value("unspecified"))
+      ("uc-index", "uC (column) index for opcode-info", cxxopts::value<std::string>()->default_value("unspecified"))
       ("filename", "Input file name", cxxopts::value<std::string>())
       ("v,version", "show version and exit", cxxopts::value<bool>()->default_value("false"));
     global_options.parse_positional({"filename"});
@@ -148,7 +156,36 @@ int main(int argc, char* argv[])
     type = aiebu::aiebu_assembler::buffer_type::elf_aie4;
   }
 
-  if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet ||
+  // Handle private/debug tool options (trace-probe, opcode-info)
+  std::string private_opt = result["private"].as<std::string>();
+  if (private_opt != "unspecified" && !private_opt.empty()) {
+    if (type != aiebu::aiebu_assembler::buffer_type::elf_aie2ps &&
+        type != aiebu::aiebu_assembler::buffer_type::elf_aie4 && 
+        type != aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config &&
+        type != aiebu::aiebu_assembler::buffer_type::elf_aie4_config) 
+      throw aiebu::error(aiebu::error::error_code::invalid_buffer_type, "Invalid ELF buffer for debug tools");
+
+    aiebu::debug_tools debug_tools(type, buffer);
+
+    if (private_opt == "trace-probe") {
+      // trace-probe option
+      debug_tools.write_trace_probes(std::cout);
+    }
+    else if (private_opt == "opcode-info") {
+      // opcode-info option
+      std::string pc_str = result["pc"].as<std::string>();
+      std::string page_str = result["page-index"].as<std::string>();
+      std::string uc_str = result["uc-index"].as<std::string>();
+
+      debug_tools.write_opcode_information(
+        std::cout, result["filename"].as<std::string>(), pc_str, page_str, uc_str
+      );
+    }
+    else {
+      throw aiebu::error(aiebu::error::error_code::invalid_input, "Invalid private mode argument");
+    }
+  }
+  else if (type == aiebu::aiebu_assembler::buffer_type::blob_control_packet ||
       type == aiebu::aiebu_assembler::buffer_type::blob_control_packet_aie2) {
     if (result["disassemble"].as<bool>()) {
       aiebu::packets packetprint(buffer.data(), static_cast<uint64_t>(buffer.size()), type);
