@@ -19,10 +19,8 @@ namespace aiebu {
   * 
   * @param stream
   *   Output stream to which the trace probe information will be written.
-  * @return
-  *   Returns 0 on success. Throws aiebu::error on failure
   * 
-  * This function extracts the .dump section from the ELF buffer, parses it as JSON, 
+  * This function extracts the debug section from the ELF buffer, parses it as JSON, 
   * and iterates through the debug information to find trace probe details. 
   * For each trace probe found, trace probe information is formatted as 
   * "jprobe:<file_name>:uc<column number>:line<line_number> ( on <operation> )". 
@@ -56,7 +54,7 @@ write_trace_probes(std::ostream& stream) const
     // Extract the column / line / operation from the debug node
     const auto column = static_cast<uint32_t>(std::stoul(node.get<std::string>("column"), nullptr, 0));
     const auto line = static_cast<uint32_t>(std::stoul(node.get<std::string>("line"), nullptr, 0));
-    const std::string operation = node.get<std::string>("operation");
+    const auto operation = node.get<std::string>("operation");
     
     // Format and print the trace probe line from the debug information
     std::string probe_line =  "jprobe:" + file_name + 
@@ -66,7 +64,7 @@ write_trace_probes(std::ostream& stream) const
 
     // If there are annotations associated with the probe, print additional lines for each annotation
     if (auto annotation = node.get_child_optional("annotation")) {
-      const std::string annotation_id = annotation->get<std::string>("id");
+      const auto annotation_id = annotation->get<std::string>("id");
       std::string annotation_probe_line = "jprobe:" + file_name + 
                                           ":uc" + std::to_string(column) + 
                                           ":annotation" + annotation_id;

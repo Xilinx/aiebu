@@ -46,8 +46,8 @@ make_transform(aiebu_assembler::buffer_type type, const std::vector<char>& buffe
  */
 debug_tools::
 debug_tools(aiebu_assembler::buffer_type type, const std::vector<char>& buffer)
-  : m_buffer_type(type)
-  , m_transform_manager(make_transform(type, buffer))
+  : m_transform_manager(make_transform(type, buffer))
+  , m_buffer_type(type)
 {
   get_dump_section(); 
 }

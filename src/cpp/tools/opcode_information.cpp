@@ -19,6 +19,7 @@ constexpr uint32_t k_max_page_index = 32640;  // maximum page index
 /**
  * format_hex() - Helper function to format uint64_t values as hexadecimal strings
  */
+static
 std::string
 format_hex(uint64_t value)
 {
@@ -40,11 +41,8 @@ format_hex(uint64_t value)
  *  Page index value for which the opcode information is being queried.
  * @param uc_str
  *  Microcontroller (uC) index for which the opcode information is being queried.
- * @return
- *  Returns 0 on success. 
- *  Throws aiebu::error on failure (invalid input / debug information not found / page / pc overflow).
  * 
- * This function extracts the .dump section from the ELF buffer, parses it as JSON, 
+ * This function extracts the debug section from the ELF buffer, parses it as JSON, 
  * and iterates through the debug information to find opcode details matching the 
  * input PC, page index, and uC index. If a matching entry is found, the opcode 
  * information is formatted and written to the output stream. 
