@@ -371,6 +371,13 @@ public:
    *         a config ELF produced by aie2ps_config_elf_writer / aie4_config_elf_writer
    */
   void check_aie2ps_aie4_fullelf();
+
+  /**
+   * @brief True if this ELF is config (full) ELF
+   *        (abi_version!=elf_amd_aie2ps_aie4_legacy_elf_version).
+   * @return true if config ELF, false if legacy standalone ELF
+   */
+  bool check_config_elf() const;
 };
 
 }

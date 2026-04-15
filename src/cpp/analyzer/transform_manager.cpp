@@ -1326,5 +1326,15 @@ check_aie2ps_aie4_fullelf()
                 + ELFIO::to_hex_string(abi_version) + "\n");
 }
 
-} // End of Namespace aiebu
+/**
+ * @brief Check ELF is config (full) based on ABI version (0x02 for legacy)
+ * @return true if config ELF, false if legacy standalone ELF
+ */
+bool
+transform_manager::
+check_config_elf() const
+{
+  return m_elfio.get_abi_version() != elf_amd_aie2ps_aie4_legacy_elf_version;
+}
 
+} // End of Namespace aiebu

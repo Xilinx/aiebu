@@ -55,21 +55,23 @@ debug_tools(aiebu_assembler::buffer_type type, const std::vector<char>& buffer)
 /**
  * get_dump_section() - Extract and cache .dump section from ELF buffer
  *
- * This function will extract and store the .dump section into m_debug_json, 
+ * This function will extract and store the .dump section into m_debug_json, either
+ * using the kernel instance name for config ELFs or without it for target ELFs.
  * The transform_manager is used to check the ELF format and extract the .dump section.
  */
 void
 debug_tools::
 get_dump_section()
 {
-  // TODO: support Non-config ELF (aie2ps / aie4)
-  m_transform_manager.check_aie2ps_aie4_fullelf();
+  if (m_transform_manager.check_config_elf()) {
+    // TODO: hardcoding the kernel instance name for simplicity,
+    // this should be extended to support multiple instances.
+    std::string kernel_instance_name = "DPU:dpu";
 
-  // TODO: hardcoding the kernel instance name for simplicity,
-  // this should be extended to support multiple instances.
-  std::string kernel_instance_name = "DPU:dpu";
-
-  m_debug_json = m_transform_manager.get_dump_section_json(kernel_instance_name);
+    m_debug_json = m_transform_manager.get_dump_section_json(kernel_instance_name);
+  } else {
+    m_debug_json = m_transform_manager.get_dump_section_json();
+  }
 
   if (m_debug_json.empty())
     throw error(error::error_code::invalid_input, "No debug information found in the ELF file");
