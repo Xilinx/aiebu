@@ -15,6 +15,8 @@
 #include <memory>
 #include <map>
 #include <set>
+#include <functional>
+#include <unordered_map>
 
 namespace aiebu {
 
@@ -145,6 +147,7 @@ protected:
   assembler_state(const assembler_state& rhs) = default;
   assembler_state& operator=(const assembler_state& rhs) = delete;
   assembler_state(assembler_state &&s) = default;
+
 public:
   std::shared_ptr<std::map<std::string, std::shared_ptr<isa_op>>> m_isa;
   std::vector<std::shared_ptr<asm_data>>& m_data;
@@ -182,7 +185,7 @@ public:
     return (m_scratchpad.find(label) != m_scratchpad.end());
   }
 
-  uint32_t parse_num_arg(const std::string& str);
+  uint32_t parse_num_arg(const std::string& str) const;
 
   void process(bool makeunique);
 
@@ -246,6 +249,29 @@ public:
   virtual symbol::patch_schema get_shim_dma_patching() const = 0;
   virtual symbol::patch_schema get_control_packet_patching() const = 0;
   virtual ~assembler_state() = default;
+
+private:
+  const std::unordered_map<std::string, std::function<uint32_t(const std::string&)>> handlers = {
+    {"@", [this](const std::string& s) -> uint32_t {
+      //If string start with '@': it can be either pad name or label name
+      auto key = s.substr(1);
+      if (m_scratchpad.find(key) != m_scratchpad.end())
+        return m_scratchpad[key]->get_base() + m_scratchpad[key]->get_offset();
+      if (m_labelmap.find(key) != m_labelmap.end())
+        return m_labelmap[key]->get_pos();
+      throw error(error::error_code::invalid_asm, "Label " + key + " not present in label map\n");
+    }},
+    {"s2mm_", [this](const std::string& s) -> uint32_t { return get_actor(s); }},
+    {"mm2s_", [this](const std::string& s) -> uint32_t { return get_actor(s); }},
+    {"mem_s2mm_", [this](const std::string& s) -> uint32_t { return get_actor(s); }},
+    {"mem_mm2s_", [this](const std::string& s) -> uint32_t { return get_actor(s); }},
+    {"shim_s2mm_", [this](const std::string& s) -> uint32_t { return get_actor(s); }},
+    {"shim_mm2s_", [this](const std::string& s) -> uint32_t { return get_actor(s); }},
+    {"tile_s2mm_", [this](const std::string& s) -> uint32_t { return get_actor(s); }},
+    {"tile_mm2s_", [this](const std::string& s) -> uint32_t { return get_actor(s); }},
+    {"shim_ctrl_mm2s_", [this](const std::string& s) -> uint32_t { return get_actor(s); }}
+  };
+
 };
 
 
