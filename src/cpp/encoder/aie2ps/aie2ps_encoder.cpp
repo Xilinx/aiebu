@@ -24,8 +24,7 @@ fill_scratchpad(std::shared_ptr<section_writer> padwriter, const std::map<std::s
       padwriter->write_bytes(content);
     } else {
       auto size = pad.second->get_size();
-      std::vector<uint8_t> zeros(size, 0x00);
-      padwriter->write_bytes(zeros);
+      padwriter->write_default_bytes(size);
     }
   }
 }
@@ -75,14 +74,14 @@ process(std::shared_ptr<preprocessed_output> input)
     if (coldata.second->m_scratchpad.size()) {
       auto padwriter = std::make_shared<section_writer>(get_PadSectionName(colnum), code_section::data);
       fill_scratchpad(padwriter, coldata.second->m_scratchpad);
-      twriter.push_back(padwriter); 
+      twriter.push_back(padwriter);
     }
 
     for (const auto& pair : ctrlpkt_id_map) {
       auto ctrlpktwriter = std::make_shared<section_writer>(pair.second, code_section::data);
       fill_controlpkt(ctrlpktwriter, ctrlpkt[pair.second]);
       fill_control_packet_symbols(ctrlpktwriter, totalsyms);
-      twriter.push_back(ctrlpktwriter); 
+      twriter.push_back(ctrlpktwriter);
     }
   }
   // Report (only if log level is info or higher)
@@ -225,7 +224,7 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
       std::vector<uint8_t> ret = (*m_isa)[name]->serializer(args)
                                                ->serialize(page_state, dsym, colnum, pagenum);
       datawriter->write_bytes(ret);
-    } else 
+    } else
       throw error(error::error_code::internal_error, "Invalid operation: " + name + " in DATA section !!!");
   }
 
