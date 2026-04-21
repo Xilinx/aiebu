@@ -39,10 +39,10 @@ function compile {
     cmake --install $BUILDDIR/$config --config $config --prefix $BUILDDIR/$config/opt/xilinx/aiebu
 
     if [[ $run_test == "yes" ]]; then
-        cmake --build $BUILDDIR/$config --config $config --target test -j $CORE
+        ctest --test-dir $BUILDDIR/$config -C $config -j $CORE
 
         if [[ $run_memtest == "yes" ]]; then
-            cmake --build $BUILDDIR/$config --target test -j $CORE -- ARGS="-L memcheck -T memcheck"
+            ctest --test-dir $BUILDDIR/$config -C $config -L memcheck -T memcheck
         fi
     fi
 

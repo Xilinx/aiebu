@@ -7,7 +7,6 @@ set SCRIPTDIR=%~dp0
 set SCRIPTDIR=%SCRIPTDIR:~0,-1%
 set BUILDDIR=%SCRIPTDIR%
 
-set CMAKEFLAGS=-DMSVC_PARALLEL_JOBS=%LOCAL_MSVC_PARALLEL_JOBS% -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 set DEBUG=1
 set RELEASE=1
 set CREATE_PACKAGE=0
@@ -92,8 +91,8 @@ if [%DEBUG%] == [1] (
    if errorlevel 1 (exit /B %errorlevel%)
 
    if [%NOCTEST%] == [0] (
-      echo cmake --build %BUILDDIR%\%PLATFORM% --config Debug --target run_tests -j %LOCAL_MSVC_PARALLEL_JOBS%
-      cmake --build %BUILDDIR%\%PLATFORM% --config Debug --target run_tests -j %LOCAL_MSVC_PARALLEL_JOBS%
+      echo ctest --test-dir %BUILDDIR%\%PLATFORM% -C Debug -j %LOCAL_MSVC_PARALLEL_JOBS%
+      ctest --test-dir %BUILDDIR%\%PLATFORM% -C Debug -j %LOCAL_MSVC_PARALLEL_JOBS%
       if errorlevel 1 (exit /B %errorlevel%)
    )
 )
@@ -108,8 +107,8 @@ if [%RELEASE%] == [1] (
    if errorlevel 1 (exit /B %errorlevel%)
 
    if [%NOCTEST%] == [0] (
-      echo cmake --build %BUILDDIR%\%PLATFORM% --config Release --target run_tests -j %LOCAL_MSVC_PARALLEL_JOBS%
-      cmake --build %BUILDDIR%\%PLATFORM% --config Release --target run_tests -j %LOCAL_MSVC_PARALLEL_JOBS%
+      echo ctest --test-dir %BUILDDIR%\%PLATFORM% -C Release -j %LOCAL_MSVC_PARALLEL_JOBS%
+      ctest --test-dir %BUILDDIR%\%PLATFORM% -C Release -j %LOCAL_MSVC_PARALLEL_JOBS%
       if errorlevel 1 (exit /B %errorlevel%)
    )
 
