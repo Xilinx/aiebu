@@ -57,7 +57,7 @@ public:
     std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>> m_primary_action_location_mapping;
     std::unordered_map<uint32_t, uint32_t> m_secondary_action_location_mapping;
     std::vector<uint32_t> paging(const std::vector<uint32_t>& buffer, uint32_t uC_index);
-    std::unordered_map<uint32_t, uint32_t> get_action_location_mapping(uint32_t uC_index) const;
+    const std::unordered_map<uint32_t, uint32_t>& get_action_location_mapping(uint32_t uC_index) const;
 
 private:
     uint32_t m_page_size;

@@ -572,7 +572,7 @@ copy_actions(const std::vector<uint32_t>& source, uint32_t offset,
  * This function returns an unordered map that maps action identifiers to their
  * corresponding locations for the given uC index.
  */
-std::unordered_map<uint32_t, uint32_t> 
+const std::unordered_map<uint32_t, uint32_t>&
 pager::
 get_action_location_mapping(uint32_t uC_index) const
 {
