@@ -91,8 +91,8 @@ if [%DEBUG%] == [1] (
    if errorlevel 1 (exit /B %errorlevel%)
 
    if [%NOCTEST%] == [0] (
-      echo ctest --test-dir %BUILDDIR%\%PLATFORM% -C Debug -j %LOCAL_MSVC_PARALLEL_JOBS%
-      ctest --test-dir %BUILDDIR%\%PLATFORM% -C Debug -j %LOCAL_MSVC_PARALLEL_JOBS%
+      echo ctest --test-dir %BUILDDIR%\%PLATFORM% -C Debug -j %NUMBER_OF_PROCESSORS%
+      ctest --test-dir %BUILDDIR%\%PLATFORM% -C Debug -j %NUMBER_OF_PROCESSORS%
       if errorlevel 1 (exit /B %errorlevel%)
    )
 )
@@ -107,8 +107,8 @@ if [%RELEASE%] == [1] (
    if errorlevel 1 (exit /B %errorlevel%)
 
    if [%NOCTEST%] == [0] (
-      echo ctest --test-dir %BUILDDIR%\%PLATFORM% -C Release -j %LOCAL_MSVC_PARALLEL_JOBS%
-      ctest --test-dir %BUILDDIR%\%PLATFORM% -C Release -j %LOCAL_MSVC_PARALLEL_JOBS%
+      echo ctest --test-dir %BUILDDIR%\%PLATFORM% -C Release -j %NUMBER_OF_PROCESSORS%
+      ctest --test-dir %BUILDDIR%\%PLATFORM% -C Release -j %NUMBER_OF_PROCESSORS%
       if errorlevel 1 (exit /B %errorlevel%)
    )
 

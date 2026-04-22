@@ -38,5 +38,6 @@ add_test(NAME "aiebu_cmake_build"
   cmake --build . --verbose --config $<CONFIG>
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-set_tests_properties(aiebu_cmake PROPERTIES SKIP_RETURN_CODE 77)
-set_tests_properties(aiebu_cmake_build PROPERTIES SKIP_RETURN_CODE 77)
+set_tests_properties("aiebu_cmake" PROPERTIES SKIP_RETURN_CODE 77)
+set_tests_properties("aiebu_cmake_build" PROPERTIES SKIP_RETURN_CODE 77)
+set_tests_properties("aiebu_cmake_build" PROPERTIES DEPENDS "aiebu_cmake")

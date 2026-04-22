@@ -126,7 +126,7 @@ jobs:
     - name: Test (Windows)
       if: runner.os == 'Windows'
       run: |
-        ctest --test-dir ${{github.workspace}}/build/WBuild -C Release -j 1
+        ctest --test-dir ${{github.workspace}}/build/WBuild -C Release -j 4
 
     - name: Package (Linux)
       if: runner.os == 'Linux'
