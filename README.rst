@@ -25,7 +25,6 @@ Build Dependencies
  * Boost (header only) minimum version supported is 1.76
  * cxxopts (included as submodule)
  * ELFIO (included as submodule)
- * AMD aie-rt (included as submodule)
 
 Python Dependencies
 -------------------

@@ -2,21 +2,27 @@
 
 ..
     comment:: SPDX-License-Identifier: MIT
-    comment:: Copyright (C) 2025 Advanced Micro Devices, Inc.
+    comment:: Copyright (C) 2025-2026 Advanced Micro Devices, Inc.
 
 =====================
 AIE-RT Usage in AIEBU
 =====================
 
-AIEBU uses a copy of aie-rt *header* files that are copied from the aie-rt
-repository and added here. Note that aiebu does use the source of aie-rt
-and hence does not link with aie-rt library.
+aiebu uses a local copy of the aie-rt *header files*, which are taken directly
+from the aie-rt repository and checked into this directory.
 
-Note to AIEBU Maintainers
-=========================
+Note that aiebu does **not** use the aie-rt source code and therefore does not
+link against the aie-rt library. Only the aie2p opcode definitions are consumed
+from aie-rt. The aie2ps and aie4 opcode definitions are implemented directly
+within aiebu.
 
-If there is a aie-rt opcode update please copy the updated aie-rt header files
-to this direcotry and update the HASH information below
+===========================
+Notes for AIEBU Maintainers
+===========================
+
+When aie2p opcode definitions are updated in aie-rt, please copy the updated
+aie-rt header files into this directory and update the HASH information listed
+below to reflect the new version.
 
 AIE-RT Snapshot
 ===============
