@@ -510,6 +510,46 @@ get(const std::string& name, const std::vector<std::string>& paths) const
 
 }
 
+static bool
+convert_buffer_type(enum aiebu_assembler_buffer_type c_type,
+                    aiebu::aiebu_assembler::buffer_type& cpp_type)
+{
+  switch (c_type) {
+    case aiebu_assembler_buffer_type_blob_instr_dpu:
+      cpp_type = aiebu::aiebu_assembler::buffer_type::blob_instr_dpu;
+      return true;
+    case aiebu_assembler_buffer_type_blob_instr_prepost:
+      cpp_type = aiebu::aiebu_assembler::buffer_type::blob_instr_prepost;
+      return true;
+    case aiebu_assembler_buffer_type_blob_instr_transaction:
+      cpp_type = aiebu::aiebu_assembler::buffer_type::blob_instr_transaction;
+      return true;
+    case aiebu_assembler_buffer_type_blob_control_packet:
+      cpp_type = aiebu::aiebu_assembler::buffer_type::blob_control_packet;
+      return true;
+    case aiebu_assembler_buffer_type_asm_aie2ps:
+      cpp_type = aiebu::aiebu_assembler::buffer_type::asm_aie2ps;
+      return true;
+    case aiebu_assembler_buffer_type_asm_aie2:
+      cpp_type = aiebu::aiebu_assembler::buffer_type::asm_aie2;
+      return true;
+    case aiebu_assembler_buffer_type_asm_aie4:
+      cpp_type = aiebu::aiebu_assembler::buffer_type::asm_aie4;
+      return true;
+    case aiebu_assembler_buffer_type_aie2_config:
+      cpp_type = aiebu::aiebu_assembler::buffer_type::aie2_config;
+      return true;
+    case aiebu_assembler_buffer_type_aie2ps_config:
+      cpp_type = aiebu::aiebu_assembler::buffer_type::aie2ps_config;
+      return true;
+    case aiebu_assembler_buffer_type_aie4_config:
+      cpp_type = aiebu::aiebu_assembler::buffer_type::aie4_config;
+      return true;
+    default:
+      return false;
+  }
+}
+
 int
 aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         const char* buffer1,
@@ -524,6 +564,12 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
                         struct pm_ctrlpkt* pm_ctrlpkts,
                         size_t pm_ctrlpkt_size)
 {
+  aiebu::aiebu_assembler::buffer_type assembler_type;
+  if (!convert_buffer_type(type, assembler_type)) {
+    aiebu::log_error() << "Invalid buffer type\n";
+    return -(static_cast<int>(aiebu::error::error_code::invalid_buffer_type));
+  }
+
   int ret = 0;
   constexpr size_t MAX_ALLOC =
     static_cast<size_t>(std::numeric_limits<std::ptrdiff_t>::max());
@@ -569,7 +615,7 @@ aiebu_assembler_get_elf(enum aiebu_assembler_buffer_type type,
       mctrlpkt[pm_ctrlpkts[i].pm_id] = std::move(v);
     }
 
-    aiebu::aiebu_assembler handler((aiebu::aiebu_assembler::buffer_type)type, v1, v2, v3, vlibs, vlibpaths, mctrlpkt);
+    aiebu::aiebu_assembler handler(assembler_type, v1, v2, v3, vlibs, vlibpaths, mctrlpkt);
     velf = handler.get_elf();
 
     if (velf.size() > MAX_ALLOC)
