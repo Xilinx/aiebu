@@ -121,12 +121,12 @@ jobs:
     - name: Test (Linux)
       if: runner.os == 'Linux'
       run: |
-        cmake --build ${{github.workspace}}/build/Release --config Release --target test -j 4
+        ctest --test-dir ${{github.workspace}}/build/Release -C Release -j 4
 
     - name: Test (Windows)
       if: runner.os == 'Windows'
       run: |
-        cmake --build ${{github.workspace}}/build/WBuild --config Release --target run_tests -j 4
+        ctest --test-dir ${{github.workspace}}/build/WBuild -C Release -j 4
 
     - name: Package (Linux)
       if: runner.os == 'Linux'
