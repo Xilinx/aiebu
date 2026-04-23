@@ -9,5 +9,14 @@ set(CPACK_PACKAGE_CONTACT "runtimeca39d@amd.com")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AMD XDNA binutils package")
 set(CPACK_RESOURCE_FILE_LICENSE "${AIEBU_SOURCE_DIR}/LICENSE")
 
-include(cmake/findpackage.cmake)
+# AIEBU by default installs only static library for client
+# linking and only if requested.  The variable checked here is
+# default ON, but is set to OFF by upstream builds where static
+# libraries are not allowed.  This option doesn't scale too
+# well; if aiebu-targets is used differently this conditional
+# include must be revisted
+if(AIEBU_INSTALL_STATIC_LIBRARY)
+  include(cmake/findpackage.cmake)
+endif()
+
 include(CPack)

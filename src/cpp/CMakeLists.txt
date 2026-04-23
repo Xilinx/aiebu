@@ -108,17 +108,19 @@ else()
   set_target_properties(aiebu_static PROPERTIES OUTPUT_NAME "aiebu")
 endif()
 
-install (TARGETS aiebu_static
-  EXPORT aiebu-targets
-  ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT}
-)
+# Enable install of static library iff requested
+if(AIEBU_INSTALL_STATIC_LIBRARY)
+  install (TARGETS aiebu_static
+    EXPORT aiebu-targets
+    ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT}
+  )
 
-install(FILES
-  include/aiebu/aiebu.h
-  include/aiebu/aiebu_assembler.h
-  include/aiebu/aiebu_error.h
-  DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}/aiebu
-  COMPONENT ${AIEBU_DEV_COMPONENT}
+  install(FILES
+    include/aiebu/aiebu.h
+    include/aiebu/aiebu_assembler.h
+      include/aiebu/aiebu_error.h
+      DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}/aiebu COMPONENT ${AIEBU_DEV_COMPONENT}
+  )
 )
 
 # Build dynamic tracing library
