@@ -118,10 +118,10 @@ if(AIEBU_INSTALL_STATIC_LIBRARY)
   install(FILES
     include/aiebu/aiebu.h
     include/aiebu/aiebu_assembler.h
-      include/aiebu/aiebu_error.h
-      DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}/aiebu COMPONENT ${AIEBU_DEV_COMPONENT}
+    include/aiebu/aiebu_error.h
+    DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}/aiebu COMPONENT ${AIEBU_DEV_COMPONENT}
   )
-)
+endif()
 
 # Build dynamic tracing library
 add_subdirectory(dtrace)
