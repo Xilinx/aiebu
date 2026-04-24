@@ -26,7 +26,7 @@ read_reg_action(std::string token, uint32_t probe_type, const std::string& probe
     std::stringstream token_stream(token);
     std::string item;
     while (std::getline(token_stream, item, '='))
-        fields.push_back(strip(item));
+        fields.push_back(action::strip(item));
 
     if (fields.size() != 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
@@ -45,7 +45,7 @@ read_reg_action(std::string token, uint32_t probe_type, const std::string& probe
     // Validate and parse the length argument
     std::stringstream argument_stream(argument_string);
     while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(strip(item));
+        m_arguments.push_back(action::strip(item));
 
     if (m_arguments.size() < 1)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
@@ -95,9 +95,18 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
 {
     std::ostringstream output_action;
     uint32_t location = mapping.at(get_location(false));
-    output_action << "  " << m_result << " = " << result_buffer[location] << "\n";
+
+    if (m_output_format == dtrace::dtrace_output_format::python)
+    {
+        output_action << "  " << m_result << " = " << result_buffer[location] << "\n";
+    }
+    else if (m_output_format == dtrace::dtrace_output_format::json)
+    {
+        output_action << result_buffer[location];
+    } 
+
     // reset value after serialization
-    result_buffer[location] = 0;
+    result_buffer[location] = dtrace::dtrace_ctrl::result_value_init;
     return output_action.str();
 }
 

@@ -28,7 +28,7 @@ mask_write_reg_action(std::string token, uint32_t probe_type, const std::string&
     std::stringstream token_stream(token);
     std::string item;
     while (std::getline(token_stream, item, '='))
-        fields.push_back(strip(item));
+        fields.push_back(action::strip(item));
 
     aiebu::smatch action;
     if (!aiebu::regex_match(fields[0], action, action_name::action_regex))
@@ -41,7 +41,7 @@ mask_write_reg_action(std::string token, uint32_t probe_type, const std::string&
     // Validate and parse the length argument
     std::stringstream argument_stream(argument_string);
     while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(strip(item));
+        m_arguments.push_back(action::strip(item));
 
     if (m_arguments.size() < 3)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
@@ -56,7 +56,6 @@ mask_write_reg_action(std::string token, uint32_t probe_type, const std::string&
         // check if write buffer name exists in the map and get the values
         if (buffer_map.find(write_buffer_name) != buffer_map.end())
         {
-            m_result = write_buffer_name;
             m_write_buffer_values = buffer_map.at(write_buffer_name).second;
 
             // set mode and value argument based on HIGH or LOW
@@ -144,24 +143,20 @@ mask_write_reg_action::
 serialize(std::vector<uint32_t>&, std::vector<uint32_t>& mem_buffer, 
     const std::unordered_map<uint32_t, uint32_t>&) const
 {
-    std::ostringstream output_action;
-    output_action << "  " << "#" << " " << m_action_name << "\n";
     if (m_mode == 2)
     {
         std::ostringstream readable_result;
         uint32_t index = get_location(true);
         auto length = static_cast<uint32_t>(m_write_buffer_values.size());
+        // reset value after serialization
         for (uint32_t i = index; i < index+length; ++i)
-        {
-            readable_result << "  0x" << std::hex << mem_buffer[i];
-            if (i < index+length - 1)
-                readable_result << "\n";
-
-            // reset value after serialization
-            mem_buffer[i] = 0;
-        }
-        output_action << "  " << m_result << " = \"\"\"\n" << readable_result.str() << "\"\"\"\n";
+            mem_buffer[i] = m_write_buffer_values[i - index];
     }
+
+    std::ostringstream output_action;
+    if (m_output_format == dtrace::dtrace_output_format::python)
+        output_action << "  " << "#" << " " << m_action_name << "\n";
+
     return output_action.str();
 }
 

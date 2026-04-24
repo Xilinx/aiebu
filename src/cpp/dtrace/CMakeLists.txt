@@ -46,10 +46,6 @@ set_target_properties(dtrace_library_objects PROPERTIES
   POSITION_INDEPENDENT_CODE ON
   )
 
-add_library(cert_dtrace SHARED
-  $<TARGET_OBJECTS:dtrace_library_objects>
-  )
-
 add_library(cert_dtrace_static STATIC
   $<TARGET_OBJECTS:dtrace_library_objects>
   )
@@ -60,8 +56,8 @@ if (NOT WIN32)
   set_target_properties(cert_dtrace_static PROPERTIES OUTPUT_NAME "cert_dtrace")
 endif()
 
-# As long as we support static linking of targets that depend on static cert,
-# the cert static library must be released.
+# As long as we support static linking of targets that depend on static cert dtrace,
+# the cert dtrace static library must be released.
 install(TARGETS cert_dtrace_static
   EXPORT aiebu-targets
   ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT}

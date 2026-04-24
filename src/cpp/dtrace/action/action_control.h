@@ -5,13 +5,13 @@
 #define ACTION_CONTROL_H
 
 // This file contains the declaration of the action control class and action classes.
+#include "common/regex_wrapper.h"
 #include "dtrace/utils.h"
 #ifdef CERT_TRACE_CONTROL_H
 #include "trace_control.h"
 #endif
 
 #include <boost/property_tree/ptree.hpp>
-#include "common/regex_wrapper.h"
 
 #include <cstdint>
 #include <map>
@@ -191,12 +191,11 @@ protected:
     uint32_t m_control_location;
     uint32_t m_mem_location;
     std::string m_result;
+    dtrace::dtrace_output_format m_output_format;
     void set_location(const std::vector<uint32_t>& buffer, bool is_mem_buffer);
 
 public:
     action(uint32_t probe_type, std::string probe_name);
-    std::string create_string() const;
-    static std::string strip(const std::string& token);
     virtual ~action() = default;
     virtual void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
@@ -205,8 +204,12 @@ public:
         std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const = 0;
-    uint32_t get_location(bool is_mem_buffer) const;
     virtual uint64_t get_mem_host_addr() const { return 0; }
+    uint32_t get_location(bool is_mem_buffer) const;
+    std::string get_probe_name() const { return m_probe_name; }
+    std::string get_action_name() const { return m_result; }
+    std::string create_string() const;
+    static std::string strip(const std::string& token);
 };
 
 //-------------------------Read register-------------------------//

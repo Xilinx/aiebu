@@ -49,17 +49,27 @@ struct dtrace_command_handle {
 };
 
 dtrace_handle_t
-create_dtrace_handle(const char* script_file, const char* map_data, uint32_t log_level)
+create_dtrace_handle(const dtrace_config_t* config)
 {
     try
     {
+        // Validate dtrace config
+        if (!config) {
+            std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config";
+            return nullptr;
+        }
+
         // Create new dtrace handle
         auto handle = std::make_unique<dtrace_command_handle>();
 
+        // Set the log level and output format
+        dtrace::set_log_level(config->log_level);
+        dtrace::set_output_format(config->output_fmt);
+
         // Initialize the memory host address map and dtrace compiler control object
-        // and set the log level
-        handle->g_control =
-            std::make_unique<dtrace::control>(script_file, map_data, log_level);
+        handle->g_control = std::make_unique<dtrace::control>(
+            config->script_file, config->map_data
+        );
 
         // Returns an opaque raw handle.
         // Transfer ownership to caller; caller must call destroy_dtrace_handle().
@@ -113,7 +123,8 @@ get_dtrace_buffer_size(dtrace_handle_t dtrace_handle, uint64_t* buffers)
             auto length = static_cast<uint32_t>(
                 l_dtrace_buffer_info.control_buffer.size() + l_dtrace_buffer_info.mem_buffer.size());
             // Update the control buffer and memory buffer length and uC index in buffers array
-            buffers[buffer_index] = (static_cast<uint64_t>(length) << 32) | uC_index; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+            buffers[buffer_index] = 
+                (static_cast<uint64_t>(length) << dtrace::dtrace_ctrl::forth_byte_shift) | uC_index;
             buffer_index++;
 
             handle->g_dtrace_buffer_info_map[uC_index] = std::move(l_dtrace_buffer_info);

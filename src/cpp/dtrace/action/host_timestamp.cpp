@@ -26,7 +26,7 @@ host_timestamp_action(std::string token, uint32_t probe_type, const std::string&
     std::stringstream token_stream(token);
     std::string item;
     while (std::getline(token_stream, item, '='))
-        fields.push_back(strip(item));
+        fields.push_back(action::strip(item));
 
     if (fields.size() != 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
@@ -89,10 +89,19 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
     uint64_t high = 
         static_cast<uint64_t>(result_buffer[location_h]) << dtrace::dtrace_ctrl::forth_byte_shift;
     uint64_t low = result_buffer[location_l];
-    output_action << "  " << m_result << " = " << (high + low) << "\n";
+
+    if (m_output_format == dtrace::dtrace_output_format::python)
+    {
+        output_action << "  " << m_result << " = " << (high + low) << "\n";
+    }
+    else if (m_output_format == dtrace::dtrace_output_format::json)
+    {
+        output_action << (high + low);
+    }
+
     // reset value after serialization
-    result_buffer[location_h] = 0;
-    result_buffer[location_l] = 0;
+    result_buffer[location_h] = dtrace::dtrace_ctrl::result_value_init;
+    result_buffer[location_l] = dtrace::dtrace_ctrl::result_value_init;
     return output_action.str();
 }
 

@@ -33,7 +33,7 @@ print_action(std::string token, uint32_t probe_type, const std::string& probe_na
     std::stringstream token_stream(m_token);
     std::string item;
     while (std::getline(token_stream, item, '='))
-        fields.push_back(strip(item));
+        fields.push_back(action::strip(item));
 
     std::string temp = fields[0];
     size_t position = temp.find('(');
@@ -46,7 +46,7 @@ print_action(std::string token, uint32_t probe_type, const std::string& probe_na
     std::string argument_string = temp.substr(position + 1, temp.length() - position - 2);
     std::stringstream argument_stream(argument_string);
     while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(strip(item));
+        m_arguments.push_back(action::strip(item));
 
     if (m_arguments.size() < 1)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
@@ -104,12 +104,15 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
     const std::unordered_map<uint32_t, uint32_t>&) const
 {
     std::ostringstream output_action;
-    for (const auto& [key, value] : m_built_ins)
+    if (m_output_format == dtrace::dtrace_output_format::python)
     {
-        if (m_token.find(key) != std::string::npos)
-            output_action << "  " << key << " = " << '"' << value << '"' << "\n";
+        for (const auto& [key, value] : m_built_ins)
+        {
+            if (m_token.find(key) != std::string::npos)
+                output_action << "  " << key << " = " << '"' << value << '"' << "\n";
+        }
+        output_action << "  " << m_token << "\n";
     }
-    output_action << "  " << m_token << "\n";
     return output_action.str();
 }
 

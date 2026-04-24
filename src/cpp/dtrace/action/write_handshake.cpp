@@ -26,7 +26,7 @@ write_handshake_action(std::string token, uint32_t probe_type, const std::string
     std::stringstream token_stream(token);
     std::string item;
     while (std::getline(token_stream, item, '='))
-        fields.push_back(strip(item));
+        fields.push_back(action::strip(item));
 
     aiebu::smatch action;
     if (!aiebu::regex_match(fields[0], action, action_name::action_regex))
@@ -39,7 +39,7 @@ write_handshake_action(std::string token, uint32_t probe_type, const std::string
     // Validate and parse the length argument
     std::stringstream argument_stream(argument_string);
     while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(strip(item));
+        m_arguments.push_back(action::strip(item));
 
     if (m_arguments.size() < 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
@@ -97,21 +97,29 @@ write_handshake_action::
 serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
-    std::ostringstream output_action;
+    std::stringstream handshake_offset;
     uint32_t location = mapping.at(get_location(false));
-    if (result_buffer[location] == dtrace::dtrace_ctrl::handshake_overflow)
+    bool handshake_overflow = (result_buffer[location] == dtrace::dtrace_ctrl::handshake_overflow);
+    if (handshake_overflow)
     {
-        std::stringstream handshake_offset;
         handshake_offset << "0x" << std::hex << (std::stoul(m_arguments[0]) * sizeof(uint32_t));
-        output_action << "  " << "print(\"[WARNING] HANDSHAKE OVERFLOW (" << handshake_offset.str() << ")\")\n";
         // reset value after serialization
         result_buffer[location] = std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::hexadecimal_base);
     }
-    else
-    {
-        output_action << "  " << "#" << " " << m_action_name << "\n";
-    }
 
+    std::ostringstream output_action;
+    if (m_output_format == dtrace::dtrace_output_format::python)
+    {
+        if (result_buffer[location] == dtrace::dtrace_ctrl::handshake_overflow)
+            output_action << "  " << "print(\"[WARNING] HANDSHAKE OVERFLOW (" << handshake_offset.str() << ")\")\n";
+        else
+            output_action << "  " << "#" << " " << m_action_name << "\n";
+    }
+    else if (m_output_format == dtrace::dtrace_output_format::json)
+    {
+        if (handshake_overflow)
+            DTRACE_WARNING("HANDSHAKE_OVERFLOW (" << handshake_offset.str() << ")");
+    }
     return output_action.str();
 }
 

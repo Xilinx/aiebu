@@ -27,13 +27,11 @@ profile_action(std::string token, uint32_t probe_type, const std::string& probe_
     std::stringstream token_stream(m_token);
     std::string item;
     while (std::getline(token_stream, item, '='))
-        fields.push_back(strip(item));
+        fields.push_back(action::strip(item));
 
     if (fields.size() != 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_FORMAT", 
             "Invalid token: '" << m_token << "' Expected 'val = opcode()'");
-
-    m_result = fields[0];
 
     aiebu::smatch action;
     if (!aiebu::regex_match(fields[1], action, action_name::action_regex))
@@ -45,7 +43,7 @@ profile_action(std::string token, uint32_t probe_type, const std::string& probe_
 
     std::stringstream argument_stream(argument_string);
     while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(strip(item));
+        m_arguments.push_back(action::strip(item));
 
 }
 
@@ -81,7 +79,9 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
     const std::unordered_map<uint32_t, uint32_t>&) const
 {
     std::ostringstream output_action;
-    output_action << "#" << " " << m_token << "\n";
+    if (m_output_format == dtrace::dtrace_output_format::python)
+        output_action << "#" << " " << m_token << "\n";
+
     return output_action.str();
 }
 

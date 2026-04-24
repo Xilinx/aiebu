@@ -60,7 +60,9 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
     const std::unordered_map<uint32_t, uint32_t>&) const
 {
     std::ostringstream output_action;
-    output_action << "#" << " " << m_token << "\n";
+    if (m_output_format == dtrace::dtrace_output_format::python)
+        output_action << "#" << " " << m_token << "\n";
+
     return output_action.str();
 }
 

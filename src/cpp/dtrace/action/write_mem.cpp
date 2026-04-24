@@ -27,7 +27,7 @@ write_mem_action(std::string token, uint32_t probe_type, const std::string& prob
     std::stringstream token_stream(token);
     std::string item;
     while (std::getline(token_stream, item, '='))
-        fields.push_back(strip(item));
+        fields.push_back(action::strip(item));
 
     aiebu::smatch action;
     if (!aiebu::regex_match(fields[0], action, action_name::action_regex))
@@ -39,7 +39,7 @@ write_mem_action(std::string token, uint32_t probe_type, const std::string& prob
 
     std::stringstream argument_stream(argument_string);
     while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(strip(item));
+        m_arguments.push_back(action::strip(item));
 
     // Validate and parse the length argument
     if (m_arguments.size() < 3)
@@ -112,7 +112,9 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
     const std::unordered_map<uint32_t, uint32_t>&) const
 {
     std::ostringstream output_action;
-    output_action << "  " << "#" << " " << m_action_name << "\n";
+    if (m_output_format == dtrace::dtrace_output_format::python)
+        output_action << "  " << "#" << " " << m_action_name << "\n";
+
     return output_action.str();
 }
 

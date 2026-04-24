@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
 
+#include "dtrace.h"
+
 #include <iostream>
 #include <filesystem>
 #include <memory>
@@ -8,58 +10,12 @@
 #include <fstream>
 #include <vector>
 
-#ifdef _WIN32
-#include <windows.h>
-// UNICODE builds map LoadLibrary -> LoadLibraryW; use LoadLibraryA for const char* paths.
-#ifndef RTLD_LAZY
-#define RTLD_LAZY 0
-#endif
-
-static inline void*
-aiebu_dlopen(const char* path, int /*flags*/)
-{
-  return reinterpret_cast<void*>(LoadLibraryA(path));
-}
-
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
-#endif
-template<typename T>
-static inline T
-aiebu_dlsym(void* handle, const char* symbol)
-{
-  FARPROC p = GetProcAddress(static_cast<HMODULE>(handle), symbol);
-  return reinterpret_cast<T>(p);
-}
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-
-static inline void
-aiebu_dlclose(void* handle)
-{
-  FreeLibrary(static_cast<HMODULE>(handle));
-}
-
-#define dlopen(path, flags) aiebu_dlopen((path), (flags))
-#define dlclose(handle)       aiebu_dlclose((handle))
-#else
-#include <dlfcn.h>
-#endif
-
 static const uint64_t TRACE_CTRL_CODE_BASE = 0x200000;
 static const uint64_t TRACE_CTRL_CODE_SIZE = 16384; // 8kB
 static const uint32_t word_byte_shift = 32;
-// static const uint32_t mask_32 = 0xFFFFFFFF; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-using create_dtrace_handle_t = void* (*)(const char*, const char*, uint32_t);
-using get_dtrace_col_numbers_t = void (*)(void*, uint32_t*);
-using get_dtrace_buffer_size_t = void (*)(void*, uint64_t*);
-using populate_dtrace_buffer_t = void (*)(void*, uint32_t*, uint64_t);
-using destroy_dtrace_handle_t = void (*)(void*);
 
 int 
-run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_file, 
+run_dtrace_test(const std::string& script_file, 
     const std::string& map_file, const std::string& output_file) 
 {
     if (!std::filesystem::exists(script_file)) {
@@ -67,65 +23,31 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
         return 1;
     }
 
-    // load dtrace compiler
-    void* dtrace_lib_handle = dlopen(dtrace_lib_path.c_str(), RTLD_LAZY);
-    if (!dtrace_lib_handle) {
-        std::cerr << "[ERROR]: failed to load dtrace library" << std::endl;
-        return 1;
-    }
-
-    // load and check functions from dtrace compiler
-#ifdef _WIN32
-    auto create_dtrace_handle =
-        aiebu_dlsym<create_dtrace_handle_t>(dtrace_lib_handle, "create_dtrace_handle");
-    auto get_dtrace_col_numbers =
-        aiebu_dlsym<get_dtrace_col_numbers_t>(dtrace_lib_handle, "get_dtrace_col_numbers");
-    auto get_dtrace_buffer_size =
-        aiebu_dlsym<get_dtrace_buffer_size_t>(dtrace_lib_handle, "get_dtrace_buffer_size");
-    auto populate_dtrace_buffer =
-        aiebu_dlsym<populate_dtrace_buffer_t>(dtrace_lib_handle, "populate_dtrace_buffer");
-    auto destroy_dtrace_handle =
-        aiebu_dlsym<destroy_dtrace_handle_t>(dtrace_lib_handle, "destroy_dtrace_handle");
-#else
-    auto create_dtrace_handle =
-        reinterpret_cast<create_dtrace_handle_t>(dlsym(dtrace_lib_handle, "create_dtrace_handle"));
-    auto get_dtrace_col_numbers =
-        reinterpret_cast<get_dtrace_col_numbers_t>(dlsym(dtrace_lib_handle, "get_dtrace_col_numbers"));
-    auto get_dtrace_buffer_size =
-        reinterpret_cast<get_dtrace_buffer_size_t>(dlsym(dtrace_lib_handle, "get_dtrace_buffer_size"));
-    auto populate_dtrace_buffer =
-        reinterpret_cast<populate_dtrace_buffer_t>(dlsym(dtrace_lib_handle, "populate_dtrace_buffer"));
-    auto destroy_dtrace_handle =
-        reinterpret_cast<destroy_dtrace_handle_t>(dlsym(dtrace_lib_handle, "destroy_dtrace_handle"));
-#endif
-    if (!create_dtrace_handle || !get_dtrace_col_numbers || !get_dtrace_buffer_size || 
-        !populate_dtrace_buffer || !destroy_dtrace_handle) 
-    {
-        std::cerr << "[ERROR]: failed to load dtrace functions" << std::endl;
-        dlclose(dtrace_lib_handle);
-        return 1;
-    }
-
     uint32_t dtrace_buffer_length = 0;
     uint32_t buffers_length = 0;
-    uint32_t dtrace_log_level = 1; // default log level
-    // get dtrace handle using create_dtrace_handle api from libdtrace.so
-    void* dtrace_handle = 
-        create_dtrace_handle(script_file.c_str(), map_file.c_str(), dtrace_log_level);
+
+    // Create dtrace config
+    dtrace_config_t config;
+    config.script_file = script_file.c_str();
+    config.map_data = map_file.c_str();
+    config.log_level = 0;  // dtrace_error
+    config.output_fmt = 0;  // python format
+
+    // get dtrace handle using create_dtrace_handle api from libcert_dtrace
+    void* dtrace_handle = create_dtrace_handle(&config);
     if (!dtrace_handle) {
         std::cerr << "[ERROR]: dtrace compiler failed" << std::endl;
-        dlclose(dtrace_lib_handle);
         return 1;
     }
     else {
-        // get dtrace number of column using get_dtrace_col_numbers api from libdtrace.so
+        // get dtrace number of column using get_dtrace_col_numbers api from libcert_dtrace
         get_dtrace_col_numbers(dtrace_handle, &buffers_length);
 
         // allocate dtrace information buffer
         std::unique_ptr<uint32_t[]> dtrace_buffer = std::make_unique<uint32_t[]>(TRACE_CTRL_CODE_SIZE); // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
         std::unique_ptr<uint64_t[]> buffers = std::make_unique<uint64_t[]>(buffers_length); // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 
-        // get dtrace information using get_dtrace_buffer_size api from libdtrace.so
+        // get dtrace information using get_dtrace_buffer_size api from libcert_dtrace
         get_dtrace_buffer_size(dtrace_handle, buffers.get());
 
         for (uint32_t i = 0; i < buffers_length; ++i) {
@@ -134,7 +56,7 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
             dtrace_buffer_length += length;
         }
 
-        // create dtrace buffer using populate_dtrace_buffer api from libdtrace.so
+        // create dtrace buffer using populate_dtrace_buffer api from libcert_dtrace
         populate_dtrace_buffer(dtrace_handle, dtrace_buffer.get(), TRACE_CTRL_CODE_BASE);
 
         // create control_buffer.dat file
@@ -146,9 +68,8 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
             control_buffer_file.close();
         }
 
-        // destroy dtrace handle using destroy_dtrace_handle api from libdtrace.so
+        // destroy dtrace handle using destroy_dtrace_handle api from libcert_dtrace
         destroy_dtrace_handle(dtrace_handle);
-        dlclose(dtrace_lib_handle);
         return 0;
     }
 }
@@ -156,15 +77,14 @@ run_dtrace_test(const std::string& dtrace_lib_path, const std::string& script_fi
 int main(int argc, char** argv) 
 {
     try {
-        if (argc != 4) {
-            std::cerr << "Usage: " << argv[0] << "<dtrace_lib_path> <testcase_path> <output_file>" << std::endl;
+        if (argc != 3) {
+            std::cerr << "Usage: " << argv[0] << " <testcase_path> <output_file>" << std::endl;
             return 1;
         }
 
-        std::string dtrace_lib_path = argv[1];
-        std::string script_file = std::string(argv[2]) + "/script.ct";
-        std::string map_file = std::string(argv[2]) + "/map.json";
-        std::string output_file = argv[3];
+        std::string script_file = std::string(argv[1]) + "/script.ct";
+        std::string map_file = std::string(argv[1]) + "/map.json";
+        std::string output_file = argv[2];
 
         if (!std::filesystem::exists(map_file)) {
             throw std::runtime_error("[ERROR]: map file does not exist: " + map_file);
@@ -177,7 +97,7 @@ int main(int argc, char** argv)
         map_file_stream.close();
         std::string map_data = std::string(map_buffer.begin(), map_buffer.end());
 
-        int ret = run_dtrace_test(dtrace_lib_path, script_file, map_data, output_file);
+        int ret = run_dtrace_test(script_file, map_data, output_file);
         return ret;
     } catch (const std::exception& e) {
         std::cerr << "[ERROR]: Exception: " << e.what() << std::endl;

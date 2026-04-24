@@ -31,7 +31,7 @@ read_mem_action(std::string token, uint32_t probe_type, const std::string& probe
     std::stringstream token_stream(token);
     std::string item;
     while (std::getline(token_stream, item, '='))
-        fields.push_back(strip(item));
+        fields.push_back(action::strip(item));
 
     if (fields.size() != 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
@@ -50,7 +50,7 @@ read_mem_action(std::string token, uint32_t probe_type, const std::string& probe
     // Validate and parse the length argument
     std::stringstream argument_stream(argument_string);
     while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(strip(item));
+        m_arguments.push_back(action::strip(item));
 
     if (m_arguments.size() < 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
@@ -148,21 +148,34 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffe
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     std::ostringstream readable_result;
+    std::ostringstream readable_json_result;
     uint32_t index = get_location(true);
     uint32_t aie_addr = result_buffer[mapping.at(get_location(false))];
     uint32_t length = result_buffer[mapping.at(get_location(false) + 1)];
     for (uint32_t i = index; i < index+length; ++i)
     {
+        readable_json_result << mem_buffer[i];
         readable_result << "  0x" << std::hex << aie_addr
-            << ": 0x" << std::hex << mem_buffer[i];
-        if (i < index+length - 1)
+                        << ": 0x" << std::hex << mem_buffer[i];
+        if (i < index+length - 1) 
+        {
+            readable_json_result << ", ";
             readable_result << "\n";
+        }
         aie_addr += dtrace::dtrace_ctrl::word_byte_size;
         // reset value after serialization
-        mem_buffer[i] = 0;
+        mem_buffer[i] = dtrace::dtrace_ctrl::result_value_init;
     }
+
     std::ostringstream output_action;
-    output_action << "  " << m_result << " = \"\"\"\n" << readable_result.str() << "\"\"\"\n";
+    if (m_output_format == dtrace::dtrace_output_format::python)
+    {
+        output_action << "  " << m_result << " = \"\"\"\n" << readable_result.str() << "\"\"\"\n";
+    }
+    else if (m_output_format == dtrace::dtrace_output_format::json)
+    {
+        output_action << readable_json_result.str();
+    }
     return output_action.str();
 }
 

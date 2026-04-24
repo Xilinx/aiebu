@@ -26,7 +26,7 @@ host_timestamps_action(std::string token, uint32_t probe_type, const std::string
     std::stringstream token_stream(token);
     std::string item;
     while (std::getline(token_stream, item, '='))
-        fields.push_back(strip(item));
+        fields.push_back(action::strip(item));
 
     if (fields.size() != 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
@@ -97,28 +97,37 @@ host_timestamps_action::
 serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
-    
     std::vector<uint64_t> result;
-    for (uint32_t i = 0; i < m_length; ++i) {
+    for (uint32_t i = 0; i < m_length; ++i) 
+    {
         // action location + length word + high and low value
         uint32_t location = mapping.at(get_location(false)) + 1 + i*2;
         uint64_t high = static_cast<uint64_t>(result_buffer[location]) << dtrace::dtrace_ctrl::forth_byte_shift;
         uint64_t low = result_buffer[location + 1];
         result.push_back(high + low);
         // reset value after serialization
-        result_buffer[location] = 0;
-        result_buffer[location + 1] = 0;
+        result_buffer[location] = dtrace::dtrace_ctrl::result_value_init;
+        result_buffer[location + 1] = dtrace::dtrace_ctrl::result_value_init;
+    }
+
+    std::ostringstream result_values;
+    for (size_t i = 0; i < result.size(); ++i) 
+    {
+        result_values << result[i];
+        if (i != result.size() - 1)
+            result_values << ", ";
     }
 
     std::ostringstream output_action;
-    output_action << "  " << m_result << " = [";
-    for (size_t i = 0; i < result.size(); ++i) {
-        output_action << result[i];
-        if (i != result.size() - 1)
-            output_action << ", ";
+    if (m_output_format == dtrace::dtrace_output_format::python)
+    {
+        output_action << "  " << m_result << " = [" << result_values.str() << "]\n";
     }
-    output_action << "]\n";
-    
+    else if (m_output_format == dtrace::dtrace_output_format::json)
+    {
+        output_action << result_values.str();
+    }
+
     return output_action.str();
 }
 

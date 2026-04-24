@@ -33,20 +33,20 @@ printa_action(std::string token, uint32_t probe_type, const std::string& probe_n
     std::string item;
 
     while (std::getline(token_stream, item, '='))
-        fields.push_back(strip(item));
+        fields.push_back(action::strip(item));
 
-    std::string temp = fields[0];
-    size_t position = temp.find('(');
-    if (position == std::string::npos)
-        DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_FORMAT", 
-            "Invalid token: '" << token << "' Expected 'print(fmt)'");
+    aiebu::smatch action;
+    if (!aiebu::regex_match(fields[0], action, action_name::action_regex))
+        DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
+            "Invalid token: '" << token << "' Expected 'printa(fmt)'");
 
-    m_action_name = temp.substr(0, position);
+    m_action_name = action[1];
+    std::string argument_string = action[2];
+
     // Validate and parse the length argument
-    std::string argument_string = temp.substr(position + 1, temp.length() - position - 2);
     std::stringstream argument_stream(argument_string);
     while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(strip(item));
+        m_arguments.push_back(action::strip(item));
 
     if (m_arguments.size() < 1)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
@@ -190,7 +190,9 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
     const std::unordered_map<uint32_t, uint32_t>&) const
 {
     std::ostringstream output_action;
-    output_action << "  " << "print(\"\"\"\n" << format(result_buffer) << "  " << "\"\"\")\n";
+    if (m_output_format == dtrace::dtrace_output_format::python)
+        output_action << "  " << "print(\"\"\"\n" << format(result_buffer) << "  " << "\"\"\")\n";
+
     return output_action.str();
 }
 

@@ -5,6 +5,8 @@
 #define TRACE_H
 
 // This header file contains the public APIs for creating control buffer, memory buffer, and result file
+#include "utils.h"
+
 #include <cstdint>
 #include <iostream>
 #include <string>
@@ -29,18 +31,31 @@ extern "C" {
 typedef void* dtrace_handle_t;
 
 /*!
+ * @struct dtrace_config_t
+ *
+ * @brief Configuration for creating a dtrace handle.
+ *
+ * @details
+ * This structure contains configuration parameters for dtrace operation.
+ */
+typedef struct {
+  const char* script_file; // Script file containing the probe and action details
+  const char* map_data;    // Map data containing details of control code
+  uint32_t log_level;      // Log level for debugging (default: dtrace_error)
+  uint32_t output_fmt;     // Output format for result file (default: python)
+} dtrace_config_t;
+
+/*!
  * create_dtrace_handle() - Creates a handle to the dynamic tracing context.
  *
- * @script_file:    Script file containing the probe and action details.
- * @map_data:       Map data containing details of control code.
- * @log_level:      Log level for debugging.
+ * @config:   Configuration structure containing dtrace parameters.
  *
  * @return Opaque raw handle to the dynamic tracing context owned by the caller, or NULL on failure.
  * @note The caller must release this handle by calling destroy_dtrace_handle().
  */
 DTRACE_EXPORT
 dtrace_handle_t
-create_dtrace_handle(const char* script_file, const char* map_data, uint32_t log_level);
+create_dtrace_handle(const dtrace_config_t* config);
 
 /*!
  * get_dtrace_col_numbers() - Retrieves the buffer sizes required for dynamic tracing.
