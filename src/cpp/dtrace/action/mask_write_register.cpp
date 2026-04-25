@@ -145,7 +145,6 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>& mem_buffer,
 {
     if (m_mode == 2)
     {
-        std::ostringstream readable_result;
         uint32_t index = get_location(true);
         auto length = static_cast<uint32_t>(m_write_buffer_values.size());
         // reset value after serialization

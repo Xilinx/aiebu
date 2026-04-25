@@ -54,8 +54,16 @@ create_dtrace_handle(const dtrace_config_t* config)
     try
     {
         // Validate dtrace config
-        if (!config) {
+        if (!config) 
+        {
             std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config";
+            return nullptr;
+        }
+
+        // Validate script file path and map data
+        if (!config->script_file || !config->map_data)
+        {
+            std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config data";
             return nullptr;
         }
 

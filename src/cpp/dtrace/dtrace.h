@@ -28,7 +28,7 @@ extern "C" {
  * handle to a dynamic tracing context.
  * Each handle represents an independent dynamic tracing instance for a command.
  */
-typedef void* dtrace_handle_t;
+typedef void* dtrace_handle_t;  // NOLINT
 
 /*!
  * @struct dtrace_config_t
@@ -38,7 +38,7 @@ typedef void* dtrace_handle_t;
  * @details
  * This structure contains configuration parameters for dtrace operation.
  */
-typedef struct {
+typedef struct {           // NOLINT
   const char* script_file; // Script file containing the probe and action details
   const char* map_data;    // Map data containing details of control code
   uint32_t log_level;      // Log level for debugging (default: dtrace_error)

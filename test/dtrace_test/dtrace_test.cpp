@@ -19,7 +19,7 @@ run_dtrace_test(const std::string& script_file,
     const std::string& map_file, const std::string& output_file) 
 {
     if (!std::filesystem::exists(script_file)) {
-        std::cerr << "ERROR: test files not found: " << script_file << std::endl;
+        std::cerr << "ERROR: test files not found: " << script_file;
         return 1;
     }
 
@@ -30,13 +30,13 @@ run_dtrace_test(const std::string& script_file,
     dtrace_config_t config;
     config.script_file = script_file.c_str();
     config.map_data = map_file.c_str();
-    config.log_level = 0;  // dtrace_error
-    config.output_fmt = 0;  // python format
+    config.log_level = 0U;   // dtrace_error
+    config.output_fmt = 0U;  // python format
 
     // get dtrace handle using create_dtrace_handle api from libcert_dtrace
     void* dtrace_handle = create_dtrace_handle(&config);
     if (!dtrace_handle) {
-        std::cerr << "[ERROR]: dtrace compiler failed" << std::endl;
+        std::cerr << "[ERROR]: dtrace compiler failed";
         return 1;
     }
     else {
@@ -60,12 +60,15 @@ run_dtrace_test(const std::string& script_file,
         populate_dtrace_buffer(dtrace_handle, dtrace_buffer.get(), TRACE_CTRL_CODE_BASE);
 
         // create control_buffer.dat file
-        if (dtrace_buffer_length > 0) 
-        {
+        if (dtrace_buffer_length > 0) {
             std::ofstream control_buffer_file(output_file, std::ios::binary);
             control_buffer_file.write(reinterpret_cast<const char*>(dtrace_buffer.get()), 
                 static_cast<std::streamsize>(dtrace_buffer_length * sizeof(uint32_t)));
             control_buffer_file.close();
+        }
+        else {
+            std::cerr << "[ERROR]: dtrace compiler - failed buffer length zero";
+            return 1;
         }
 
         // destroy dtrace handle using destroy_dtrace_handle api from libcert_dtrace
@@ -78,7 +81,7 @@ int main(int argc, char** argv)
 {
     try {
         if (argc != 3) {
-            std::cerr << "Usage: " << argv[0] << " <testcase_path> <output_file>" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " <testcase_path> <output_file>";
             return 1;
         }
 
@@ -100,7 +103,7 @@ int main(int argc, char** argv)
         int ret = run_dtrace_test(script_file, map_data, output_file);
         return ret;
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR]: Exception: " << e.what() << std::endl;
+        std::cerr << "[ERROR]: Exception: " << e.what();
         return 1;
     }
 }

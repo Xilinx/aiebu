@@ -26,7 +26,7 @@ enum class dtrace_output_format {
 };
 
 // variable to store the current output format
-extern dtrace_output_format g_current_output_format;
+extern dtrace_output_format g_current_output_format; // NOLINT
 
 // Function to set the output format
 inline dtrace_output_format get_output_format()
@@ -48,7 +48,7 @@ enum class dtrace_log_level {
 };
 
 // variable to store the current log level
-extern dtrace_log_level g_current_log_level;
+extern dtrace_log_level g_current_log_level; // NOLINT
 
 // Function to set the log level
 inline dtrace_log_level get_current_log_level() 

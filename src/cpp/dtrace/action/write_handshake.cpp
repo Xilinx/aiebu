@@ -110,7 +110,7 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
     std::ostringstream output_action;
     if (m_output_format == dtrace::dtrace_output_format::python)
     {
-        if (result_buffer[location] == dtrace::dtrace_ctrl::handshake_overflow)
+        if (handshake_overflow)
             output_action << "  " << "print(\"[WARNING] HANDSHAKE OVERFLOW (" << handshake_offset.str() << ")\")\n";
         else
             output_action << "  " << "#" << " " << m_action_name << "\n";
