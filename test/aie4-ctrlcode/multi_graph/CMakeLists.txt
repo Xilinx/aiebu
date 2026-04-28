@@ -12,4 +12,4 @@ add_test(NAME "aie4_multi_graph_asm_md5sum"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 set_tests_properties("aie4_multi_graph_asm_md5sum" PROPERTIES DEPENDS "aie4_multi_graph_asm")
-set_tests_properties("aie4_multi_graph_asm" PROPERTIES LABELS memcheck)
+set_tests_properties("aie4_multi_graph_asm" PROPERTIES LABELS "memcheck;benchmark")

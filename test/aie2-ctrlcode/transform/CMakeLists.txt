@@ -25,4 +25,5 @@ add_test(NAME "aie2_fused_transform_compare"
 set_tests_properties("aie2_basic_transform" PROPERTIES DEPENDS "aie2_basic_txn")
 set_tests_properties("aie2_basic_transform_compare" PROPERTIES DEPENDS "aie2_basic_transform")
 set_tests_properties("aie2_fused_transform" PROPERTIES DEPENDS "aie2_fused_txn")
+set_tests_properties("aie2_fused_transform" PROPERTIES LABELS "benchmark")
 set_tests_properties("aie2_fused_transform_compare" PROPERTIES DEPENDS "aie2_fused_transform")

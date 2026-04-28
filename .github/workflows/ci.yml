@@ -122,11 +122,13 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         ctest --test-dir ${{github.workspace}}/build/Release -C Release -j 4
+        ctest --test-dir ${{github.workspace}}/build/Release -C Release -L benchmark
 
     - name: Test (Windows)
       if: runner.os == 'Windows'
       run: |
         ctest --test-dir ${{github.workspace}}/build/WBuild -C Release -j 4
+        ctest --test-dir ${{github.workspace}}/build/WBuild -C Release -L benchmark
 
     - name: Package (Linux)
       if: runner.os == 'Linux'
