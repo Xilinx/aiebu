@@ -72,25 +72,35 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
 
 //-------------------------write_reg_action::serialize-------------------------//
 /**
- * serialize() - Serializes the register write action into a string format.
+ * serialize() - Serializes the write register action into a string format.
  *
  * @param result_buffer
  * @param mem_buffer
  * @param mapping
- *
- * @return 
- *  String representing the serialized register write action.
+ * @param script_output
  */
-std::string
+void
 write_reg_action::
 serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
-    const std::unordered_map<uint32_t, uint32_t>&) const
+    const std::unordered_map<uint32_t, uint32_t>&, std::ostream&) const
 {
-    std::ostringstream output_action;
-    if (m_output_format == dtrace::dtrace_output_format::python)
-        output_action << "  " << "#" << " " << m_action_name << "\n";
-
-    return output_action.str();
 }
+
+//-------------------------write_reg_action::serialize-------------------------//
+/**
+ * serialize() - Serializes the write register action into json format.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ * @param json_output
+ */
+void
+write_reg_action::
+serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+    const std::unordered_map<uint32_t, uint32_t>&, json&) const
+{
+}
+
 
 } // namespace dtrace::action

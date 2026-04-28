@@ -81,22 +81,22 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     }
 }
 
-//-------------------------timestamps_action::serialize-------------------------//
+//-------------------------timestamps_action::serialize_helper-------------------------//
 /**
- * serialize() - Serializes the timestamp action into a string format.
+ * serialize_helper() - Helper function to serialize action.
  *
  * @param result_buffer
- * @param mem_buffer
  * @param mapping
  *
  * @return 
- *  String representing the serialized timestamp action.
+ *  The value from the result buffer based on the location mapping and
+ *  resets the value in the result buffer after serialization.
  */
-std::string
+std::vector<uint64_t>
 timestamps_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize_helper(std::vector<uint32_t>& result_buffer, 
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
-{   
+{
     std::vector<uint64_t> result;
     for (uint32_t i = 0; i < m_length; ++i) 
     {
@@ -109,25 +109,55 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
         result_buffer[location] = dtrace::dtrace_ctrl::result_value_init;
         result_buffer[location + 1] = dtrace::dtrace_ctrl::result_value_init;
     }
+    return result;
+}
 
-    std::ostringstream result_values;
-    for (size_t i = 0; i < result.size(); ++i) 
-    {
-        result_values << result[i];
+//-------------------------timestamps_action::serialize-------------------------//
+/**
+ * serialize() - Serializes the multiple timestamp action into a string format.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ * @param script_output
+ */
+void
+timestamps_action::
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+    const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output) const
+{
+    std::vector<uint64_t> result = timestamps_action::serialize_helper(result_buffer, mapping);
+    // serialize string format
+    script_output << "  " << m_result << " = [";
+    for (size_t i = 0; i < result.size(); ++i) {
+        script_output << result[i];
         if (i != result.size() - 1)
-            result_values << ", ";
+            script_output << ", ";
     }
+    script_output << "]\n";
+}
 
-    std::ostringstream output_action;
-    if (m_output_format == dtrace::dtrace_output_format::python)
-    {
-        output_action << "  " << m_result << " = [" << result_values.str() << "]\n";
-    }
-    else if (m_output_format == dtrace::dtrace_output_format::json)
-    {
-        output_action << result_values.str();
-    }
-    return output_action.str();
+//-------------------------timestamps_action::serialize-------------------------//
+/**
+ * serialize() - Serializes the multiple timestamp action into json format.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ * @param json_output
+ */
+void
+timestamps_action::
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+    const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output) const
+{
+    std::vector<uint64_t> result = timestamps_action::serialize_helper(result_buffer, mapping);
+    // serialize json format
+    json json_result = json::array();
+    for (uint32_t i = 0; i < result.size(); ++i)
+        json_result.push_back(result[i]);
+
+    json_output[m_probe_name][m_result] = json_result;
 }
 
 } // namespace dtrace::action

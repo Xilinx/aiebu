@@ -2,6 +2,7 @@
 // Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
+#include <iomanip>
 #include <sstream>
 #include <stdexcept>
 
@@ -131,6 +132,35 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
         mem_buffer.insert(mem_buffer.end(), m_length, dtrace::dtrace_ctrl::result_value_init);
 }
 
+//-------------------------read_mem_action::serialize_helper-------------------------//
+/**
+ * serialize_helper() - Helper function to serialize action.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ *
+ * @return 
+ *  The value from the result buffer based on the location mapping and
+ *  resets the value in the result buffer after serialization.
+ */
+std::vector<uint32_t>
+read_mem_action::
+serialize_helper(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+    const std::unordered_map<uint32_t, uint32_t>& mapping) const
+{
+    std::vector<uint32_t> result;
+    uint32_t index = get_location(true);
+    uint32_t length = result_buffer[mapping.at(get_location(false) + 1)];
+    for (uint32_t i = index; i < index+length; ++i)
+    {        
+        result.push_back(mem_buffer[i]);
+        // reset value after serialization
+        mem_buffer[i] = dtrace::dtrace_ctrl::result_value_init;
+    }
+    return result;
+}
+
 //-------------------------read_mem_action::serialize-------------------------//
 /**
  * serialize() - Serializes the read memory register action into a string format.
@@ -138,45 +168,46 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  * @param result_buffer
  * @param mem_buffer
  * @param mapping
- *
- * @return 
- *  String representing the serialized read memory register action.
+ * @param script_output
  */
-std::string
+void
 read_mem_action::
 serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
-    const std::unordered_map<uint32_t, uint32_t>& mapping) const
+    const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output) const
 {
-    std::ostringstream readable_result;
-    std::ostringstream readable_json_result;
-    uint32_t index = get_location(true);
-    uint32_t aie_addr = result_buffer[mapping.at(get_location(false))];
-    uint32_t length = result_buffer[mapping.at(get_location(false) + 1)];
-    for (uint32_t i = index; i < index+length; ++i)
+    std::vector<uint32_t> result = read_mem_action::serialize_helper(result_buffer, mem_buffer, mapping);
+    // serialize string format
+    script_output << "  " << m_result << " = \"[";
+    for (uint32_t i = 0; i < result.size(); ++i)
     {
-        readable_json_result << mem_buffer[i];
-        readable_result << "  0x" << std::hex << aie_addr
-                        << ": 0x" << std::hex << mem_buffer[i];
-        if (i < index+length - 1) 
-        {
-            readable_json_result << ", ";
-            readable_result << "\n";
-        }
-        aie_addr += dtrace::dtrace_ctrl::word_byte_size;
-        // reset value after serialization
-        mem_buffer[i] = dtrace::dtrace_ctrl::result_value_init;
+        script_output << "0x" << std::hex << std::setfill('0') << std::setw(8) << result[i] << std::dec;
+        if (i != result.size() - 1)
+            script_output << ", ";
     }
+    script_output << "]\"\n";
+}
 
-    std::ostringstream output_action;
-    if (m_output_format == dtrace::dtrace_output_format::python)
-    {
-        output_action << "  " << m_result << " = \"\"\"\n" << readable_result.str() << "\"\"\"\n";
-    }
-    else if (m_output_format == dtrace::dtrace_output_format::json)
-    {
-        output_action << readable_json_result.str();
-    }
-    return output_action.str();
+//-------------------------read_mem_action::serialize-------------------------//
+/**
+ * serialize() - Serializes the read memory register action into json format.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ * @param json_output
+ */
+void
+read_mem_action::
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+    const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output) const
+{
+    std::vector<uint32_t> result = read_mem_action::serialize_helper(result_buffer, mem_buffer, mapping);
+    // serialize json format
+    json json_result = json::array();
+    for (uint32_t i = 0; i < result.size(); ++i)
+        json_result.push_back(result[i]);
+
+    json_output[m_probe_name][m_result] = json_result;
 }
 
 } // namespace dtrace::action

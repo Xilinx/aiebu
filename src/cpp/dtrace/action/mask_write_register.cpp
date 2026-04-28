@@ -127,21 +127,19 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     }
 }
 
-//-------------------------mask_write_reg_action::serialize-------------------------//
+//-------------------------mask_write_reg_action::serialize_helper-------------------------//
 /**
- * serialize() - Serializes the register mask write action into a string format.
+ * serialize_helper() - Helper function to serialize action.
  *
- * @param result_buffer
  * @param mem_buffer
- * @param mapping
  *
  * @return 
- *  String representing the serialized register mask write action.
+ *  The value from the result buffer based on the location mapping and
+ *  resets the value in the result buffer after serialization.
  */
-std::string
+void
 mask_write_reg_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>& mem_buffer, 
-    const std::unordered_map<uint32_t, uint32_t>&) const
+serialize_helper(std::vector<uint32_t>& mem_buffer) const
 {
     if (m_mode == 2)
     {
@@ -151,12 +149,40 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>& mem_buffer,
         for (uint32_t i = index; i < index+length; ++i)
             mem_buffer[i] = m_write_buffer_values[i - index];
     }
+}
 
-    std::ostringstream output_action;
-    if (m_output_format == dtrace::dtrace_output_format::python)
-        output_action << "  " << "#" << " " << m_action_name << "\n";
+//-------------------------mask_write_reg_action::serialize-------------------------//
+/**
+ * serialize() - Serializes the register mask write action into a string format.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ * @param script_output
+ */
+void
+mask_write_reg_action::
+serialize(std::vector<uint32_t>&, std::vector<uint32_t>& mem_buffer, 
+    const std::unordered_map<uint32_t, uint32_t>&, std::ostream&) const
+{
+    mask_write_reg_action::serialize_helper(mem_buffer);
+}
 
-    return output_action.str();
+//-------------------------mask_write_reg_action::serialize-------------------------//
+/**
+ * serialize() - Serializes the timestamp action into json format.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ * @param json_output
+ */
+void
+mask_write_reg_action::
+serialize(std::vector<uint32_t>&, std::vector<uint32_t>& mem_buffer, 
+    const std::unordered_map<uint32_t, uint32_t>&, json&) const
+{
+    mask_write_reg_action::serialize_helper(mem_buffer);
 }
 
 } // namespace dtrace::action

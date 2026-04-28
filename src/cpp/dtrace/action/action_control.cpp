@@ -20,7 +20,6 @@ action(uint32_t probe_type, std::string probe_name)
     , m_probe_name(std::move(probe_name))
     , m_control_location(0)
     , m_mem_location(0)
-    , m_output_format(dtrace::get_output_format())
 {
 }
 

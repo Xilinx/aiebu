@@ -362,10 +362,12 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
             uint32_t loop_uC_index = item.second;
             try 
             {
-                script_output << action->serialize(
+                // Serialize action to build python script
+                action->serialize(
                     result_buffers.at(loop_uC_index), 
                     mem_buffers.at(loop_uC_index), 
-                    m_pager.get_action_location_mapping(loop_uC_index)
+                    m_pager.get_action_location_mapping(loop_uC_index),
+                    script_output
                 );
             } 
             catch (const std::exception& e) 
@@ -382,7 +384,7 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
     {
         // Create JSON output
         using json = nlohmann::ordered_json;
-        json json_result = json::object();
+        json json_output = json::object();
 
         for (const auto& item : actions)
         {
@@ -390,38 +392,13 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
             uint32_t loop_uC_index = item.second;
             try
             {
-                std::string action_key = action->get_action_name();
-                if (action_key.empty())
-                    continue; // Empty action keys
-
-                std::string probe_name = action->get_probe_name();
-                // Serialize action to get the value for the key-value pair in JSON
-                std::string action_value = action->serialize(
+                // Serialize action to build JSON result
+                action->serialize(
                     result_buffers.at(loop_uC_index),
                     mem_buffers.at(loop_uC_index),
-                    m_pager.get_action_location_mapping(loop_uC_index)
+                    m_pager.get_action_location_mapping(loop_uC_index),
+                    json_output
                 );
-
-                // Build JSON
-                if (action_value.empty())
-                    continue; // skip actions with no JSON output
-
-                // Parse action value for serialize json result and add to probe tree accordingly
-                if (action_value.find(',') != std::string::npos)
-                {
-                    json json_array = json::array();
-                    std::stringstream result_stream(action_value);
-                    std::string token;
-                    while (std::getline(result_stream, token, ','))
-                        json_array.push_back(std::stoull(dtrace::action::action::strip(token)));
-
-                    json_result[probe_name][action_key] = json_array;
-                }
-                else
-                {
-                    json_result[probe_name][action_key] = 
-                        std::stoull(dtrace::action::action::strip(action_value));
-                }
             }
             catch (const std::exception& e)
             {
@@ -432,12 +409,12 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
         }
 
         // Write JSON to file
-        std::ofstream json_output(output_file);
-        if (!json_output)
+        std::ofstream json_file(output_file);
+        if (!json_file)
             DTRACE_ERROR("DTRACE_CONTROL_RESULT_FILE_NOT_FOUND", "result file: " << output_file);
 
-        json_output << json_result.dump(4) << "\n";
-        json_output.close();
+        json_file << json_output.dump(4) << "\n";
+        json_file.close();
     }
     else 
     {

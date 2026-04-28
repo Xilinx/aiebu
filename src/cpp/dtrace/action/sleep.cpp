@@ -75,20 +75,29 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  * @param result_buffer
  * @param mem_buffer
  * @param mapping
- *
- * @return 
- *  String representing the serialized sleep action.
+ * @param script_output
  */
-std::string
+void
 sleep_action::
 serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
-    const std::unordered_map<uint32_t, uint32_t>&) const
+    const std::unordered_map<uint32_t, uint32_t>&, std::ostream&) const
 {
-    std::ostringstream output_action;
-    if (m_output_format == dtrace::dtrace_output_format::python)
-        output_action << "  " << "#" << " " << m_action_name << " " << m_arguments[0] << "cycles" << "\n";
+}
 
-    return output_action.str();
+//-------------------------sleep_action::serialize-------------------------//
+/**
+ * serialize() - Serializes the sleep action into json format.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ * @param json_output
+ */
+void
+sleep_action::
+serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+    const std::unordered_map<uint32_t, uint32_t>&, json&) const
+{
 }
 
 } // namespace dtrace::action

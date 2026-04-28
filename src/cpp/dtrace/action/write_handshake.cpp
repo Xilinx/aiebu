@@ -81,6 +81,34 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     control_buffer.push_back(std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
 }
 
+//-------------------------write_handshake_action::serialize_helper-------------------------//
+/**
+ * serialize_helper() - Helper function to serialize action.
+ *
+ * @param result_buffer
+ * @param mapping
+ *
+ * @return 
+ *  The value from the result buffer based on the location mapping and
+ *  resets the value in the result buffer after serialization.
+ */
+void
+write_handshake_action::
+serialize_helper(std::vector<uint32_t>& result_buffer, 
+    const std::unordered_map<uint32_t, uint32_t>& mapping) const
+{
+    uint32_t location = mapping.at(get_location(false));
+    uint32_t value = result_buffer[location];
+    // reset value after serialization
+    result_buffer[location] = std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::hexadecimal_base);
+    if (value == dtrace::dtrace_ctrl::handshake_overflow)
+    {
+        std::stringstream handshake_offset;
+        handshake_offset << "0x" << std::hex << (std::stoul(m_arguments[0]) * sizeof(uint32_t));
+        DTRACE_WARNING("HANDSHAKE_OVERFLOW (" << handshake_offset.str() << ")");
+    }
+}
+
 //-------------------------write_handshake_action::serialize-------------------------//
 /**
  * serialize() - Serializes the handshake write action into a string format.
@@ -88,39 +116,31 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  * @param result_buffer
  * @param mem_buffer
  * @param mapping
- *
- * @return 
- *  String representing the serialized handshake write action.
+ * @param script_output
  */
-std::string
+void
 write_handshake_action::
 serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
-    const std::unordered_map<uint32_t, uint32_t>& mapping) const
+    const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream&) const
 {
-    std::stringstream handshake_offset;
-    uint32_t location = mapping.at(get_location(false));
-    bool handshake_overflow = (result_buffer[location] == dtrace::dtrace_ctrl::handshake_overflow);
-    if (handshake_overflow)
-    {
-        handshake_offset << "0x" << std::hex << (std::stoul(m_arguments[0]) * sizeof(uint32_t));
-        // reset value after serialization
-        result_buffer[location] = std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::hexadecimal_base);
-    }
+    write_handshake_action::serialize_helper(result_buffer, mapping);
+}
 
-    std::ostringstream output_action;
-    if (m_output_format == dtrace::dtrace_output_format::python)
-    {
-        if (handshake_overflow)
-            output_action << "  " << "print(\"[WARNING] HANDSHAKE OVERFLOW (" << handshake_offset.str() << ")\")\n";
-        else
-            output_action << "  " << "#" << " " << m_action_name << "\n";
-    }
-    else if (m_output_format == dtrace::dtrace_output_format::json)
-    {
-        if (handshake_overflow)
-            DTRACE_WARNING("HANDSHAKE_OVERFLOW (" << handshake_offset.str() << ")");
-    }
-    return output_action.str();
+//-------------------------write_handshake_action::serialize-------------------------//
+/**
+ * serialize() - Serializes the handshake write action into json format.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ * @param json_output
+ */
+void
+write_handshake_action::
+serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+    const std::unordered_map<uint32_t, uint32_t>& mapping, json&) const
+{
+    write_handshake_action::serialize_helper(result_buffer, mapping);
 }
 
 } // namespace dtrace::action

@@ -98,9 +98,9 @@ get_opcode(const uint32_t& value) const
     return {"", dtrace::dtrace_ctrl::mask_8};
 }
 
-//-------------------------printa_action::format-------------------------//
+//-------------------------printa_action::serialize_helper-------------------------//
 /**
- * format() - Formats and prints the results from the result buffer.
+ * serialize_helper() - Formats and prints the results from the result buffer.
  *
  * @param result_buffer 
  *  A vector of uint32_t values containing the result data.
@@ -111,7 +111,7 @@ get_opcode(const uint32_t& value) const
  */
 std::string
 printa_action::
-format(const std::vector<uint32_t>& result_buffer) const
+serialize_helper(const std::vector<uint32_t>& result_buffer) const
 {
     constexpr int name_width = 50;
     constexpr int samples_width = 16;
@@ -180,20 +180,31 @@ format(const std::vector<uint32_t>& result_buffer) const
  * @param result_buffer
  * @param mem_buffer
  * @param mapping
- *
- * @return 
- *  String representing the serialized profile print action.
+ * @param script_output
  */
-std::string
+void
 printa_action::
 serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
-    const std::unordered_map<uint32_t, uint32_t>&) const
+    const std::unordered_map<uint32_t, uint32_t>&, std::ostream& script_output) const
 {
-    std::ostringstream output_action;
-    if (m_output_format == dtrace::dtrace_output_format::python)
-        output_action << "  " << "print(\"\"\"\n" << format(result_buffer) << "  " << "\"\"\")\n";
+    // serialize string format
+    script_output << "  " << "print(\"\"\"\n" << printa_action::serialize_helper(result_buffer) << "  " << "\"\"\")\n";
+}
 
-    return output_action.str();
+//-------------------------printa_action::serialize-------------------------//
+/**
+ * serialize() - Serializes the profile print action into json format.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ * @param json_output
+ */
+void
+printa_action::
+serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+    const std::unordered_map<uint32_t, uint32_t>&, json&) const
+{
 }
 
 } // namespace dtrace::action

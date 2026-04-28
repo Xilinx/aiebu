@@ -44,25 +44,36 @@ actionize(uint32_t, std::vector<uint32_t>&, std::vector<uint32_t>&)
 
 //-------------------------operation_action::serialize-------------------------//
 /**
- * serialize() - Serializes the print action into a string format.
+ * serialize() - Serializes the operation action into a string format.
  *
  * @param result_buffer
  * @param mem_buffer
  * @param mapping
- *
- * @return 
- *  String representing the serialized print action.
+ * @param script_output
  */
-std::string
+void
 operation_action::
 serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
-    const std::unordered_map<uint32_t, uint32_t>&) const
+    const std::unordered_map<uint32_t, uint32_t>&, std::ostream& script_output) const
 {
-    std::ostringstream output_action;
-    if (m_output_format == dtrace::dtrace_output_format::python)
-        output_action << "  " << m_token << "\n";
+    // serialize string format
+    script_output << "  " << m_token << "\n";
+}
 
-    return output_action.str();
+//-------------------------operation_action::serialize-------------------------//
+/**
+ * serialize() - Serializes the operation action into json format.
+ *
+ * @param result_buffer
+ * @param mem_buffer
+ * @param mapping
+ * @param json_output
+ */
+void
+operation_action::
+serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+    const std::unordered_map<uint32_t, uint32_t>&, json&) const
+{
 }
 
 } // namespace dtrace::action
