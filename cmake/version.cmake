@@ -19,6 +19,11 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+#Set AIEBU_BRANCH_COMMITS to default value if above command is not executed
+if (NOT AIEBU_BRANCH)
+set (AIEBU_BRANCH "NA")
+endif()
+
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
   COMMAND ${GIT_EXECUTABLE} rev-parse --verify HEAD
@@ -26,6 +31,10 @@ execute_process(
   OUTPUT_VARIABLE AIEBU_HASH
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+if (NOT AIEBU_HASH)
+set (AIEBU_HASH "NA")
+endif()
 
 # Get number of commits for HEAD
 execute_process(
@@ -61,6 +70,10 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+if (NOT AIEBU_HASH_DATE)
+set (AIEBU_HASH_DATE "NA")
+endif()
+
 # Get all of the modified files in the current git environment
 execute_process(
   COMMAND ${GIT_EXECUTABLE} status --porcelain -u no
@@ -68,6 +81,11 @@ execute_process(
   OUTPUT_VARIABLE AIEBU_MODIFIED_FILES
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+if (NOT AIEBU_MODIFIED_FILES)
+set (AIEBU_MODIFIED_FILES "NA")
+endif()
+
 string(REPLACE "\n" "," AIEBU_MODIFIED_FILES "${AIEBU_MODIFIED_FILES}")
 
 endif(DEFINED ENV{DK_ROOT})
