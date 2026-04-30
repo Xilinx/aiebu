@@ -7,7 +7,13 @@
 # config/version.json.in with pre-generated ones.
 if (DEFINED ENV{DK_ROOT})
 
-message("-- Skipping Git metadata")
+  message("-- Skipping Git metadata")
+  set (AIEBU_BRANCH "NA")
+  set (AIEBU_HASH "NA")
+  set (AIEBU_HEAD_COMMITS -1)
+  set (AIEBU_BRANCH_COMMITS -1)
+  set (AIEBU_HASH_DATE "NA")
+  set (AIEBU_MODIFIED_FILES "NA")
 
 else (DEFINED ENV{DK_ROOT})
 
@@ -21,7 +27,7 @@ execute_process(
 
 #Set AIEBU_BRANCH_COMMITS to default value if above command is not executed
 if (NOT AIEBU_BRANCH)
-set (AIEBU_BRANCH "NA")
+  set (AIEBU_BRANCH "NA")
 endif()
 
 # Get the latest abbreviated commit hash of the working branch
@@ -33,7 +39,7 @@ execute_process(
 )
 
 if (NOT AIEBU_HASH)
-set (AIEBU_HASH "NA")
+  set (AIEBU_HASH "NA")
 endif()
 
 # Get number of commits for HEAD
@@ -46,7 +52,7 @@ execute_process(
 
 #Set AIEBU_HEAD_COMMITS to default value if above command is not executed
 if (NOT AIEBU_HEAD_COMMITS)
-set (AIEBU_HEAD_COMMITS -1)
+  set (AIEBU_HEAD_COMMITS -1)
 endif()
 
 # Get number of commits between HEAD and master
@@ -59,7 +65,7 @@ execute_process(
 
 #Set AIEBU_BRANCH_COMMITS to default value if above command is not executed
 if (NOT AIEBU_BRANCH_COMMITS)
-set (AIEBU_BRANCH_COMMITS -1)
+  set (AIEBU_BRANCH_COMMITS -1)
 endif()
 
 # Get the latest abbreviated commit hash date of the working branch
@@ -71,7 +77,7 @@ execute_process(
 )
 
 if (NOT AIEBU_HASH_DATE)
-set (AIEBU_HASH_DATE "NA")
+  set (AIEBU_HASH_DATE "NA")
 endif()
 
 # Get all of the modified files in the current git environment
@@ -83,7 +89,7 @@ execute_process(
 )
 
 if (NOT AIEBU_MODIFIED_FILES)
-set (AIEBU_MODIFIED_FILES "NA")
+  set (AIEBU_MODIFIED_FILES "NA")
 endif()
 
 string(REPLACE "\n" "," AIEBU_MODIFIED_FILES "${AIEBU_MODIFIED_FILES}")
