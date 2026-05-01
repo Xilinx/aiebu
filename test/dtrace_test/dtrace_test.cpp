@@ -16,7 +16,7 @@ static const uint32_t word_byte_shift = 32;
 
 int 
 run_dtrace_test(const std::string& script_file, 
-    const std::string& map_file, const std::string& output_file) 
+    const std::string& map_data, const std::string& output_file) 
 {
     if (!std::filesystem::exists(script_file)) {
         std::cerr << "ERROR: test files not found: " << script_file;
@@ -29,7 +29,7 @@ run_dtrace_test(const std::string& script_file,
     uint32_t output_fmt = 0U;  // python format
 
     // get dtrace handle using create_dtrace_handle api from libcert_dtrace
-    void* dtrace_handle = create_dtrace_handle(script_file, map_file, log_level, output_fmt);
+    void* dtrace_handle = create_dtrace_handle(script_file, map_data, log_level, output_fmt);
     if (!dtrace_handle) {
         std::cerr << "[ERROR]: dtrace compiler failed";
         return 1;
