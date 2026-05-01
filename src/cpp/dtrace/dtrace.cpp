@@ -12,8 +12,6 @@
 #include <memory>
 #include <stdexcept>
 
-extern "C" {
-
 /**
  * @struct dtrace_buffer_info
  *
@@ -49,19 +47,13 @@ struct dtrace_command_handle {
 };
 
 dtrace_handle_t
-create_dtrace_handle(const dtrace_config_t* config)
+create_dtrace_handle(const std::string& script_file, const std::string& map_data, uint32_t log_level,
+    uint32_t output_fmt)
 {
     try
     {
-        // Validate dtrace config
-        if (!config) 
-        {
-            std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config";
-            return nullptr;
-        }
-
         // Validate script file path and map data
-        if (!config->script_file || !config->map_data)
+        if (script_file.empty() || map_data.empty())
         {
             std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config data";
             return nullptr;
@@ -70,14 +62,11 @@ create_dtrace_handle(const dtrace_config_t* config)
         // Create new dtrace handle
         auto handle = std::make_unique<dtrace_command_handle>();
 
-        // Set the log level and output format
-        dtrace::set_log_level(config->log_level);
-        dtrace::set_output_format(config->output_fmt);
+        dtrace::set_log_level(log_level);
+        dtrace::set_output_format(output_fmt);
 
         // Initialize the memory host address map and dtrace compiler control object
-        handle->g_control = std::make_unique<dtrace::control>(
-            config->script_file, config->map_data
-        );
+        handle->g_control = std::make_unique<dtrace::control>(script_file, map_data);
 
         // Returns an opaque raw handle.
         // Transfer ownership to caller; caller must call destroy_dtrace_handle().
@@ -222,8 +211,8 @@ populate_dtrace_buffer(dtrace_handle_t dtrace_handle, uint32_t* dtrace_buffer,
     }
 }
 
-void 
-get_dtrace_result_file(dtrace_handle_t dtrace_handle, const char* result_file)
+void
+get_dtrace_result_file(dtrace_handle_t dtrace_handle, const std::string& result_file)
 {
     try
     {
@@ -305,6 +294,4 @@ destroy_dtrace_handle(dtrace_handle_t dtrace_handle)
     {
         std::cerr << e.what();
     }
-}
-
 }

@@ -36,7 +36,7 @@ dtrace_log_level g_current_log_level = dtrace_log_level::dtrace_error;  // NOLIN
  * file, and setting up control and memory buffers based on the parsed data.
  */
 control::
-control(std::string script_file, const std::string& map_data)
+control(const std::string& script_file, const std::string& map_data)
     : m_pager(true)
     , m_parser(map_data)
     , m_output_format(dtrace::get_output_format())

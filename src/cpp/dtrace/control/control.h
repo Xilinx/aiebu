@@ -42,7 +42,7 @@ private:
     dtrace::dtrace_output_format m_output_format;
 
 public:
-    control(std::string script_file, const std::string& map_data);
+    control(const std::string& script_file, const std::string& map_data);
     uint32_t m_num_uCs;
     std::set<uint32_t> m_control_uC_indices;
     bool m_mem_action_present;

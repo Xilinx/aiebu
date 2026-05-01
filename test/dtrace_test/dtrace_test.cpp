@@ -25,16 +25,11 @@ run_dtrace_test(const std::string& script_file,
 
     uint32_t dtrace_buffer_length = 0;
     uint32_t buffers_length = 0;
-
-    // Create dtrace config
-    dtrace_config_t config;
-    config.script_file = script_file.c_str();
-    config.map_data = map_file.c_str();
-    config.log_level = 0U;   // dtrace_error
-    config.output_fmt = 0U;  // python format
+    uint32_t log_level = 0U;   // dtrace_error
+    uint32_t output_fmt = 0U;  // python format
 
     // get dtrace handle using create_dtrace_handle api from libcert_dtrace
-    void* dtrace_handle = create_dtrace_handle(&config);
+    void* dtrace_handle = create_dtrace_handle(script_file, map_file, log_level, output_fmt);
     if (!dtrace_handle) {
         std::cerr << "[ERROR]: dtrace compiler failed";
         return 1;

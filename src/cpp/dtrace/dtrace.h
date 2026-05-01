@@ -19,43 +19,27 @@
   #define DTRACE_EXPORT __attribute__((visibility("default")))
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-//---------------------------dtrace c---------------------------
 /*!
  * handle to a dynamic tracing context.
  * Each handle represents an independent dynamic tracing instance for a command.
  */
-typedef void* dtrace_handle_t;  // NOLINT
-
-/*!
- * @struct dtrace_config_t
- *
- * @brief Configuration for creating a dtrace handle.
- *
- * @details
- * This structure contains configuration parameters for dtrace operation.
- */
-typedef struct {           // NOLINT
-  const char* script_file; // Script file containing the probe and action details
-  const char* map_data;    // Map data containing details of control code
-  uint32_t log_level;      // Log level for debugging (default: dtrace_error)
-  uint32_t output_fmt;     // Output format for result file (default: python)
-} dtrace_config_t;
+using dtrace_handle_t = void*;  // NOLINT
 
 /*!
  * create_dtrace_handle() - Creates a handle to the dynamic tracing context.
  *
- * @config:   Configuration structure containing dtrace parameters.
+ * @script_file:    Path to script file containing probe and action details.
+ * @map_data:       Map JSON string with details of control code.
+ * @log_level:      Log level for debugging.
+ * @output_fmt:     Output format for result file.
  *
  * @return Opaque raw handle to the dynamic tracing context owned by the caller, or NULL on failure.
  * @note The caller must release this handle by calling destroy_dtrace_handle().
  */
 DTRACE_EXPORT
 dtrace_handle_t
-create_dtrace_handle(const dtrace_config_t* config);
+create_dtrace_handle(const std::string& script_file, const std::string& map_data, uint32_t log_level,
+    uint32_t output_fmt);
 
 /*!
  * get_dtrace_col_numbers() - Retrieves the buffer sizes required for dynamic tracing.
@@ -110,8 +94,8 @@ populate_dtrace_buffer(dtrace_handle_t dtrace_handle, uint32_t* dtrace_buffer,
  * and writes the output to the specified result file.
  */
 DTRACE_EXPORT
-void 
-get_dtrace_result_file(dtrace_handle_t dtrace_handle, const char* result_file);
+void
+get_dtrace_result_file(dtrace_handle_t dtrace_handle, const std::string& result_file);
 
 /*!
 * destroy_dtrace_handle() - Destroys a dynamic tracing context.
@@ -124,9 +108,5 @@ get_dtrace_result_file(dtrace_handle_t dtrace_handle, const char* result_file);
 DTRACE_EXPORT
 void
 destroy_dtrace_handle(dtrace_handle_t dtrace_handle);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // TRACE_H
