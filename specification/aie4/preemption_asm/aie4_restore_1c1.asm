@@ -20,14 +20,14 @@ MASK_POLL_32	 0x2149ed0, 0x1f8003c, 0x0
 MASK_POLL_32	 0x2149ed4, 0x1f8003c, 0x0
 UC_DMA_WRITE_DES_SYNC	 @UCBD_label_3
 END_JOB
-
-START_JOB 1
-  LOAD_LAST_PDI
-END_JOB
 .section annotation
 id: 7
 name: end_restore_1c1
 description: end restore 1c1
+
+START_JOB 1
+  LOAD_LAST_PDI
+END_JOB
 
 EOF
 
