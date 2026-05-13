@@ -4,7 +4,7 @@
 ;
 START_JOB 0
 .section annotation
-id: 2
+id: 0
 name: start_restore
 description: start restore
 UC_DMA_WRITE_DES_SYNC	 @UCBD_label_0
@@ -37,7 +37,7 @@ MASK_POLL_32	 0x4149ed4, 0x1f8003c, 0x0
 UC_DMA_WRITE_DES_SYNC	 @UCBD_label_3
 END_JOB
 .section annotation
-id: 3
+id: 1
 name: end_restore
 description: end restore
 
