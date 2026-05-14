@@ -238,9 +238,14 @@ Indicates a new job which can be conditionally started according to preemption.
 
 Indicates the start of a new job and creates a new entry in the job table,
 if preemption flag has been set. The flag is cleared when preemption is
-checked, and is set if preemption happens.
+checked, and is set if preemption happens, so the job runs only if the flag indicates that a
+preemption occurred when the condition is checked.
 The job size is auto-calculated and inserted by the assembler and not supplied
 explicitly by the user.
+In multi-uC case, CERT will do barrier sync after this job, so each uC should have the same number
+of this type of conditional jobs.
+The conditional job can share page with other jobs, and all jobs following this job in the page
+don't start before this job is done.
 
 
 ## UC_DMA_WRITE_DES (0x01)
@@ -691,8 +696,10 @@ and this address is where the `SAVE` control code resides. `restore_control_code
 unit of page to the 1st page of control code, and this address is where the `RESTORE` control code resides. The opcode
 can determine whether preemption is required, and if required, it can also distinguish whether it is to `SAVE` or to
 `RESTORE`, and run the `SAVE` or `RESTORE` control code accordingly.
-In multi-uc case, for each preemption point id, the control code of each uc should have this opcode with same `id`.
-This opcode should take one whole job which in turn should take one whole page.
+In multi-uC case, at each preemption point, CERT will do barrier sync regardless of whether the preemption happens or not, so
+for each preemption point id, the control code of each uc should have this opcode with same `id`.
+This opcode should take one whole job but the job can share page with other jobs. All following jobs in same page don't start
+before this preemption job is done
 
 
 ## LOAD_PDI (0x1a)
@@ -704,10 +711,13 @@ load pdi
 | opcode (8b) | pad (8b) | pad (16b) | const (32b) | page_id (16b) | pad (16b) | 12B |
 
 pdi itself is also a piece of control code. It can be loaded by other control code at anywhere anytime.
-`pdi_id` is an elf wide unique id and specifies an unique pdi. consecutive loading of same pdi results in following
+`pdi_id` is an elf wide unique id and specifies a unique pdi. If multiple control code elfs run in one hwctx,
+the pdi_id should be hwctx wide unique. When this opcode runs, consecutive loading of same pdi results in following
 loading skipped by the uC. `pdi_host_addr_offset` specifies a relative address in unit of page to the 1st page of
 the control code and is where the pdi control code resides
-This opcode should take one whole job which in turn should take one whole page.
+This opcode should take one whole job but the job can share page with other jobs. All jobs following the load pdi job
+don't start before the load pdi job is done.
+In multi-uc case, cert will do barrier sync after the load_pdi job, so each uc needs to have same number of load pdi jobs
 
 
 ## LOAD_CORES (0x04)
