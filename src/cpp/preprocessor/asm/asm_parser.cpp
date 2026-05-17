@@ -319,7 +319,7 @@ parse_lines(const std::vector<char>& data, std::string& file)
           throw error(error::error_code::internal_error, "PREEMPT opcode is not supported for aie2ps target");
 
         // Get current group (default to 0 if no attach_to_group yet)
-        int current_group = (m_current_col >= 0) ? m_current_col : 0;
+        int current_group = current_col();
 
         // Record preempt label for this group (save_N/restore_N) - for backward compatibility
         record_preempt_label(current_group);
@@ -387,6 +387,63 @@ parse_lines(const std::vector<char>& data, std::string& file)
                    << " / @" << labels.second << ")" << std::endl;
 
         line = op_name + "\t" + arg_str;
+      }
+      // Per-opcode parse-time checks and counter updates.
+      // These run after the preempt block so that m_preempt_count is already
+      // incremented when we reach start_cond_job_preempt.
+      else if (op_name == "load_pdi" || op_name == "load_cores" ||
+               op_name == "load_cores_cp" || op_name == "start_cond_job_preempt") {
+        // col is common to all four opcodes; compute once.
+        int col = current_col();
+
+        if (op_name == "load_pdi" || op_name == "load_cores") {
+          // operator[] default-constructs col_data if the key is absent (single lookup).
+          auto& cdata = m_col[col];
+          bool is_load_pdi = (op_name == "load_pdi");
+
+          // Extract the @label argument that identifies the PDI / core-elf host address.
+          // Assembly notation omits PAD args, so the actual args are: <id>, <@label>
+          // The @label (pdi_host_addr_offset / core_elf_host_addr_offset) is at index 1.
+          // Use direct string search instead of a stringstream to avoid a heap allocation.
+          std::string label_arg;
+          {
+            auto first_comma = arg_str.find(',');
+            if (first_comma != std::string::npos) {
+              auto second_comma = arg_str.find(',', first_comma + 1);
+              auto start = first_comma + 1;
+              auto len = (second_comma != std::string::npos)
+                         ? second_comma - start
+                         : std::string::npos;
+              label_arg = trim(arg_str.substr(start, len));
+            }
+          }
+          // Enforce uniqueness of the PDI / core-elf address within this column.
+          if (!label_arg.empty()) {
+            bool inserted = is_load_pdi
+                            ? cdata.try_add_load_pdi_label(label_arg)
+                            : cdata.try_add_load_cores_label(label_arg);
+            if (!inserted)
+              throw error(error::error_code::invalid_asm,
+                op_name + " location '" + label_arg + "' is not unique in column " +
+                std::to_string(col) + "; each " + op_name +
+                " in a control code elf must use a distinct address\n");
+          }
+          if (is_load_pdi)
+            cdata.increment_load_pdi_count();
+          else
+            cdata.increment_load_cores_count();
+        } else if (op_name == "load_cores_cp") {
+          m_col[col].increment_load_cores_cp_count();
+        } else {
+          // start_cond_job_preempt must only appear after at least one preempt in
+          // the same column (cert uses the preceding preempt point for recovery).
+          auto col_it = m_col.find(col);
+          if (col_it == m_col.end() || col_it->second.get_preempt_count() == 0)
+            throw error(error::error_code::invalid_asm,
+              "start_cond_job_preempt found in column " + std::to_string(col) +
+              " before any preempt opcode; it must follow a preempt opcode\n");
+          col_it->second.increment_start_cond_job_preempt_count();
+        }
       }
       insert_col_asmdata(std::make_shared<asm_data>(operation(op_name, arg_str), operation_type::op,
                                                     code_section::unknown, 0, (uint32_t)-1, linenumber,

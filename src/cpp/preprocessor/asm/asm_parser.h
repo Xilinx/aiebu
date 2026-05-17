@@ -14,6 +14,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <unordered_set>
 #include <stack>
 #include <sstream>
 #include <string>
@@ -390,6 +391,16 @@ class col_data
   // Counter for PREEMPT opcodes in this column's control code.
   // Used to verify all columns have the same number of preempt points.
   uint32_t m_preempt_count = 0;
+  // Counters for load_pdi, load_cores, load_cores_cp, and start_cond_job_preempt opcodes.
+  // Used to verify all columns have the same count in multi-UC configurations.
+  uint32_t m_load_pdi_count = 0;
+  uint32_t m_load_cores_count = 0;
+  uint32_t m_load_cores_cp_count = 0;
+  uint32_t m_start_cond_job_preempt_count = 0;
+  // Sets of @label arguments used by load_pdi and load_cores in this column.
+  // Each PDI / core-elf location must be unique within the same control code elf.
+  std::unordered_set<std::string> m_load_pdi_labels;
+  std::unordered_set<std::string> m_load_cores_labels;
 public:
 
   void ensure_label(const std::string& label)
@@ -432,6 +443,29 @@ public:
 
   // Increment the PREEMPT opcode counter (called when parsing encounters a PREEMPT opcode)
   void increment_preempt_count() { m_preempt_count++; }
+
+  uint32_t get_load_pdi_count() const { return m_load_pdi_count; }
+  void increment_load_pdi_count() { m_load_pdi_count++; }
+
+  uint32_t get_load_cores_count() const { return m_load_cores_count; }
+  void increment_load_cores_count() { m_load_cores_count++; }
+
+  uint32_t get_load_cores_cp_count() const { return m_load_cores_cp_count; }
+  void increment_load_cores_cp_count() { m_load_cores_cp_count++; }
+
+  uint32_t get_start_cond_job_preempt_count() const { return m_start_cond_job_preempt_count; }
+  void increment_start_cond_job_preempt_count() { m_start_cond_job_preempt_count++; }
+
+  // Try to register a load_pdi @label address. Returns false if it was already registered
+  // (i.e. two load_pdi instructions in this column share the same PDI location).
+  bool try_add_load_pdi_label(const std::string& label) {
+    return m_load_pdi_labels.insert(label).second;
+  }
+
+  // Try to register a load_cores @label address. Returns false on duplicate.
+  bool try_add_load_cores_label(const std::string& label) {
+    return m_load_cores_labels.insert(label).second;
+  }
 };
 
 class attach_to_group_directive;
@@ -531,6 +565,10 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
                              const std::vector<std::string>& save_membd,
                              const std::vector<std::string>& restore_membd);
 
+  // Returns the active column index, defaulting to 0 before the first
+  // .attach_to_group directive is processed.
+  int current_col() const { return (m_current_col >= 0) ? m_current_col : 0; }
+
 public:
   asm_parser(const std::vector<char>& data, const std::vector<std::string>& include_list, const std::string& target_type, const file_artifact* artifacts = nullptr)
     :m_data(data),  m_include_list(include_list), m_target_type(target_type), m_artifacts(artifacts)
@@ -565,11 +603,10 @@ public:
     std::string save_label = "save_" + std::to_string(index);
     std::string restore_label = "restore_" + std::to_string(index);
     m_preempt_labels[group] = {save_label, restore_label};
-    // Increment preempt count for the current col
-    if (m_current_col >= 0) {
-      auto it = m_col.find(m_current_col);
-      it->second.increment_preempt_count();
-    }
+    // Increment preempt count for the column that owns this preempt opcode.
+    // Use the group argument (== current_col()) so col 0 is correctly updated
+    // even before the first .attach_to_group directive is processed.
+    m_col[group].increment_preempt_count();
   }
 
   // Generate unique save/restore labels for a hintmap
@@ -630,6 +667,57 @@ public:
         return true;
     }
     return false;
+  }
+
+  // Generic helper: verify all columns have the same count for a given opcode.
+  // count_getter must return a uint32_t count from a col_data reference.
+  // Returns {success, expected_count, mismatched_col, mismatched_count}.
+  template<typename CountGetter>
+  std::tuple<bool, uint32_t, int, uint32_t>
+  verify_opcode_count(CountGetter count_getter) const {
+    auto it = m_col.find(0);
+    if (it == m_col.end())
+      throw error(error::error_code::internal_error,
+                  "Controlcode for Column 0 not found for opcode count verification\n");
+    uint32_t expected_count = count_getter(it->second);
+    for (const auto& [col, data] : m_col) {
+      if (col == 0) continue;
+      uint32_t count = count_getter(data);
+      if (count != expected_count)
+        return {false, expected_count, col, count};
+    }
+    return {true, expected_count, 0, 0};
+  }
+
+  // Verify that all columns have the same load_pdi opcode count.
+  std::tuple<bool, uint32_t, int, uint32_t> verify_load_pdi_count() const {
+    return verify_opcode_count([](const col_data& d) { return d.get_load_pdi_count(); });
+  }
+
+  // Verify that all columns have the same load_cores opcode count.
+  std::tuple<bool, uint32_t, int, uint32_t> verify_load_cores_count() const {
+    return verify_opcode_count([](const col_data& d) { return d.get_load_cores_count(); });
+  }
+
+  // Verify that all columns have the same load_cores_cp opcode count.
+  std::tuple<bool, uint32_t, int, uint32_t> verify_load_cores_cp_count() const {
+    return verify_opcode_count([](const col_data& d) { return d.get_load_cores_cp_count(); });
+  }
+
+  // Verify that all columns have the same start_cond_job_preempt opcode count.
+  std::tuple<bool, uint32_t, int, uint32_t> verify_start_cond_job_preempt_count() const {
+    return verify_opcode_count([](const col_data& d) { return d.get_start_cond_job_preempt_count(); });
+  }
+
+  // Verify that at least one load_pdi exists whenever preempt is present.
+  // cert relies on the load_pdi (and possible load_cores / load_cores_cp) to recover
+  // the last loaded PDI and cores at a preemption point.
+  bool verify_preempt_requires_load_pdi() const {
+    for (const auto& [col, data] : m_col) {
+      if (data.get_preempt_count() > 0 && data.get_load_pdi_count() == 0)
+        return false;
+    }
+    return true;
   }
 
   std::pair<std::vector<uint8_t>, std::vector<uint8_t>> get_preempt_save_restore(uint32_t key) const;

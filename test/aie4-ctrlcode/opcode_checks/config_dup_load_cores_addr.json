@@ -1,0 +1,14 @@
+{
+  "xrt-kernels": [
+    {
+      "name" : "DPU",
+      "arguments" : [],
+      "instance" : [
+          {
+            "id" : "dpu",
+            "ctrl_code_file" : "./dup_load_cores_addr.asm"
+          }
+      ]
+    }
+  ]
+}
