@@ -512,6 +512,7 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::map<int, std::vector<std::string>> m_preempt_hintmaps;  // group -> vector of hintmap_labels (multiple PREEMPT opcodes per group)
   std::map<std::string, std::pair<std::string, std::string>> m_hintmap_labels;  // hintmap_label -> (save_label, restore_label)
   std::set<int> m_preempt_without_hintmap;  // groups that have PREEMPT opcodes without hintmaps
+  std::set<std::string> m_seen_files;  // tracks included file names to detect duplicates
 
   // One unique scratchpad region: all hintmap labels that share the same scratchbase+size
   struct hintmap_group_entry {
@@ -766,6 +767,9 @@ public:
   const std::vector<std::string>& get_include_list() const { return m_include_list; }
   std::string get_current_label() const { return m_current_label; }
   const file_artifact* get_artifacts() const { return m_artifacts;}
+
+  // Register filename as seen; returns true on first visit, false if already seen (duplicate).
+  bool add_seen_file(const std::string& filename) { return m_seen_files.insert(filename).second; }
 
   std::string top_label() const
   {
