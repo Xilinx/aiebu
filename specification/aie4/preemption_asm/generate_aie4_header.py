@@ -102,7 +102,7 @@ def generate_header(asm_dir, output_file):
 #include <cstdint>
 
 // C++17 inline variable - single instance across all translation units
-inline std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> aie4_save_restore_map = {
+inline const std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> aie4_save_restore_map = {
 """
 
     # Add entries
@@ -123,7 +123,7 @@ inline std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>
     header += """
 };
 
-inline std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>&
+inline const std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>&
 get_aie4_save_restore()
 {
   return aie4_save_restore_map;
