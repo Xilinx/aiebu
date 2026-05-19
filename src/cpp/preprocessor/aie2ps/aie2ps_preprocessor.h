@@ -114,9 +114,9 @@ public:
       auto [ok, exp, col, got] = parser->verify_load_pdi_count();
       if (!ok)
         throw error(error::error_code::invalid_asm,
-          "load_pdi opcode count mismatch: expected " + std::to_string(exp) +
-          " (from col 0), but controller " + std::to_string(col) +
-          " has " + std::to_string(got) + " load_pdi opcodes\n");
+          "load_pdi opcode count mismatch: " + std::to_string(exp) +
+          " for col 0, but " + std::to_string(got) +
+          " for col " + std::to_string(col) + "\n");
     }
 
     // Verify load_cores opcode count is equal across all columns.
@@ -124,9 +124,9 @@ public:
       auto [ok, exp, col, got] = parser->verify_load_cores_count();
       if (!ok)
         throw error(error::error_code::invalid_asm,
-          "load_cores opcode count mismatch: expected " + std::to_string(exp) +
-          " (from col 0), but controller " + std::to_string(col) +
-          " has " + std::to_string(got) + " load_cores opcodes\n");
+          "load_cores opcode count mismatch: " + std::to_string(exp) +
+          " for col 0, but " + std::to_string(got) +
+          " for col " + std::to_string(col) + "\n");
     }
 
     // Verify load_cores_cp opcode count is equal across all columns.
@@ -134,9 +134,9 @@ public:
       auto [ok, exp, col, got] = parser->verify_load_cores_cp_count();
       if (!ok)
         throw error(error::error_code::invalid_asm,
-          "load_cores_cp opcode count mismatch: expected " + std::to_string(exp) +
-          " (from col 0), but controller " + std::to_string(col) +
-          " has " + std::to_string(got) + " load_cores_cp opcodes\n");
+          "load_cores_cp opcode count mismatch: " + std::to_string(exp) +
+          " for col 0, but " + std::to_string(got) +
+          " for col " + std::to_string(col) + "\n");
     }
 
     // Verify start_cond_job_preempt opcode count is equal across all columns.
@@ -144,9 +144,9 @@ public:
       auto [ok, exp, col, got] = parser->verify_start_cond_job_preempt_count();
       if (!ok)
         throw error(error::error_code::invalid_asm,
-          "start_cond_job_preempt opcode count mismatch: expected " + std::to_string(exp) +
-          " (from col 0), but controller " + std::to_string(col) +
-          " has " + std::to_string(got) + " start_cond_job_preempt opcodes\n");
+          "start_cond_job_preempt opcode count mismatch: " + std::to_string(exp) +
+          " for col 0, but " + std::to_string(got) +
+          " for col " + std::to_string(col) + "\n");
     }
 
     // Verify .target directive matches the -t command line option

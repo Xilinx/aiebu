@@ -225,6 +225,8 @@ parse_lines(const std::vector<char>& data, std::string& file)
   const static regex COMMENT_REGEX("^;(.*)$");
   const static regex LABEL_REGEX("^([a-zA-Z0-9_]+):$");
   const static regex OP_REGEX("^([.a-zA-Z0-9_]+)(?:[ \\t]+(.+))?$");
+  // Groups: [1]=load_pdi  [2]=load_cores_cp  [3]=load_cores  [4]=start_cond_job_preempt
+  const static regex LOAD_OR_PREEMPT_COND_RE("^(?:(load_pdi)|(load_cores_cp)|(load_cores)|(start_cond_job_preempt))$");
 
   // Sanitize input data: filter out non-printable characters except newline, tab, and carriage return
   // This prevents corrupted operation names during parsing
@@ -391,32 +393,22 @@ parse_lines(const std::vector<char>& data, std::string& file)
       // Per-opcode parse-time checks and counter updates.
       // These run after the preempt block so that m_preempt_count is already
       // incremented when we reach start_cond_job_preempt.
-      else if (op_name == "load_pdi" || op_name == "load_cores" ||
-               op_name == "load_cores_cp" || op_name == "start_cond_job_preempt") {
+      else if (regex_match(op_name, sm, LOAD_OR_PREEMPT_COND_RE)) {
         // col is common to all four opcodes; compute once.
         int col = current_col();
 
-        if (op_name == "load_pdi" || op_name == "load_cores") {
+        if (sm[1].matched || sm[3].matched) {  // load_pdi or load_cores
           // operator[] default-constructs col_data if the key is absent (single lookup).
           auto& cdata = m_col[col];
-          bool is_load_pdi = (op_name == "load_pdi");
+          bool is_load_pdi = sm[1].matched;  // if load_pdi
 
-          // Extract the @label argument that identifies the PDI / core-elf host address.
-          // Assembly notation omits PAD args, so the actual args are: <id>, <@label>
-          // The @label (pdi_host_addr_offset / core_elf_host_addr_offset) is at index 1.
-          // Use direct string search instead of a stringstream to avoid a heap allocation.
+          // Extract the @label at argument index 1 (<id>, @<label>).
+          // Compiled once (static); regex_search finds the first ", @<label>" token.
+          static const regex LOAD_LABEL_RE(",\\s*(@[a-zA-Z0-9_]+)");
           std::string label_arg;
-          {
-            auto first_comma = arg_str.find(',');
-            if (first_comma != std::string::npos) {
-              auto second_comma = arg_str.find(',', first_comma + 1);
-              auto start = first_comma + 1;
-              auto len = (second_comma != std::string::npos)
-                         ? second_comma - start
-                         : std::string::npos;
-              label_arg = trim(arg_str.substr(start, len));
-            }
-          }
+          smatch lm;
+          if (regex_search(arg_str, lm, LOAD_LABEL_RE))
+            label_arg = lm[1].str();
           // Enforce uniqueness of the PDI / core-elf address within this column.
           if (!label_arg.empty()) {
             bool inserted = is_load_pdi
@@ -432,7 +424,7 @@ parse_lines(const std::vector<char>& data, std::string& file)
             cdata.increment_load_pdi_count();
           else
             cdata.increment_load_cores_count();
-        } else if (op_name == "load_cores_cp") {
+        } else if (sm[2].matched) {  // load_cores_cp
           m_col[col].increment_load_cores_cp_count();
         } else {
           // start_cond_job_preempt must only appear after at least one preempt in
