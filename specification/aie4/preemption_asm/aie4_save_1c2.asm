@@ -5,7 +5,7 @@
 .setpad	 preempt_buffer2, 0xc0000
 START_JOB 0
 .section annotation
-id: 8
+id: 0
 name: start_save_1c2
 description: start save 1c2
 UC_DMA_WRITE_DES_SYNC	 @UCBD_label_0
@@ -17,7 +17,7 @@ MASK_POLL_32	 0x4018570, 0x1f8003c, 0x0
 MASK_POLL_32	 0x4058570, 0x1f8003c, 0x0
 END_JOB
 .section annotation
-id: 9
+id: 1
 name: end_save_1c2
 description: end save 1c2
 
