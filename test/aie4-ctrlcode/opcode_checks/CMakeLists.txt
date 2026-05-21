@@ -46,6 +46,14 @@ add_aie4_config_neg_test("aie4_check_load_cores_cp_count_mismatch"
 add_aie4_config_neg_test("aie4_check_preempt_no_load_pdi"
   "config_preempt_no_load_pdi.json")
 
+# load_cores: used without any load_pdi in the same control code elf
+add_aie4_config_neg_test("aie4_check_load_cores_no_load_pdi"
+  "config_load_cores_no_load_pdi.json")
+
+# load_cores_cp: used without any load_pdi in the same control code elf
+add_aie4_config_neg_test("aie4_check_load_cores_cp_no_load_pdi"
+  "config_load_cores_cp_no_load_pdi.json")
+
 # start_cond_job_preempt: appears before any preempt in the same column
 add_aie4_config_neg_test("aie4_check_start_cond_before_preempt"
   "config_start_cond_before_preempt.json")

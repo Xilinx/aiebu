@@ -115,9 +115,16 @@ public:
       if (!ok)
         throw error(error::error_code::invalid_asm,
           "load_pdi opcode count mismatch: " + std::to_string(exp) +
-          " for col 0, but " + std::to_string(got) +
-          " for col " + std::to_string(col) + "\n");
+          " for column 0, but " + std::to_string(got) +
+          " for column " + std::to_string(col) + "\n");
     }
+
+    // Verify that load_cores / load_cores_cp are not used without load_pdi.
+    // cert needs load_pdi as the recovery anchor; load_cores / load_cores_cp
+    // alone are not sufficient to reconstruct hw state.
+    if (!parser->verify_load_cores_requires_load_pdi())
+      throw error(error::error_code::invalid_asm,
+        "load_cores / load_cores_cp opcode requires at least one load_pdi in the same control code elf\n");
 
     // Verify load_cores opcode count is equal across all columns.
     {
@@ -125,8 +132,8 @@ public:
       if (!ok)
         throw error(error::error_code::invalid_asm,
           "load_cores opcode count mismatch: " + std::to_string(exp) +
-          " for col 0, but " + std::to_string(got) +
-          " for col " + std::to_string(col) + "\n");
+          " for column 0, but " + std::to_string(got) +
+          " for column " + std::to_string(col) + "\n");
     }
 
     // Verify load_cores_cp opcode count is equal across all columns.
@@ -135,8 +142,8 @@ public:
       if (!ok)
         throw error(error::error_code::invalid_asm,
           "load_cores_cp opcode count mismatch: " + std::to_string(exp) +
-          " for col 0, but " + std::to_string(got) +
-          " for col " + std::to_string(col) + "\n");
+          " for column 0, but " + std::to_string(got) +
+          " for column " + std::to_string(col) + "\n");
     }
 
     // Verify start_cond_job_preempt opcode count is equal across all columns.
@@ -145,8 +152,8 @@ public:
       if (!ok)
         throw error(error::error_code::invalid_asm,
           "start_cond_job_preempt opcode count mismatch: " + std::to_string(exp) +
-          " for col 0, but " + std::to_string(got) +
-          " for col " + std::to_string(col) + "\n");
+          " for column 0, but " + std::to_string(got) +
+          " for column " + std::to_string(col) + "\n");
     }
 
     // Verify .target directive matches the -t command line option

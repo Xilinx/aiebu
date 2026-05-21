@@ -720,6 +720,18 @@ public:
     return true;
   }
 
+  // Verify that every column containing load_cores or load_cores_cp also has at
+  // least one load_pdi.  cert needs load_pdi as the anchor to recover the full
+  // hw context; load_cores / load_cores_cp are meaningless without it.
+  bool verify_load_cores_requires_load_pdi() const {
+    for (const auto& [col, data] : m_col) {
+      if ((data.get_load_cores_count() > 0 || data.get_load_cores_cp_count() > 0) &&
+          data.get_load_pdi_count() == 0)
+        return false;
+    }
+    return true;
+  }
+
   std::pair<std::vector<uint8_t>, std::vector<uint8_t>> get_preempt_save_restore(uint32_t key) const;
   std::pair<std::vector<std::string>, std::vector<std::string>> get_preempt_save_restore_bd(uint32_t key) const;
   std::pair<std::vector<std::string>, std::vector<std::string>> get_preempt_save_restore_shimbd(uint32_t key) const;
@@ -810,6 +822,13 @@ public:
   void parse_lines();
 
   void parse_lines(const std::vector<char>& data, std::string& file);
+
+  // Rewrites arg_str and line in-place for a PREEMPT opcode.
+  void handle_preempt_opcode(std::string& arg_str, std::string& line);
+
+  // Runs parse-time counter updates and checks for load_pdi / load_cores /
+  // load_cores_cp / start_cond_job_preempt (matched via LOAD_OR_PREEMPT_COND_RE).
+  void handle_load_or_preempt_cond(const std::string& op_name, const std::string& arg_str, const smatch& sm);
 
   std::vector<char> get_asm_data(const std::string& name);
   // Switch active column for subsequent opcodes. Do not replace existing col_data:

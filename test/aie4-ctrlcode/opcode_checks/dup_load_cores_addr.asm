@@ -7,7 +7,13 @@
 .attach_to_group 0
 START_JOB 0
 	LOAD_PDI 0, @pdi0
+END_JOB
+
+START_JOB 1
 	LOAD_CORES 0, @cores0
+END_JOB
+
+START_JOB 2
 	LOAD_CORES 1, @cores0
 END_JOB
 

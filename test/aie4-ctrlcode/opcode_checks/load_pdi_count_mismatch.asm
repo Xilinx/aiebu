@@ -8,6 +8,9 @@
 .attach_to_group 0
 START_JOB 0
 	LOAD_PDI 0, @pdi0
+END_JOB
+
+START_JOB 1
 	LOAD_PDI 1, @pdi1
 END_JOB
 
