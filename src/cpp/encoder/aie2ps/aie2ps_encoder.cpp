@@ -60,6 +60,7 @@ process(std::shared_ptr<preprocessed_output> input)
   auto& totalcoldata = tinput->get_coldata();
   auto& totalsyms = tinput->get_symbols();
   m_debug.set_annotations(tinput->get_annotations());
+  m_debug.set_filename_table(tinput->get_filename_table());
   uint32_t optimizatiom_level = tinput->get_optimization_level();
   auto& ctrlpkt = tinput->get_ctrlpkt();
   auto& ctrlpkt_id_map = tinput->get_ctrlpkt_id_map();
