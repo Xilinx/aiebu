@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include <optional>
+#include "common/regex_wrapper.h"
 #include <sstream>
 
 // ---------------------------------------------------------------------------
@@ -229,10 +230,10 @@ handle_preempt_opcode(std::string& arg_str, std::string& line)
 
   std::vector<std::string> args;
   if (!arg_str.empty()) {
-    std::stringstream ss(arg_str);
-    std::string arg;
-    while (std::getline(ss, arg, ','))
-      args.push_back(trim(arg));
+    static const regex token_re("[^,]+");
+    for (aiebu::sregex_iterator it(arg_str.begin(), arg_str.end(), token_re), end;
+         it != end; ++it)
+      args.push_back(trim(it->str()));
   }
 
   if (args.empty())
