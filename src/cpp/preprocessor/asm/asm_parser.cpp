@@ -1023,6 +1023,50 @@ asm_parser::inject_hintmap_save_restore(int col,
   for (const auto& hm : grp.hintmaps)
     m_hintmap_labels[col_prefix + hm] = grp.labels;
 
+  // When hint_bitmap is all-zero the scratchpad size is 0: no state needs to
+  // be saved or restored.  Inject minimal dummy jobs so the PREEMPT opcode
+  // still has valid save/restore label targets, but skip all BD configuration
+  // and stream-switch routing that the full templates would generate.
+  if (grp.size == 0) {
+    const std::string& slabel = grp.labels.first;
+    const std::string& rlabel = grp.labels.second;
+    log_info() << "hint_bitmap is 0 for col " << col
+               << ": injecting dummy save/restore jobs (labels @"
+               << slabel << " / @" << rlabel << ")" << std::endl;
+
+    const std::string save_asm =
+        slabel + ":\n"
+        "START_JOB 0\n"
+        "NOP\n"
+        "END_JOB\n"
+        "EOF\n"
+        "\n.endl " + slabel + "\n";
+
+    const std::string restore_asm =
+        rlabel + ":\n"
+        "START_JOB 0\n"
+        "LOAD_LAST_PDI\n"
+        "END_JOB\n"
+        "EOF\n"
+        "\n.endl " + rlabel + "\n";
+
+    m_current_col = col;
+    std::string dummy_save_file    = "0_0_" + save_file;
+    std::string dummy_restore_file = "0_0_" + restore_file;
+    log_info() << "Adding dummy save_file: " << dummy_save_file << " [size: " << save_asm.size()
+               << "], restore_file: " << dummy_restore_file << " [size: " << restore_asm.size() << "]" << std::endl;
+    set_data_state(false);
+    parse_lines(std::vector<char>(save_asm.begin(), save_asm.end()),
+                dummy_save_file);
+    pop_data_state();
+
+    set_data_state(false);
+    parse_lines(std::vector<char>(restore_asm.begin(), restore_asm.end()),
+                dummy_restore_file);
+    pop_data_state();
+    return;
+  }
+
   // Modify save_file like {scratchaddress}_{size}_aie4_save_3c.asm / {scratchaddress}_{size}_aie4_restore_3c.asm
   std::string save_file_mod = std::to_string(grp.scratchbase / CHUNK_SIZE) + "_" + std::to_string(grp.size / CHUNK_SIZE) + "_" + save_file;
   std::string restore_file_mod = std::to_string(grp.scratchbase / CHUNK_SIZE) + "_" + std::to_string(grp.size / CHUNK_SIZE) + "_" + restore_file;

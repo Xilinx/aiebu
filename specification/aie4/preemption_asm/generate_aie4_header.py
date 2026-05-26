@@ -100,9 +100,46 @@ def generate_header(asm_dir, output_file):
 #include <map>
 #include <vector>
 #include <cstdint>
+#include <string>
 
 // C++17 inline variable - single instance across all translation units
-inline std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> aie4_save_restore_map = {
+inline const std::map<uint32_t, std::pair<std::vector<std::string>, std::vector<std::string>>> aie4_save_restore_shimbd_map = {
+  {1, {{"DMAWRITE_data_125", "DMAWRITE_data_126"},
+       {"DMAWRITE_data_0", "DMAWRITE_data_1", "DMAWRITE_data_2", "DMAWRITE_data_3"}}},
+  {2, {{"DMAWRITE_data_250", "DMAWRITE_data_251", "DMAWRITE_data_252", "DMAWRITE_data_253"},
+       {"DMAWRITE_data_0", "DMAWRITE_data_1", "DMAWRITE_data_2", "DMAWRITE_data_3", "DMAWRITE_data_4", "DMAWRITE_data_5", "DMAWRITE_data_6", "DMAWRITE_data_7"}}},
+  {3, {{"DMAWRITE_data_375", "DMAWRITE_data_376", "DMAWRITE_data_377", "DMAWRITE_data_378", "DMAWRITE_data_379", "DMAWRITE_data_380"},
+       {"DMAWRITE_data_0", "DMAWRITE_data_1", "DMAWRITE_data_2", "DMAWRITE_data_3", "DMAWRITE_data_4", "DMAWRITE_data_5", "DMAWRITE_data_6", "DMAWRITE_data_7", "DMAWRITE_data_8", "DMAWRITE_data_9", "DMAWRITE_data_10", "DMAWRITE_data_11"}}},
+  {10, {{"DMAWRITE_data_125", "DMAWRITE_data_126"}, {"DMAWRITE_data_0", "DMAWRITE_data_1", "DMAWRITE_data_2", "DMAWRITE_data_3"}}},
+  {12, {{"DMAWRITE_data_125", "DMAWRITE_data_126"}, {"DMAWRITE_data_0", "DMAWRITE_data_1", "DMAWRITE_data_2", "DMAWRITE_data_3"}}},
+  {14, {{"DMAWRITE_data_125", "DMAWRITE_data_126"}, {"DMAWRITE_data_0", "DMAWRITE_data_1", "DMAWRITE_data_2", "DMAWRITE_data_3"}}}
+};
+
+inline const std::map<uint32_t, std::pair<std::vector<std::string>, std::vector<std::string>>>&
+get_aie4_save_restore_shimbd()
+{
+  return aie4_save_restore_shimbd_map;
+}
+
+inline const std::map<uint32_t, std::pair<std::vector<std::string>, std::vector<std::string>>> aie4_save_restore_membd_map = {
+  {1, {{"DMAWRITE_data_127", "DMAWRITE_data_128"},
+       {"DMAWRITE_data_4", "DMAWRITE_data_5", "DMAWRITE_data_6", "DMAWRITE_data_7"}}},
+  {2, {{"DMAWRITE_data_254", "DMAWRITE_data_255", "DMAWRITE_data_256", "DMAWRITE_data_257"},
+       {"DMAWRITE_data_8", "DMAWRITE_data_9", "DMAWRITE_data_10", "DMAWRITE_data_11", "DMAWRITE_data_12", "DMAWRITE_data_13", "DMAWRITE_data_14", "DMAWRITE_data_15"}}},
+  {3, {{"DMAWRITE_data_381", "DMAWRITE_data_382", "DMAWRITE_data_383", "DMAWRITE_data_384", "DMAWRITE_data_385", "DMAWRITE_data_386"},
+       {"DMAWRITE_data_12", "DMAWRITE_data_13", "DMAWRITE_data_14", "DMAWRITE_data_15", "DMAWRITE_data_16", "DMAWRITE_data_17", "DMAWRITE_data_18", "DMAWRITE_data_19", "DMAWRITE_data_20", "DMAWRITE_data_21", "DMAWRITE_data_22", "DMAWRITE_data_23"}}},
+  {10, {{"DMAWRITE_data_127", "DMAWRITE_data_128"}, {"DMAWRITE_data_4", "DMAWRITE_data_5", "DMAWRITE_data_6", "DMAWRITE_data_7"}}},
+  {12, {{"DMAWRITE_data_127", "DMAWRITE_data_128"}, {"DMAWRITE_data_4", "DMAWRITE_data_5", "DMAWRITE_data_6", "DMAWRITE_data_7"}}},
+  {14, {{"DMAWRITE_data_127", "DMAWRITE_data_128"}, {"DMAWRITE_data_4", "DMAWRITE_data_5", "DMAWRITE_data_6", "DMAWRITE_data_7"}}}
+};
+
+inline const std::map<uint32_t, std::pair<std::vector<std::string>, std::vector<std::string>>>&
+get_aie4_save_restore_membd()
+{
+  return aie4_save_restore_membd_map;
+}
+
+inline const std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> aie4_save_restore_map = {
 """
 
     # Add entries
@@ -123,7 +160,7 @@ inline std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>
     header += """
 };
 
-inline std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>&
+inline const std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>&
 get_aie4_save_restore()
 {
   return aie4_save_restore_map;
