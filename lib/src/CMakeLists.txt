@@ -42,7 +42,7 @@ file(MAKE_DIRECTORY ${AIEBU_GEN_DIR})
 
 add_custom_command(
   OUTPUT ${AIEBU_PREEMPT_GEN_FILES}
-  COMMAND ${AIEBU_PREEMPTION_EXE}
+  COMMAND $<TARGET_FILE:${AIEBU_PREEMPTION_EXE}>
   DEPENDS ${AIEBU_PREEMPTION_EXE}
   COMMENT "Generating save/restore ctrlcode stubs in directory ${AIEBU_GEN_DIR}"
   VERBATIM
@@ -79,7 +79,7 @@ endif()
 
 add_custom_command(
   OUTPUT ${AIEBU_COPY_GEN_FILES}
-  COMMAND ${AIEBU_COPY_EXE}
+  COMMAND $<TARGET_FILE:${AIEBU_COPY_EXE}>
   DEPENDS ${AIEBU_COPY_EXE}
   COMMENT "Generating copy ctrlcode stubs in directory ${AIEBU_GEN_DIR}"
   VERBATIM
