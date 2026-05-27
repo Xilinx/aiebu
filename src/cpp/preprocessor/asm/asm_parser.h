@@ -390,13 +390,13 @@ class col_data
   std::map<std::string, std::shared_ptr<scratchpad_info>> m_scratchpads;
   // Counter for PREEMPT opcodes in this column's control code.
   // Used to verify all columns have the same number of preempt points.
-  uint32_t m_preempt_count = 0;
+  unsigned int m_preempt_count = 0;
   // Counters for load_pdi, load_cores, load_cores_cp, and start_cond_job_preempt opcodes.
   // Used to verify all columns have the same count in multi-UC configurations.
-  uint32_t m_load_pdi_count = 0;
-  uint32_t m_load_cores_count = 0;
-  uint32_t m_load_cores_cp_count = 0;
-  uint32_t m_start_cond_job_preempt_count = 0;
+  unsigned int m_load_pdi_count = 0;
+  unsigned int m_load_cores_count = 0;
+  unsigned int m_load_cores_cp_count = 0;
+  unsigned int m_start_cond_job_preempt_count = 0;
   // Sets of @label arguments used by load_pdi and load_cores in this column.
   // Each PDI / core-elf location must be unique within the same control code elf.
   std::unordered_set<std::string> m_load_pdi_labels;
@@ -439,21 +439,21 @@ public:
   }
 
   // Get the number of PREEMPT opcodes encountered in this column's control code
-  uint32_t get_preempt_count() const { return m_preempt_count; }
+  unsigned int get_preempt_count() const { return m_preempt_count; }
 
   // Increment the PREEMPT opcode counter (called when parsing encounters a PREEMPT opcode)
   void increment_preempt_count() { m_preempt_count++; }
 
-  uint32_t get_load_pdi_count() const { return m_load_pdi_count; }
+  unsigned int get_load_pdi_count() const { return m_load_pdi_count; }
   void increment_load_pdi_count() { m_load_pdi_count++; }
 
-  uint32_t get_load_cores_count() const { return m_load_cores_count; }
+  unsigned int get_load_cores_count() const { return m_load_cores_count; }
   void increment_load_cores_count() { m_load_cores_count++; }
 
-  uint32_t get_load_cores_cp_count() const { return m_load_cores_cp_count; }
+  unsigned int get_load_cores_cp_count() const { return m_load_cores_cp_count; }
   void increment_load_cores_cp_count() { m_load_cores_cp_count++; }
 
-  uint32_t get_start_cond_job_preempt_count() const { return m_start_cond_job_preempt_count; }
+  unsigned int get_start_cond_job_preempt_count() const { return m_start_cond_job_preempt_count; }
   void increment_start_cond_job_preempt_count() { m_start_cond_job_preempt_count++; }
 
   // Try to register a load_pdi @label address. Returns false if it was already registered
@@ -640,19 +640,19 @@ public:
   //   - expected_count: the preempt count from column 0 (reference)
   //   - mismatched_col: column number that has a different count (if success=false)
   //   - mismatched_count: the actual count in the mismatched column (if success=false)
-  std::tuple<bool, uint32_t, int, uint32_t> verify_preempt_count() const {
+  std::tuple<bool, unsigned int, int, unsigned int> verify_preempt_count() const {
     // Get column 0 as the reference for expected preempt count
     auto it = m_col.find(0);
     if (it == m_col.end())
       throw error(error::error_code::internal_error,
                   "Controlcode for Column 0 not found for preempt count verification\n");
 
-    uint32_t expected_count = it->second.get_preempt_count();
+    unsigned int expected_count = it->second.get_preempt_count();
 
     // Compare all other columns against column 0
     for (const auto& [col, data] : m_col) {
       if (col == 0) continue;  // Skip reference column
-      uint32_t count = data.get_preempt_count();
+      unsigned int count = data.get_preempt_count();
       if (count != expected_count) {
         return {false, expected_count, col, count};  // Mismatch found
       }
@@ -670,19 +670,19 @@ public:
   }
 
   // Generic helper: verify all columns have the same count for a given opcode.
-  // count_getter must return a uint32_t count from a col_data reference.
+  // count_getter must return an unsigned int count from a col_data reference.
   // Returns {success, expected_count, mismatched_col, mismatched_count}.
   template<typename CountGetter>
-  std::tuple<bool, uint32_t, int, uint32_t>
+  std::tuple<bool, unsigned int, int, unsigned int>
   verify_opcode_count(CountGetter count_getter) const {
     auto it = m_col.find(0);
     if (it == m_col.end())
       throw error(error::error_code::internal_error,
                   "Controlcode for Column 0 not found for opcode count verification\n");
-    uint32_t expected_count = count_getter(it->second);
+    unsigned int expected_count = count_getter(it->second);
     for (const auto& [col, data] : m_col) {
       if (col == 0) continue;
-      uint32_t count = count_getter(data);
+      unsigned int count = count_getter(data);
       if (count != expected_count)
         return {false, expected_count, col, count};
     }
@@ -690,22 +690,22 @@ public:
   }
 
   // Verify that all columns have the same load_pdi opcode count.
-  std::tuple<bool, uint32_t, int, uint32_t> verify_load_pdi_count() const {
+  std::tuple<bool, unsigned int, int, unsigned int> verify_load_pdi_count() const {
     return verify_opcode_count([](const col_data& d) { return d.get_load_pdi_count(); });
   }
 
   // Verify that all columns have the same load_cores opcode count.
-  std::tuple<bool, uint32_t, int, uint32_t> verify_load_cores_count() const {
+  std::tuple<bool, unsigned int, int, unsigned int> verify_load_cores_count() const {
     return verify_opcode_count([](const col_data& d) { return d.get_load_cores_count(); });
   }
 
   // Verify that all columns have the same load_cores_cp opcode count.
-  std::tuple<bool, uint32_t, int, uint32_t> verify_load_cores_cp_count() const {
+  std::tuple<bool, unsigned int, int, unsigned int> verify_load_cores_cp_count() const {
     return verify_opcode_count([](const col_data& d) { return d.get_load_cores_cp_count(); });
   }
 
   // Verify that all columns have the same start_cond_job_preempt opcode count.
-  std::tuple<bool, uint32_t, int, uint32_t> verify_start_cond_job_preempt_count() const {
+  std::tuple<bool, unsigned int, int, unsigned int> verify_start_cond_job_preempt_count() const {
     return verify_opcode_count([](const col_data& d) { return d.get_start_cond_job_preempt_count(); });
   }
 
