@@ -1,0 +1,14 @@
+{
+  "xrt-kernels": [
+    {
+      "name" : "DPU",
+      "arguments" : [],
+      "instance" : [
+          {
+            "id" : "dpu",
+            "ctrl_code_file" : "./start_cond_before_preempt.asm"
+          }
+      ]
+    }
+  ]
+}
