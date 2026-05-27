@@ -15,7 +15,6 @@
 import sys
 import yaml
 import markdown
-import markdown_graphviz_svg
 from jinja2 import Environment, FileSystemLoader
 
 
@@ -63,6 +62,7 @@ def generate_docs(spec):
 
 
 def generate_html_docs(spec):
+  import markdown_graphviz_svg
   template = _environment.get_template('docs.md')
   template.globals.update(jinja_functions)
   md = markdown.Markdown(extensions=[markdown_graphviz_svg.GraphvizBlocksExtension(), 'tables', 'fenced_code', 'toc'])

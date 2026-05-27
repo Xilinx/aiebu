@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
 add_custom_target(cpp-assembler-stubs
-  DEPENDS spec-tool-deps
   COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH="${SPEC_PYTHON_PATH}"
   ${Python3_EXECUTABLE}
   ${AIEBU_SOURCE_DIR}/specification/spec_tool.py

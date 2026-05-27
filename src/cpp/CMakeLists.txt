@@ -78,6 +78,8 @@ if (AIEBU_NATIVE_BUILD)
   #add_dependencies(aiebu_library_objects ctrlcodelib)
 endif()
 
+add_dependencies(aiebu_library_objects cpp-assembler-stubs)
+
 set_target_properties(aiebu_library_objects PROPERTIES
   CXX_VISIBILITY_PRESET hidden
   POSITION_INDEPENDENT_CODE ON
