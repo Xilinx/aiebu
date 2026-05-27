@@ -26,7 +26,7 @@ START_JOB 6
 	NOP
 END_JOB
 
-.include pdi.asm
+.include pdi0.asm
 EOF
 .align 4
 hintmap_0:
