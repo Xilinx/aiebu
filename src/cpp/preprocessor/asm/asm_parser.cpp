@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include <optional>
+#include "common/regex_wrapper.h"
 #include <sstream>
 
 // ---------------------------------------------------------------------------
@@ -219,12 +220,128 @@ parse_lines()
 
 void
 asm_parser::
+handle_preempt_opcode(std::string& arg_str, std::string& line)
+{
+  if (get_target_type() == "aie2ps")
+    throw error(error::error_code::internal_error, "PREEMPT opcode is not supported for aie2ps target");
+
+  int current_group = current_col();
+  record_preempt_label(current_group);
+
+  std::vector<std::string> args;
+  if (!arg_str.empty()) {
+    static const regex token_re("[^,]+");
+    for (aiebu::sregex_iterator it(arg_str.begin(), arg_str.end(), token_re), end;
+         it != end; ++it)
+      args.push_back(trim(it->str()));
+  }
+
+  if (args.empty())
+    throw error(error::error_code::internal_error, "PREEMPT opcode has no arguments");
+
+  std::string first_arg = args[0];
+  if (first_arg.empty())
+    throw error(error::error_code::internal_error, "PREEMPT opcode has empty first argument");
+
+  std::string hintmap_label;
+  if (args.size() >= 4) {
+    hintmap_label = args[3];
+    if (!hintmap_label.empty() && hintmap_label[0] == '@')
+      hintmap_label = hintmap_label.substr(1);
+    if (!hintmap_label.empty()) {
+      std::transform(hintmap_label.begin(), hintmap_label.end(), hintmap_label.begin(),
+                     [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    }
+  }
+
+  std::pair<std::string, std::string> labels;
+  if (!hintmap_label.empty()) {
+    // Qualify the hintmap key with its label scope so that the same label
+    // name in different scopes (e.g. "default" vs "default:pdi") is treated
+    // as a distinct hintmap.
+    std::string qualified_key = m_current_label + ":" + hintmap_label;
+    // Get unique save/restore labels for this hintmap BEFORE adding to vector
+    // (so the index calculation is correct)
+    labels = get_hintmap_save_restore_labels(hintmap_label, current_group);
+    // Store qualified key for later processing (after getting labels)
+    m_preempt_hintmaps[current_group].push_back(qualified_key);
+  } else {
+    // No hintmap, use group-level labels
+    // Track that this group has PREEMPT opcodes without hintmaps
+    m_preempt_without_hintmap.insert(current_group);
+    labels = m_preempt_labels[current_group];
+  }
+
+  if (!hintmap_label.empty())
+    arg_str = first_arg + ", @" + labels.first + ", @" + labels.second + ", @" + hintmap_label;
+  else
+    arg_str = first_arg + ", @" + labels.first + ", @" + labels.second;
+
+  log_info() << "PREEMPT opcode: updated arg_str to '" << arg_str
+             << "' (hintmap: '" << hintmap_label << "', labels: @" << labels.first
+             << " / @" << labels.second << ")" << std::endl;
+
+  line = "preempt\t" + arg_str;
+}
+
+void
+asm_parser::
+handle_load_or_preempt_cond(const std::string& op_name, const std::string& arg_str, const smatch& sm)
+{
+  // col is common to all four opcodes; compute once.
+  int col = current_col();
+
+  if (sm[1].matched || sm[3].matched) {  // load_pdi or load_cores
+    // operator[] default-constructs col_data if the key is absent (single lookup).
+    auto& cdata = m_col[col];
+    bool is_load_pdi = sm[1].matched;
+
+    // Extract the @label at argument index 1 (<id>, @<label>).
+    // Compiled once (static); regex_search finds the first ", @<label>" token.
+    static const regex LOAD_LABEL_RE(",\\s*(@[a-zA-Z0-9_]+)");
+    std::string label_arg;
+    smatch lm;
+    if (regex_search(arg_str, lm, LOAD_LABEL_RE))
+      label_arg = lm[1].str();
+    // Enforce uniqueness of the PDI / core-elf address within this column.
+    // label_arg will never be empty
+    bool inserted = is_load_pdi
+                      ? cdata.try_add_load_pdi_label(label_arg)
+                      : cdata.try_add_load_cores_label(label_arg);
+    if (!inserted)
+      throw error(error::error_code::invalid_asm,
+        op_name + " location '" + label_arg + "' is not unique in column " +
+        std::to_string(col) + "; each " + op_name +
+        " in a control code elf must use a distinct address\n");
+
+    if (is_load_pdi)
+      cdata.increment_load_pdi_count();
+    else
+      cdata.increment_load_cores_count();
+  } else if (sm[2].matched) {  // load_cores_cp
+    m_col[col].increment_load_cores_cp_count();
+  } else {
+    // start_cond_job_preempt must only appear after at least one preempt in
+    // the same column (cert uses the preceding preempt point for recovery).
+    auto col_it = m_col.find(col);
+    if (col_it == m_col.end() || col_it->second.get_preempt_count() == 0)
+      throw error(error::error_code::invalid_asm,
+        "start_cond_job_preempt found in column " + std::to_string(col) +
+        " before any preempt opcode; it must follow a preempt opcode\n");
+    col_it->second.increment_start_cond_job_preempt_count();
+  }
+}
+
+void
+asm_parser::
 parse_lines(const std::vector<char>& data, std::string& file)
 {
   //parse asm code
   const static regex COMMENT_REGEX("^;(.*)$");
   const static regex LABEL_REGEX("^([a-zA-Z0-9_]+):$");
   const static regex OP_REGEX("^([.a-zA-Z0-9_]+)(?:[ \\t]+(.+))?$");
+  // Groups: [1]=load_pdi  [2]=load_cores_cp  [3]=load_cores  [4]=start_cond_job_preempt
+  const static regex LOAD_OR_PREEMPT_COND_RE("^(?:(load_pdi)|(load_cores_cp)|(load_cores)|(start_cond_job_preempt))$");
 
   // Sanitize input data: filter out non-printable characters except newline, tab, and carriage return
   // This prevents corrupted operation names during parsing
@@ -315,78 +432,13 @@ parse_lines(const std::vector<char>& data, std::string& file)
 
       // Handle PREEMPT opcode - record label for current group
       if (!op_name.compare("preempt")) {
-        if (get_target_type() == "aie2ps")
-          throw error(error::error_code::internal_error, "PREEMPT opcode is not supported for aie2ps target");
-
-        // Get current group (default to 0 if no attach_to_group yet)
-        int current_group = (m_current_col >= 0) ? m_current_col : 0;
-
-        // Record preempt label for this group (save_N/restore_N) - for backward compatibility
-        record_preempt_label(current_group);
-
-        // Parse arguments: id, @save, @restore, [@hintmap]
-        std::vector<std::string> args;
-        if (!arg_str.empty()) {
-          std::stringstream ss(arg_str);
-          std::string arg;
-          while (std::getline(ss, arg, ',')) {
-            args.push_back(trim(arg));
-          }
-        }
-
-        // Extract first argument (id)
-        std::string first_arg;
-        if (args.empty())
-          throw error(error::error_code::internal_error, "PREEMPT opcode has no arguments");
-
-        first_arg = args[0];
-        if (first_arg.empty())
-          throw error(error::error_code::internal_error, "PREEMPT opcode has empty first argument");
-
-        // Extract hintmap label if present (4th argument, optional)
-        std::string hintmap_label;
-        if (args.size() >= 4) {
-          hintmap_label = args[3];
-          // Remove @ prefix if present
-          if (!hintmap_label.empty() && hintmap_label[0] == '@') {
-            hintmap_label = hintmap_label.substr(1);
-          }
-          if (!hintmap_label.empty()) {
-            std::transform(hintmap_label.begin(), hintmap_label.end(), hintmap_label.begin(),
-                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-          }
-        }
-
-        // Get save/restore labels - specific to hintmap if present, otherwise use group labels
-        std::pair<std::string, std::string> labels;
-        if (!hintmap_label.empty()) {
-          // Qualify the hintmap key with its label scope so that the same label
-          // name in different scopes (e.g. "default" vs "default:pdi") is treated
-          // as a distinct hintmap.
-          std::string qualified_key = m_current_label + ":" + hintmap_label;
-          // Get unique save/restore labels for this hintmap BEFORE adding to vector
-          // (so the index calculation is correct)
-          labels = get_hintmap_save_restore_labels(hintmap_label, current_group);
-          // Store qualified key for later processing (after getting labels)
-          m_preempt_hintmaps[current_group].push_back(qualified_key);
-        } else {
-          // No hintmap, use group-level labels
-          // Track that this group has PREEMPT opcodes without hintmaps
-          m_preempt_without_hintmap.insert(current_group);
-          labels = m_preempt_labels[current_group];
-        }
-
-        // Build new arg_str: <first_arg>, @<save_label>, @<restore_label>[, @<hintmap_label>]
-        if (!hintmap_label.empty())
-          arg_str = first_arg + ", @" + labels.first + ", @" + labels.second + ", @" + hintmap_label;
-        else
-          arg_str = first_arg + ", @" + labels.first + ", @" + labels.second;
-
-        log_info() << "PREEMPT opcode: updated arg_str to '" << arg_str
-                   << "' (hintmap: '" << hintmap_label << "', labels: @" << labels.first
-                   << " / @" << labels.second << ")" << std::endl;
-
-        line = op_name + "\t" + arg_str;
+        handle_preempt_opcode(arg_str, line);
+      }
+      // Per-opcode parse-time checks and counter updates.
+      // These run after the preempt block so that m_preempt_count is already
+      // incremented when we reach start_cond_job_preempt.
+      else if (regex_match(op_name, sm, LOAD_OR_PREEMPT_COND_RE)) {
+        handle_load_or_preempt_cond(op_name, arg_str, sm);
       }
       insert_col_asmdata(std::make_shared<asm_data>(operation(op_name, arg_str), operation_type::op,
                                                     code_section::unknown, 0, (uint32_t)-1, linenumber,
