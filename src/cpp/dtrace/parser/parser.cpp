@@ -48,31 +48,45 @@ parser(const std::string& map_data)
         // Extract file name
         std::filesystem::path file_path(item.second.get<std::string>("file"));
         std::string map_file_name = file_path.filename().string();
+        std::string map_file_path = file_path.string();
 
         // Process line-based entries
         if (item.second.get_child_optional("line"))
         {
-            std::string line_key = "jprobe:" + map_file_name + 
+            auto populate_map_value = [this, &item](const std::string& key) 
+            {
+                boost::property_tree::ptree value;
+                value.put("operation", item.second.get<std::string>("operation"));
+                value.put("page_index", item.second.get<std::string>("page_index"));
+                value.put("page_offset", item.second.get<std::string>("page_offset"));
+                m_maps[key] = value;
+            };
+
+            std::string line_key = "jprobe:" + map_file_name +
                 ":uc" + item.second.get<std::string>("column") +
                 ":line" + item.second.get<std::string>("line");
-            boost::property_tree::ptree line_value;
-            line_value.put("operation",     item.second.get<std::string>("operation"));
-            line_value.put("page_index",    item.second.get<std::string>("page_index"));
-            line_value.put("page_offset",   item.second.get<std::string>("page_offset"));
-            m_maps[line_key] = line_value;
+            populate_map_value(line_key);
+
+            std::string line_key_filepath = "jprobe:" + map_file_path +
+                ":uc" + item.second.get<std::string>("column") +
+                ":line" + item.second.get<std::string>("line");
+            if (line_key_filepath != line_key) // Avoid duplicate entry
+                populate_map_value(line_key_filepath);
 
             // Process annotation-based entries if available
             if (item.second.get_child_optional("annotation"))
             {
                 auto annotation = item.second.get_child("annotation");
-                std::string annotation_key = "jprobe:" + map_file_name + 
+                std::string annotation_key = "jprobe:" + map_file_name +
                     ":uc" + item.second.get<std::string>("column") +
                     ":annotation" + annotation.get<std::string>("id");
-                boost::property_tree::ptree annotation_value;
-                annotation_value.put("operation",   item.second.get<std::string>("operation"));
-                annotation_value.put("page_index",  item.second.get<std::string>("page_index"));
-                annotation_value.put("page_offset", item.second.get<std::string>("page_offset"));
-                m_maps[annotation_key] = annotation_value;
+                populate_map_value(annotation_key);
+
+                std::string annotation_key_filepath = "jprobe:" + map_file_path +
+                    ":uc" + item.second.get<std::string>("column") +
+                    ":annotation" + annotation.get<std::string>("id");
+                if (annotation_key_filepath != annotation_key) // Avoid duplicate entry
+                    populate_map_value(annotation_key_filepath);
             }
         }
     }

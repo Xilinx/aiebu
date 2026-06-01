@@ -62,6 +62,12 @@ write_trace_probes(std::ostream& stream) const
                               ":line" + std::to_string(line);
     stream << probe_line << " ( on " << operation << " )" << '\n';
 
+    std::string probe_line_file_path =  "jprobe:" + file_path + 
+                                        ":uc" + std::to_string(column) + 
+                                        ":line" + std::to_string(line);
+    if (probe_line_file_path != probe_line)
+      stream << probe_line_file_path << " ( on " << operation << " )" << '\n';
+
     // If there are annotations associated with the probe, print additional lines for each annotation
     if (auto annotation = node.get_child_optional("annotation")) {
       const auto annotation_id = annotation->get<std::string>("id");
@@ -69,6 +75,12 @@ write_trace_probes(std::ostream& stream) const
                                           ":uc" + std::to_string(column) + 
                                           ":annotation" + annotation_id;
       stream << annotation_probe_line << " ( on " << operation << " )" << '\n';
+
+      std::string annotation_probe_line_file_path = "jprobe:" + file_path + 
+                                                    ":uc" + std::to_string(column) + 
+                                                    ":annotation" + annotation_id;
+      if (annotation_probe_line_file_path != annotation_probe_line)
+        stream << annotation_probe_line_file_path << " ( on " << operation << " )" << '\n';
     }
   }
 }
