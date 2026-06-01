@@ -121,13 +121,16 @@ aiebu_assembler(buffer_type type,
     elf_data = a.process({}, flags, {}, config_json_buffer, {}, {},&artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config;
   }
-  else if (type == buffer_type::aie4_config)
+  else if (type == buffer_type::aie4_config ||
+           type == buffer_type::aie4a_config ||
+           type == buffer_type::aie4z_config)
   {
     aiebu::assembler a(assembler::elf_type::aie4_config);
     elf_data = a.process({}, flags, {}, config_json_buffer, {}, {},&artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie4_config;
   }
-  else {
+  else
+  {
     throw error(error::error_code::invalid_buffer_type, "Buffer_type not supported !!!");
   }
 }
