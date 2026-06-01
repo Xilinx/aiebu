@@ -8,7 +8,7 @@ set(DTRACE_TESTNAME "dtrace_test")
 add_executable(${DTRACE_TESTNAME} dtrace_test.cpp)
 add_dependencies(${DTRACE_TESTNAME} cert_dtrace_static)
 target_link_libraries(${DTRACE_TESTNAME} PRIVATE cert_dtrace_static)
-target_include_directories(${DTRACE_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/dtrace)
+target_include_directories(${DTRACE_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp)
 
 add_test(NAME "dtrace_single_column"
   COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/single_col" "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_single.dat"

@@ -2,7 +2,6 @@
 // Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
 
 // This file defines the control class which is responsible for creating control buffers and result files.
-#include "json/nlohmann/json.hpp"
 #include "control.h"
 
 #include <fstream>
@@ -136,6 +135,9 @@ control(const std::string& script_file, const std::string& map_data)
         // Trace control block paging
         m_control_buffers[uC] = m_pager.paging(m_control_buffers.at(uC), uC);
     }
+
+    // Populate result actions in execution order across probes
+    control::populate_result_actions();
 }
 
 //-------------------------control::create_control_buffer-------------------------//
@@ -293,6 +295,50 @@ patch_control_buffer(std::unordered_map<uint32_t, uint64_t>& mem_host_addr_map)
     }
 }
 
+//-------------------------control::populate_result_actions-------------------------//
+/**
+ * populate_result_actions() - Populates m_result_actions in execution order across probes.
+ *
+ * This function populates the m_result_actions vector with actions in the order
+ * they are executed across all probes. It first adds actions from the "begin" probe, 
+ * then iterates through the probes in the order they were defined for each uC, 
+ * and finally adds actions from the "end" probe.
+ */
+void
+control::
+populate_result_actions()
+{
+    m_result_actions.clear();
+    uint32_t uC_index = 0;  // uC_index 0 for begin and end probes
+
+    // Probe - begin
+    if (m_parser.m_probes.at(uC_index).find("begin") != m_parser.m_probes.at(uC_index).end())
+    {
+        for (const auto& action : m_parser.m_probes.at(uC_index).at("begin")->m_actions)
+            m_result_actions.emplace_back(action, uC_index);
+    }
+
+    // Probe - Jprobe and Tracepoint
+    for (const auto& uC : m_parser.m_uC_indices)
+    {
+        for (const auto& probe_name : m_parser.m_probe_order.at(uC))
+        {
+            if (probe_name == "begin" || probe_name == "end")
+                continue;
+
+            const auto& probe = m_parser.m_probes.at(uC).at(probe_name);
+            for (const auto& action : probe->m_actions)
+                m_result_actions.emplace_back(action, uC);
+        }
+    }
+
+    // Probe - end
+    if (m_parser.m_probes.at(uC_index).find("end") != m_parser.m_probes.at(uC_index).end())
+    {
+        for (const auto& action : m_parser.m_probes.at(uC_index).at("end")->m_actions)
+            m_result_actions.emplace_back(action, uC_index);
+    }
+}
 
 //-------------------------control::create_result_file-------------------------//
 /**
@@ -306,8 +352,7 @@ patch_control_buffer(std::unordered_map<uint32_t, uint64_t>& mem_host_addr_map)
  *  Path to the output file where the Python script will be written.
  *
  * This function generates a Python script that processes the provided result and 
- * memory buffers. It iterates through the probes and their associated actions,
- * serializing the actions into the output file.
+ * memory buffers. Serializing the actions into the output file.
  */
 void 
 control::
@@ -315,37 +360,7 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
     std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, 
     const std::string& output_file) const
 {
-    uint32_t uC_index = 0;  // uC_index 0 for begin and end probes
-    std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> actions;
-
-    // Probe - begin
-    if (m_parser.m_probes.at(uC_index).find("begin") != m_parser.m_probes.at(uC_index).end())
-    {
-        for (const auto& action : m_parser.m_probes.at(uC_index).at("begin")->m_actions)
-            actions.emplace_back(action, uC_index);
-    }
-
-    // Probe - Jprobe and Tracepoint
-    for (const auto& uC : m_parser.m_uC_indices)
-    {
-        for (const auto& probe_name : m_parser.m_probe_order.at(uC))
-        {
-            if (probe_name == "begin" || probe_name == "end")
-                continue;
-        
-            const auto& probe = m_parser.m_probes.at(uC).at(probe_name);
-            for (const auto& action : probe->m_actions)
-                actions.emplace_back(action, uC);
-        }
-    }
-
-    // Probe - end
-    if (m_parser.m_probes.at(uC_index).find("end") != m_parser.m_probes.at(uC_index).end())
-    {
-        for (const auto& action : m_parser.m_probes.at(uC_index).at("end")->m_actions)
-            actions.emplace_back(action, uC_index);
-    }
-
+    // Process actions based on output format
     if (m_output_format == dtrace::dtrace_output_format::python)
     {
         // Create python script
@@ -356,7 +371,7 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
         script_output << "#! /usr/bin/env python3\n";
         script_output << "import sys\n\n";
         script_output << "if __name__ == '__main__':\n";
-        for (const auto& item : actions)
+        for (const auto& item : m_result_actions)
         {
             const auto& action = item.first;
             uint32_t loop_uC_index = item.second;
@@ -383,10 +398,9 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
     else if (m_output_format == dtrace::dtrace_output_format::json)
     {
         // Create JSON output
-        using json = nlohmann::ordered_json;
-        json json_output = json::object();
+        nlohmann::ordered_json json_output = nlohmann::ordered_json::object();
 
-        for (const auto& item : actions)
+        for (const auto& item : m_result_actions)
         {
             const auto& action = item.first;
             uint32_t loop_uC_index = item.second;
@@ -421,6 +435,54 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
         DTRACE_ERROR("DTRACE_OUTPUT_FORMAT_NOT_SUPPORTED", 
             "Output format " << static_cast<int>(m_output_format) << " not supported yet."
         );
+    }
+}
+
+//-------------------------control::create_result_buffer-------------------------//
+/**
+ * create_result_buffer() - Serializes dtrace results into a JSON object.
+ *
+ * @param result_buffers
+ *  Map containing result buffers indexed by uC.
+ * @param mem_buffers
+ *  Map containing memory buffers indexed by uC.
+ * @param json_output
+ *  JSON object to populate with serialized action results.
+ *
+ * Serializes action results directly into the provided JSON object
+ * without file I/O.
+ */
+void
+control::
+create_result_buffer(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers,
+    std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers,
+    nlohmann::ordered_json& json_output) const
+{
+    if (m_output_format != dtrace::dtrace_output_format::json)
+        DTRACE_ERROR("DTRACE_OUTPUT_FORMAT_NOT_SUPPORTED", 
+            "Output format " << static_cast<int>(m_output_format) << " not supported for buffer result."
+        );
+
+    // Process actions and serialize results into JSON object
+    for (const auto& item : m_result_actions)
+    {
+        const auto& action = item.first;
+        uint32_t loop_uC_index = item.second;
+        try
+        {
+            action->serialize(
+                result_buffers.at(loop_uC_index),
+                mem_buffers.at(loop_uC_index),
+                m_pager.get_action_location_mapping(loop_uC_index),
+                json_output
+            );
+        }
+        catch (const std::exception& e)
+        {
+            DTRACE_ERROR("DTRACE_ACTION_SERIALIZE_FAILED", "Failed to serialize action "
+                << action->create_string() << " for uC index " << loop_uC_index << ". Exception: " << e.what()
+            );
+        }
     }
 }
 
