@@ -99,11 +99,11 @@ void
 get_dtrace_result_file(dtrace_handle_t dtrace_handle, const std::string& result_file);
 
 /*!
- * update_dtrace_result_buffer() - Appends dtrace result to an in-memory JSON object.
+ * update_dtrace_result_buffer() - Stores dtrace result in an in-memory JSON object.
  *
  * @dtrace_handle:    Handle to the dynamic tracing context.
- * @result_key:       Key to stored result in the JSON object.
- * @result_buffer:    JSON object to append results.
+ * @result_key:       Key to store the result under in the JSON object.
+ * @result_buffer:    JSON object to store results.
  *
  * This function extracts results from the device buffer (same as get_dtrace_result_file)
  * but serializes into the provided JSON object under result_key instead of writing to a file.
