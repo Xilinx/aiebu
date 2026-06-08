@@ -230,6 +230,7 @@ public:
 // 32-bit index. One table per asm_parser so config.json instances do not share indices.
 namespace detail {
 class filename_table {
+  //TODO: redundant data for fast insertion and lookup. To be removed in future.
   std::vector<std::string> m_table;
   std::unordered_map<std::string, uint32_t> m_index;
   uint32_t m_default_idx = static_cast<uint32_t>(-1);
