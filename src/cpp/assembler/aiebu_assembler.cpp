@@ -449,11 +449,17 @@ class file_artifact_impl
   public:
     void add_vfile(const std::string& name, const std::vector<char>& buffer)
     {
+      if (m_artifacts.count(name))
+        throw error(error::error_code::invalid_input,
+                    "duplicate asm file name \"" + name + "\" added in artifacts");
       m_artifacts[name] = buffer;
     }
 
     void add_vfile(std::string& name, std::vector<char>&& buffer)
     {
+      if (m_artifacts.count(name))
+        throw error(error::error_code::invalid_input,
+                    "duplicate asm file name \"" + name + "\" added in artifacts");
       m_artifacts[name] = std::move(buffer);
     }
 

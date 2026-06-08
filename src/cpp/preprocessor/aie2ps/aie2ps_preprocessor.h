@@ -182,6 +182,8 @@ public:
     toutput->set_ctrlpkt(controlpkts);
     toutput->set_ctrlpkt_id_map(ctrlpkt_id_map);
     toutput->set_annotations(parser->get_annotations());
+    toutput->set_filename_table(
+        std::make_shared<detail::filename_table>(parser->get_filename_table()));
 
     for (auto col: collist)
     {
@@ -198,7 +200,7 @@ public:
         std::vector<std::shared_ptr<asm_data>> data = coldata.get_label_asmdata(label);
         std::shared_ptr<assembler_state> state = create_assembler_state(m_isa, data, scratchpad, label_page_index, ctrlpkt_id_map, optimize, true);
       // create pages
-        pager(PAGE_SIZE).pagify(*state, col, pages, relative_page_index);
+        pager(PAGE_SIZE, parser->default_source_file_idx()).pagify(*state, col, pages, relative_page_index);
         label_page_index[get_pagelabel(label)] = relative_page_index;
         log_debug() << "num pages: " << pages.size() - relative_page_index << std::endl;
         relative_page_index = static_cast<uint32_t>(pages.size());
