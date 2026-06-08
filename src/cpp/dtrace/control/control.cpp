@@ -215,7 +215,7 @@ create_mem_buffer(uint32_t uC) const
  */
 void
 control::
-patch_control_buffer(std::unordered_map<uint32_t, uint64_t>& mem_host_addr_map)
+patch_control_buffer(const std::unordered_map<uint32_t, uint64_t>& mem_host_addr_map)
 {
     for (const auto& uC : m_control_uC_indices)
     {

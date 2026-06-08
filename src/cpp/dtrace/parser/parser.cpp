@@ -46,9 +46,9 @@ parser(const std::string& map_data)
     for (const auto& item : pt.get_child("debug"))
     {
         // Extract file name
-        auto map_file_path = item.second.get<std::string>("file");
-        std::filesystem::path file_path(map_file_path);
-        std::string map_file_name = file_path.filename().string();
+        const auto map_file_path = item.second.get<std::string>("file");
+        const std::filesystem::path file_path(map_file_path);
+        const std::string map_file_name = file_path.filename().string();
 
         // Process line-based entries
         if (item.second.get_child_optional("line"))
