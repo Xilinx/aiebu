@@ -354,7 +354,7 @@ parse_lines(const std::vector<char>& data, std::string& file)
       str += c;
     }
   }
-  const uint32_t parse_file_idx = detail::intern_filename(file);
+  const uint32_t parse_file_idx = intern_filename(file);
   // Scan str for newlines directly instead of copying it into an istringstream
   size_t pos = 0;
   const size_t str_len = str.size();
@@ -1397,7 +1397,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
   // dummy eof added if col change happens before eof
   m_parserptr->insert_col_asmdata(std::make_shared<asm_data>(operation("eof", ""),
                                                               operation_type::op, code_section::unknown, 0,
-                                                              (uint32_t)-1, 0, detail::default_source_file_idx()));
+                                                              (uint32_t)-1, 0, m_parserptr->default_source_file_idx()));
   m_parserptr->set_current_col(std::stoi(args_tail));
   m_parserptr->set_data_state(false);
 }
@@ -1511,6 +1511,9 @@ bool
 include_directive::
 read_include_file(std::string filename)
 {
+  if (m_parserptr->is_filename_seen(filename))
+    throw error(error::error_code::invalid_input,
+                "duplicate asm file name \"" + filename + "\"");
   m_parserptr->set_data_state(false);
   std::vector<char> data;
   log_info() << "Reading contents from virtual or disk file:" << filename << "\n";

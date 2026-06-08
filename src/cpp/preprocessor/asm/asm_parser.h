@@ -226,36 +226,40 @@ public:
   aie_row_topology_directive& operator=(aie_row_topology_directive&&) = default;
 };
 
-// Filename intern table: maps each unique source-file name to a compact 32-bit index.
-// thread_local: It means each thread gets its own separate copy of the table,
-// which keeps concurrent parse jobs on different threads isolated.
-// The table is never cleared; indices remain valid as long as the thread is alive,
-// which always outlives any asm_data objects created on that thread.
-// inline: This global variable can be defined in multiple translation units without
-// violating the One Definition Rule (ODR).
+// Per-parser filename intern table: maps each unique source-file name to a compact
+// 32-bit index. One table per asm_parser so config.json instances do not share indices.
 namespace detail {
-  inline thread_local std::vector<std::string> g_filename_table;
-  inline thread_local std::unordered_map<std::string, uint32_t> g_filename_index;
+class filename_table {
+  //TODO: redundant data for fast insertion and lookup. To be removed in future.
+  std::vector<std::string> m_table;
+  std::unordered_map<std::string, uint32_t> m_index;
+  uint32_t m_default_idx = static_cast<uint32_t>(-1);
 
-  inline uint32_t intern_filename(const std::string& fname) {
-    auto it = g_filename_index.find(fname);
-    if (it != g_filename_index.end())
+public:
+  uint32_t intern_filename(const std::string& fname) {
+    auto it = m_index.find(fname);
+    if (it != m_index.end())
       return it->second;
-    const auto idx = static_cast<uint32_t>(g_filename_table.size());
-    g_filename_table.push_back(fname);
-    g_filename_index.emplace(g_filename_table.back(), idx);
+    const auto idx = static_cast<uint32_t>(m_table.size());
+    m_table.push_back(fname);
+    m_index.emplace(m_table.back(), idx);
     return idx;
   }
 
-  inline const std::string& lookup_filename(uint32_t idx) {
-    return g_filename_table[idx];
+  const std::string& lookup_filename(uint32_t idx) const {
+    return m_table[idx];
   }
 
-  // Cached index for synthetic ops that are not tied to a real source path.
-  inline uint32_t default_source_file_idx() {
-    thread_local const uint32_t idx = intern_filename(std::string("default"));
-    return idx;
+  bool is_filename_seen(const std::string& fname) const {
+    return m_index.find(fname) != m_index.end();
   }
+
+  uint32_t default_source_file_idx() {
+    if (m_default_idx == static_cast<uint32_t>(-1))
+      m_default_idx = intern_filename(std::string("default"));
+    return m_default_idx;
+  }
+};
 } // namespace detail
 
 class asm_data
@@ -267,7 +271,7 @@ class asm_data
   pageid_type m_pagenum;
   uint32_t m_linenumber;
   // m_line removed: assembly text is reconstructed on demand via get_line().
-  // m_file replaced with a 32-bit index into a thread_local intern table.
+  // m_file replaced with a 32-bit index into the owning parser's filename_table.
   uint32_t m_file_idx;
   int m_annotation_index = -1;
 
@@ -294,7 +298,9 @@ public:
   HEADER_ACCESS_GET_SET(offset_type, size);
   HEADER_ACCESS_GET_SET(pageid_type, pagenum);
   HEADER_ACCESS_GET_SET(uint32_t, linenumber);
-  const std::string& get_file() const { return detail::lookup_filename(m_file_idx); }
+  const std::string& get_file(const detail::filename_table& table) const {
+    return table.lookup_filename(m_file_idx);
+  }
   uint32_t get_file_idx() const { return m_file_idx; }
   // Qualify the operation's own name as a label-map key (e.g. "0:start_job").
   std::string get_qualify_op_name() const {
@@ -512,6 +518,7 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::map<int, std::vector<std::string>> m_preempt_hintmaps;  // group -> vector of hintmap_labels (multiple PREEMPT opcodes per group)
   std::map<std::string, std::pair<std::string, std::string>> m_hintmap_labels;  // hintmap_label -> (save_label, restore_label)
   std::set<int> m_preempt_without_hintmap;  // groups that have PREEMPT opcodes without hintmaps
+  detail::filename_table m_filename_table;
 
   // One unique scratchpad region: all hintmap labels that share the same scratchbase+size
   struct hintmap_group_entry {
@@ -767,6 +774,7 @@ public:
   std::string get_current_label() const { return m_current_label; }
   const file_artifact* get_artifacts() const { return m_artifacts;}
 
+
   std::string top_label() const
   {
     std::vector<std::string> labels = splitoption(m_current_label.c_str(), ':');
@@ -818,6 +826,20 @@ public:
   void set_num_north_shim(uint32_t val) { m_aie_row_topology->set_num_north_shim(val); }
 
   void set_aie_row_topology_is_set(bool val) { m_aie_row_topology->set_is_set(val); }
+
+  const detail::filename_table& get_filename_table() const { return m_filename_table; }
+
+  uint32_t intern_filename(const std::string& fname) {
+    return m_filename_table.intern_filename(fname);
+  }
+
+  bool is_filename_seen(const std::string& fname) const {
+    return m_filename_table.is_filename_seen(fname);
+  }
+
+  uint32_t default_source_file_idx() {
+    return m_filename_table.default_source_file_idx();
+  }
 
   void parse_lines();
 
