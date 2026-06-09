@@ -450,6 +450,12 @@ public:
    * @return true if config ELF, false if legacy standalone ELF
    */
   bool check_config_elf() const;
+
+  /**
+   * @brief Return a reference to the underlying ELFIO reader
+   * @return Reference to m_elfio for ELF section access
+   */
+  ELFIO::elfio& get_elfio() { return m_elfio; }
 };
 
 }
