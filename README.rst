@@ -33,6 +33,8 @@ Python Dependencies
  * markdown
  * pyyaml
  * Jinja2
+ * colorama (for testing)
+ * GitPython (for testing)
 
 Build Instruction
 =================
