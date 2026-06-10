@@ -28,14 +28,13 @@ if (NOT WIN32)
   target_link_libraries(${AIE4_SAVETIMESTAMPS_TESTNAME} PRIVATE pthread)
 endif()
 
-set(AIEBU_ERROR_TESTNAME "aiebu_error_cpp")
-add_executable(${AIEBU_ERROR_TESTNAME} aiebu_error_test.cpp)
-target_link_libraries(${AIEBU_ERROR_TESTNAME} PRIVATE aiebu_static)
-target_include_directories(${AIEBU_ERROR_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/include)
-if (NOT WIN32)
-  target_link_libraries(${AIEBU_ERROR_TESTNAME} PRIVATE pthread)
-endif()
-
+#set(AIEBU_ERROR_TESTNAME "aiebu_error_cpp")
+#add_executable(${AIEBU_ERROR_TESTNAME} aiebu_error_test.cpp)
+#target_link_libraries(${AIEBU_ERROR_TESTNAME} PRIVATE aiebu_static)
+#target_include_directories(${AIEBU_ERROR_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/include)
+#if (NOT WIN32)
+#  target_link_libraries(${AIEBU_ERROR_TESTNAME} PRIVATE pthread)
+#endif()
 
 if (NOT WIN32)
   target_link_libraries(${AIE2_TESTNAME} PRIVATE pthread)
@@ -117,6 +116,6 @@ add_test(NAME "aie4_1col_preempt_savetimestamps_target"
 
 # Duplicate ASM file name error tests (both cases run in the same binary;
 # exit code 0 means every test case reported PASS).
-add_test(NAME "aiebu_error_duplicate_asm_filename"
-  COMMAND ${AIEBU_ERROR_TESTNAME}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+#add_test(NAME "aiebu_error_duplicate_asm_filename"
+#  COMMAND ${AIEBU_ERROR_TESTNAME}
+#  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

@@ -250,9 +250,9 @@ public:
     return m_table[idx];
   }
 
-  bool is_filename_seen(const std::string& fname) const {
-    return m_index.find(fname) != m_index.end();
-  }
+  //bool is_filename_seen(const std::string& fname) const {
+  //  return m_index.find(fname) != m_index.end();
+  //}
 
   uint32_t default_source_file_idx() {
     if (m_default_idx == static_cast<uint32_t>(-1))
@@ -833,9 +833,9 @@ public:
     return m_filename_table.intern_filename(fname);
   }
 
-  bool is_filename_seen(const std::string& fname) const {
-    return m_filename_table.is_filename_seen(fname);
-  }
+  //bool is_filename_seen(const std::string& fname) const {
+  //  return m_filename_table.is_filename_seen(fname);
+  //}
 
   uint32_t default_source_file_idx() {
     return m_filename_table.default_source_file_idx();

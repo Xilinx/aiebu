@@ -1511,9 +1511,9 @@ bool
 include_directive::
 read_include_file(std::string filename)
 {
-  if (m_parserptr->is_filename_seen(filename))
-    throw error(error::error_code::invalid_input,
-                "duplicate asm file name \"" + filename + "\"");
+  //if (m_parserptr->is_filename_seen(filename))
+  //  throw error(error::error_code::invalid_input,
+  //              "duplicate asm file name \"" + filename + "\"");
   m_parserptr->set_data_state(false);
   std::vector<char> data;
   log_info() << "Reading contents from virtual or disk file:" << filename << "\n";
