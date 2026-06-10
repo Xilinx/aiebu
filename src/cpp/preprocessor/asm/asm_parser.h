@@ -250,8 +250,10 @@ public:
     return m_table[idx];
   }
 
-  bool is_filename_seen(const std::string& fname) const {
-    return m_index.find(fname) != m_index.end();
+  // Returns the interned index for fname, or the invalid sentinel if not present.
+  uint32_t find_filename(const std::string& fname) const {
+    auto it = m_index.find(fname);
+    return it != m_index.end() ? it->second : static_cast<uint32_t>(-1);
   }
 
   uint32_t default_source_file_idx() {
@@ -519,6 +521,10 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::map<std::string, std::pair<std::string, std::string>> m_hintmap_labels;  // hintmap_label -> (save_label, restore_label)
   std::set<int> m_preempt_without_hintmap;  // groups that have PREEMPT opcodes without hintmaps
   detail::filename_table m_filename_table;
+  // Tracks which filename indices have been interned per column so that duplicate
+  // .include detection is scoped per-col rather than globally across the parser.
+  // Keyed by m_current_col (-1 = pre-attach_to_group context).
+  std::unordered_map<int, std::set<uint32_t>> m_col_seen_files;
 
   // One unique scratchpad region: all hintmap labels that share the same scratchbase+size
   struct hintmap_group_entry {
@@ -830,11 +836,17 @@ public:
   const detail::filename_table& get_filename_table() const { return m_filename_table; }
 
   uint32_t intern_filename(const std::string& fname) {
-    return m_filename_table.intern_filename(fname);
+    const auto idx = m_filename_table.intern_filename(fname);
+    m_col_seen_files[m_current_col].insert(idx);
+    return idx;
   }
 
   bool is_filename_seen(const std::string& fname) const {
-    return m_filename_table.is_filename_seen(fname);
+    const auto idx = m_filename_table.find_filename(fname);
+    if (idx == static_cast<uint32_t>(-1)) return false;
+    auto it = m_col_seen_files.find(m_current_col);
+    if (it == m_col_seen_files.end()) return false;
+    return it->second.count(idx) > 0;
   }
 
   uint32_t default_source_file_idx() {
