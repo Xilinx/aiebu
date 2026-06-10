@@ -81,3 +81,5 @@ if (${Boost_VERSION} VERSION_GREATER_EQUAL "1.71.0")
   add_subdirectory(basic)
 endif()
 add_subdirectory(eff_net_coal)
+
+add_subdirectory(legal_duplicate_include)
