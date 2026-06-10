@@ -53,6 +53,6 @@ endif()
 
 install(TARGETS aiebu-transform
   RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
-  CONFIGURATIONS Debug Release
+  CONFIGURATIONS Debug Release RelWithDebInfo
   COMPONENT ${AIEBU_COMPONENT}
   )
