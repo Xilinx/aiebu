@@ -5,6 +5,7 @@
 #define AIEBU_DEBUG_TOOLS_H_
 
 #include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_debug.h"
 #include "analyzer/transform_manager.h"
 
 #include <cstdint>
