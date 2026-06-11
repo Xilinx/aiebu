@@ -10,14 +10,19 @@ if (NOT WIN32)
 endif()
 
 add_test(NAME "aie2ps_legal_duplicate_include_in_mem"
-  COMMAND ${LEGAL_DUP_IN_MEM} "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aie_control_in_mem.elf"
+  COMMAND ${LEGAL_DUP_IN_MEM} "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aie_control_in_mem1.elf" "${CMAKE_CURRENT_BINARY_DIR}/aie_control_in_mem2.elf"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-add_test(NAME "aie2ps_legal_duplicate_include_in_mem_md5sum"
-  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake" "${CMAKE_CURRENT_BINARY_DIR}/aie_control_in_mem.elf" "${CMAKE_CURRENT_SOURCE_DIR}/gold_in_mem.md5"
+add_test(NAME "aie2ps_legal_duplicate_include_in_mem1_md5sum"
+  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake" "${CMAKE_CURRENT_BINARY_DIR}/aie_control_in_mem1.elf" "${CMAKE_CURRENT_SOURCE_DIR}/gold_in_mem.md5"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-set_tests_properties("aie2ps_legal_duplicate_include_in_mem_md5sum" PROPERTIES DEPENDS "aie2ps_legal_duplicate_include_in_mem")
+add_test(NAME "aie2ps_legal_duplicate_include_in_mem2_md5sum"
+  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake" "${CMAKE_CURRENT_BINARY_DIR}/aie_control_in_mem2.elf" "${CMAKE_CURRENT_SOURCE_DIR}/gold_in_mem.md5"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+set_tests_properties("aie2ps_legal_duplicate_include_in_mem1_md5sum" PROPERTIES DEPENDS "aie2ps_legal_duplicate_include_in_mem")
+set_tests_properties("aie2ps_legal_duplicate_include_in_mem2_md5sum" PROPERTIES DEPENDS "aie2ps_legal_duplicate_include_in_mem")
 
 # Assemble a ctrlcode with mulitple inclusions of the same ASM file to ELF
 add_test(NAME "aie2ps_legal_duplicate_include_asm"

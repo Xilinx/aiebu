@@ -72,22 +72,21 @@ void add_asm_tree(const std::filesystem::path& root, aiebu::file_artifact& artif
 
 void usage()
 {
-  std::cerr << "Usage: legal_duplicate_include_in_mem <legal_duplicate_include_dir> [output.elf]\n";
-  std::cerr << "  default output: aie_control_in_mem.elf in cwd\n";
+  std::cerr << "Usage: legal_duplicate_include_in_mem <legal_duplicate_include_dir> <output1.elf> <output2.elf>\n";
 }
 
 } // namespace
 
 int main(int argc, char** argv)
 {
-  if (argc < 2 || argc > 3) {
+  if (argc != 4)  {
     usage();
     return 2;
   }
 
   const std::filesystem::path root = argv[1];
-  const std::filesystem::path out_elf =
-      (argc >= 3) ? argv[2] : std::filesystem::path("aie_control_in_mem.elf");
+  const std::filesystem::path out_elf1 = argv[2];
+  const std::filesystem::path out_elf2 = argv[3];
 
   try {
     std::vector<char> merged_asm;
@@ -108,16 +107,34 @@ int main(int argc, char** argv)
 
     const std::vector<std::string> flags = {"disabledump"};
 
-    aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::aie2ps_config,
+    aiebu::aiebu_assembler as1(aiebu::aiebu_assembler::buffer_type::aie2ps_config,
                               config_json,
                               artifact,
                               flags);
 
-    const std::vector<char> elf = as.get_elf();
-    std::ofstream out(out_elf, std::ios::binary);
-    out.write(elf.data(), static_cast<std::streamsize>(elf.size()));
+    const std::vector<char> elf1 = as1.get_elf();
+    std::ofstream out1(out_elf1, std::ios::binary);
+    out1.write(elf1.data(), static_cast<std::streamsize>(elf1.size()));
+    if (!out1)
+      throw std::runtime_error("failed to write " + out_elf1.string());
+
+    // Run the same test again with another instance of assembler. Even though
+    // the files are same for the second run, there should not be a duplicate
+    // file error.
+
+    aiebu::aiebu_assembler as2(aiebu::aiebu_assembler::buffer_type::aie2ps_config,
+                              config_json,
+                              artifact,
+                              flags);
+
+    const std::vector<char> elf2 = as2.get_elf();
+    std::ofstream out(out_elf2, std::ios::binary);
+    out.write(elf2.data(), static_cast<std::streamsize>(elf2.size()));
     if (!out)
-      throw std::runtime_error("failed to write " + out_elf.string());
+      throw std::runtime_error("failed to write " + out_elf2.string());
+
+
+
   } catch (const aiebu::error& ex) {
     std::cerr << "aiebu::error: " << ex.what() << " (" << ex.get_code() << ")\n";
     return 1;
