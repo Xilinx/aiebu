@@ -144,8 +144,8 @@ write_opcode_information(std::ostream& stream, const std::string& filename,
   return;
 }
 
-// group_id passed in from XRT is the ELF section index of the .group.N section
-// (the value stored in elf_impl::m_kernel_name_to_id_map / returned by
+// group_id passed in from the caller (ex.XRT) is the ELF section index of the .group.N section
+// (in XRT:the value stored in elf_impl::m_kernel_name_to_id_map / returned by
 // get_ctrlcode_id()).  AIEBU section names use the numeric N from ".group.N"
 // as their suffix, not the raw section index.  This helper resolves the index
 // to N so callers can construct correct section names.
