@@ -1,0 +1,26 @@
+#
+# cert dtrace example
+#
+begin
+{
+    print("\ntracing started ...\n")
+}
+jprobe:a.asm:uc0:line1-3
+{
+    ts1 = timestamp32()
+    print("opcode: {} ts: {:d}".format(operation, ts1))
+}
+jprobe:../folderC/a.asm:uc0:line1,2,3
+{
+    ts2 = timestamp()
+    print(f"opcode: {operation} ts: {ts2:d}")
+}
+jprobe:../folderA/a.asm:uc0:line1-2,3
+{
+    ts3 = timestamp32()
+    print("opcode: {} ts: {:d}".format(operation, ts3))
+}
+end
+{
+    print("\ntracing ended !!\n")
+}
