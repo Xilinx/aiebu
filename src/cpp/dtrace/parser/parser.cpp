@@ -7,6 +7,8 @@
 #include "dtrace/action/action_control.h"
 #include "dtrace/probe/probe_control.h"
 
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <sstream>
 #include <stdexcept>
@@ -37,56 +39,101 @@ parser(const std::string& map_data)
     , m_uC_index(0)
     , m_position(0)
 {
-    if (map_data.empty()) 
+    if (map_data.empty())
         DTRACE_ERROR("DTRACE_PARSER_MAP_DATA_EMPTY", "Failed to open map data for reading.");
 
     std::istringstream data(map_data);
     boost::property_tree::ptree pt;
     boost::property_tree::read_json(data, pt);
+
+    // Track probe keys to detect filename conflicts retroactively during single-pass processing
+    struct probe_tracking {
+        bool conflict = false;                   // conflict detected for the tracking key
+        std::string file_path;                   // file path associated with the probe keys
+        std::vector<std::string> m_maps_keys;    // populated m_maps keys populated
+    };
+    std::map<std::string, probe_tracking> tracking_map;
+
     for (const auto& item : pt.get_child("debug"))
     {
-        // Extract file name
-        const auto map_file_path = item.second.get<std::string>("file");
-        const std::filesystem::path file_path(map_file_path);
-        const std::string map_file_name = file_path.filename().string();
+        // Extract file name and path from the map data
+        const std::string file_path = item.second.get<std::string>("file", "");
+        const std::string file_name = std::filesystem::path(file_path).filename().string();
 
         // Process line-based entries
         if (item.second.get_child_optional("line"))
         {
-            auto populate_map_value = [this, &item](const std::string& key) 
-            {
-                boost::property_tree::ptree value;
-                value.put("operation", item.second.get<std::string>("operation"));
-                value.put("page_index", item.second.get<std::string>("page_index"));
-                value.put("page_offset", item.second.get<std::string>("page_offset"));
-                m_maps[key] = value;
-            };
+            // Skip invalid operations for jprobes
+            auto operation = item.second.get<std::string>("operation");
+            std::transform(operation.begin(), operation.end(), operation.begin(),
+                          [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (operation == "eof" || operation.find(".align") != std::string::npos || 
+                operation.find(".long") != std::string::npos)
+                continue;
 
-            std::string line_key = "jprobe:" + map_file_name +
-                ":uc" + item.second.get<std::string>("column") +
-                ":line" + item.second.get<std::string>("line");
-            populate_map_value(line_key);
+            // Create probe value
+            boost::property_tree::ptree probe_value;
+            probe_value.put("operation", item.second.get<std::string>("operation"));
+            probe_value.put("page_index", item.second.get<std::string>("page_index"));
+            probe_value.put("page_offset", item.second.get<std::string>("page_offset"));
 
-            std::string line_key_filepath = "jprobe:" + map_file_path +
-                ":uc" + item.second.get<std::string>("column") +
-                ":line" + item.second.get<std::string>("line");
-            if (line_key_filepath != line_key) // Avoid duplicate entry
-                populate_map_value(line_key_filepath);
+            // Process line-based entries
+            const auto column = item.second.get<std::string>("column");
+            const auto line = item.second.get<std::string>("line");
+            const std::string tracking_key = file_name + ":uc" + column;
+            std::string m_maps_key = "jprobe:" + file_name + ":uc" + column + ":line" + line;
 
-            // Process annotation-based entries if available
+            bool has_conflict = false;
+            // check if tracking key exists in tracking map
+            if (tracking_map.find(tracking_key) == tracking_map.end()) {
+                tracking_map[tracking_key] = probe_tracking();
+                tracking_map[tracking_key].file_path = file_path;
+                tracking_map[tracking_key].m_maps_keys.push_back(m_maps_key);
+            } else {
+                // If tracking key already exists, check conflict and file path
+                auto& tracking = tracking_map[tracking_key];
+                if (tracking.conflict) {
+                    // If conflict already detected, mark new key as conflict
+                    has_conflict = true;
+                } else if (tracking.file_path != file_path) {
+                    has_conflict = true;
+                    tracking.conflict = true;
+
+                    // Update existing keys to use full path
+                    for (const auto& tracked_key : tracking.m_maps_keys) {
+                        auto value = m_maps.at(tracked_key);
+                        m_maps.erase(tracked_key);
+                        const std::string m_maps_updated_key =
+                            "jprobe:" + tracking.file_path + tracked_key.substr(tracked_key.find(":uc"));
+                        m_maps[m_maps_updated_key] = value;
+                    }
+                    tracking.m_maps_keys.clear();
+                } else {
+                    // No conflict, just add the new key to tracking
+                    tracking.m_maps_keys.push_back(m_maps_key);
+                }
+            }
+
+            // Store line key in m_maps based on conflict
+            if (has_conflict)
+                m_maps_key = "jprobe:" + file_path + ":uc" + column + ":line" + line;
+
+            m_maps[m_maps_key] = probe_value;
+
+            // Store annotation key if exists, based on conflict
             if (item.second.get_child_optional("annotation"))
             {
                 auto annotation = item.second.get_child("annotation");
-                std::string annotation_key = "jprobe:" + map_file_name +
-                    ":uc" + item.second.get<std::string>("column") +
-                    ":annotation" + annotation.get<std::string>("id");
-                populate_map_value(annotation_key);
+                const auto annotation_id = annotation.get<std::string>("id");
+                const std::string m_maps_annotation_key = 
+                    "jprobe:" + (has_conflict ? file_path : file_name) + ":uc" + column + ":annotation" + annotation_id;
+                m_maps[m_maps_annotation_key] = probe_value;
 
-                std::string annotation_key_filepath = "jprobe:" + map_file_path +
-                    ":uc" + item.second.get<std::string>("column") +
-                    ":annotation" + annotation.get<std::string>("id");
-                if (annotation_key_filepath != annotation_key) // Avoid duplicate entry
-                    populate_map_value(annotation_key_filepath);
+                // Store annotation key in tracking if no conflict
+                if (!has_conflict) {
+                    auto& tracking = tracking_map[tracking_key];
+                    tracking.m_maps_keys.push_back(m_maps_annotation_key);
+                }
             }
         }
     }
