@@ -144,44 +144,157 @@ write_opcode_information(std::ostream& stream, const std::string& filename,
   return;
 }
 
-// group_id passed in from the caller (ex.XRT) is the ELF section index of the .group.N section
-// (in XRT:the value stored in elf_impl::m_kernel_name_to_id_map / returned by
-// get_ctrlcode_id()).  AIEBU section names use the numeric N from ".group.N"
-// as their suffix, not the raw section index.  This helper resolves the index
-// to N so callers can construct correct section names.
-// Returns UINT32_MAX if resolution fails (treated as single-instance ELF).
-static uint32_t
-resolve_group_name_id(const ELFIO::elfio& elf, uint32_t group_id)
+// Extracts the plain identifier from a C++ mangled symbol name.
+// Format: _Z<length><name>...  e.g. "_Z3DPUPcPc" -> "DPU"
+// Returns empty string if the name is not a valid mangled symbol.
+static std::string
+extract_kernel_name_from_mangled(const std::string& symbol_name)
 {
-  const ELFIO::section* grp_sec = elf.sections[group_id];
-  if (!grp_sec)
-    return UINT32_MAX;
+  if (symbol_name.size() <= 3 || symbol_name[0] != '_' || symbol_name[1] != 'Z'
+      || !std::isdigit(static_cast<unsigned char>(symbol_name[2])))
+    return "";
 
-  // Name is expected to be ".group.<N>" — extract N.
-  const std::string& name = grp_sec->get_name();
-  constexpr std::string_view prefix = ".group.";
-  if (name.size() <= prefix.size() || name.compare(0, prefix.size(), prefix) != 0)
-    return UINT32_MAX;
+  size_t length_start = 2;
+  size_t length_end = length_start;
+  while (length_end < symbol_name.size()
+         && std::isdigit(static_cast<unsigned char>(symbol_name[length_end])))
+    ++length_end;
 
-  try {
-    return static_cast<uint32_t>(std::stoul(name.substr(prefix.size())));
-  } catch (...) {
-    return UINT32_MAX;
-  }
+  if (length_end == length_start)
+    return "";
+
+  const size_t name_length = std::stoul(symbol_name.substr(length_start, length_end - length_start));
+  const size_t name_start  = length_end;
+  if (name_start + name_length > symbol_name.size())
+    return "";
+
+  return symbol_name.substr(name_start, name_length);
 }
 
-// Returns the content of the .dump or .dump.<group_id> section.
-// group_id == UINT32_MAX means single-instance ELF (no group suffix).
-static std::string
-get_dump_json_from_elf(const ELFIO::elfio& elf, uint32_t group_id)
+// Returns the group index N for the given "kernel:instance" by walking the ELF symtab
+// and finding the SHT_GROUP section that belongs to this instance.
+// The returned N is the numeric suffix of the ".group.N" section name.
+// This N is the same counter used by get_section_prefix(N) = "." + std::to_string(N),
+// so section names like ".ctrltext.<col>.<page>.N" can be constructed from it.
+//
+// Algorithm:
+//   Pass 1 — find the STT_FUNC symbol whose demangled name == kernel part.
+//   Pass 2 — find the STT_OBJECT symbol whose raw name == instance part AND
+//             whose st_shndx == the FUNC symbol's row index.
+//   Pass 3 — find the SHT_GROUP section with sh_info == instance row index;
+//             parse N from ".group.N" and return it.
+//
+// Returns UINT32_MAX on failure (single-instance ELF or lookup failed).
+static uint32_t
+resolve_group_name_id(const ELFIO::elfio& elf, const std::string& kernel_name)
 {
-  const std::string section_name = (group_id == UINT32_MAX)
-      ? ".dump" : ".dump." + std::to_string(group_id);
+  if (kernel_name.empty())
+    return UINT32_MAX;
 
-  const ELFIO::section* sec = elf.sections[section_name];
-  if (!sec || sec->get_type() != ELFIO::SHT_PROGBITS || !sec->get_data() || sec->get_size() == 0)
-    return {};
-  return std::string(sec->get_data(), sec->get_size());
+  // kernel_name is either "kernel:instance" or just "kernel" (no instance).
+  const auto colon = kernel_name.find(':');
+  const std::string filter_kernel   = (colon != std::string::npos)
+      ? kernel_name.substr(0, colon) : kernel_name;
+  const std::string filter_instance = (colon != std::string::npos)
+      ? kernel_name.substr(colon + 1) : "";
+
+  if (filter_kernel.empty())
+    return UINT32_MAX;
+
+  const ELFIO::section* symtab = elf.sections[".symtab"];
+  const ELFIO::section* strtab = elf.sections[".strtab"];
+  if (!symtab || !strtab || !symtab->get_data() || !strtab->get_data())
+    return UINT32_MAX;
+
+  const size_t sym_count   = symtab->get_size() / sizeof(ELFIO::Elf32_Sym);
+  const size_t strtab_size = strtab->get_size();
+
+  // Pass 1: find STT_FUNC symbol whose demangled name == kernel part.
+  // Kernel names in ELF are always mangled (e.g. "_Z4CTRLPcPc" → "CTRL").
+  ELFIO::Elf_Word kernel_sym_idx = 0;
+  for (size_t i = 0; i < sym_count; ++i) {
+    const auto* sym = reinterpret_cast<const ELFIO::Elf32_Sym*>(
+        symtab->get_data() + i * sizeof(ELFIO::Elf32_Sym));
+    if (ELF_ST_TYPE(sym->st_info) != ELFIO::STT_FUNC || sym->st_name >= strtab_size)
+      continue;
+    const std::string sym_name(strtab->get_data() + sym->st_name);
+    if (extract_kernel_name_from_mangled(sym_name) == filter_kernel) {
+      kernel_sym_idx = static_cast<ELFIO::Elf_Word>(i);
+      break;
+    }
+  }
+  if (kernel_sym_idx == 0)
+    return UINT32_MAX;
+
+  // Pass 2: find STT_OBJECT symbol with st_shndx == kernel row.
+  // If an instance name was provided, also require the symbol name to match.
+  ELFIO::Elf_Word instance_sym_idx = 0;
+  for (size_t i = 0; i < sym_count; ++i) {
+    const auto* sym = reinterpret_cast<const ELFIO::Elf32_Sym*>(
+        symtab->get_data() + i * sizeof(ELFIO::Elf32_Sym));
+    if (ELF_ST_TYPE(sym->st_info) != ELFIO::STT_OBJECT || sym->st_name >= strtab_size)
+      continue;
+    if (sym->st_shndx != kernel_sym_idx)
+      continue;
+    if (!filter_instance.empty()) {
+      const std::string sym_name(strtab->get_data() + sym->st_name);
+      if (sym_name != filter_instance)
+        continue;
+    }
+    instance_sym_idx = static_cast<ELFIO::Elf_Word>(i);
+    break;
+  }
+  if (instance_sym_idx == 0)
+    return UINT32_MAX;
+
+  // Pass 3: find the SHT_GROUP section with sh_info == instance row index and
+  //         parse N from its ".group.N" name.
+  constexpr std::string_view group_prefix = ".group.";
+  for (const auto& sec_ptr : elf.sections) {
+    const ELFIO::section* sec = sec_ptr.get();
+    if (sec->get_type() != ELFIO::SHT_GROUP || sec->get_info() != instance_sym_idx)
+      continue;
+    const std::string& sec_name = sec->get_name();
+    if (sec_name.size() <= group_prefix.size() ||
+        sec_name.compare(0, group_prefix.size(), group_prefix) != 0)
+      continue;
+    const std::string suffix = sec_name.substr(group_prefix.size());
+    if (suffix.empty() || !std::isdigit(static_cast<unsigned char>(suffix[0])))
+      continue;
+    return static_cast<uint32_t>(std::stoul(suffix));
+  }
+  return UINT32_MAX;
+}
+
+
+// Returns the content of the .dump section for the given instance.
+// If name_id != UINT32_MAX, looks for ".dump.<name_id>" specifically.
+// Otherwise returns the first ".dump"-prefixed section found (single-instance ELF).
+static std::string
+get_dump_json_from_elf(const ELFIO::elfio& elf, uint32_t name_id)
+{
+  const std::string target_name = (name_id != UINT32_MAX)
+      ? ".dump." + std::to_string(name_id)
+      : "";
+
+  constexpr std::string_view dump_prefix = ".dump";
+
+  for (const auto& sec_ptr : elf.sections) {
+    const ELFIO::section* sec = sec_ptr.get();
+    if (sec->get_type() != ELFIO::SHT_PROGBITS)
+      continue;
+    const std::string& name = sec->get_name();
+    if (name.size() < dump_prefix.size() ||
+        name.compare(0, dump_prefix.size(), dump_prefix) != 0)
+      continue;
+    // With a group ELF, match only the specific ".dump.<N>" section
+    if (!target_name.empty() && name != target_name)
+      continue;
+    if (!sec->get_data() || sec->get_size() == 0)
+      continue;
+    return std::string(sec->get_data(), sec->get_size());
+  }
+  return {};
 }
 
 // Searches the dump JSON for the entry matching (uc_idx, page_idx, offset) and
@@ -212,13 +325,23 @@ decode_from_dump(const std::string& dump_json,
       if (node_page_offset != page_offset || node_page_index != page_idx || node_column != uc_idx)
         continue;
 
-      result.found       = true;
-      result.opcode_name = node.get<std::string>("operation",   "");
+      // The dump "operation" field stores the full lowercased instruction text:
+      // "<opcode_name> <args>" (same format as get_line() in asm_parser.h).
+      // Split on the first space to separate opcode name from args.
+      const std::string operation = node.get<std::string>("operation", "");
+      const auto space_pos = operation.find(' ');
+      if (space_pos != std::string::npos) {
+        result.opcode_name = operation.substr(0, space_pos);
+        result.args_str    = operation.substr(space_pos + 1);
+      } else {
+        result.opcode_name = operation;
+      }
       result.opcode_size = std::stoull(node.get<std::string>("opcode_size", "0"), nullptr, 0);
       result.page_offset = std::stoull(node.get<std::string>("page_offset",  "0"), nullptr, 0);
       result.line        = static_cast<uint32_t>(
                              std::stoul(node.get<std::string>("line", "0"), nullptr, 0));
       result.source_file = node.get<std::string>("file", "");
+      result.found       = true;
       return result;
     }
   } catch (const std::exception& e) {
@@ -231,10 +354,11 @@ decode_from_dump(const std::string& dump_json,
 
 // Decodes the opcode at (uc_idx, page_idx, offset) via ISA binary walk.
 // Used as fallback when no .dump section is present.
-// group_id == UINT32_MAX means single-instance ELF (no group suffix in section names).
+// If name_id != UINT32_MAX, the ctrltext section name has a ".<name_id>" suffix
+// (group ELF); otherwise matches by prefix alone (single-instance ELF).
 static opcode_information
 decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
-              uint32_t offset, uint32_t group_id)
+              uint32_t offset, uint32_t name_id)
 {
   opcode_information result{};
   const uint8_t os_abi      = elf.get_os_abi();
@@ -242,32 +366,60 @@ decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
 
   // Determine ELF layout from os_abi + abi_version:
   //   os_abi=0x46 (aie2ps_group), abi_version>=0x03  → per-page config ELF:
-  //     one .ctrltext.<col>.<page>[.<N>] section per page.
+  //     one .ctrltext.<col>.<page>.<N> section per page.
   //   os_abi in {0x40,0x4B,0x56,0x69}, abi_version>=0x21 → merged-section config ELF:
-  //     one .ctrltext.<col>[.<N>] section holds all pages concatenated.
+  //     one .ctrltext.<col>.<N> section holds all pages concatenated.
   const bool is_merged = (os_abi != osabi_aie2ps_group) && (abi_version >= elf_version_config);
 
-  const std::string grp_suffix = (group_id == UINT32_MAX) ? "" : ("." + std::to_string(group_id));
-  const std::string section_name = is_merged
-      ? ".ctrltext." + std::to_string(uc_idx) + grp_suffix
-      : ".ctrltext." + std::to_string(uc_idx) + "." + std::to_string(page_idx) + grp_suffix;
+  // Build the expected section name.
+  // For merged format: ".ctrltext.<uc_idx>[.<name_id>]"
+  // For per-page format: ".ctrltext.<uc_idx>.<page_idx>[.<name_id>]"
+  std::string expected_name = is_merged
+      ? ".ctrltext." + std::to_string(uc_idx)
+      : ".ctrltext." + std::to_string(uc_idx) + "." + std::to_string(page_idx);
+  if (name_id != UINT32_MAX)
+    expected_name += "." + std::to_string(name_id);
 
-  const ELFIO::section* sec = elf.sections[section_name];
-  if (!sec || !sec->get_data()) {
-    result.diag_info = "section not found: " + section_name;
-    return result;
+  // Find the matching ctrltext section by exact name (group ELF) or prefix (single-instance).
+  const ELFIO::section* sec = nullptr;
+  for (const auto& sec_ptr : elf.sections) {
+    const ELFIO::section* s = sec_ptr.get();
+    const std::string& name = s->get_name();
+    if (name_id != UINT32_MAX) {
+      // Group ELF: exact name match
+      if (name == expected_name) {
+        sec = s;
+        break;
+      }
+    } else {
+      // Single-instance ELF: prefix match
+      // The char after the prefix must be '.' or end-of-string to avoid
+      // matching ".ctrltext.<col+extra_digits>".
+      if (name.size() < expected_name.size() ||
+          name.compare(0, expected_name.size(), expected_name) != 0)
+        continue;
+      if (name.size() > expected_name.size() && name[expected_name.size()] != '.')
+        continue;
+      sec = s;
+      break;
+    }
   }
 
+  if (!sec || !sec->get_data()) {
+    result.diag_info = "section not found: " + expected_name;
+    return result;
+  }
+  const std::string section_name = sec->get_name();
+
   const size_t sec_size = sec->get_size();
-  // Both merged and per-page page slots begin with a 16-byte header followed by
-  // instruction data.  The firmware PC (offset) counts from page slot start, so
-  // the target within the instruction area is offset minus the header size.
-  if (offset < k_binary_page_header_size) {
+  // offset counts from page-slot start; bytes [0, k_binary_page_header_size) are
+  // the page header — no ctrl-code instruction can reside there.
+  if (offset < static_cast<uint32_t>(k_binary_page_header_size)) {
     result.diag_info = "offset " + std::to_string(offset)
                      + " is within page header of " + section_name;
     return result;
   }
-  const size_t instr_offset = offset - k_binary_page_header_size;
+  const size_t instr_offset = offset - static_cast<uint32_t>(k_binary_page_header_size);
 
   // instr_start : first instruction byte (absolute offset within the section).
   // region_end  : one past the last byte of the current page's region in the section.
@@ -324,9 +476,6 @@ decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
     for (const auto& arg : it->second.get_args())
       op_size += arg.get_width() / byte_to_bits;
 
-    if (op_size == 0)
-      break;
-
     if (pos + op_size > instr_offset) {
       result.found       = true;
       result.opcode_name = it->second.get_code_name();
@@ -368,21 +517,24 @@ decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
  * Returns a structured opcode_information; the caller formats and presents it.
  */
 opcode_information
-get_opcode_information(const ELFIO::elfio& elf, uint32_t group_id,
+get_opcode_information(const ELFIO::elfio& elf, const std::string& kernel_name,
                        uint32_t uc_idx, uint32_t page_idx, uint32_t offset)
 {
-  // group_id is the ELF section index from XRT; resolve to the N used in
-  // AIEBU section name suffixes (e.g. ".group.32" → 32).
-  const uint32_t name_id = (group_id == UINT32_MAX)
-      ? UINT32_MAX : resolve_group_name_id(elf, group_id);
+  // Resolve the group index N for this kernel:instance.
+  // UINT32_MAX → single-instance ELF (no group suffix applied).
+  const uint32_t name_id = resolve_group_name_id(elf, kernel_name);
 
-  const std::string dump_section_name = (name_id == UINT32_MAX)
-      ? ".dump" : ".dump." + std::to_string(name_id);
   const std::string dump_json = get_dump_json_from_elf(elf, name_id);
   if (!dump_json.empty()) {
     const opcode_information result = decode_from_dump(dump_json, uc_idx, page_idx, offset);
     if (result.found)
       return result;
+    // Dump present but entry not found — fall through to ISA walk and carry
+    // the dump's diag_info forward so it isn't silently dropped.
+    opcode_information isa_result = decode_opcode(elf, uc_idx, page_idx, offset, name_id);
+    if (!result.diag_info.empty())
+      isa_result.diag_info = result.diag_info + "; " + isa_result.diag_info;
+    return isa_result;
   }
 
   return decode_opcode(elf, uc_idx, page_idx, offset, name_id);

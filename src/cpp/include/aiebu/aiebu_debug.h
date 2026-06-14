@@ -26,7 +26,9 @@ struct opcode_information {
   uint64_t    page_offset = 0;      // absolute byte offset within the section (dump path)
   uint32_t    line        = 0;      // source line number; 0 if unknown
   std::string source_file;          // source file path; empty if unknown
-  std::string diag_info;            // diagnostic detail on decode failure
+  std::string diag_info;            // diagnostic detail on decode failure. the diag_info field contains a human-readable
+                                    // explanation: which section was searched, offset within page header and why the decode
+                                    // failed (section not found, offset out of range, unrecognised opcode byte, or malformed .dump JSON)
 };
 
 /**
@@ -39,17 +41,21 @@ struct opcode_information {
  * Prefers the .dump section (richer output: source file, line number) and falls
  * back to an ISA binary walk when no dump section is present.
  *
+ * For multi-instance (group) ELFs the kernel_name selects the correct instance
+ * by locating its .group.N section via the ELF symbol table; the N suffix is
+ * then used to find the matching .dump.N and .ctrltext sections.
+ *
  * @param elf          Pre-parsed ELFIO object.
- * @param group_id     Control code group identifier from the ELF loader
- *                     (e.g. returned by elf_impl::get_ctrlcode_id()).
- *                     Pass UINT32_MAX for single-instance ELFs with no group.
+ * @param kernel_name  Kernel/instance identifier in "kernel:instance" format
+ *                     (e.g. "DPU:dpu0"). Pass an empty string for
+ *                     single-instance ELFs that have no .group sections.
  * @param uc_idx       Microcontroller index reported by firmware at timeout.
  * @param page_idx     Page index reported by firmware at timeout.
  * @param offset       Byte offset within the page reported by firmware at timeout.
  * @return             Populated opcode_information; check `found` before use.
  */
 opcode_information get_opcode_information(const ELFIO::elfio& elf,
-                                          uint32_t group_id,
+                                          const std::string& kernel_name,
                                           uint32_t uc_idx,
                                           uint32_t page_idx,
                                           uint32_t offset);
