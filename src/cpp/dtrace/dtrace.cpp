@@ -287,6 +287,77 @@ get_dtrace_result_file(dtrace_handle_t dtrace_handle, const std::string& result_
 }
 
 void
+update_dtrace_result_buffer(dtrace_handle_t dtrace_handle, const std::string& result_key,
+    nlohmann::ordered_json& result_buffer)
+{
+    try
+    {
+        auto* handle = static_cast<dtrace_command_handle*>(dtrace_handle);
+
+        // Extract result buffers and memory buffers from device-mapped memory
+        std::unordered_map<uint32_t, std::vector<uint32_t>> result_buffers;
+        std::unordered_map<uint32_t, std::vector<uint32_t>> mem_buffers;
+
+        // Iterate over all result buffer and memory buffer for each uC in global map
+        for (const auto& [uC_index, l_dtrace_buffer_info] : handle->g_dtrace_buffer_info_map)
+        {
+            std::vector<uint32_t> buffer(
+                l_dtrace_buffer_info.control_buffer.size() + l_dtrace_buffer_info.mem_buffer.size()
+            );
+
+            // Copy the buffer from the dtrace buffer address
+            std::memcpy(
+                buffer.data(),
+                l_dtrace_buffer_info.buffer_addr,
+                (l_dtrace_buffer_info.control_buffer.size() + l_dtrace_buffer_info.mem_buffer.size()) * sizeof(uint32_t)
+            );
+
+            // Get control_buffer and mem_buffer from the buffer
+            std::vector<uint32_t> control_buffer(
+                buffer.begin(),
+                buffer.begin() + l_dtrace_buffer_info.control_buffer.size() // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+            );
+            std::vector<uint32_t> mem_buffer(
+                buffer.begin() + l_dtrace_buffer_info.control_buffer.size(), // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+                buffer.end()
+            );
+
+            // Populate result buffers and memory buffers vector
+            result_buffers[uC_index] = std::move(control_buffer);
+            mem_buffers[uC_index] = std::move(mem_buffer);
+        }
+
+        // Update the result buffer with the given result key and result buffer data
+        nlohmann::ordered_json result_json = nlohmann::ordered_json::object();
+        handle->g_control->create_result_buffer(result_buffers, mem_buffers, result_json);
+        result_buffer[result_key] = std::move(result_json);
+
+        // Iterate over and copy back modified buffers for each uC in global map
+        for (const auto& [uC_index, l_dtrace_buffer_info] : handle->g_dtrace_buffer_info_map)
+        {
+            std::vector<uint32_t> buffer;
+            buffer.insert(
+                buffer.end(), result_buffers[uC_index].begin(), result_buffers[uC_index].end()
+            );
+            buffer.insert(
+                buffer.end(), mem_buffers[uC_index].begin(), mem_buffers[uC_index].end()
+            );
+
+            // Populate modified buffer back to the dtrace buffer address
+            std::memcpy(
+                l_dtrace_buffer_info.buffer_addr,
+                buffer.data(),
+                buffer.size() * sizeof(uint32_t)
+            );
+        }
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what();
+    }
+}
+
+void
 destroy_dtrace_handle(dtrace_handle_t dtrace_handle)
 {
     try
