@@ -6,7 +6,9 @@
 #include "aiebu/aiebu_error.h"
 #include "elf/aie_elf_constants.h"
 #include "specification/aie2ps/isa.h"
-#include "ops/oparg.h"
+#include "ops/ops.h"
+#include "common/writer.h"
+#include "common/disassembler_state.h"
 #include "common/utils.h"
 
 #include <boost/property_tree/ptree.hpp>
@@ -426,6 +428,11 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
   isa_disassembler isa;
   const std::map<uint8_t, isa_op_disasm>* isa_map = isa.get_isa_map();
 
+  const bool is_aie4 = (os_abi == osabi_aie4 || os_abi == osabi_aie4a || os_abi == osabi_aie4z);
+  auto state = is_aie4
+      ? std::static_pointer_cast<disassembler_state>(std::make_shared<disassembler_state_aie4>())
+      : std::static_pointer_cast<disassembler_state>(std::make_shared<disassembler_state_aie2ps>());
+
   size_t pos = 0;
   while (pos < instr_size) {
     auto opbyte = static_cast<uint8_t>(instr_data[pos]);
@@ -437,6 +444,7 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
         result.opcode_size = 1;
         return result;
       }
+      state->increment_address(1);
       ++pos;
       continue;
     }
@@ -447,39 +455,52 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
       return result;
     }
 
-    // Instruction size: 1B opcode + 1B pad + arg bytes
-    size_t op_size = 2;
+    // Compute instruction size directly from arg list — no heap allocation needed
+    // for non-target instructions.
+    size_t op_size = 2; // 1 opcode byte + 1 pad byte
     for (const auto& arg : it->second.get_args())
       op_size += arg.get_width() / byte_to_bits;
 
     if (pos + op_size > instr_offset) {
+      // Found the target instruction — deserialize it now (only here) to get symbolic arg names.
+      if (pos + op_size > instr_size) {
+        result.diag_info += " truncated instruction at offset=" + std::to_string(pos);
+        return result;
+      }
+
+      auto deserializer = it->second.create_deserializer();
+      std::ostringstream oss;
+      asm_writer writer(oss);
+      try {
+        deserializer->deserialize(writer, state, instr_data + pos);
+      } catch (const std::exception& e) {
+        result.diag_info += std::string(" deserialize error: ") + e.what();
+        return result;
+      }
+
       result.found       = true;
       result.opcode_name = it->second.get_code_name();
       result.opcode_size = op_size;
 
-      // Read argument values (little-endian, skip PAD args)
-      size_t arg_pos = pos + 2;
-      std::ostringstream args_ss;
-      const char* sep = "";
-      for (const auto& arg : it->second.get_args()) {
-        const size_t arg_bytes = arg.get_width() / byte_to_bits;
-        if (arg.get_type() == opArg::optype::PAD) {
-          arg_pos += arg_bytes;
-          continue;
-        }
-        if (arg_pos + arg_bytes > instr_size)
-          break;
-        uint32_t val = 0;
-        for (size_t b = 0; b < arg_bytes; ++b)
-          val |= static_cast<uint32_t>(static_cast<uint8_t>(instr_data[arg_pos + b])) << (b * byte_to_bits);
-        arg_pos += arg_bytes;
-        args_ss << sep << "0x" << std::hex << val;
-        sep = ", ";
+      // write_operation writes "    name\targ1, arg2\n" (current_label == label == "",
+      // so no per-arg leading space; args separated by ", ").
+      // Find the tab and take everything after it, then strip the trailing newline.
+      const std::string line = oss.str();
+      const auto tab = line.find('\t');
+      if (tab != std::string::npos) {
+        std::string args = line.substr(tab + 1);
+        if (!args.empty() && args.back() == '\n')
+          args.pop_back();
+        // lowercase to match dump path format (dump stores lowercased source text)
+        std::transform(args.begin(), args.end(), args.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        result.args_str = args;
       }
-      result.args_str = args_ss.str();
       return result;
     }
 
+    // Not the target — advance past this instruction without deserializing.
+    state->increment_address(static_cast<uint32_t>(op_size));
     pos += op_size;
   }
   return result;

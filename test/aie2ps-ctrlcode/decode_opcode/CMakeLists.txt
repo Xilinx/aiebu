@@ -38,9 +38,11 @@ set(EXPECTED_SOURCE_FILE "../ml_asm/aie_runtime_control0.asm")
 set(EXPECTED_LINE        "22")
 
 # ISA walk path expected values
-# get_code_name() returns lowercase
+# get_code_name() returns lowercase.
+# handle_generic_const_arg formats "address"-named args as uppercase hex,
+# and small "mask"/"value" fields (<= 0xFFFF) as decimal.
 set(EXPECTED_OPCODE_ISA  "mask_poll_32")
-set(EXPECTED_ARGS_ISA    "0x1400fdfc, 0x1, 0x1")
+set(EXPECTED_ARGS_ISA    "0x1400fdfc, 1, 1")
 
 # Assemble both ELFs and verify the decoded opcode, args, source file and line
 add_test(NAME "aie2ps_decode_opcode_assemble"

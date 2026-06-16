@@ -21,7 +21,10 @@ namespace aiebu {
 struct opcode_information {
   bool        found       = false;  // true if the opcode was successfully decoded
   std::string opcode_name;          // e.g. "MASK_POLL_32"
-  std::string args_str;             // hex argument values (ISA path); empty if decoded from dump
+  std::string args_str;             // argument values as a formatted string.
+                                    // Dump path: lowercased source text (e.g. "0x1400fdfc, 0x1, 0x1").
+                                    // ISA walk path: tile/actor args as symbolic names (e.g. "TILE_2_1");
+                                    // address args as lowercase hex; small integer args as decimal.
   uint64_t    opcode_size = 0;      // instruction size in bytes; 0 if unknown
   uint64_t    page_offset = 0;      // absolute byte offset within the section (dump path)
   uint32_t    line        = 0;      // source line number; 0 if unknown
