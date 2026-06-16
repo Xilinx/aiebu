@@ -12,7 +12,7 @@ namespace aiebu {
 
 /**
  * @struct opcode_information
- * @brief Decoded opcode result returned by get_opcode_information().
+ * @brief Decoded opcode result returned by AIEDebug::get_opcode_information().
  *
  * Populated from the .dump section when present (provides source file and line),
  * or from an ISA binary walk as a fallback (provides argument values).
@@ -26,39 +26,58 @@ struct opcode_information {
   uint64_t    page_offset = 0;      // absolute byte offset within the section (dump path)
   uint32_t    line        = 0;      // source line number; 0 if unknown
   std::string source_file;          // source file path; empty if unknown
-  std::string diag_info;            // diagnostic detail on decode failure. the diag_info field contains a human-readable
-                                    // explanation: which section was searched, offset within page header and why the decode
-                                    // failed (section not found, offset out of range, unrecognised opcode byte, or malformed .dump JSON)
+  std::string diag_info;            // diagnostic detail on decode failure. This field contains a human-readable
+                                    // explanation: which section was searched, offset within page header and why the d                                     // code failed (section not found, offset out of range, unrecognised opcode byte, or                                    // a malformed .dump JSON)
 };
 
 /**
- * get_opcode_information() - Decode the opcode at a firmware-reported location.
+ * @class AIEDebug
+ * @brief Decodes opcode information from AIE2PS / AIE4 (AIE4A, AIE4Z) ELF binaries.
  *
- * No debug_tools instance is required. Suitable for callers (e.g. XRT) that
- * already hold a parsed ELFIO object. The caller receives a structured result
- * and decides how to format and present it.
+ * Binds to a pre-parsed ELFIO object and exposes opcode decode operations.
  *
- * Prefers the .dump section (richer output: source file, line number) and falls
- * back to an ISA binary walk when no dump section is present.
- *
- * For multi-instance (group) ELFs the kernel_name selects the correct instance
- * by locating its .group.N section via the ELF symbol table; the N suffix is
- * then used to find the matching .dump.N and .ctrltext sections.
- *
- * @param elf          Pre-parsed ELFIO object.
- * @param kernel_name  Kernel/instance identifier in "kernel:instance" format
- *                     (e.g. "DPU:dpu0"). Pass an empty string for
- *                     single-instance ELFs that have no .group sections.
- * @param uc_idx       Microcontroller index reported by firmware at timeout.
- * @param page_idx     Page index reported by firmware at timeout.
- * @param offset       Byte offset within the page reported by firmware at timeout.
- * @return             Populated opcode_information; check `found` before use.
+ * Construct once per ELF, then call get_opcode_information() with the
+ * firmware-reported (uc_idx, page_idx, offset) triple.
  */
-opcode_information get_opcode_information(const ELFIO::elfio& elf,
-                                          const std::string& kernel_name,
-                                          uint32_t uc_idx,
-                                          uint32_t page_idx,
-                                          uint32_t offset);
+class AIEDebug {
+public:
+  /**
+   * Construct an AIEDebug bound to the given ELF.
+   * The ELFIO object must outlive this AIEDebug instance.
+   */
+  explicit AIEDebug(const ELFIO::elfio& elf);
+
+  /**
+   * get_opcode_information() - Decode the opcode at a firmware-reported location.
+   *
+   * Prefers the .dump section (richer output: source file, line number) and falls
+   * back to an ISA binary walk when no dump section is present.
+   *
+   * For multi-instance (group) ELFs the kernel_name selects the correct instance
+   * by locating its .group.N section via the ELF symbol table; the N suffix is
+   * then used to find the matching .dump.N and .ctrltext sections.
+   *
+   * @param kernel_name  Kernel/instance identifier in "kernel:instance" format
+   *                     (e.g. "DPU:dpu0"). Pass an empty string for
+   *                     single-instance ELFs that have no .group sections.
+   * @param uc_idx       Microcontroller index reported by firmware at timeout.
+   * @param page_idx     Page index reported by firmware at timeout.
+   * @param offset       Byte offset within the page reported by firmware at timeout.
+   * @return             Populated opcode_information; check `found` before use.
+   */
+  opcode_information get_opcode_information(const std::string& kernel_name,
+                                             uint32_t uc_idx,
+                                             uint32_t page_idx,
+                                             uint32_t offset) const;
+
+private:
+  const ELFIO::elfio& m_elf;
+
+  uint32_t    resolve_group_name_id(const std::string& kernel_name) const;
+  std::string get_dump_json_from_elf(uint32_t name_id) const;
+  opcode_information decode_opcode(uint32_t uc_idx, uint32_t page_idx,
+                                    uint32_t offset, uint32_t name_id) const;
+};
 
 } // namespace aiebu
 

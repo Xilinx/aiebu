@@ -144,159 +144,6 @@ write_opcode_information(std::ostream& stream, const std::string& filename,
   return;
 }
 
-// Extracts the plain identifier from a C++ mangled symbol name.
-// Format: _Z<length><name>...  e.g. "_Z3DPUPcPc" -> "DPU"
-// Returns empty string if the name is not a valid mangled symbol.
-static std::string
-extract_kernel_name_from_mangled(const std::string& symbol_name)
-{
-  if (symbol_name.size() <= 3 || symbol_name[0] != '_' || symbol_name[1] != 'Z'
-      || !std::isdigit(static_cast<unsigned char>(symbol_name[2])))
-    return "";
-
-  size_t length_start = 2;
-  size_t length_end = length_start;
-  while (length_end < symbol_name.size()
-         && std::isdigit(static_cast<unsigned char>(symbol_name[length_end])))
-    ++length_end;
-
-  if (length_end == length_start)
-    return "";
-
-  const size_t name_length = std::stoul(symbol_name.substr(length_start, length_end - length_start));
-  const size_t name_start  = length_end;
-  if (name_start + name_length > symbol_name.size())
-    return "";
-
-  return symbol_name.substr(name_start, name_length);
-}
-
-// Returns the group index N for the given "kernel:instance" by walking the ELF symtab
-// and finding the SHT_GROUP section that belongs to this instance.
-// The returned N is the numeric suffix of the ".group.N" section name.
-// This N is the same counter used by get_section_prefix(N) = "." + std::to_string(N),
-// so section names like ".ctrltext.<col>.<page>.N" can be constructed from it.
-//
-// Algorithm:
-//   Pass 1 — find the STT_FUNC symbol whose demangled name == kernel part.
-//   Pass 2 — find the STT_OBJECT symbol whose raw name == instance part AND
-//             whose st_shndx == the FUNC symbol's row index.
-//   Pass 3 — find the SHT_GROUP section with sh_info == instance row index;
-//             parse N from ".group.N" and return it.
-//
-// Returns UINT32_MAX on failure (single-instance ELF or lookup failed).
-static uint32_t
-resolve_group_name_id(const ELFIO::elfio& elf, const std::string& kernel_name)
-{
-  if (kernel_name.empty())
-    return UINT32_MAX;
-
-  // kernel_name is either "kernel:instance" or just "kernel" (no instance).
-  const auto colon = kernel_name.find(':');
-  const std::string filter_kernel   = (colon != std::string::npos)
-      ? kernel_name.substr(0, colon) : kernel_name;
-  const std::string filter_instance = (colon != std::string::npos)
-      ? kernel_name.substr(colon + 1) : "";
-
-  if (filter_kernel.empty())
-    return UINT32_MAX;
-
-  const ELFIO::section* symtab = elf.sections[".symtab"];
-  const ELFIO::section* strtab = elf.sections[".strtab"];
-  if (!symtab || !strtab || !symtab->get_data() || !strtab->get_data())
-    return UINT32_MAX;
-
-  const size_t sym_count   = symtab->get_size() / sizeof(ELFIO::Elf32_Sym);
-  const size_t strtab_size = strtab->get_size();
-
-  // Pass 1: find STT_FUNC symbol whose demangled name == kernel part.
-  // Kernel names in ELF are always mangled (e.g. "_Z4CTRLPcPc" → "CTRL").
-  ELFIO::Elf_Word kernel_sym_idx = 0;
-  for (size_t i = 0; i < sym_count; ++i) {
-    const auto* sym = reinterpret_cast<const ELFIO::Elf32_Sym*>(
-        symtab->get_data() + i * sizeof(ELFIO::Elf32_Sym));
-    if (ELF_ST_TYPE(sym->st_info) != ELFIO::STT_FUNC || sym->st_name >= strtab_size)
-      continue;
-    const std::string sym_name(strtab->get_data() + sym->st_name);
-    if (extract_kernel_name_from_mangled(sym_name) == filter_kernel) {
-      kernel_sym_idx = static_cast<ELFIO::Elf_Word>(i);
-      break;
-    }
-  }
-  if (kernel_sym_idx == 0)
-    return UINT32_MAX;
-
-  // Pass 2: find STT_OBJECT symbol with st_shndx == kernel row.
-  // If an instance name was provided, also require the symbol name to match.
-  ELFIO::Elf_Word instance_sym_idx = 0;
-  for (size_t i = 0; i < sym_count; ++i) {
-    const auto* sym = reinterpret_cast<const ELFIO::Elf32_Sym*>(
-        symtab->get_data() + i * sizeof(ELFIO::Elf32_Sym));
-    if (ELF_ST_TYPE(sym->st_info) != ELFIO::STT_OBJECT || sym->st_name >= strtab_size)
-      continue;
-    if (sym->st_shndx != kernel_sym_idx)
-      continue;
-    if (!filter_instance.empty()) {
-      const std::string sym_name(strtab->get_data() + sym->st_name);
-      if (sym_name != filter_instance)
-        continue;
-    }
-    instance_sym_idx = static_cast<ELFIO::Elf_Word>(i);
-    break;
-  }
-  if (instance_sym_idx == 0)
-    return UINT32_MAX;
-
-  // Pass 3: find the SHT_GROUP section with sh_info == instance row index and
-  //         parse N from its ".group.N" name.
-  constexpr std::string_view group_prefix = ".group.";
-  for (const auto& sec_ptr : elf.sections) {
-    const ELFIO::section* sec = sec_ptr.get();
-    if (sec->get_type() != ELFIO::SHT_GROUP || sec->get_info() != instance_sym_idx)
-      continue;
-    const std::string& sec_name = sec->get_name();
-    if (sec_name.size() <= group_prefix.size() ||
-        sec_name.compare(0, group_prefix.size(), group_prefix) != 0)
-      continue;
-    const std::string suffix = sec_name.substr(group_prefix.size());
-    if (suffix.empty() || !std::isdigit(static_cast<unsigned char>(suffix[0])))
-      continue;
-    return static_cast<uint32_t>(std::stoul(suffix));
-  }
-  return UINT32_MAX;
-}
-
-
-// Returns the content of the .dump section for the given instance.
-// If name_id != UINT32_MAX, looks for ".dump.<name_id>" specifically.
-// Otherwise returns the first ".dump"-prefixed section found (single-instance ELF).
-static std::string
-get_dump_json_from_elf(const ELFIO::elfio& elf, uint32_t name_id)
-{
-  const std::string target_name = (name_id != UINT32_MAX)
-      ? ".dump." + std::to_string(name_id)
-      : "";
-
-  constexpr std::string_view dump_prefix = ".dump";
-
-  for (const auto& sec_ptr : elf.sections) {
-    const ELFIO::section* sec = sec_ptr.get();
-    if (sec->get_type() != ELFIO::SHT_PROGBITS)
-      continue;
-    const std::string& name = sec->get_name();
-    if (name.size() < dump_prefix.size() ||
-        name.compare(0, dump_prefix.size(), dump_prefix) != 0)
-      continue;
-    // With a group ELF, match only the specific ".dump.<N>" section
-    if (!target_name.empty() && name != target_name)
-      continue;
-    if (!sec->get_data() || sec->get_size() == 0)
-      continue;
-    return std::string(sec->get_data(), sec->get_size());
-  }
-  return {};
-}
-
 // Searches the dump JSON for the entry matching (uc_idx, page_idx, offset) and
 // returns a populated opcode_information with source file and line number.
 static opcode_information
@@ -352,17 +199,146 @@ decode_from_dump(const std::string& dump_json,
   return result;  // found = false
 }
 
+// ─── AIEDebug implementation ────────────────────────────────────────────────
+
+AIEDebug::AIEDebug(const ELFIO::elfio& elf) : m_elf(elf) {}
+
+// Returns the group index N for the given "kernel:instance" by walking the ELF symtab
+// and finding the SHT_GROUP section that belongs to this instance.
+// The returned N is the numeric suffix of the ".group.N" section name.
+// This N is the same counter used by get_section_prefix(N) = "." + std::to_string(N),
+// so section names like ".ctrltext.<col>.<page>.N" can be constructed from it.
+//
+// Algorithm:
+//   Pass 1 — find the STT_FUNC symbol whose demangled name == kernel part.
+//   Pass 2 — find the STT_OBJECT symbol whose raw name == instance part AND
+//             whose st_shndx == the FUNC symbol's row index.
+//   Pass 3 — find the SHT_GROUP section with sh_info == instance row index;
+//             parse N from ".group.N" and return it.
+//
+// Returns UINT32_MAX on failure (single-instance ELF or lookup failed).
+uint32_t
+AIEDebug::resolve_group_name_id(const std::string& kernel_name) const
+{
+  if (kernel_name.empty())
+    return UINT32_MAX;
+
+  // kernel_name is either "kernel:instance" or just "kernel" (no instance).
+  const auto colon = kernel_name.find(':');
+  const std::string filter_kernel   = (colon != std::string::npos)
+      ? kernel_name.substr(0, colon) : kernel_name;
+  const std::string filter_instance = (colon != std::string::npos)
+      ? kernel_name.substr(colon + 1) : "";
+
+  if (filter_kernel.empty())
+    return UINT32_MAX;
+
+  const ELFIO::section* symtab = m_elf.sections[".symtab"];
+  const ELFIO::section* strtab = m_elf.sections[".strtab"];
+  if (!symtab || !strtab || !symtab->get_data() || !strtab->get_data())
+    return UINT32_MAX;
+
+  const size_t sym_count   = symtab->get_size() / sizeof(ELFIO::Elf32_Sym);
+  const size_t strtab_size = strtab->get_size();
+
+  // Pass 1: find STT_FUNC symbol whose demangled name == kernel part.
+  // Kernel names in ELF are always mangled (e.g. "_Z4CTRLPcPc" → "CTRL").
+  ELFIO::Elf_Word kernel_sym_idx = 0;
+  for (size_t i = 0; i < sym_count; ++i) {
+    const auto* sym = reinterpret_cast<const ELFIO::Elf32_Sym*>(
+        symtab->get_data() + i * sizeof(ELFIO::Elf32_Sym));
+    if (ELF_ST_TYPE(sym->st_info) != ELFIO::STT_FUNC || sym->st_name >= strtab_size)
+      continue;
+    const std::string sym_name(strtab->get_data() + sym->st_name);
+    if (extract_kernel_name_from_mangled(sym_name) == filter_kernel) {
+      kernel_sym_idx = static_cast<ELFIO::Elf_Word>(i);
+      break;
+    }
+  }
+  if (kernel_sym_idx == 0)
+    return UINT32_MAX;
+
+  // Pass 2: find STT_OBJECT symbol with st_shndx == kernel row.
+  // If an instance name was provided, also require the symbol name to match.
+  ELFIO::Elf_Word instance_sym_idx = 0;
+  for (size_t i = 0; i < sym_count; ++i) {
+    const auto* sym = reinterpret_cast<const ELFIO::Elf32_Sym*>(
+        symtab->get_data() + i * sizeof(ELFIO::Elf32_Sym));
+    if (ELF_ST_TYPE(sym->st_info) != ELFIO::STT_OBJECT || sym->st_name >= strtab_size)
+      continue;
+    if (sym->st_shndx != kernel_sym_idx)
+      continue;
+    if (!filter_instance.empty()) {
+      const std::string sym_name(strtab->get_data() + sym->st_name);
+      if (sym_name != filter_instance)
+        continue;
+    }
+    instance_sym_idx = static_cast<ELFIO::Elf_Word>(i);
+    break;
+  }
+  if (instance_sym_idx == 0)
+    return UINT32_MAX;
+
+  // Pass 3: find the SHT_GROUP section with sh_info == instance row index and
+  //         parse N from its ".group.N" name.
+  constexpr std::string_view group_prefix = ".group.";
+  for (const auto& sec_ptr : m_elf.sections) {
+    const ELFIO::section* sec = sec_ptr.get();
+    if (sec->get_type() != ELFIO::SHT_GROUP || sec->get_info() != instance_sym_idx)
+      continue;
+    const std::string& sec_name = sec->get_name();
+    if (sec_name.size() <= group_prefix.size() ||
+        sec_name.compare(0, group_prefix.size(), group_prefix) != 0)
+      continue;
+    const std::string suffix = sec_name.substr(group_prefix.size());
+    if (suffix.empty() || !std::isdigit(static_cast<unsigned char>(suffix[0])))
+      continue;
+    return static_cast<uint32_t>(std::stoul(suffix));
+  }
+  return UINT32_MAX;
+}
+
+// Returns the content of the .dump section for the given instance.
+// If name_id != UINT32_MAX, looks for ".dump.<name_id>" specifically.
+// Otherwise returns the first ".dump"-prefixed section found (single-instance ELF).
+std::string
+AIEDebug::get_dump_json_from_elf(uint32_t name_id) const
+{
+  const std::string target_name = (name_id != UINT32_MAX)
+      ? ".dump." + std::to_string(name_id)
+      : "";
+
+  constexpr std::string_view dump_prefix = ".dump";
+
+  for (const auto& sec_ptr : m_elf.sections) {
+    const ELFIO::section* sec = sec_ptr.get();
+    if (sec->get_type() != ELFIO::SHT_PROGBITS)
+      continue;
+    const std::string& name = sec->get_name();
+    if (name.size() < dump_prefix.size() ||
+        name.compare(0, dump_prefix.size(), dump_prefix) != 0)
+      continue;
+    // With a group ELF, match only the specific ".dump.<N>" section
+    if (!target_name.empty() && name != target_name)
+      continue;
+    if (!sec->get_data() || sec->get_size() == 0)
+      continue;
+    return std::string(sec->get_data(), sec->get_size());
+  }
+  return {};
+}
+
 // Decodes the opcode at (uc_idx, page_idx, offset) via ISA binary walk.
 // Used as fallback when no .dump section is present.
 // If name_id != UINT32_MAX, the ctrltext section name has a ".<name_id>" suffix
 // (group ELF); otherwise matches by prefix alone (single-instance ELF).
-static opcode_information
-decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
-              uint32_t offset, uint32_t name_id)
+opcode_information
+AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
+                        uint32_t offset, uint32_t name_id) const
 {
   opcode_information result{};
-  const uint8_t os_abi      = elf.get_os_abi();
-  const uint8_t abi_version = elf.get_abi_version();
+  const uint8_t os_abi      = m_elf.get_os_abi();
+  const uint8_t abi_version = m_elf.get_abi_version();
 
   // Determine ELF layout from os_abi + abi_version:
   //   os_abi=0x46 (aie2ps_group), abi_version>=0x03  → per-page config ELF:
@@ -382,7 +358,7 @@ decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
 
   // Find the matching ctrltext section by exact name (group ELF) or prefix (single-instance).
   const ELFIO::section* sec = nullptr;
-  for (const auto& sec_ptr : elf.sections) {
+  for (const auto& sec_ptr : m_elf.sections) {
     const ELFIO::section* s = sec_ptr.get();
     const std::string& name = s->get_name();
     if (name_id != UINT32_MAX) {
@@ -409,7 +385,7 @@ decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
     result.diag_info = "section not found: " + expected_name;
     return result;
   }
-  const std::string section_name = sec->get_name();
+  const std::string& section_name = sec->get_name();
 
   const size_t sec_size = sec->get_size();
   // offset counts from page-slot start; bytes [0, k_binary_page_header_size) are
@@ -423,7 +399,7 @@ decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
 
   // instr_start : first instruction byte (absolute offset within the section).
   // region_end  : one past the last byte of the current page's region in the section.
-  size_t instr_start, region_end;
+  size_t instr_start =0, region_end=0;
   if (is_merged) {
     const size_t page_base = static_cast<size_t>(page_idx) * k_page_length;
     instr_start = page_base + k_binary_page_header_size;
@@ -452,7 +428,7 @@ decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
 
   size_t pos = 0;
   while (pos < instr_size) {
-    const uint8_t opbyte = static_cast<uint8_t>(instr_data[pos]);
+    auto opbyte = static_cast<uint8_t>(instr_data[pos]);
 
     if (opbyte == k_align_opcode) {
       if (pos == instr_offset) {
@@ -495,7 +471,7 @@ decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
           break;
         uint32_t val = 0;
         for (size_t b = 0; b < arg_bytes; ++b)
-          val |= static_cast<uint32_t>(static_cast<uint8_t>(instr_data[arg_pos + b])) << (b * 8);
+          val |= static_cast<uint32_t>(static_cast<uint8_t>(instr_data[arg_pos + b])) << (b * byte_to_bits);
         arg_pos += arg_bytes;
         args_ss << sep << "0x" << std::hex << val;
         sep = ", ";
@@ -510,34 +486,35 @@ decode_opcode(const ELFIO::elfio& elf, uint32_t uc_idx, uint32_t page_idx,
 }
 
 /**
- * get_opcode_information() - Decode the opcode at (uc_idx, page_idx, offset).
+ * AIEDebug::get_opcode_information() - Decode the opcode at (uc_idx, page_idx, offset).
  *
- * Declared in aiebu_debug.h. Prefers the .dump section (richer output: source
- * file, line number) and falls back to ISA binary walk when no dump is present.
+ * Prefers the .dump section (richer output: source file, line number) and falls
+ * back to ISA binary walk when no dump is present.
  * Returns a structured opcode_information; the caller formats and presents it.
  */
 opcode_information
-get_opcode_information(const ELFIO::elfio& elf, const std::string& kernel_name,
-                       uint32_t uc_idx, uint32_t page_idx, uint32_t offset)
+AIEDebug::get_opcode_information(const std::string& kernel_name,
+                                  uint32_t uc_idx, uint32_t page_idx,
+                                  uint32_t offset) const
 {
   // Resolve the group index N for this kernel:instance.
   // UINT32_MAX → single-instance ELF (no group suffix applied).
-  const uint32_t name_id = resolve_group_name_id(elf, kernel_name);
+  const uint32_t name_id = resolve_group_name_id(kernel_name);
 
-  const std::string dump_json = get_dump_json_from_elf(elf, name_id);
+  const std::string dump_json = get_dump_json_from_elf(name_id);
   if (!dump_json.empty()) {
     const opcode_information result = decode_from_dump(dump_json, uc_idx, page_idx, offset);
     if (result.found)
       return result;
     // Dump present but entry not found — fall through to ISA walk and carry
     // the dump's diag_info forward so it isn't silently dropped.
-    opcode_information isa_result = decode_opcode(elf, uc_idx, page_idx, offset, name_id);
+    opcode_information isa_result = decode_opcode(uc_idx, page_idx, offset, name_id);
     if (!result.diag_info.empty())
       isa_result.diag_info = result.diag_info + "; " + isa_result.diag_info;
     return isa_result;
   }
 
-  return decode_opcode(elf, uc_idx, page_idx, offset, name_id);
+  return decode_opcode(uc_idx, page_idx, offset, name_id);
 }
 
 } // namespace aiebu

@@ -149,16 +149,6 @@ class transform_manager {
   std::string get_grp_id_if_group_elf(const std::string& name) const;
 
   /**
-   * @brief Extract kernel name from C++ mangled symbol
-   * @param symbol_name: Mangled symbol name (e.g., "_Z3DPUPcPc")
-   * @return Kernel name if found, empty string otherwise
-   *
-   * Parses C++ mangled names in format _Z<length><name>... and extracts the identifier.
-   * Example: "_Z3DPUPcPc" -> "DPU" (length=3, name=DPU)
-   */
-  std::string extract_kernel_name_from_mangled(const std::string& symbol_name) const;
-
-  /**
    * @brief Get filtered section indices for a kernel:instance filter
    * @param kernel_instance_filter: Filter in format "kernel:instance" (e.g., "DPU:dpu")
    * @return Set of section indices that belong to the specified kernel:instance

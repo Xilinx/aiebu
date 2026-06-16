@@ -147,8 +147,9 @@ bool check_opcode(const ELFIO::elfio& elf,
                   uint32_t           expected_line,
                   const std::string& label)
 {
+  aiebu::AIEDebug debugger(elf);
   const aiebu::opcode_information info =
-      aiebu::get_opcode_information(elf, kernel_name, uc_idx, page_idx, offset);
+      debugger.get_opcode_information(kernel_name, uc_idx, page_idx, offset);
 
   // Always print returned values to aid diagnosis regardless of pass/fail
   std::cerr << "[INFO] " << label << " returned:"
