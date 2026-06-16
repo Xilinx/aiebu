@@ -203,7 +203,7 @@ decode_from_dump(const std::string& dump_json,
 
 // ─── AIEDebug implementation ────────────────────────────────────────────────
 
-AIEDebug::AIEDebug(const ELFIO::elfio& elf) : m_elf(&elf) {}
+AIEDebug::AIEDebug(const ELFIO::elfio& elf) : m_elf(elf) {}
 
 // Returns the group index N for the given "kernel:instance" by walking the ELF symtab
 // and finding the SHT_GROUP section that belongs to this instance.
@@ -235,8 +235,8 @@ AIEDebug::resolve_group_name_id(const std::string& kernel_name) const
   if (filter_kernel.empty())
     return UINT32_MAX;
 
-  const ELFIO::section* symtab = m_elf->sections[".symtab"];
-  const ELFIO::section* strtab = m_elf->sections[".strtab"];
+  const ELFIO::section* symtab = m_elf.sections[".symtab"];
+  const ELFIO::section* strtab = m_elf.sections[".strtab"];
   if (!symtab || !strtab || !symtab->get_data() || !strtab->get_data())
     return UINT32_MAX;
 
@@ -284,7 +284,7 @@ AIEDebug::resolve_group_name_id(const std::string& kernel_name) const
   // Pass 3: find the SHT_GROUP section with sh_info == instance row index and
   //         parse N from its ".group.N" name.
   constexpr std::string_view group_prefix = ".group.";
-  for (const auto& sec_ptr : m_elf->sections) {
+  for (const auto& sec_ptr : m_elf.sections) {
     const ELFIO::section* sec = sec_ptr.get();
     if (sec->get_type() != ELFIO::SHT_GROUP || sec->get_info() != instance_sym_idx)
       continue;
@@ -312,7 +312,7 @@ AIEDebug::get_dump_json_from_elf(uint32_t name_id) const
 
   constexpr std::string_view dump_prefix = ".dump";
 
-  for (const auto& sec_ptr : m_elf->sections) {
+  for (const auto& sec_ptr : m_elf.sections) {
     const ELFIO::section* sec = sec_ptr.get();
     if (sec->get_type() != ELFIO::SHT_PROGBITS)
       continue;
@@ -339,8 +339,8 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
                         uint32_t offset, uint32_t name_id) const
 {
   opcode_information result{};
-  const uint8_t os_abi      = m_elf->get_os_abi();
-  const uint8_t abi_version = m_elf->get_abi_version();
+  const uint8_t os_abi      = m_elf.get_os_abi();
+  const uint8_t abi_version = m_elf.get_abi_version();
 
   // Determine ELF layout from os_abi + abi_version:
   //   os_abi=0x46 (aie2ps_group), abi_version>=0x03  → per-page config ELF:
@@ -360,7 +360,7 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
 
   // Find the matching ctrltext section by exact name (group ELF) or prefix (single-instance).
   const ELFIO::section* sec = nullptr;
-  for (const auto& sec_ptr : m_elf->sections) {
+  for (const auto& sec_ptr : m_elf.sections) {
     const ELFIO::section* s = sec_ptr.get();
     const std::string& name = s->get_name();
     if (name_id != UINT32_MAX) {

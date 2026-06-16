@@ -76,7 +76,7 @@ public:
                                              uint32_t offset) const;
 
 private:
-  const ELFIO::elfio* m_elf;
+  const ELFIO::elfio& m_elf; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
   uint32_t    resolve_group_name_id(const std::string& kernel_name) const;
   std::string get_dump_json_from_elf(uint32_t name_id) const;
