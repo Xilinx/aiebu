@@ -27,7 +27,9 @@ struct opcode_information {
   uint32_t    line        = 0;      // source line number; 0 if unknown
   std::string source_file;          // source file path; empty if unknown
   std::string diag_info;            // diagnostic detail on decode failure. This field contains a human-readable
-                                    // explanation: which section was searched, offset within page header and why the d                                     // code failed (section not found, offset out of range, unrecognised opcode byte, or                                    // a malformed .dump JSON)
+                                    // explanation: which section was searched, offset within page header and why
+                                    // the decode failed (section not found, offset out of range, unrecognised
+                                    // opcode byte, or a malformed .dump JSON)
 };
 
 /**
@@ -71,7 +73,7 @@ public:
                                              uint32_t offset) const;
 
 private:
-  const ELFIO::elfio& m_elf;
+  const ELFIO::elfio* m_elf;
 
   uint32_t    resolve_group_name_id(const std::string& kernel_name) const;
   std::string get_dump_json_from_elf(uint32_t name_id) const;
