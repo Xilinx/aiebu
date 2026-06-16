@@ -146,7 +146,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 std::vector<uint32_t>
 read_mem_action::
-serialize_helper(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+serialize_helper(uint32_t* result_buffer, uint32_t* mem_buffer,
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     std::vector<uint32_t> result;
@@ -172,7 +172,7 @@ serialize_helper(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& me
  */
 void
 read_mem_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+serialize(uint32_t* result_buffer, uint32_t* mem_buffer,
     const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output) const
 {
     std::vector<uint32_t> result = read_mem_action::serialize_helper(result_buffer, mem_buffer, mapping);
@@ -198,7 +198,7 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffe
  */
 void
 read_mem_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+serialize(uint32_t* result_buffer, uint32_t* mem_buffer,
     const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output) const
 {
     std::vector<uint32_t> result = read_mem_action::serialize_helper(result_buffer, mem_buffer, mapping);

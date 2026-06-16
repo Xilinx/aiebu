@@ -53,7 +53,7 @@ actionize(uint32_t, std::vector<uint32_t>&, std::vector<uint32_t>&)
  */
 void
 operation_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, std::ostream& script_output) const
 {
     // serialize string format
@@ -71,7 +71,7 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
  */
 void
 operation_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
 }

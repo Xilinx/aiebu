@@ -73,7 +73,7 @@ actionize(uint32_t, std::vector<uint32_t>&, std::vector<uint32_t>&)
  */
 void
 profile_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, std::ostream&) const
 {
 }
@@ -89,7 +89,7 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
  */
 void
 profile_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
 }

@@ -20,6 +20,24 @@
 
 namespace dtrace
 {
+
+/**
+ * @struct dtrace_buffer_info
+ *
+ * @brief
+ * Typed dtrace_buffer_info used to hold dtrace buffer information.
+ *
+ * @details
+ * Contains members that specify virtual and physical address of dtrace buffer,
+ * control buffer and the memory buffer.
+ */
+struct dtrace_buffer_info {
+    uint32_t* buffer_addr = nullptr;
+    uint64_t buffer_dma_addr = 0;
+    std::vector<uint32_t> control_buffer;
+    std::vector<uint32_t> mem_buffer;
+};
+
 //-------------------------Control-------------------------//
 /**
  * @class control
@@ -52,11 +70,11 @@ public:
     std::vector<uint32_t> create_control_buffer(uint32_t uC) const;
     std::vector<uint32_t> create_mem_buffer(uint32_t uC) const;
     void patch_control_buffer(const std::unordered_map<uint32_t, uint64_t>& mem_host_addr_map);
-    void create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers, 
-        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, 
+    void create_result_file(
+        const std::unordered_map<uint32_t, dtrace_buffer_info>& buffer_info_map,
         const std::string& output_file) const;
-    void create_result_buffer(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers,
-        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers,
+    void create_result_buffer(
+        const std::unordered_map<uint32_t, dtrace_buffer_info>& buffer_info_map,
         nlohmann::ordered_json& json_output) const;
 };
 

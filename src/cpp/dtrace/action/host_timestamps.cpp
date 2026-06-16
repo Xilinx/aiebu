@@ -94,7 +94,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 std::vector<uint64_t>
 host_timestamps_action::
-serialize_helper(std::vector<uint32_t>& result_buffer, 
+serialize_helper(uint32_t* result_buffer,
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     std::vector<uint64_t> result;
@@ -123,7 +123,7 @@ serialize_helper(std::vector<uint32_t>& result_buffer,
  */
 void
 host_timestamps_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output) const
 {
     std::vector<uint64_t> result = host_timestamps_action::serialize_helper(result_buffer, mapping);
@@ -149,7 +149,7 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
  */
 void
 host_timestamps_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output) const
 {
     std::vector<uint64_t> result = host_timestamps_action::serialize_helper(result_buffer, mapping);

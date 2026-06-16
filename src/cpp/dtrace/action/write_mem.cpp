@@ -106,7 +106,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 void
 write_mem_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, std::ostream&) const
 {
 }
@@ -122,7 +122,7 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
  */
 void
 write_mem_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
 }

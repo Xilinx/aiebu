@@ -205,12 +205,12 @@ public:
     ) = 0;
     // Python output format
     virtual void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const = 0;
     // JSON output format
     virtual void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const = 0;
     virtual uint64_t get_mem_host_addr() const { return 0; }
@@ -238,15 +238,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint32_t serialize_helper(
-        std::vector<uint32_t>& result_buffer,
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -270,11 +270,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -305,13 +305,13 @@ public:
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
-    void serialize_helper(std::vector<uint32_t>& mem_buffer) const;
+    void serialize_helper(uint32_t* mem_buffer) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
     uint32_t get_mode() const { return m_mode; }
@@ -336,15 +336,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint64_t serialize_helper(
-        std::vector<uint32_t>& result_buffer,
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -368,15 +368,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint64_t serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -400,15 +400,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint32_t serialize_helper(
-        std::vector<uint32_t>& result_buffer,
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -432,11 +432,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -460,15 +460,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint32_t serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -499,11 +499,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -533,13 +533,13 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::pair<std::string, uint32_t> get_opcode(const uint32_t& value)  const;
-    std::string serialize_helper(const std::vector<uint32_t>& result_buffer) const;
+    std::string serialize_helper(const uint32_t* result_buffer) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -566,11 +566,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -603,15 +603,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::vector<uint32_t> serialize_helper(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
     uint64_t get_mem_host_addr() const override;
@@ -644,11 +644,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -675,11 +675,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -706,15 +706,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::vector<uint64_t> serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -741,15 +741,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::vector<uint32_t> serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -776,15 +776,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::vector<uint64_t> serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -811,11 +811,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -839,15 +839,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint32_t serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -871,15 +871,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };

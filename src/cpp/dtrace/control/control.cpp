@@ -342,22 +342,19 @@ populate_result_actions()
 
 //-------------------------control::create_result_file-------------------------//
 /**
- * create_result_file() - Creates a result file from the given result and memory buffers.
+ * create_result_file() - Creates a result file from the given buffer information map.
  *
- * @param result_buffers 
- *  Map containing result buffers indexed by uC.
- * @param mem_buffers 
- *  Map containing memory buffers indexed by uC.
+ * @param buffer_info_map
+ *  Map containing dtrace buffer information (buffer addresses and sizes) indexed by uC.
  * @param output_file 
  *  Path to the output file where the Python script will be written.
  *
- * This function generates a Python script that processes the provided result and 
- * memory buffers. Serializing the actions into the output file.
+ * This function generates a Python script that processes the provided buffer information
+ * map. Serializing the actions into the output file.
  */
 void 
 control::
-create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers, 
-    std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, 
+create_result_file(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffer_info_map,
     const std::string& output_file) const
 {
     // Process actions based on output format
@@ -375,20 +372,21 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
         {
             const auto& action = item.first;
             uint32_t loop_uC_index = item.second;
-            try 
+            try
             {
+                const auto& buffer_info = buffer_info_map.at(loop_uC_index);
                 // Serialize action to build python script
                 action->serialize(
-                    result_buffers.at(loop_uC_index), 
-                    mem_buffers.at(loop_uC_index), 
+                    buffer_info.buffer_addr,
+                    buffer_info.buffer_addr + buffer_info.control_buffer.size(),
                     m_pager.get_action_location_mapping(loop_uC_index),
                     script_output
                 );
-            } 
-            catch (const std::exception& e) 
+            }
+            catch (const std::exception& e)
             {
-                DTRACE_ERROR("DTRACE_ACTION_SERIALIZE_FAILED", "Failed to serialize action " 
-                    << action->create_string() << " for uC index " << loop_uC_index << ". Exception: " << e.what() 
+                DTRACE_ERROR("DTRACE_ACTION_SERIALIZE_FAILED", "Failed to serialize action "
+                    << action->create_string() << " for uC index " << loop_uC_index << ". Exception: " << e.what()
                 );
             }
         }
@@ -405,11 +403,12 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
             const auto& action = item.first;
             uint32_t loop_uC_index = item.second;
             try
-            {
+            {                
+                const auto& buffer_info = buffer_info_map.at(loop_uC_index);
                 // Serialize action to build JSON result
                 action->serialize(
-                    result_buffers.at(loop_uC_index),
-                    mem_buffers.at(loop_uC_index),
+                    buffer_info.buffer_addr,
+                    buffer_info.buffer_addr + buffer_info.control_buffer.size(),
                     m_pager.get_action_location_mapping(loop_uC_index),
                     json_output
                 );
@@ -442,10 +441,8 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
 /**
  * create_result_buffer() - Serializes dtrace results into a JSON object.
  *
- * @param result_buffers
- *  Map containing result buffers indexed by uC.
- * @param mem_buffers
- *  Map containing memory buffers indexed by uC.
+ * @param buffer_info_map
+ *  Map containing dtrace buffer information (buffer addresses and sizes) indexed by uC.
  * @param json_output
  *  JSON object to populate with serialized action results.
  *
@@ -454,12 +451,11 @@ create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_b
  */
 void
 control::
-create_result_buffer(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers,
-    std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers,
+create_result_buffer(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffer_info_map,
     nlohmann::ordered_json& json_output) const
 {
     if (m_output_format != dtrace::dtrace_output_format::json)
-        DTRACE_ERROR("DTRACE_OUTPUT_FORMAT_NOT_SUPPORTED", 
+        DTRACE_ERROR("DTRACE_OUTPUT_FORMAT_NOT_SUPPORTED",
             "Output format " << static_cast<int>(m_output_format) << " not supported for buffer result."
         );
 
@@ -470,9 +466,10 @@ create_result_buffer(std::unordered_map<uint32_t, std::vector<uint32_t>>& result
         uint32_t loop_uC_index = item.second;
         try
         {
+            const auto& buffer_info = buffer_info_map.at(loop_uC_index);
             action->serialize(
-                result_buffers.at(loop_uC_index),
-                mem_buffers.at(loop_uC_index),
+                buffer_info.buffer_addr,
+                buffer_info.buffer_addr + buffer_info.control_buffer.size(),
                 m_pager.get_action_location_mapping(loop_uC_index),
                 json_output
             );

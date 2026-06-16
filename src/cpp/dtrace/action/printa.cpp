@@ -103,7 +103,6 @@ get_opcode(const uint32_t& value) const
  * serialize_helper() - Formats and prints the results from the result buffer.
  *
  * @param result_buffer 
- *  A vector of uint32_t values containing the result data.
  *
  * This function takes a vector of uint32_t values representing the result buffer,
  * calculates the total number of samples, and prints the formatted results to the
@@ -111,7 +110,7 @@ get_opcode(const uint32_t& value) const
  */
 std::string
 printa_action::
-serialize_helper(const std::vector<uint32_t>& result_buffer) const
+serialize_helper(const uint32_t* result_buffer) const
 {
     constexpr int name_width = 50;
     constexpr int samples_width = 16;
@@ -184,7 +183,7 @@ serialize_helper(const std::vector<uint32_t>& result_buffer) const
  */
 void
 printa_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, std::ostream& script_output) const
 {
     // serialize string format
@@ -202,7 +201,7 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
  */
 void
 printa_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
 }
