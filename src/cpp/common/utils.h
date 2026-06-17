@@ -301,5 +301,10 @@ std::string version_string();
 
 std::string metrics_report();
 
+// Extracts the plain identifier from a C++ mangled symbol name.
+// Format: _Z<length><name>...  e.g. "_Z3DPUPcPc" -> "DPU"
+// Returns "" if the name is not a valid mangled symbol.
+std::string extract_kernel_name_from_mangled(const std::string& symbol_name);
+
 }
 #endif // AIEBU_COMMOM_UTILS_H_

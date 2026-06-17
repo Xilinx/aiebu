@@ -702,35 +702,6 @@ set_ctrlpkt_bd_offset(const std::string& section_name, uint32_t offset, uint64_t
  * @param symbol_name: Mangled symbol name (e.g., "_Z3DPUPcPc")
  * @return Kernel name if found, empty string otherwise
  */
-std::string
-transform_manager::
-extract_kernel_name_from_mangled(const std::string& symbol_name) const
-{
-  // Check for C++ mangled name: _Z<length><name>...
-  if (symbol_name.size() <= 3 || symbol_name[0] != '_' || symbol_name[1] != 'Z' || !std::isdigit(symbol_name[2]))
-    return "";
-
-  // Parse the length prefix
-  size_t length_start = 2;
-  size_t length_end = length_start;
-  while (length_end < symbol_name.size() && std::isdigit(symbol_name[length_end])) {
-    length_end++;
-  }
-
-  if (length_end == length_start)
-    return "";
-
-  // Extract and validate the identifier
-  size_t name_length = std::stoul(symbol_name.substr(length_start, length_end - length_start));
-  size_t name_start = length_end;
-  size_t name_end = name_start + name_length;
-
-  if (name_end > symbol_name.size())
-    return "";
-
-  return symbol_name.substr(name_start, name_length);
-}
-
 /**
  * @brief Get filtered section indices for a kernel:instance filter
  * @param kernel_instance_filter: Filter in format "kernel:instance" (e.g., "DPU:dpu")

@@ -128,6 +128,7 @@ if(AIEBU_INSTALL_STATIC_LIBRARY)
     include/aiebu/aiebu.h
     include/aiebu/aiebu_assembler.h
     include/aiebu/aiebu_error.h
+    include/aiebu/aiebu_debug.h
     DESTINATION ${AIEBU_INSTALL_INCLUDE_DIR}/aiebu COMPONENT ${AIEBU_DEV_COMPONENT}
   )
 endif()
