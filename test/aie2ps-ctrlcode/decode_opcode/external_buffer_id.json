@@ -1,0 +1,28 @@
+{
+    "external_buffers": {
+        "buffer0": {
+            "xrt_id": 0,
+            "size_in_bytes": 264192,
+            "name": "coalesed_weights",
+            "coalesed_buffers": [
+                {
+                    "logical_id": 0,
+                    "offset_in_bytes": 0,
+                    "name": "compute_graph.Layer_1_wts_ddr"
+                }
+            ]
+        },
+        "buffer1": {
+            "xrt_id": 1,
+            "logical_id": 1,
+            "size_in_bytes": 126728,
+            "name": "compute_graph.ifm_ddr"
+        },
+        "buffer2": {
+            "xrt_id": 2,
+            "logical_id": 2,
+            "size_in_bytes": 1046528,
+            "name": "compute_graph.ofm_ddr"
+        }
+    }
+}

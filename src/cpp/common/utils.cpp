@@ -87,4 +87,25 @@ metrics_report()
   stream << "CPU " << met.m_cpu_ms << " ms, Memory " << met.m_peak_kb << " KB";
   return stream.str();
 }
+
+std::string
+extract_kernel_name_from_mangled(const std::string& symbol_name)
+{
+  if (symbol_name.size() <= 3 || symbol_name[0] != '_' || symbol_name[1] != 'Z'
+      || !std::isdigit(static_cast<unsigned char>(symbol_name[2])))
+    return "";
+
+  size_t length_start = 2;
+  size_t length_end = length_start;
+  while (length_end < symbol_name.size()
+         && std::isdigit(static_cast<unsigned char>(symbol_name[length_end])))
+    ++length_end;
+
+  const size_t name_length = std::stoul(symbol_name.substr(length_start, length_end - length_start));
+  const size_t name_start  = length_end;
+  if (name_start + name_length > symbol_name.size())
+    return "";
+
+  return symbol_name.substr(name_start, name_length);
+}
 }
