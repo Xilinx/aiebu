@@ -1,0 +1,40 @@
+{
+  "cases": [
+    {
+      "label": "DPU:subgraph_0 uc0 page2 offset16",
+      "kernel_name": "DPU:subgraph_0",
+      "uc_idx": 0,
+      "page_idx": 2,
+      "offset": 16,
+      "expected_opcode_no_dump": "start_job",
+      "expected_args_no_dump": "0"
+    },
+    {
+      "label": "DPU:subgraph_4 uc0 page2 offset16",
+      "kernel_name": "DPU:subgraph_4",
+      "uc_idx": 0,
+      "page_idx": 2,
+      "offset": 16,
+      "expected_opcode_no_dump": "start_job",
+      "expected_args_no_dump": "2"
+    },
+    {
+      "label": "DPU:subgraph_8 uc0 page2 offset24",
+      "kernel_name": "DPU:subgraph_8",
+      "uc_idx": 0,
+      "page_idx": 2,
+      "offset": 24,
+      "expected_opcode_no_dump": "uc_dma_write_des_sync",
+      "expected_args_no_dump": "@label0"
+    },
+    {
+      "label": "DPU:subgraph_28 uc0 page66 offset24",
+      "kernel_name": "DPU:subgraph_8",
+      "uc_idx": 0,
+      "page_idx": 66,
+      "offset": 24,
+      "expected_opcode_no_dump": "mask_write_32",
+      "expected_args_no_dump": "0x6a3000, 1, 1"
+    }
+  ]
+}
