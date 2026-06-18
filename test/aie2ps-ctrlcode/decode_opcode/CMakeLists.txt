@@ -6,7 +6,7 @@ add_executable(${DECODE_OPCODE_TEST} decode_opcode.cpp)
 target_link_libraries(${DECODE_OPCODE_TEST} PRIVATE aiebu_static)
 target_include_directories(${DECODE_OPCODE_TEST} PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp/include
-  ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO
+  ${AIEBU_ELFIO_SRC_DIR}
 )
 if (NOT WIN32)
   target_link_libraries(${DECODE_OPCODE_TEST} PRIVATE pthread)
