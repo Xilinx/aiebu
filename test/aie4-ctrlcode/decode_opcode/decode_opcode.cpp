@@ -88,6 +88,9 @@ bool check_opcode(const ELFIO::elfio& elf,
       debugger.get_opcode_information(kernel_name, uc_idx, page_idx, offset);
 
   if (!info.found) {
+    if (expected_opcode == "")
+      return true;
+
     std::cerr << "[FAIL] " << label << ": opcode not found\n";
     return false;
   }
