@@ -87,18 +87,6 @@ bool check_opcode(const ELFIO::elfio& elf,
   const aiebu::opcode_information info =
       debugger.get_opcode_information(kernel_name, uc_idx, page_idx, offset);
 
-  // Always print returned values to aid diagnosis regardless of pass/fail
-  std::cerr << "[INFO] " << label << " returned:"
-            << "\n        found       = " << (info.found ? "true" : "false")
-            << "\n        opcode_name = '" << info.opcode_name << "'"
-            << "\n        args_str    = '" << info.args_str << "'"
-            << "\n        source_file = '" << info.source_file << "'"
-            << "\n        line        = "  << info.line
-            << "\n        opcode_size = "  << info.opcode_size
-            << "\n        page_offset = "  << info.page_offset
-            << "\n        diag_info   = '" << info.diag_info << "'"
-            << "\n";
-
   if (!info.found) {
     std::cerr << "[FAIL] " << label << ": opcode not found\n";
     return false;
