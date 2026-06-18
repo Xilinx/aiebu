@@ -286,6 +286,7 @@ get_dtrace_result_file(dtrace_handle_t dtrace_handle, const std::string& result_
     }
 }
 
+/*
 void
 update_dtrace_result_buffer(dtrace_handle_t dtrace_handle, const std::string& result_key,
     nlohmann::ordered_json& result_buffer)
@@ -356,6 +357,7 @@ update_dtrace_result_buffer(dtrace_handle_t dtrace_handle, const std::string& re
         std::cerr << e.what();
     }
 }
+*/
 
 void
 destroy_dtrace_handle(dtrace_handle_t dtrace_handle)
