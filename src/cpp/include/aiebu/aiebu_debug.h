@@ -8,6 +8,12 @@
 #include <cstdint>
 #include <string>
 
+/**
+ * Please note that aiebu_debug.h file is _not_ part of aiebu public API. This
+ * file is for private consumption by XRT which uses aiebu as a submodule and
+ * statically links it. XRT and aiebu use the same ELFIO headers during build.
+ */
+
 namespace aiebu {
 
 /**
