@@ -276,6 +276,7 @@ class asm_data
   // m_file replaced with a 32-bit index into the owning parser's filename_table.
   uint32_t m_file_idx;
   int m_annotation_index = -1;
+  bool m_is_save_restore = false;  // True if this instruction is from save/restore routine
 
 public:
   asm_data() = default;
@@ -289,10 +290,10 @@ public:
   */
   asm_data(operation op, operation_type optype,
            code_section sec, offset_type size, uint32_t pgnum,
-           uint32_t ln, uint32_t file_idx)
+           uint32_t ln, uint32_t file_idx, bool is_save_restore = false)
            :m_op(std::move(op)), m_optype(optype), m_section(sec), m_size(size),
             m_pagenum(pgnum), m_linenumber(ln),
-            m_file_idx(file_idx) {}
+            m_file_idx(file_idx), m_is_save_restore(is_save_restore) {}
 
   // Rule of Zero: implicit copy/move keeps insert_col_asmdata / vector growth cheap.
 
@@ -303,6 +304,7 @@ public:
   const std::string& get_file(const detail::filename_table& table) const {
     return table.lookup_filename(m_file_idx);
   }
+
   uint32_t get_file_idx() const { return m_file_idx; }
   // Qualify the operation's own name as a label-map key (e.g. "0:start_job").
   std::string get_qualify_op_name() const {
@@ -331,6 +333,7 @@ public:
     return n + ' ' + a;
   }
 
+  HEADER_ACCESS_GET_SET(bool, is_save_restore);
   bool isLabel() const { return m_optype == operation_type::label; }
   bool isOpcode() const { return m_optype == operation_type::op; }
   bool isAnnotation() const { return m_optype == operation_type::annotation; }
@@ -525,6 +528,7 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   // .include detection is scoped per-col rather than globally across the parser.
   // Keyed by m_current_col (-1 = pre-attach_to_group context).
   std::unordered_map<int, std::set<uint32_t>> m_col_seen_files;
+  bool m_is_save_restore_routine = false;  // True when parsing save/restore routine files
 
   // One unique scratchpad region: all hintmap labels that share the same scratchbase+size
   struct hintmap_group_entry {
@@ -607,6 +611,20 @@ public:
   const std::string& get_target_type() const { return m_target_type; }
 
   bool is_multi_column_mode() const { return m_preempt_labels.size() > 1; }
+
+  // Check if currently parsing save/restore routine
+  bool is_save_restore_routine() const { return m_is_save_restore_routine; }
+  void set_save_restore_routine(bool val) { m_is_save_restore_routine = val; }
+
+  // Check if we should skip setpad for this target in save/restore routine
+  bool should_skip_setpad_in_save_restore() const {
+    return m_is_save_restore_routine;
+  }
+
+  // Check if we should use scratch-pad section for save/restore APPLY_OFFSET_57
+  //bool should_use_scratchpad_section_for_save_restore() const {
+  //  return m_is_save_restore_routine;
+  //}
 
   // Record preempt label for current group (called when PREEMPT opcode is hit)
   // Label naming: save_N / restore_N where N = index (group/2 + 1)

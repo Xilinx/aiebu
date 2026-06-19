@@ -115,6 +115,7 @@ protected:
   std::vector<std::string> m_labellist;
   std::map<std::string, std::vector<std::string>> m_dependent_labelmap;
   std::set<std::string> m_opt_opcodes;
+  bool m_is_save_restore_op = false;  // True when currently serializing a save/restore op
   inline std::string gen_label_name(bool makeunique, const std::shared_ptr<asm_data> data)
   {
     return makeunique ? data->get_qualify_op_name() : data->get_operation().get_name();
@@ -163,6 +164,7 @@ public:
   bool m_merged_ctrltext_elf = false;
 
   HEADER_ACCESS_GET_SET(offset_type, pos);
+  HEADER_ACCESS_GET_SET(bool, is_save_restore_op);
 
   void printstate() const;
 

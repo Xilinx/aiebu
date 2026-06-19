@@ -10,6 +10,7 @@
 #include "writer.h"
 #include "aie2ps_preprocessed_output.h"
 #include "ops.h"
+#include "common/logger.h"
 #include "specification/aie2ps/isa.h"
 
 namespace aiebu {
@@ -40,6 +41,13 @@ public:
     uint64_t bd0 = datawriter->read_word(offset);
     uint64_t bd1 = datawriter->read_word(offset + 1*4);             // NOLINT
     uint64_t arg = (bd1 & 0xFFFFFFFF) + ((bd0 & 0x1FFFFFF) << 32); // NOLINT
+
+    // Add log for debugging patching
+    log_info() << "aie4_encoder::patch57: offset=" << offset
+               << ", patch=0x" << std::hex << patch
+               << ", arg=0x" << std::hex << arg
+               << ", after patch=0x" << std::hex << patch + arg
+               << std::dec << std::endl;
     patch = arg + patch;
     datawriter->write_word_at(offset + 1*4, patch & 0xFFFFFFFF);    // NOLINT
     datawriter->write_word_at(offset, (((patch >> 32) & 0x1FFFFFF) | (bd0 & 0xFE000000)));  // NOLINT
