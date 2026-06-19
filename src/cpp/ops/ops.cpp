@@ -129,6 +129,8 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
         {
           if (state->m_ctrlpkt_id_map.find(val) != state->m_ctrlpkt_id_map.end())
             sval = state->m_ctrlpkt_id_map[val];
+          else if (val == offset_type_marker && state->get_is_save_restore_op())
+            sval = "scratch-pad-mem";  // For save/restore routine, use "scratch-pad-mem" as arg name
           else if (val == offset_type_marker)
             sval = "control-code-" + std::to_string(colnum);
 
