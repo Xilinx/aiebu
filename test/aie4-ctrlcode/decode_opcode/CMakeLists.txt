@@ -5,18 +5,12 @@ set(DECODE_OPCODE_TEST "aie4_decode_opcode")
 add_executable(${DECODE_OPCODE_TEST} decode_opcode.cpp)
 target_link_libraries(${DECODE_OPCODE_TEST} PRIVATE aiebu_static)
 
-# Boost.JSON (boost::json) is required for the test input file parser.
-if (NOT Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.75.0")
-  message(FATAL_ERROR
-    "${DECODE_OPCODE_TEST} requires Boost 1.75 or later (Boost.JSON). "
-    "Found Boost ${Boost_VERSION_STRING}.")
-endif()
-find_package(Boost 1.75.0 REQUIRED COMPONENTS json)
-target_link_libraries(${DECODE_OPCODE_TEST} PRIVATE Boost::json)
+# JSON input is parsed with Boost.PropertyTree (boost/property_tree/json_parser.hpp);
+# Boost headers come from the top-level find_package(Boost) / include_directories.
 
 target_include_directories(${DECODE_OPCODE_TEST} PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp/include
-  ${AIEBU_SOURCE_DIR}/src/cpp/ELFIO
+  ${AIEBU_ELFIO_SRC_DIR}
 )
 if (NOT WIN32)
   target_link_libraries(${DECODE_OPCODE_TEST} PRIVATE pthread)

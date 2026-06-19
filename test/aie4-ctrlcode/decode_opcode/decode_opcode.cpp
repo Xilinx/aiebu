@@ -7,7 +7,7 @@
 // Usage:
 //   decode_opcode <out_no_dump.elf> <input.json>
 //
-// input.json (Boost.JSON) supports multiple test vectors in one file:
+// input.json (Boost.PropertyTree JSON parser) supports multiple test vectors:
 //
 //   { "cases": [ { ... }, { ... } ] }
 //
@@ -23,18 +23,21 @@
 #include "aiebu/aiebu_debug.h"
 #include "aiebu/aiebu_error.h"
 
-#include <boost/json.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <elfio/elfio.hpp>
 
+#include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <sstream>
 #include <string>
-#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -47,16 +50,6 @@ void read_file(const std::filesystem::path& path, std::vector<char>& out)
   const auto sz = std::filesystem::file_size(path);
   out.resize(static_cast<std::size_t>(sz));
   in.read(out.data(), static_cast<std::streamsize>(sz));
-}
-
-std::string read_text_file(const std::filesystem::path& path)
-{
-  if (!std::filesystem::exists(path))
-    throw std::runtime_error("file not found: " + path.string());
-  std::ifstream in(path);
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  return ss.str();
 }
 
 // Load ELF bytes into an ELFIO object.
@@ -149,45 +142,29 @@ struct decode_opcode_case
   std::string expected_args_no_dump;
 };
 
-void require_key(const boost::json::object& o, std::string_view key)
+std::string get_string(const boost::property_tree::ptree& o, const char* key)
 {
-  if (!o.contains(key))
-    throw std::runtime_error(std::string("case object missing required key: ") + std::string(key));
+  const auto v = o.get_optional<std::string>(key);
+  if (!v)
+    throw std::runtime_error(std::string("case object missing or invalid string key: ") + key);
+  return *v;
 }
 
-std::string get_string(const boost::json::object& o, std::string_view key)
+uint32_t get_u32(const boost::property_tree::ptree& o, const char* key)
 {
-  require_key(o, key);
-  const boost::json::value& v = o.at(key);
-  if (!v.is_string())
-    throw std::runtime_error(std::string("expected string for key: ") + std::string(key));
-  return std::string(v.as_string());
+  const auto v = o.get_optional<unsigned long>(key);
+  if (!v)
+    throw std::runtime_error(std::string("case object missing or invalid integer key: ") + key);
+  if (*v > static_cast<unsigned long>(std::numeric_limits<uint32_t>::max()))
+    throw std::runtime_error(std::string("value too large for uint32: ") + key);
+  return static_cast<uint32_t>(*v);
 }
 
-uint32_t get_u32(const boost::json::object& o, std::string_view key)
-{
-  require_key(o, key);
-  const boost::json::value& v = o.at(key);
-  if (v.is_uint64()) {
-    const uint64_t n = v.as_uint64();
-    if (n > std::numeric_limits<uint32_t>::max())
-      throw std::runtime_error(std::string("value too large for uint32: ") + std::string(key));
-    return static_cast<uint32_t>(n);
-  }
-  if (v.is_int64()) {
-    const int64_t n = v.as_int64();
-    if (n < 0 || n > static_cast<int64_t>(std::numeric_limits<uint32_t>::max()))
-      throw std::runtime_error(std::string("integer out of range for uint32: ") + std::string(key));
-    return static_cast<uint32_t>(n);
-  }
-  throw std::runtime_error(std::string("expected integer for key: ") + std::string(key));
-}
-
-decode_opcode_case parse_case_object(const boost::json::object& o)
+decode_opcode_case parse_case_object(const boost::property_tree::ptree& o)
 {
   decode_opcode_case c;
-  if (o.contains("label") && o.at("label").is_string())
-    c.label = std::string(o.at("label").as_string());
+  if (const auto label = o.get_optional<std::string>("label"))
+    c.label = *label;
   c.kernel_name              = get_string(o, "kernel_name");
   c.uc_idx                   = get_u32(o, "uc_idx");
   c.page_idx                 = get_u32(o, "page_idx");
@@ -197,41 +174,71 @@ decode_opcode_case parse_case_object(const boost::json::object& o)
   return c;
 }
 
-std::vector<decode_opcode_case> parse_input_json(std::string_view text)
+// Boost.PropertyTree read_json maps JSON array elements to child nodes whose
+// keys are empty strings (see boost/property_tree/json_parser.hpp). Some trees
+// may instead use "0", "1", ... — support both: empty keys preserve iteration
+// order; numeric keys are sorted by index.
+void append_array_children(const boost::property_tree::ptree& arr,
+                           std::vector<boost::property_tree::ptree>& out)
 {
-  boost::system::error_code ec;
-  const boost::json::value root = boost::json::parse(text, ec);
-  if (ec)
-    throw std::runtime_error("JSON parse error: " + ec.message());
-
-  std::vector<boost::json::object> raw_cases;
-
-  if (root.is_array()) {
-    const boost::json::array& arr = root.as_array();
-    raw_cases.reserve(arr.size());
-    for (const boost::json::value& el : arr) {
-      if (!el.is_object())
-        throw std::runtime_error("each element of root array must be a JSON object");
-      raw_cases.push_back(el.as_object());
+  bool have_empty_key = false;
+  bool have_numeric_key = false;
+  for (const auto& kv : arr) {
+    if (kv.first.empty())
+      have_empty_key = true;
+    else {
+      char* end_ptr = nullptr;
+      std::strtol(kv.first.c_str(), &end_ptr, 10);
+      if (end_ptr != kv.first.c_str() && *end_ptr == '\0')
+        have_numeric_key = true;
     }
-  } else if (root.is_object()) {
-    const boost::json::object& o = root.as_object();
-    if (o.contains("cases")) {
-      const boost::json::value& c = o.at("cases");
-      if (!c.is_array())
-        throw std::runtime_error("\"cases\" must be a JSON array");
-      const boost::json::array& arr = c.as_array();
-      raw_cases.reserve(arr.size());
-      for (const boost::json::value& el : arr) {
-        if (!el.is_object())
-          throw std::runtime_error("each element of \"cases\" must be a JSON object");
-        raw_cases.push_back(el.as_object());
-      }
-    } else {
-      raw_cases.push_back(o);
+  }
+  if (have_empty_key && have_numeric_key)
+    throw std::runtime_error("JSON array mixes empty and numeric child keys (unsupported)");
+
+  if (have_empty_key) {
+    for (const auto& kv : arr) {
+      if (kv.first.empty())
+        out.push_back(kv.second);
     }
+    return;
+  }
+
+  std::vector<std::pair<int, boost::property_tree::ptree>> tmp;
+  tmp.reserve(arr.size());
+  for (const auto& kv : arr) {
+    char* end_ptr = nullptr;
+    const long n = std::strtol(kv.first.c_str(), &end_ptr, 10);
+    if (end_ptr == kv.first.c_str() || *end_ptr != '\0')
+      throw std::runtime_error("expected JSON array with numeric element keys, got key: " + kv.first);
+    tmp.emplace_back(static_cast<int>(n), kv.second);
+  }
+  std::sort(tmp.begin(), tmp.end(),
+            [](const std::pair<int, boost::property_tree::ptree>& a,
+               const std::pair<int, boost::property_tree::ptree>& b) { return a.first < b.first; });
+  for (auto& e : tmp)
+    out.push_back(std::move(e.second));
+}
+
+std::vector<decode_opcode_case> parse_input_json(const std::filesystem::path& json_path)
+{
+  if (!std::filesystem::exists(json_path))
+    throw std::runtime_error("file not found: " + json_path.string());
+
+  boost::property_tree::ptree root;
+  std::ifstream in(json_path);
+  if (!in)
+    throw std::runtime_error("failed to open JSON file: " + json_path.string());
+  boost::property_tree::read_json(in, root);
+
+  std::vector<boost::property_tree::ptree> raw_cases;
+
+  if (root.count("cases") != 0) {
+    append_array_children(root.get_child("cases"), raw_cases);
+  } else if (root.count("kernel_name") != 0) {
+    raw_cases.push_back(root);
   } else {
-    throw std::runtime_error("JSON root must be an object or an array");
+    append_array_children(root, raw_cases);
   }
 
   if (raw_cases.empty())
@@ -239,8 +246,8 @@ std::vector<decode_opcode_case> parse_input_json(std::string_view text)
 
   std::vector<decode_opcode_case> out;
   out.reserve(raw_cases.size());
-  for (const boost::json::object& obj : raw_cases)
-    out.push_back(parse_case_object(obj));
+  for (const boost::property_tree::ptree& node : raw_cases)
+    out.push_back(parse_case_object(node));
   return out;
 }
 
@@ -257,7 +264,7 @@ int main(int argc, char** argv)
   const std::filesystem::path json_path = argv[2];
 
   try {
-    const std::vector<decode_opcode_case> cases = parse_input_json(read_text_file(json_path));
+    const std::vector<decode_opcode_case> cases = parse_input_json(json_path);
 
     std::vector<char> buf;
     read_file(in_no_dump, buf);
