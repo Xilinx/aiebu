@@ -67,7 +67,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     // write address
     control_buffer.push_back(std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
     // write value
-    control_buffer.push_back(std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
+    control_buffer.push_back(std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base));
 }
 
 //-------------------------write_reg_action::serialize-------------------------//

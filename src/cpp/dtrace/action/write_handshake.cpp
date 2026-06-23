@@ -78,7 +78,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     control_buffer.push_back(std::stoul(m_arguments[0]));
     set_location(control_buffer, false);
     // write value
-    control_buffer.push_back(std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
+    control_buffer.push_back(std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base));
 }
 
 //-------------------------write_handshake_action::serialize_helper-------------------------//
