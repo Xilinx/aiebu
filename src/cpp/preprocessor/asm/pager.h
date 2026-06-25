@@ -14,6 +14,7 @@ namespace aiebu {
 class pager
 {
   uint32_t m_page_size;
+  uint32_t m_default_file_idx;
   constexpr static offset_type PAGE_HEADER_SIZE = 16;
   constexpr static offset_type EOF_SIZE = 4;
   constexpr static offset_type DATA_SECTION_ALIGNMENT = 16;
@@ -62,7 +63,8 @@ class pager
   }
 
 public:
-  pager(uint32_t page_size): m_page_size(page_size) {}  
+  pager(uint32_t page_size, uint32_t default_file_idx)
+    : m_page_size(page_size), m_default_file_idx(default_file_idx) {}
   uint32_t pagify(assembler_state& state, uint32_t col, std::vector<page>& pages, uint32_t relative_page_index);
 };
 

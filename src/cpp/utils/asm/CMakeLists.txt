@@ -59,7 +59,7 @@ endif()
 
 install(TARGETS aiebu-asm
   RUNTIME DESTINATION ${AIEBU_INSTALL_BIN_DIR}
-  CONFIGURATIONS Debug Release
+  CONFIGURATIONS Debug Release RelWithDebInfo
   COMPONENT ${AIEBU_COMPONENT}
   )
 

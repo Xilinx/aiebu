@@ -318,7 +318,7 @@ assignpagenumber(assembler_state& state, uint32_t colnum,
   if (aligner)
     lpage.m_text.emplace_back(std::make_shared<asm_data>(operation(".align", "16"),
                                                     operation_type::op, code_section::text, 0,
-                                                    (uint32_t)-1, 0, detail::default_source_file_idx()));
+                                                    (uint32_t)-1, 0, m_default_file_idx));
 
   uint32_t cur_page_len = PAGE_HEADER_SIZE + tsize + EOF_SIZE + aligner + dsize;
   cur_page_len = (((cur_page_len + 3) >> 2) << 2); // round off to next multiple of 4

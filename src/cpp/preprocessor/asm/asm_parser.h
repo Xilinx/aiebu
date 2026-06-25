@@ -14,6 +14,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <unordered_set>
 #include <stack>
 #include <sstream>
 #include <string>
@@ -225,36 +226,42 @@ public:
   aie_row_topology_directive& operator=(aie_row_topology_directive&&) = default;
 };
 
-// Filename intern table: maps each unique source-file name to a compact 32-bit index.
-// thread_local: It means each thread gets its own separate copy of the table,
-// which keeps concurrent parse jobs on different threads isolated.
-// The table is never cleared; indices remain valid as long as the thread is alive,
-// which always outlives any asm_data objects created on that thread.
-// inline: This global variable can be defined in multiple translation units without
-// violating the One Definition Rule (ODR).
+// Per-parser filename intern table: maps each unique source-file name to a compact
+// 32-bit index. One table per asm_parser so config.json instances do not share indices.
 namespace detail {
-  inline thread_local std::vector<std::string> g_filename_table;
-  inline thread_local std::unordered_map<std::string, uint32_t> g_filename_index;
+class filename_table {
+  //TODO: redundant data for fast insertion and lookup. To be removed in future.
+  std::vector<std::string> m_table;
+  std::unordered_map<std::string, uint32_t> m_index;
+  uint32_t m_default_idx = static_cast<uint32_t>(-1);
 
-  inline uint32_t intern_filename(const std::string& fname) {
-    auto it = g_filename_index.find(fname);
-    if (it != g_filename_index.end())
+public:
+  uint32_t intern_filename(const std::string& fname) {
+    auto it = m_index.find(fname);
+    if (it != m_index.end())
       return it->second;
-    const auto idx = static_cast<uint32_t>(g_filename_table.size());
-    g_filename_table.push_back(fname);
-    g_filename_index.emplace(g_filename_table.back(), idx);
+    const auto idx = static_cast<uint32_t>(m_table.size());
+    m_table.push_back(fname);
+    m_index.emplace(m_table.back(), idx);
     return idx;
   }
 
-  inline const std::string& lookup_filename(uint32_t idx) {
-    return g_filename_table[idx];
+  const std::string& lookup_filename(uint32_t idx) const {
+    return m_table[idx];
   }
 
-  // Cached index for synthetic ops that are not tied to a real source path.
-  inline uint32_t default_source_file_idx() {
-    thread_local const uint32_t idx = intern_filename(std::string("default"));
-    return idx;
+  // Returns the interned index for fname, or the invalid sentinel if not present.
+  uint32_t find_filename(const std::string& fname) const {
+    auto it = m_index.find(fname);
+    return it != m_index.end() ? it->second : static_cast<uint32_t>(-1);
   }
+
+  uint32_t default_source_file_idx() {
+    if (m_default_idx == static_cast<uint32_t>(-1))
+      m_default_idx = intern_filename(std::string("default"));
+    return m_default_idx;
+  }
+};
 } // namespace detail
 
 class asm_data
@@ -266,7 +273,7 @@ class asm_data
   pageid_type m_pagenum;
   uint32_t m_linenumber;
   // m_line removed: assembly text is reconstructed on demand via get_line().
-  // m_file replaced with a 32-bit index into a thread_local intern table.
+  // m_file replaced with a 32-bit index into the owning parser's filename_table.
   uint32_t m_file_idx;
   int m_annotation_index = -1;
 
@@ -293,7 +300,9 @@ public:
   HEADER_ACCESS_GET_SET(offset_type, size);
   HEADER_ACCESS_GET_SET(pageid_type, pagenum);
   HEADER_ACCESS_GET_SET(uint32_t, linenumber);
-  const std::string& get_file() const { return detail::lookup_filename(m_file_idx); }
+  const std::string& get_file(const detail::filename_table& table) const {
+    return table.lookup_filename(m_file_idx);
+  }
   uint32_t get_file_idx() const { return m_file_idx; }
   // Qualify the operation's own name as a label-map key (e.g. "0:start_job").
   std::string get_qualify_op_name() const {
@@ -389,7 +398,17 @@ class col_data
   std::map<std::string, std::shared_ptr<scratchpad_info>> m_scratchpads;
   // Counter for PREEMPT opcodes in this column's control code.
   // Used to verify all columns have the same number of preempt points.
-  uint32_t m_preempt_count = 0;
+  unsigned int m_preempt_count = 0;
+  // Counters for load_pdi, load_cores, load_cores_cp, and start_cond_job_preempt opcodes.
+  // Used to verify all columns have the same count in multi-UC configurations.
+  unsigned int m_load_pdi_count = 0;
+  unsigned int m_load_cores_count = 0;
+  unsigned int m_load_cores_cp_count = 0;
+  unsigned int m_start_cond_job_preempt_count = 0;
+  // Sets of @label arguments used by load_pdi and load_cores in this column.
+  // Each PDI / core-elf location must be unique within the same control code elf.
+  std::unordered_set<std::string> m_load_pdi_labels;
+  std::unordered_set<std::string> m_load_cores_labels;
 public:
 
   void ensure_label(const std::string& label)
@@ -428,10 +447,33 @@ public:
   }
 
   // Get the number of PREEMPT opcodes encountered in this column's control code
-  uint32_t get_preempt_count() const { return m_preempt_count; }
+  unsigned int get_preempt_count() const { return m_preempt_count; }
 
   // Increment the PREEMPT opcode counter (called when parsing encounters a PREEMPT opcode)
   void increment_preempt_count() { m_preempt_count++; }
+
+  unsigned int get_load_pdi_count() const { return m_load_pdi_count; }
+  void increment_load_pdi_count() { m_load_pdi_count++; }
+
+  unsigned int get_load_cores_count() const { return m_load_cores_count; }
+  void increment_load_cores_count() { m_load_cores_count++; }
+
+  unsigned int get_load_cores_cp_count() const { return m_load_cores_cp_count; }
+  void increment_load_cores_cp_count() { m_load_cores_cp_count++; }
+
+  unsigned int get_start_cond_job_preempt_count() const { return m_start_cond_job_preempt_count; }
+  void increment_start_cond_job_preempt_count() { m_start_cond_job_preempt_count++; }
+
+  // Try to register a load_pdi @label address. Returns false if it was already registered
+  // (i.e. two load_pdi instructions in this column share the same PDI location).
+  bool try_add_load_pdi_label(const std::string& label) {
+    return m_load_pdi_labels.insert(label).second;
+  }
+
+  // Try to register a load_cores @label address. Returns false on duplicate.
+  bool try_add_load_cores_label(const std::string& label) {
+    return m_load_cores_labels.insert(label).second;
+  }
 };
 
 class attach_to_group_directive;
@@ -478,6 +520,11 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::map<int, std::vector<std::string>> m_preempt_hintmaps;  // group -> vector of hintmap_labels (multiple PREEMPT opcodes per group)
   std::map<std::string, std::pair<std::string, std::string>> m_hintmap_labels;  // hintmap_label -> (save_label, restore_label)
   std::set<int> m_preempt_without_hintmap;  // groups that have PREEMPT opcodes without hintmaps
+  detail::filename_table m_filename_table;
+  // Tracks which filename indices have been interned per column so that duplicate
+  // .include detection is scoped per-col rather than globally across the parser.
+  // Keyed by m_current_col (-1 = pre-attach_to_group context).
+  std::unordered_map<int, std::set<uint32_t>> m_col_seen_files;
 
   // One unique scratchpad region: all hintmap labels that share the same scratchbase+size
   struct hintmap_group_entry {
@@ -531,6 +578,10 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
                              const std::vector<std::string>& save_membd,
                              const std::vector<std::string>& restore_membd);
 
+  // Returns the active column index, defaulting to 0 before the first
+  // .attach_to_group directive is processed.
+  int current_col() const { return (m_current_col >= 0) ? m_current_col : 0; }
+
 public:
   asm_parser(const std::vector<char>& data, const std::vector<std::string>& include_list, const std::string& target_type, const file_artifact* artifacts = nullptr)
     :m_data(data),  m_include_list(include_list), m_target_type(target_type), m_artifacts(artifacts)
@@ -565,11 +616,10 @@ public:
     std::string save_label = "save_" + std::to_string(index);
     std::string restore_label = "restore_" + std::to_string(index);
     m_preempt_labels[group] = {save_label, restore_label};
-    // Increment preempt count for the current col
-    if (m_current_col >= 0) {
-      auto it = m_col.find(m_current_col);
-      it->second.increment_preempt_count();
-    }
+    // Increment preempt count for the column that owns this preempt opcode.
+    // Use the group argument (== current_col()) so col 0 is correctly updated
+    // even before the first .attach_to_group directive is processed.
+    m_col[group].increment_preempt_count();
   }
 
   // Generate unique save/restore labels for a hintmap
@@ -603,19 +653,19 @@ public:
   //   - expected_count: the preempt count from column 0 (reference)
   //   - mismatched_col: column number that has a different count (if success=false)
   //   - mismatched_count: the actual count in the mismatched column (if success=false)
-  std::tuple<bool, uint32_t, int, uint32_t> verify_preempt_count() const {
+  std::tuple<bool, unsigned int, int, unsigned int> verify_preempt_count() const {
     // Get column 0 as the reference for expected preempt count
     auto it = m_col.find(0);
     if (it == m_col.end())
       throw error(error::error_code::internal_error,
                   "Controlcode for Column 0 not found for preempt count verification\n");
 
-    uint32_t expected_count = it->second.get_preempt_count();
+    unsigned int expected_count = it->second.get_preempt_count();
 
     // Compare all other columns against column 0
     for (const auto& [col, data] : m_col) {
       if (col == 0) continue;  // Skip reference column
-      uint32_t count = data.get_preempt_count();
+      unsigned int count = data.get_preempt_count();
       if (count != expected_count) {
         return {false, expected_count, col, count};  // Mismatch found
       }
@@ -630,6 +680,69 @@ public:
         return true;
     }
     return false;
+  }
+
+  // Generic helper: verify all columns have the same count for a given opcode.
+  // count_getter must return an unsigned int count from a col_data reference.
+  // Returns {success, expected_count, mismatched_col, mismatched_count}.
+  template<typename CountGetter>
+  std::tuple<bool, unsigned int, int, unsigned int>
+  verify_opcode_count(CountGetter count_getter) const {
+    auto it = m_col.find(0);
+    if (it == m_col.end())
+      throw error(error::error_code::internal_error,
+                  "Controlcode for Column 0 not found for opcode count verification\n");
+    unsigned int expected_count = count_getter(it->second);
+    for (const auto& [col, data] : m_col) {
+      if (col == 0) continue;
+      unsigned int count = count_getter(data);
+      if (count != expected_count)
+        return {false, expected_count, col, count};
+    }
+    return {true, expected_count, 0, 0};
+  }
+
+  // Verify that all columns have the same load_pdi opcode count.
+  std::tuple<bool, unsigned int, int, unsigned int> verify_load_pdi_count() const {
+    return verify_opcode_count([](const col_data& d) { return d.get_load_pdi_count(); });
+  }
+
+  // Verify that all columns have the same load_cores opcode count.
+  std::tuple<bool, unsigned int, int, unsigned int> verify_load_cores_count() const {
+    return verify_opcode_count([](const col_data& d) { return d.get_load_cores_count(); });
+  }
+
+  // Verify that all columns have the same load_cores_cp opcode count.
+  std::tuple<bool, unsigned int, int, unsigned int> verify_load_cores_cp_count() const {
+    return verify_opcode_count([](const col_data& d) { return d.get_load_cores_cp_count(); });
+  }
+
+  // Verify that all columns have the same start_cond_job_preempt opcode count.
+  std::tuple<bool, unsigned int, int, unsigned int> verify_start_cond_job_preempt_count() const {
+    return verify_opcode_count([](const col_data& d) { return d.get_start_cond_job_preempt_count(); });
+  }
+
+  // Verify that at least one load_pdi exists whenever preempt is present.
+  // cert relies on the load_pdi (and possible load_cores / load_cores_cp) to recover
+  // the last loaded PDI and cores at a preemption point.
+  bool verify_preempt_requires_load_pdi() const {
+    for (const auto& [col, data] : m_col) {
+      if (data.get_preempt_count() > 0 && data.get_load_pdi_count() == 0)
+        return false;
+    }
+    return true;
+  }
+
+  // Verify that every column containing load_cores or load_cores_cp also has at
+  // least one load_pdi.  cert needs load_pdi as the anchor to recover the full
+  // hw context; load_cores / load_cores_cp are meaningless without it.
+  bool verify_load_cores_requires_load_pdi() const {
+    for (const auto& [col, data] : m_col) {
+      if ((data.get_load_cores_count() > 0 || data.get_load_cores_cp_count() > 0) &&
+          data.get_load_pdi_count() == 0)
+        return false;
+    }
+    return true;
   }
 
   std::pair<std::vector<uint8_t>, std::vector<uint8_t>> get_preempt_save_restore(uint32_t key) const;
@@ -666,6 +779,7 @@ public:
   const std::vector<std::string>& get_include_list() const { return m_include_list; }
   std::string get_current_label() const { return m_current_label; }
   const file_artifact* get_artifacts() const { return m_artifacts;}
+
 
   std::string top_label() const
   {
@@ -719,9 +833,36 @@ public:
 
   void set_aie_row_topology_is_set(bool val) { m_aie_row_topology->set_is_set(val); }
 
+  const detail::filename_table& get_filename_table() const { return m_filename_table; }
+
+  uint32_t intern_filename(const std::string& fname) {
+    const auto idx = m_filename_table.intern_filename(fname);
+    m_col_seen_files[m_current_col].insert(idx);
+    return idx;
+  }
+
+  bool is_filename_seen(const std::string& fname) const {
+    const auto idx = m_filename_table.find_filename(fname);
+    if (idx == static_cast<uint32_t>(-1)) return false;
+    auto it = m_col_seen_files.find(m_current_col);
+    if (it == m_col_seen_files.end()) return false;
+    return it->second.count(idx) > 0;
+  }
+
+  uint32_t default_source_file_idx() {
+    return m_filename_table.default_source_file_idx();
+  }
+
   void parse_lines();
 
   void parse_lines(const std::vector<char>& data, std::string& file);
+
+  // Rewrites arg_str and line in-place for a PREEMPT opcode.
+  void handle_preempt_opcode(std::string& arg_str, std::string& line);
+
+  // Runs parse-time counter updates and checks for load_pdi / load_cores /
+  // load_cores_cp / start_cond_job_preempt (matched via LOAD_OR_PREEMPT_COND_RE).
+  void handle_load_or_preempt_cond(const std::string& op_name, const std::string& arg_str, const smatch& sm);
 
   std::vector<char> get_asm_data(const std::string& name);
   // Switch active column for subsequent opcodes. Do not replace existing col_data:
