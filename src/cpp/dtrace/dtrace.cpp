@@ -286,10 +286,8 @@ get_dtrace_result_file(dtrace_handle_t dtrace_handle, const std::string& result_
     }
 }
 
-/*
-void
-update_dtrace_result_buffer(dtrace_handle_t dtrace_handle, const std::string& result_key,
-    nlohmann::ordered_json& result_buffer)
+std::string
+get_dtrace_result_buffer(dtrace_handle_t dtrace_handle)
 {
     try
     {
@@ -328,10 +326,9 @@ update_dtrace_result_buffer(dtrace_handle_t dtrace_handle, const std::string& re
             mem_buffers[uC_index] = std::move(mem_buffer);
         }
 
-        // Update the result buffer with the given result key and result buffer data
+        // Create the result buffer as JSON object
         nlohmann::ordered_json result_json = nlohmann::ordered_json::object();
         handle->g_control->create_result_buffer(result_buffers, mem_buffers, result_json);
-        result_buffer[result_key] = std::move(result_json);
 
         // Iterate over and copy back modified buffers for each uC in global map
         for (const auto& [uC_index, l_dtrace_buffer_info] : handle->g_dtrace_buffer_info_map)
@@ -351,13 +348,16 @@ update_dtrace_result_buffer(dtrace_handle_t dtrace_handle, const std::string& re
                 buffer.size() * sizeof(uint32_t)
             );
         }
+
+        // Return the result buffer as JSON string
+        return result_json.dump();
     }
     catch (const std::exception& e)
     {
         std::cerr << e.what();
+        return "null";
     }
 }
-*/
 
 void
 destroy_dtrace_handle(dtrace_handle_t dtrace_handle)

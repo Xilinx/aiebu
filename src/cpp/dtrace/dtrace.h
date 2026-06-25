@@ -5,7 +5,6 @@
 #define TRACE_H
 
 // This header file contains the public APIs for creating control buffer, memory buffer, and result file
-// #include "json/nlohmann/json.hpp"
 #include "utils.h"
 
 #include <cstdint>
@@ -99,21 +98,17 @@ void
 get_dtrace_result_file(dtrace_handle_t dtrace_handle, const std::string& result_file);
 
 /*!
- * update_dtrace_result_buffer() - Stores dtrace result in an in-memory JSON object.
+ * get_dtrace_result_buffer() - Return dtrace result as JSON string.
  *
  * @dtrace_handle:    Handle to the dynamic tracing context.
- * @result_key:       Key to store the result under in the JSON object.
- * @result_buffer:    JSON object to store results.
+ * @return            JSON serialized result as string.
  *
- * This function extracts results from the device buffer (same as get_dtrace_result_file)
- * but serializes into the provided JSON object under result_key instead of writing to a file.
+ * This function extracts results by processing the result buffer and mem buffer,
+ * and returns the result as JSON string.
  */
-/*
 DTRACE_EXPORT
-void
-update_dtrace_result_buffer(dtrace_handle_t dtrace_handle, const std::string& result_key,
-    nlohmann::ordered_json& result_buffer);
-*/
+std::string
+get_dtrace_result_buffer(dtrace_handle_t dtrace_handle);
 
 /*!
 * destroy_dtrace_handle() - Destroys a dynamic tracing context.
