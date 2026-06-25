@@ -32,6 +32,7 @@ class aie2ps_preprocessed_output : public preprocessed_output
   std::shared_ptr<const aie_row_topology_info> m_aie_row_topology;
   std::map<std::string, std::vector<char>> m_ctrlpkt;
   std::map<uint32_t, std::string> m_ctrlpkt_id_map;
+  std::shared_ptr<const detail::filename_table> m_filename_table;
 public:
 
   explicit aie2ps_preprocessed_output(std::shared_ptr<const partition_info> partition,
@@ -106,6 +107,14 @@ public:
   void set_ctrlpkt_id_map( std::map<uint32_t, std::string>& ctrlpkt_id_map)
   {
     m_ctrlpkt_id_map = ctrlpkt_id_map;
+  }
+
+  void set_filename_table(std::shared_ptr<const detail::filename_table> table) {
+    m_filename_table = std::move(table);
+  }
+
+  const std::shared_ptr<const detail::filename_table>& get_filename_table() const {
+    return m_filename_table;
   }
 };
 

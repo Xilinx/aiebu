@@ -792,8 +792,8 @@ In case the number of TCTs haven't all been arrived yet when this operation is e
 the current job will be blocked until all the TCT arrive. The runtime will proceed with
 execution of other (non-blocked) jobs during that time.
 Use this operation only for tasks which have TCTs enabled and where the TCTs are
-routed to arrive at the uC executing this operation.
-Note that tasks can be enqueued from any jobs, but only one job can call <code>WAIT_TCTS</code>. And
+routed to arrive at the uC executing this operation.</p>
+<p>Note that tasks can be enqueued from any jobs, but only one job can call <code>WAIT_TCTS</code>. And
 waiting for more tcts than enqueued will hang the job forever</p>
 <h2 id="end_job-0x07">END_JOB (0x07)</h2>
 <p>Indicates the end of the current job.</p>
@@ -1179,6 +1179,7 @@ participant columns, where each column takes the bit corresponding to its column
 remote barrier, only one job in a column can participate in. Example:</p>
 <pre><code>REMOTE_BARRIER      $rb0, 0xC
 </code></pre>
+<p>Note that it is not necessary for all prior jobs to complete before the barrier matures.</p>
 <h2 id="eof-0xff">EOF (0xff)</h2>
 <p>Indicates the end of the operation sequence.</p>
 <table>
@@ -1376,8 +1377,21 @@ can determine whether preemption is required, and if required, it can also disti
 <code>RESTORE</code>, and run the <code>SAVE</code> or <code>RESTORE</code> control code accordingly.
 In multi-uC case, at each preemption point, CERT will do barrier sync regardless of whether the preemption happens or not, so
 for each preemption point id, the control code of each uc should have this opcode with same <code>id</code>.
-This opcode should take one whole job but the job can share page with other jobs. All following jobs in same page don't start
-before this preemption job is done</p>
+This opcode should take one whole job but the job can share page with other jobs.</p>
+<p>Note:</p>
+<ol>
+<li>
+<p>When this opcode runs, all prior jobs have to complete, but async tasks triggered by prior jobs don't need to complete.
+   For example, if a prior job triggers a prefetch of weights through shimDMA, the shimDMA doesn't need to complete</p>
+</li>
+<li>
+<p>When this opcode runs, all following jobs in the same page don't start before this preemption job is done</p>
+</li>
+<li>
+<p><code>SAVE</code> and <code>RESTORE</code> control code each has self-contained stream switch routing for themselves. The routing information
+will be cleared after <code>SAVE</code> and <code>RESTORE</code> are done</p>
+</li>
+</ol>
 <h2 id="load_pdi-0x1a">LOAD_PDI (0x1a)</h2>
 <p>load pdi</p>
 <table>
@@ -1404,14 +1418,26 @@ before this preemption job is done</p>
 </tr>
 </tbody>
 </table>
-<p>pdi itself is also a piece of control code. It can be loaded by other control code at anywhere anytime.
-<code>pdi_id</code> is an elf wide unique id and specifies a unique pdi. If multiple control code elfs run in one hwctx,
-the pdi_id should be hwctx wide unique. When this opcode runs, consecutive loading of same pdi results in following
-loading skipped by the uC. <code>pdi_host_addr_offset</code> specifies a relative address in unit of page to the 1st page of
-the control code and is where the pdi control code resides
-This opcode should take one whole job but the job can share page with other jobs. All jobs following the load pdi job
-don't start before the load pdi job is done.
-In multi-uc case, cert will do barrier sync after the load_pdi job, so each uc needs to have same number of load pdi jobs</p>
+<p>A PDI itself is also a piece of control code. It can be loaded by other control code anywhere anytime.
+<code>pdi_id</code> is an ELF-wide unique ID and specifies a unique PDI. If multiple control code ELFs run in one hwctx,
+the <code>pdi_id</code> should be hwctx-wide unique. When this opcode runs, consecutive loading of same PDI will cause subsequent
+loading skipped by the uC. <code>pdi_host_addr_offset</code> specifies a page-unit relative address to the 1st page of
+the control code, indicating where the PDI control code resides
+This opcode should take one whole job but the job can share a page with other jobs. All jobs following the load_pdi job
+don't start before the load_pdi job is done.
+In the multi-uC case, CERT will do barrier sync after the load_pdi job, so each uC needs to have the same number of load_pdi jobs</p>
+<p>According to the AIE spec,</p>
+<pre><code>For full reconfiguration of the cores' program memory, the following steps may be taken.
+
+Wait for core to reach a known synchronization point (lock, or Core done)
+
+Reset, disable core (Section 5.12.2)
+
+Write PM
+
+Unreset, enable core
+</code></pre>
+<p>Note that if core ELF is part of PDI, reset/unreset core and enable/disable of the core are required. This should be part of the generated control code.</p>
 <h2 id="load_cores-0x04">LOAD_CORES (0x04)</h2>
 <p>load cores</p>
 <table>
@@ -1438,7 +1464,8 @@ In multi-uc case, cert will do barrier sync after the load_pdi job, so each uc n
 </tr>
 </tbody>
 </table>
-<p>This essentially is same to LOAD_PDI except that CERT will save the elf info for aie cores to different location than the pdi so that cert can do recovery of both during preemption</p>
+<p>This is essentially the same as LOAD_PDI except that CERT will save the ELF info for AIE cores to a different location than the PDI so that CERT can recover both during preemption.</p>
+<p>Note that similar to LOAD_PDI, reset/unreset and enable/disable of the core are required to load a new core ELF. This should be part of the generated control code.</p>
 <h2 id="load_cores_cp-0x20">LOAD_CORES_CP (0x20)</h2>
 <p>load cores_cp</p>
 <table>
@@ -1461,7 +1488,19 @@ In multi-uc case, cert will do barrier sync after the load_pdi job, so each uc n
 </tr>
 </tbody>
 </table>
-<p>This is to load control packet format core elfs. Compared to the LOAD_CORES, this opcode assumes the control code to load the control packet through shimdma will not take more than a page so that the current page that holds this opcode will not be overwritten. As a result, we can put this control packet loading part right after this opcode and hold everything in one job. The <code>core_elf_id</code> in this opcode and the one in LOAD_CORES are in same id space so that if there are LOAD_CORES and LOAD_CORES_CP, cert can only save the id for the last of these opcodes.</p>
+<p>This is to load control packet format core ELFs. Compared to the <code>LOAD_CORES</code>, this opcode assumes the control code to load the control packet through shimDMA fits a page, so the current page that holds this opcode will not be overwritten. As a result, the control-packet-loading code can be placed immediately after this opcode and kept in a single job. The <code>core_elf_id</code> in this opcode and the one in <code>LOAD_CORES</code> share the same ID space, so if both <code>LOAD_CORES</code> and <code>LOAD_CORES_CP</code>are present, CERT saves the ID of the last one.</p>
+<p>Notes:</p>
+<ol>
+<li>
+<p>Similar to LOAD_PDI, reset/unreset core and enable/disable of the core are required to load a new core ELF. This should be part of the generated control code.</p>
+</li>
+<li>
+<p>Completion of shimDMA transferring control packet blob doesn't imply the completion of the control packet loading. Control code itself is responsible for checking completion of control packet loading. There are two approaches for doing this, one is to enable the write response of the last control packet and the other is to add one extra control packet write to a known register. For the former approach, routing for response packet should be configured, and <code>WAIT_TCTS</code> is used to check the response. For the latter approach, <code>POLL_32</code>/<code>MASK_POLL_32</code> is used to check the register of the extra control packet.</p>
+</li>
+<li>
+<p>In the broadcast case, completion check should be performed on all destination cores.</p>
+</li>
+</ol>
 <h2 id="load_last_pdi-0x1b">LOAD_LAST_PDI (0x1b)</h2>
 <p>load last loaded pdi</p>
 <table>
@@ -1482,8 +1521,19 @@ In multi-uc case, cert will do barrier sync after the load_pdi job, so each uc n
 </tr>
 </tbody>
 </table>
-<p>Used in preemption restore case. The info (pdi id and location in host ddr) of the pdi last time loaded is saved
-in firmware. During restore (after a context switch), the last loaded pdi will be loaded with this opcode</p>
+<p>Used in the preemption restore case. The info (PDI ID and location in host DDR) of the most recently loaded PDI is saved by the firmware. During restore (after a context switch), the last loaded PDI will be loaded with this opcode.</p>
+<p>Notes:</p>
+<ol>
+<li>
+<p>CERT saves information for the last PDI and the last core ELF.</p>
+</li>
+<li>
+<p>The last core ELF can be from either <code>LOAD_CORES</code> or <code>LOAD_CORES_CP</code>, whichever ran last.</p>
+</li>
+<li>
+<p>When preemption is supported, <code>LOAD_PDI</code> is mandatory; that is, there must be at least one <code>LOAD_PDI</code> before any preemption point is inserted. <code>LOAD_CORES</code>/<code>LOAD_CORES_CP</code> are optional.</p>
+</li>
+</ol>
 <h2 id="save_timestamps-0x1c">SAVE_TIMESTAMPS (0x1c)</h2>
 <p>save the timestamps</p>
 <table>
@@ -1534,6 +1584,7 @@ data memory to host memory.</p>
 </table>
 <p>Sleep instruction makes the current job busy waiting <code>target</code> microseconds. This opcode is for test purpose
 only. Calling this operation doesn't yield control to another job.</p>
+<p>Note that this opcode is not supported in release CERT. Dtrace action sleep() is recommended for this test purpose.</p>
 <h2 id="save_register-0x1e">SAVE_REGISTER (0x1e)</h2>
 <p>Reads value from specified register address and saves it in Shared Data Memory.</p>
 <table>
