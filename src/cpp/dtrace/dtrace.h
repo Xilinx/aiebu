@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef TRACE_H
 #define TRACE_H
 
 // This header file contains the public APIs for creating control buffer, memory buffer, and result file
-#include "utils.h"
 
 #include <cstdint>
 #include <iostream>
