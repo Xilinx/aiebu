@@ -1,24 +1,13 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef TRACE_H
 #define TRACE_H
 
 // This header file contains the public APIs for creating control buffer, memory buffer, and result file
-// #include "json/nlohmann/json.hpp"
-#include "utils.h"
 
 #include <cstdint>
-#include <iostream>
 #include <string>
-#include <unordered_map>
-#include <vector>
-
-#ifdef _WIN32
-  #define DTRACE_EXPORT __declspec(dllexport)
-#else
-  #define DTRACE_EXPORT __attribute__((visibility("default")))
-#endif
 
 /*!
  * handle to a dynamic tracing context.
@@ -37,7 +26,6 @@ using dtrace_handle_t = void*;  // NOLINT
  * @return Opaque raw handle to the dynamic tracing context owned by the caller, or NULL on failure.
  * @note The caller must release this handle by calling destroy_dtrace_handle().
  */
-DTRACE_EXPORT
 dtrace_handle_t
 create_dtrace_handle(const std::string& script_file, const std::string& map_data, uint32_t log_level,
     uint32_t output_fmt);
@@ -51,7 +39,6 @@ create_dtrace_handle(const std::string& script_file, const std::string& map_data
  * This function calculates and returns the length of uC for dynamic tracing based
  * on the provided script file and map data.
  */
-DTRACE_EXPORT
 void
 get_dtrace_col_numbers(dtrace_handle_t dtrace_handle, uint32_t* buffers_length);
 
@@ -65,7 +52,6 @@ get_dtrace_col_numbers(dtrace_handle_t dtrace_handle, uint32_t* buffers_length);
  * This function calculates and returns the length of the control and memory buffers 
  * and uC index needed for dynamic tracing based on the provided script file and map data. 
  */
-DTRACE_EXPORT
 void
 get_dtrace_buffer_size(dtrace_handle_t dtrace_handle, uint64_t* buffers);
 
@@ -73,14 +59,13 @@ get_dtrace_buffer_size(dtrace_handle_t dtrace_handle, uint64_t* buffers);
  * populate_dtrace_buffer() - Creates a dynamic tracing buffers.
  *
  * @dtrace_handle:          Handle to the dynamic tracing context.
- * @control_buffer:         Address for control buffer and memory buffer containing 
+ * @dtrace_buffer:          Address for control buffer and memory buffer containing 
  *                          probe and action details and mem action details for multiple uC.
  * @dtrace_buffer_dma:      Physical address of the buffer, used to patch mem action host address
  *
  * This function initializes and allocates dynamic tracing buffers for each uC index. 
  * Each element in the control buffer represents a probe or its respective action.
  */
-DTRACE_EXPORT
 void 
 populate_dtrace_buffer(dtrace_handle_t dtrace_handle, uint32_t* dtrace_buffer, 
     uint64_t dtrace_buffer_dma);
@@ -94,26 +79,20 @@ populate_dtrace_buffer(dtrace_handle_t dtrace_handle, uint32_t* dtrace_buffer,
  * This function creates a result file by processing the result buffer and mem buffer, 
  * and writes the output to the specified result file.
  */
-DTRACE_EXPORT
 void
 get_dtrace_result_file(dtrace_handle_t dtrace_handle, const std::string& result_file);
 
 /*!
- * update_dtrace_result_buffer() - Stores dtrace result in an in-memory JSON object.
+ * get_dtrace_result_buffer() - Return dtrace result as JSON string.
  *
  * @dtrace_handle:    Handle to the dynamic tracing context.
- * @result_key:       Key to store the result under in the JSON object.
- * @result_buffer:    JSON object to store results.
+ * @return            JSON serialized result as string.
  *
- * This function extracts results from the device buffer (same as get_dtrace_result_file)
- * but serializes into the provided JSON object under result_key instead of writing to a file.
+ * This function extracts results by processing the result buffer and mem buffer,
+ * and returns the result as JSON string.
  */
-/*
-DTRACE_EXPORT
-void
-update_dtrace_result_buffer(dtrace_handle_t dtrace_handle, const std::string& result_key,
-    nlohmann::ordered_json& result_buffer);
-*/
+std::string
+get_dtrace_result_buffer(dtrace_handle_t dtrace_handle);
 
 /*!
 * destroy_dtrace_handle() - Destroys a dynamic tracing context.
@@ -123,7 +102,6 @@ update_dtrace_result_buffer(dtrace_handle_t dtrace_handle, const std::string& re
 * This function releases all resources associated with the dynamic tracing handle. 
 * After this call, handle must not be used again.
 */
-DTRACE_EXPORT
 void
 destroy_dtrace_handle(dtrace_handle_t dtrace_handle);
 
