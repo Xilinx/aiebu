@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
-// This file implements the dtrace public APIs for creating dtrace control buffer, 
+// This file implements the dtrace public APIs for creating dtrace control buffer,
 // dtrace memory buffer and dtrace result file.
 #include "dtrace.h"
 #include "utils.h"
@@ -10,9 +10,10 @@
 
 #include <cstring>
 #include <exception>
-#include <filesystem>
+#include <iostream>
 #include <memory>
-#include <stdexcept>
+#include <unordered_map>
+#include <vector>
 
 /**
  * @struct dtrace_buffer_info
