@@ -45,6 +45,8 @@ static unsigned int control_op_save_timestamps(const uint8_t *_pc, uint32_t unq_
 static unsigned int control_op_sleep(const uint8_t *_pc, uint32_t target);
 static unsigned int control_op_save_register(const uint8_t *_pc, uint32_t address, uint32_t unq_id);
 static unsigned int control_op_rel_acq_sync(const uint8_t *_pc, uint32_t rel_address, uint32_t acq_address);
+static unsigned int control_op_uc_dma_mask_poll_ext(const uint8_t *_pc, uint32_t addr_hi, uint32_t addr_lo, uint32_t mask, uint32_t value);
+static unsigned int control_op_apply_offset_pl(const uint8_t *_pc, uint16_t table_ptr, uint16_t num_entries, uint16_t buffer_id);
 
 
 // Dispatchers
@@ -344,6 +346,27 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_rel_ac
   );
 }
 
+FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_uc_dma_mask_poll_ext(const uint8_t *pc)
+{
+  return control_op_uc_dma_mask_poll_ext(
+    pc,
+    /* addr_hi (const) */ *(uint32_t *)(&pc[4]),
+    /* addr_lo (const) */ *(uint32_t *)(&pc[8]),
+    /* mask (const) */ *(uint32_t *)(&pc[12]),
+    /* value (const) */ *(uint32_t *)(&pc[16])
+  );
+}
+
+FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_apply_offset_pl(const uint8_t *pc)
+{
+  return control_op_apply_offset_pl(
+    pc,
+    /* table_ptr (const) */ *(uint16_t *)(&pc[2]),
+    /* num_entries (const) */ *(uint16_t *)(&pc[4]),
+    /* buffer_id (const) */ *(uint16_t *)(&pc[6])
+  );
+}
+
 
 // Case statements for regular operations
 
@@ -376,7 +399,9 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_rel_ac
   case ISA_OPCODE_SAVE_TIMESTAMPS: pc += control_dispatch_save_timestamps(pc); break; \
   case ISA_OPCODE_SLEEP: pc += control_dispatch_sleep(pc); break; \
   case ISA_OPCODE_SAVE_REGISTER: pc += control_dispatch_save_register(pc); break; \
-  case ISA_OPCODE_REL_ACQ_SYNC: pc += control_dispatch_rel_acq_sync(pc); break;
+  case ISA_OPCODE_REL_ACQ_SYNC: pc += control_dispatch_rel_acq_sync(pc); break; \
+  case ISA_OPCODE_UC_DMA_MASK_POLL_EXT: pc += control_dispatch_uc_dma_mask_poll_ext(pc); break; \
+  case ISA_OPCODE_APPLY_OFFSET_PL: pc += control_dispatch_apply_offset_pl(pc); break;
 
 
 #endif

@@ -815,6 +815,87 @@ operations:
 
       ```
 
+  - mnemonic: UC_DMA_MASK_POLL_EXT
+    opcode: 0x22
+    regular: True
+    arguments:
+      - type: pad
+        width: 16
+      - name: addr_hi
+        type: const
+        width: 32
+      - name: addr_lo
+        type: const
+        width: 32
+      - name: mask
+        type: const
+        width: 32
+      - name: value
+        type: const
+        width: 32
+    brief: Polls an external (NoC-mapped) register until (read & mask) == value.
+    description: |
+      Reads a 32-bit value from the external address formed by (addr_hi << 32 | addr_lo) via
+      a uC-DMA MM2DM transfer and busy-waits until (read_value & mask) == value.
+      Analogous to MASK_POLL_32 but for addresses outside the AIE array register space,
+      reachable via NMU -> NoC (e.g. PL IP AXI-Lite registers).
+      Used to poll ap_done (bit[1]) of a wts_pl_ctrl AP_CTRL register after triggering ap_start.
+      Example:
+      ```
+      ; Poll ap_done (bit[1]) on wts_pl_ctrl instance 0 (base 0x80000030000):
+      UC_DMA_MASK_POLL_EXT 0x00000800, 0x00030000, 0x00000002, 0x00000002
+      ```
+
+  - mnemonic: APPLY_OFFSET_PL
+    opcode: 0x23
+    regular: True
+    arguments:
+      - name: table_ptr
+        type: const
+        width: 16
+      - name: num_entries
+        type: const
+        width: 16
+      - name: buffer_id
+        type: const
+        width: 16
+      - name: pad_buf
+        type: patch_buf
+    brief: Patches the physical DDR address (words 8+9) of one or more wts_params blocks for PL IP start_address.
+    description: |
+      Analogous to APPLY_OFFSET_57 but for the PL IP weight buffer address.
+      Patches `num_entries` contiguous wts_params blocks (each 10 words / 40 bytes) starting at
+      `table_ptr`. XRT resolves `buffer_id` to a 64-bit physical address at BO bind time and
+      writes word[8] <- phys_addr[31:0] and word[9] <- phys_addr[63:32] in each block.
+      The optional 4th arg `pad_buf` (type patch_buf) holds the blob for host-side patching,
+      consumed by the assembler only.
+      Example:
+      ```
+      START_JOB 1
+        APPLY_OFFSET_PL @wts_params, 1, WTS_BUFFER_ID
+        UC_DMA_WRITE_DES_SYNC @wts_pl_bd_chain
+        UC_DMA_MASK_POLL_EXT 0x00000800, 0x00030000, 0x00000002, 0x00000002
+      END_JOB
+      .align 16
+      wts_pl_bd_chain:
+        UC_DMA_BD 0x800, 0x00030010, @wts_params, 10, 1, 1
+        UC_DMA_BD 0x800, 0x00030000, @val_ap_start, 1, 1, 0
+      .align 4
+      wts_params:
+        .long 0x00000000 ; word 0  offset
+        .long 0x00000000 ; word 1  (reserved)
+        .long 0x00000004 ; word 2  length
+        .long 0x00000000 ; word 3  (reserved)
+        .long 0x00000000 ; word 4  stride
+        .long 0x00000000 ; word 5  (reserved)
+        .long 0x00000001 ; word 6  iterations
+        .long 0x00000000 ; word 7  (reserved)
+        .long 0x00000000 ; word 8  start_addr[31:0]  <- APPLY_OFFSET_PL
+        .long 0x00000000 ; word 9  start_addr[63:32] <- APPLY_OFFSET_PL
+      val_ap_start:
+        .long 0x00000001
+      ```
+
 directives:
   - mnemonic: .long
     brief: Specifies a 4 byte integer value.
