@@ -886,20 +886,17 @@ UC_DMA_MASK_POLL_EXT 0x00000800, 0x00030000, 0x00000002, 0x00000002
 
 Patches the physical DDR address (words 8+9) of one or more wts_params blocks for PL IP start_address.
 
-| 0x23 | - | table_ptr | num_entries | buffer_id | pad_buf | instruction size |
-| :-: | - | - | - | - | - | -: |
-| opcode (8b) | pad (8b) | const (16b) | const (16b) | const (16b) | patch_buf (0b) | 8B |
+| 0x23 | - | table_ptr | buffer_id | - | instruction size |
+| :-: | - | - | - | - | -: |
+| opcode (8b) | pad (8b) | const (16b) | const (16b) | pad (16b) | 8B |
 
-Analogous to APPLY_OFFSET_57 but for the PL IP weight buffer address.
-Patches `num_entries` contiguous wts_params blocks (each 10 words / 40 bytes) starting at
-`table_ptr`. XRT resolves `buffer_id` to a 64-bit physical address at BO bind time and
+Patches wts_params blocks (each 10 words / 40 bytes) starting at `table_ptr`.
+XRT resolves `buffer_id` to a 64-bit physical address at BO bind time and
 writes word[8] <- phys_addr[31:0] and word[9] <- phys_addr[63:32] in each block.
-The optional 4th arg `pad_buf` (type patch_buf) holds the blob for host-side patching,
-consumed by the assembler only.
 Example:
 ```
 START_JOB 1
-  APPLY_OFFSET_PL @wts_params, 1, WTS_BUFFER_ID
+  APPLY_OFFSET_PL @wts_params, WTS_BUFFER_ID
   UC_DMA_WRITE_DES_SYNC @wts_pl_bd_chain
   UC_DMA_MASK_POLL_EXT 0x00000800, 0x00030000, 0x00000002, 0x00000002
 END_JOB

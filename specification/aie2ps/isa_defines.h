@@ -46,7 +46,7 @@ static unsigned int control_op_sleep(const uint8_t *_pc, uint32_t target);
 static unsigned int control_op_save_register(const uint8_t *_pc, uint32_t address, uint32_t unq_id);
 static unsigned int control_op_rel_acq_sync(const uint8_t *_pc, uint32_t rel_address, uint32_t acq_address);
 static unsigned int control_op_uc_dma_mask_poll_ext(const uint8_t *_pc, uint32_t addr_hi, uint32_t addr_lo, uint32_t mask, uint32_t value);
-static unsigned int control_op_apply_offset_pl(const uint8_t *_pc, uint16_t table_ptr, uint16_t num_entries, uint16_t buffer_id);
+static unsigned int control_op_apply_offset_pl(const uint8_t *_pc, uint16_t table_ptr, uint16_t buffer_id);
 
 
 // Dispatchers
@@ -362,8 +362,7 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_apply_
   return control_op_apply_offset_pl(
     pc,
     /* table_ptr (const) */ *(uint16_t *)(&pc[2]),
-    /* num_entries (const) */ *(uint16_t *)(&pc[4]),
-    /* buffer_id (const) */ *(uint16_t *)(&pc[6])
+    /* buffer_id (const) */ *(uint16_t *)(&pc[4])
   );
 }
 

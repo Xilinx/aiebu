@@ -40,8 +40,8 @@ struct apply_offset_pl {
   uint8_t opcode;        // Opcode identifier
   uint8_t pad;           // Padding byte
   uint16_t table_ptr;    // Pointer to wts_params block
-  uint16_t num_entries;  // Number of contiguous wts_params blocks
   uint16_t buffer_id;    // XRT buffer id (patched to xrt_idx at update time)
+  uint16_t pad2;         // Trailing padding to reach 8-byte instruction size
 };
 
 /**

@@ -121,7 +121,7 @@ process(bool makeunique)
       // since label are after control code ops we need to record intermediately and resolve it later
       if ((!name.compare("apply_offset_57") || !name.compare("apply_offset_pl")) && makeunique)
         apply_label_map[data->get_qualify_label(data->get_operation().get_args()[0].substr(1))]
-                 = std::stoul(data->get_operation().get_args()[1]);
+                 = !name.compare("apply_offset_pl") ? 1 : std::stoul(data->get_operation().get_args()[1]);
     } else {
       throw error(error::error_code::internal_error, "Unknown type found!!!");
     }

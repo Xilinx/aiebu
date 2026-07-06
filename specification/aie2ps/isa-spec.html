@@ -1695,9 +1695,8 @@ UC_DMA_MASK_POLL_EXT 0x00000800, 0x00030000, 0x00000002, 0x00000002
 <th style="text-align: center;">0x23</th>
 <th>-</th>
 <th>table_ptr</th>
-<th>num_entries</th>
 <th>buffer_id</th>
-<th>pad_buf</th>
+<th>-</th>
 <th style="text-align: right;">instruction size</th>
 </tr>
 </thead>
@@ -1707,21 +1706,17 @@ UC_DMA_MASK_POLL_EXT 0x00000800, 0x00030000, 0x00000002, 0x00000002
 <td>pad (8b)</td>
 <td>const (16b)</td>
 <td>const (16b)</td>
-<td>const (16b)</td>
-<td>patch_buf (0b)</td>
+<td>pad (16b)</td>
 <td style="text-align: right;">8B</td>
 </tr>
 </tbody>
 </table>
-<p>Analogous to APPLY_OFFSET_57 but for the PL IP weight buffer address.
-Patches <code>num_entries</code> contiguous wts_params blocks (each 10 words / 40 bytes) starting at
-<code>table_ptr</code>. XRT resolves <code>buffer_id</code> to a 64-bit physical address at BO bind time and
+<p>Patches wts_params blocks (each 10 words / 40 bytes) starting at <code>table_ptr</code>.
+XRT resolves <code>buffer_id</code> to a 64-bit physical address at BO bind time and
 writes word[8] &lt;- phys_addr[31:0] and word[9] &lt;- phys_addr[63:32] in each block.
-The optional 4th arg <code>pad_buf</code> (type patch_buf) holds the blob for host-side patching,
-consumed by the assembler only.
 Example:</p>
 <pre><code>START_JOB 1
-  APPLY_OFFSET_PL @wts_params, 1, WTS_BUFFER_ID
+  APPLY_OFFSET_PL @wts_params, WTS_BUFFER_ID
   UC_DMA_WRITE_DES_SYNC @wts_pl_bd_chain
   UC_DMA_MASK_POLL_EXT 0x00000800, 0x00030000, 0x00000002, 0x00000002
 END_JOB

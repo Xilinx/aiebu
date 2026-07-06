@@ -203,7 +203,7 @@ public:
     });
 
     (*m_isa)["apply_offset_pl"] = std::make_shared<isa_op>("apply_offset_pl", OPCODE_APPLY_OFFSET_PL, std::vector<opArg>{
-     opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("num_entries", opArg::optype::CONST, BIT_WIDTH_16), opArg("buffer_id", opArg::optype::CONST, BIT_WIDTH_16),
+     opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("buffer_id", opArg::optype::CONST, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16),
     });
 
     (*m_isa)[".align"] = std::make_shared<isa_op>(".align", OPCODE_ALIGN, std::vector<opArg>{});
@@ -364,7 +364,7 @@ public:
     }));
 
     m_isa_disasm.emplace(OPCODE_APPLY_OFFSET_PL, isa_op_disasm("apply_offset_pl", OPCODE_APPLY_OFFSET_PL, std::vector<opArg>{
-      opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("num_entries", opArg::optype::CONST, BIT_WIDTH_16), opArg("buffer_id", opArg::optype::CONST, BIT_WIDTH_16),
+      opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("buffer_id", opArg::optype::CONST, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16),
     }));
 
     m_isa_disasm.emplace(OPCODE_EOF, isa_op_disasm("eof", OPCODE_EOF, std::vector<opArg>{

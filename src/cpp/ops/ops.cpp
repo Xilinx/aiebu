@@ -177,24 +177,19 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
         }
 
         // For apply_offset_pl, arg 'buffer_id' emits a pl_ddr_64 ELF relocation
-        // for each wts_params block so XRT can patch words 8+9 at BO bind time.
+        // for the single wts_params block so XRT can patch words 8+9 at BO bind time.
         if (!m_opcode->get_code_name().compare("apply_offset_pl") && !arg.get_name().compare("buffer_id"))
         {
           sval = std::to_string(val); // buffer_id is the XRT arg index
           size_t index = state->find_label_entry(m_args[0].substr(1));
-          auto num_entries = state->parse_num_arg(m_args[1]);
           const std::string ctrltext_patch_sec_name =
               state->merged_ctrltext_elf()
                   ? (".ctrltext." + std::to_string(colnum))
                   : (".ctrltext." + std::to_string(colnum) + "." + std::to_string(pagenum));
-          for (uint32_t numbd = 0; numbd < num_entries; ++numbd)
-          {
-            auto label = state->get_label_at(index);
-            symbols.emplace_back(sval, state->parse_num_arg(label),
-                                 colnum, pagenum, 0, 0, ctrltext_patch_sec_name,
-                                 symbol::patch_schema::pl_ddr_64);
-            ++index;
-          }
+          auto label = state->get_label_at(index);
+          symbols.emplace_back(sval, state->parse_num_arg(label),
+                               colnum, pagenum, 0, 0, ctrltext_patch_sec_name,
+                               symbol::patch_schema::pl_ddr_64);
         }
         if (!state->is_optimization_enabled_for_op(m_opcode->get_code_name())){
           ret.push_back(val & BYTE_MASK);
