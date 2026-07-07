@@ -18,7 +18,6 @@ add_compile_options(
   /Zc:__cplusplus
   /WX           # treat warnings as errors
   /W4           # warning level
-  /Zi           # generate pdb files even in release mode
   /sdl          # enable security checks
   /ZH:SHA_256   # enable secure source code hashing
   /guard:cf     # enable compiler control guard feature (CFG) to prevent attackers from redirecting execution to unsafe locations
@@ -38,9 +37,10 @@ add_compile_options("$<$<STREQUAL:$<CONFIG>,Release>:/Ot>")
 add_compile_definitions($<$<STREQUAL:$<CONFIG>,Release>:_ITERATOR_DEBUG_LEVEL=0>)
 
 add_link_options(
-  /DEBUG      # instruct linker to create debugging info
   /guard:cf   # enable linker control guard feature (CFG) to prevent attackers from redirecting execution to unsafe locations
   )
+
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 
 if (NOT ${CMAKE_CXX_COMPILER} MATCHES "(arm64|ARM64)")
     add_link_options(/CETCOMPAT) # enable Control-flow Enforcement Technology (CET) Shadow Stack mitigation
