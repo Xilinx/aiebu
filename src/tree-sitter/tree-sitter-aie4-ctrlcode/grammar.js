@@ -83,6 +83,7 @@ module.exports = grammar({
       $.uc_dma_write_des_sync_statement,
       $.mask_write_32_statement,
       $.mask_poll_32_statement,
+      $.uc_dma_mask_poll_ext_statement,
       $.apply_offset_statement,
       $.uc_dma_bd_statement,
       $.load_pdi_statement,
@@ -120,6 +121,17 @@ module.exports = grammar({
 
     mask_poll_32_statement: $ => seq(
       'MASK_POLL_32',
+      $.hexint,
+      ',',
+      $.hexint,
+      ',',
+      $.hexint
+    ),
+
+    uc_dma_mask_poll_ext_statement: $ => seq(
+      token(choice('UC_DMA_MASK_POLL_EXT', 'uc_dma_mask_poll_ext')),
+      $.hexint,
+      ',',
       $.hexint,
       ',',
       $.hexint,

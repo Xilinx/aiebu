@@ -44,6 +44,8 @@ constexpr int OPCODE_SAVE_TIMESTAMPS = 28;
 constexpr int OPCODE_SLEEP = 29;
 constexpr int OPCODE_SAVE_REGISTER = 30;
 constexpr int OPCODE_REL_ACQ_SYNC = 33;
+constexpr int OPCODE_UC_DMA_MASK_POLL_EXT = 34;
+constexpr int OPCODE_APPLY_OFFSET_PL = 35;
 constexpr int OPCODE_ALIGN = 0xA5;
 constexpr int BIT_WIDTH_8 = 8;
 constexpr int BIT_WIDTH_16 = 16;
@@ -194,6 +196,14 @@ public:
 
     (*m_isa)["rel_acq_sync"] = std::make_shared<isa_op>("rel_acq_sync", OPCODE_REL_ACQ_SYNC, std::vector<opArg>{
      opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("rel_address", opArg::optype::CONST, BIT_WIDTH_32), opArg("acq_address", opArg::optype::CONST, BIT_WIDTH_32),
+    });
+
+    (*m_isa)["uc_dma_mask_poll_ext"] = std::make_shared<isa_op>("uc_dma_mask_poll_ext", OPCODE_UC_DMA_MASK_POLL_EXT, std::vector<opArg>{
+     opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("addr_hi", opArg::optype::CONST, BIT_WIDTH_32), opArg("addr_lo", opArg::optype::CONST, BIT_WIDTH_32), opArg("mask", opArg::optype::CONST, BIT_WIDTH_32), opArg("value", opArg::optype::CONST, BIT_WIDTH_32),
+    });
+
+    (*m_isa)["apply_offset_pl"] = std::make_shared<isa_op>("apply_offset_pl", OPCODE_APPLY_OFFSET_PL, std::vector<opArg>{
+     opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("buffer_id", opArg::optype::CONST, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16),
     });
 
     (*m_isa)[".align"] = std::make_shared<isa_op>(".align", OPCODE_ALIGN, std::vector<opArg>{});
@@ -347,6 +357,14 @@ public:
 
     m_isa_disasm.emplace(OPCODE_REL_ACQ_SYNC, isa_op_disasm("rel_acq_sync", OPCODE_REL_ACQ_SYNC, std::vector<opArg>{
       opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("rel_address", opArg::optype::CONST, BIT_WIDTH_32), opArg("acq_address", opArg::optype::CONST, BIT_WIDTH_32),
+    }));
+
+    m_isa_disasm.emplace(OPCODE_UC_DMA_MASK_POLL_EXT, isa_op_disasm("uc_dma_mask_poll_ext", OPCODE_UC_DMA_MASK_POLL_EXT, std::vector<opArg>{
+      opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("addr_hi", opArg::optype::CONST, BIT_WIDTH_32), opArg("addr_lo", opArg::optype::CONST, BIT_WIDTH_32), opArg("mask", opArg::optype::CONST, BIT_WIDTH_32), opArg("value", opArg::optype::CONST, BIT_WIDTH_32),
+    }));
+
+    m_isa_disasm.emplace(OPCODE_APPLY_OFFSET_PL, isa_op_disasm("apply_offset_pl", OPCODE_APPLY_OFFSET_PL, std::vector<opArg>{
+      opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("buffer_id", opArg::optype::CONST, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16),
     }));
 
     m_isa_disasm.emplace(OPCODE_EOF, isa_op_disasm("eof", OPCODE_EOF, std::vector<opArg>{

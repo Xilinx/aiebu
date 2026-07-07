@@ -238,9 +238,10 @@ public:
 
   void process_optimization(uint32_t optimize_level)
   {
-    if (optimize_level >= 1)
+    if (optimize_level >= 1) {
       m_opt_opcodes.insert("apply_offset_57");
-    else
+      m_opt_opcodes.insert("apply_offset_pl");
+    } else
       m_opt_opcodes.clear();
   }
 

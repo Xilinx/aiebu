@@ -132,6 +132,8 @@ class transform_manager {
   uint64_t read57_aie4(const uint32_t* bd_data_ptr) const;
   void write57(uint32_t* bd_data_ptr, uint64_t bd_offset);
   void write57_aie4(uint32_t* bd_data_ptr, uint64_t bd_offset);
+  uint64_t read_pl_ddr64(const uint32_t* bd_data_ptr) const;
+  void write_pl_ddr64(uint32_t* bd_data_ptr, uint64_t bd_offset);
   uint64_t ctrlpkt_read57(const uint32_t* bd_data_ptr) const;
   void ctrlpkt_write57(uint32_t* bd_data_ptr, uint64_t bd_offset);
   uint64_t ctrlpkt_read57_aie4(const uint32_t* bd_data_ptr) const;
