@@ -36,6 +36,14 @@ struct apply_offset_57 {
   uint16_t offset;       // Offset value to be modified
 };
 
+struct apply_offset_pl {
+  uint8_t opcode;        // Opcode identifier
+  uint8_t pad;           // Padding byte
+  uint16_t table_ptr;    // Pointer to wts_params block
+  uint16_t buffer_id;    // XRT buffer id (patched to xrt_idx at update time)
+  uint16_t pad2;         // Trailing padding to reach 8-byte instruction size
+};
+
 /**
  * @brief Constructor - loads ELF data and initializes ISA map
  * @param elf_data Raw ELF binary data
@@ -156,6 +164,15 @@ modify_apply_offset_57(char* text_section_data, size_t text_section_size, uint32
         code->offset = static_cast<uint16_t>(lookup_it->second * num_32bit_register); // Convert xrt_id to register offset
     }
 
+    // Process apply_offset_pl opcode
+    if (opcode == OPCODE_APPLY_OFFSET_PL) {
+      auto code = reinterpret_cast<apply_offset_pl*>(text_section_data + offset);
+      auto key = get_key(code->table_ptr, section_idx);
+      auto lookup_it = xrt_idx_lookup.find(key);
+      if (lookup_it != xrt_idx_lookup.end())
+        code->buffer_id = static_cast<uint16_t>(lookup_it->second);
+    }
+
     // Move to next instruction
     offset += size(op_it->second);
   }
@@ -219,6 +236,17 @@ modify_apply_offset_57_merged(char* section_data, size_t section_size, uint32_t 
         auto lookup_it = xrt_idx_lookup.find(key);
         if (lookup_it != xrt_idx_lookup.end())
           code->offset = static_cast<uint16_t>(lookup_it->second * num_32bit_register);
+      }
+
+      if (opcode == OPCODE_APPLY_OFFSET_PL) {
+        auto* code = reinterpret_cast<apply_offset_pl*>(section_data + offset);
+        uint32_t adjusted_ptr = static_cast<uint32_t>(code->table_ptr) +
+                                static_cast<uint32_t>(page_start) +
+                                static_cast<uint32_t>(elf_section_header_size);
+        auto key = get_key(adjusted_ptr, section_idx);
+        auto lookup_it = xrt_idx_lookup.find(key);
+        if (lookup_it != xrt_idx_lookup.end())
+          code->buffer_id = static_cast<uint16_t>(lookup_it->second);
       }
 
       const uint32_t inst_sz = size(op_it->second);
@@ -455,6 +483,31 @@ write57_aie4(uint32_t* bd_data_ptr, uint64_t bd_offset)
 }
 
 /**
+ * @brief Read 64-bit DDR address from wts_params block (words 8+9)
+ * @param bd_data_ptr Pointer to wts_params data (32-bit words)
+ * @return 64-bit physical address: word[8] = [31:0], word[9] = [63:32]
+ */
+uint64_t
+transform_manager::
+read_pl_ddr64(const uint32_t* bd_data_ptr) const
+{
+  return (static_cast<uint64_t>(bd_data_ptr[9]) << 32) | bd_data_ptr[8]; // NOLINT
+}
+
+/**
+ * @brief Write 64-bit DDR address into wts_params block (words 8+9)
+ * @param bd_data_ptr Pointer to wts_params data (32-bit words)
+ * @param bd_offset 64-bit physical DDR address to write
+ */
+void
+transform_manager::
+write_pl_ddr64(uint32_t* bd_data_ptr, uint64_t bd_offset)
+{
+  bd_data_ptr[8] = static_cast<uint32_t>(bd_offset & 0xFFFFFFFF);         // NOLINT
+  bd_data_ptr[9] = static_cast<uint32_t>((bd_offset >> 32) & 0xFFFFFFFF); // NOLINT
+}
+
+/**
  * @brief Read buffer descriptor offset from control packet for AIE2PS
  * @param bd_data_ptr Pointer to control packet header (32-bit words)
  * @return Buffer descriptor offset
@@ -567,6 +620,8 @@ get_controlcode_bd_offset(const std::string& section_name, uint32_t offset, symb
     return read57(bd_data_ptr);
   case symbol::patch_schema::shim_dma_57_aie4:
     return read57_aie4(bd_data_ptr);
+  case symbol::patch_schema::pl_ddr_64:
+    return read_pl_ddr64(bd_data_ptr);
   default:
     throw error(error::error_code::internal_error, "Invalid schema found\n");
   }
@@ -624,6 +679,9 @@ set_controlcode_bd_offset(const std::string& section_name, uint32_t offset, uint
     break;
   case symbol::patch_schema::shim_dma_57_aie4:
     write57_aie4(bd_data_ptr, bd_offset);
+    break;
+  case symbol::patch_schema::pl_ddr_64:
+    write_pl_ddr64(bd_data_ptr, bd_offset);
     break;
   default:
     throw error(error::error_code::internal_error, "Invalid schema found\n");

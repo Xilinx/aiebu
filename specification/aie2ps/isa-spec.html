@@ -135,6 +135,8 @@
 <li><a href="#sleep-0x1d">SLEEP (0x1d)</a></li>
 <li><a href="#save_register-0x1e">SAVE_REGISTER (0x1e)</a></li>
 <li><a href="#rel_acq_sync-0x21">REL_ACQ_SYNC (0x21)</a></li>
+<li><a href="#uc_dma_mask_poll_ext-0x22">UC_DMA_MASK_POLL_EXT (0x22)</a></li>
+<li><a href="#apply_offset_pl-0x23">APPLY_OFFSET_PL (0x23)</a></li>
 </ul>
 </li>
 <li><a href="#directives">Directives</a><ul>
@@ -1647,6 +1649,95 @@ Example:</p>
 
 REL_ACQ_SYNC 0x0205720c, 0x02057004 ; barrierId: 0, lockId: 28, release_aquire relVal: 1  acqVal:  3
 
+</code></pre>
+<h2 id="uc_dma_mask_poll_ext-0x22">UC_DMA_MASK_POLL_EXT (0x22)</h2>
+<p>Polls an external (NoC-mapped) register until (read &amp; mask) == value.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x22</th>
+<th>-</th>
+<th>-</th>
+<th>addr_hi</th>
+<th>addr_lo</th>
+<th>mask</th>
+<th>value</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>pad (16b)</td>
+<td>const (32b)</td>
+<td>const (32b)</td>
+<td>const (32b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">20B</td>
+</tr>
+</tbody>
+</table>
+<p>Reads a 32-bit value from the external address formed by (addr_hi &lt;&lt; 32 | addr_lo) via
+a uC-DMA MM2DM transfer and busy-waits until (read_value &amp; mask) == value.
+Analogous to MASK_POLL_32 but for addresses outside the AIE array register space,
+reachable via NMU -&gt; NoC (e.g. PL IP AXI-Lite registers).
+Used to poll ap_done (bit[1]) of a wts_pl_ctrl AP_CTRL register after triggering ap_start.
+Example:</p>
+<pre><code>; Poll ap_done (bit[1]) on wts_pl_ctrl instance 0 (base 0x80000030000):
+UC_DMA_MASK_POLL_EXT 0x00000800, 0x00030000, 0x00000002, 0x00000002
+</code></pre>
+<h2 id="apply_offset_pl-0x23">APPLY_OFFSET_PL (0x23)</h2>
+<p>Patches the physical DDR address (words 8+9) of one or more wts_params blocks for PL IP start_address.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x23</th>
+<th>-</th>
+<th>table_ptr</th>
+<th>buffer_id</th>
+<th>-</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td>const (16b)</td>
+<td>pad (16b)</td>
+<td style="text-align: right;">8B</td>
+</tr>
+</tbody>
+</table>
+<p>Patches wts_params blocks (each 10 words / 40 bytes) starting at <code>table_ptr</code>.
+XRT resolves <code>buffer_id</code> to a 64-bit physical address at BO bind time and
+writes word[8] &lt;- phys_addr[31:0] and word[9] &lt;- phys_addr[63:32] in each block.
+Example:</p>
+<pre><code>START_JOB 1
+  APPLY_OFFSET_PL @wts_params, WTS_BUFFER_ID
+  UC_DMA_WRITE_DES_SYNC @wts_pl_bd_chain
+  UC_DMA_MASK_POLL_EXT 0x00000800, 0x00030000, 0x00000002, 0x00000002
+END_JOB
+.align 16
+wts_pl_bd_chain:
+  UC_DMA_BD 0x800, 0x00030010, @wts_params, 10, 1, 1
+  UC_DMA_BD 0x800, 0x00030000, @val_ap_start, 1, 1, 0
+.align 4
+wts_params:
+  .long 0x00000000 ; word 0  offset
+  .long 0x00000000 ; word 1  (reserved)
+  .long 0x00000004 ; word 2  length
+  .long 0x00000000 ; word 3  (reserved)
+  .long 0x00000000 ; word 4  stride
+  .long 0x00000000 ; word 5  (reserved)
+  .long 0x00000001 ; word 6  iterations
+  .long 0x00000000 ; word 7  (reserved)
+  .long 0x00000000 ; word 8  start_addr[31:0]  &lt;- APPLY_OFFSET_PL
+  .long 0x00000000 ; word 9  start_addr[63:32] &lt;- APPLY_OFFSET_PL
+val_ap_start:
+  .long 0x00000001
 </code></pre>
 <h1 id="directives">Directives</h1>
 <p>The directive syntax is same as that used by GNU assembler <a href="https://sourceware.org/binutils/docs/as/Pseudo-Ops.html">https://sourceware.org/binutils/docs/as/Pseudo-Ops.html</a>,

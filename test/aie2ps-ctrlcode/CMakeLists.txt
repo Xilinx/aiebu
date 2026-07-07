@@ -85,3 +85,5 @@ add_subdirectory(eff_net_coal)
 add_subdirectory(legal_duplicate_include)
 
 add_subdirectory(decode_opcode)
+
+add_subdirectory(plip)
