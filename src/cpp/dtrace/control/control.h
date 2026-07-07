@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef CONTROL_H
 #define CONTROL_H
@@ -58,7 +58,7 @@ private:
     std::unordered_map<uint32_t, std::vector<uint32_t>> m_control_buffers;
     std::unordered_map<uint32_t, std::vector<uint32_t>> m_mem_buffers;
     std::unordered_map<uint32_t, std::vector<uint32_t>> m_mem_action_locations;
-    std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> m_result_actions;
+    std::vector<std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>>> m_result_actions;
     dtrace::dtrace_output_format m_output_format;
     void populate_result_actions();
 

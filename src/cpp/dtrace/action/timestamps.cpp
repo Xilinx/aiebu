@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
 #include <sstream>
@@ -127,6 +127,21 @@ serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output) const
 {
     std::vector<uint64_t> result = timestamps_action::serialize_helper(result_buffer, mapping);
+    uint64_t result_init = (static_cast<uint64_t>(dtrace::dtrace_ctrl::result_value_init) << dtrace::dtrace_ctrl::forth_byte_shift) 
+                         + dtrace::dtrace_ctrl::result_value_init;
+    // Check if probe fired
+    bool has_data = false;
+    for (const auto& timestamp : result) {
+        if (timestamp != result_init) {
+            has_data = true;
+            break;
+        }
+    }
+    if (!has_data) {
+        m_result_type = action_result_type::read_action_not_fired;
+        return;
+    }
+
     // serialize string format
     script_output << "  " << m_result << " = [";
     for (size_t i = 0; i < result.size(); ++i) {
@@ -135,6 +150,7 @@ serialize(uint32_t* result_buffer, uint32_t*,
             script_output << ", ";
     }
     script_output << "]\n";
+    m_result_type = action_result_type::read_action_fired;
 }
 
 //-------------------------timestamps_action::serialize-------------------------//
@@ -152,12 +168,28 @@ serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output) const
 {
     std::vector<uint64_t> result = timestamps_action::serialize_helper(result_buffer, mapping);
+    uint64_t result_init = (static_cast<uint64_t>(dtrace::dtrace_ctrl::result_value_init) << dtrace::dtrace_ctrl::forth_byte_shift) 
+                         + dtrace::dtrace_ctrl::result_value_init;
+    // Check if probe fired
+    bool has_data = false;
+    for (const auto& timestamp : result) {
+        if (timestamp != result_init) {
+            has_data = true;
+            break;
+        }
+    }
+    if (!has_data) {
+        m_result_type = action_result_type::read_action_not_fired;
+        return;
+    }
+
     // serialize json format
     json json_result = json::array();
     for (uint32_t i = 0; i < result.size(); ++i)
         json_result.push_back(result[i]);
 
     json_output[m_probe_name][m_result] = json_result;
+    m_result_type = action_result_type::read_action_fired;
 }
 
 } // namespace dtrace::action

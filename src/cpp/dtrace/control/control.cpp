@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 // This file defines the control class which is responsible for creating control buffers and result files.
 #include "control.h"
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 #ifdef _WIN32
@@ -314,8 +316,11 @@ populate_result_actions()
     // Probe - begin
     if (m_parser.m_probes.at(uC_index).find("begin") != m_parser.m_probes.at(uC_index).end())
     {
+        std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> begin_actions;
         for (const auto& action : m_parser.m_probes.at(uC_index).at("begin")->m_actions)
-            m_result_actions.emplace_back(action, uC_index);
+            begin_actions.emplace_back(action, uC_index);
+
+        m_result_actions.emplace_back(begin_actions);
     }
 
     // Probe - Jprobe and Tracepoint
@@ -326,17 +331,23 @@ populate_result_actions()
             if (probe_name == "begin" || probe_name == "end")
                 continue;
 
+            std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> probe_actions;
             const auto& probe = m_parser.m_probes.at(uC).at(probe_name);
             for (const auto& action : probe->m_actions)
-                m_result_actions.emplace_back(action, uC);
+                probe_actions.emplace_back(action, uC);
+
+            m_result_actions.emplace_back(probe_actions);
         }
     }
 
     // Probe - end
     if (m_parser.m_probes.at(uC_index).find("end") != m_parser.m_probes.at(uC_index).end())
     {
+        std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> end_actions;
         for (const auto& action : m_parser.m_probes.at(uC_index).at("end")->m_actions)
-            m_result_actions.emplace_back(action, uC_index);
+            end_actions.emplace_back(action, uC_index);
+
+        m_result_actions.emplace_back(end_actions);
     }
 }
 
@@ -346,92 +357,159 @@ populate_result_actions()
  *
  * @param buffer_info_map
  *  Map containing dtrace buffer information (buffer addresses and sizes) indexed by uC.
- * @param output_file 
+ * @param output_file
  *  Path to the output file where the Python script will be written.
  *
  * This function generates a Python script that processes the provided buffer information
  * map. Serializing the actions into the output file.
  */
-void 
+void
 control::
 create_result_file(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffer_info_map,
     const std::string& output_file) const
 {
+    // Construct file path
+    std::string output_file_path = (std::filesystem::current_path() / output_file).string();
+    bool file_created = false;
+
     // Process actions based on output format
     if (m_output_format == dtrace::dtrace_output_format::python)
     {
-        // Create python script
-        std::ofstream script_output(output_file);
-        if (!script_output)
-            DTRACE_ERROR("DTRACE_CONTROL_RESULT_FILE_NOT_FOUND", "result file: " << output_file);
-            
-        script_output << "#! /usr/bin/env python3\n";
-        script_output << "import sys\n\n";
-        script_output << "if __name__ == '__main__':\n";
-        for (const auto& item : m_result_actions)
+        std::ofstream script_output;
+
+        // Iterate through probe groups
+        for (const auto& probe_actions : m_result_actions)
         {
-            const auto& action = item.first;
-            uint32_t loop_uC_index = item.second;
-            try
+            std::stringstream probe_stream;
+            // Assume probe fired until proven otherwise
+            bool probe_fired = false;
+
+            // Serialize each action in the probe
+            for (const auto& item : probe_actions)
             {
-                const auto& buffer_info = buffer_info_map.at(loop_uC_index);
-                // Serialize action to build python script
-                action->serialize(
-                    buffer_info.buffer_addr,
-                    buffer_info.buffer_addr + buffer_info.control_buffer.size(),
-                    m_pager.get_action_location_mapping(loop_uC_index),
-                    script_output
-                );
+                const auto& action = item.first;
+                uint32_t loop_uC_index = item.second;
+                try
+                {
+                    const auto& buffer_info = buffer_info_map.at(loop_uC_index);
+                    action->serialize(
+                        buffer_info.buffer_addr,
+                        buffer_info.buffer_addr + buffer_info.control_buffer.size(),
+                        m_pager.get_action_location_mapping(loop_uC_index),
+                        probe_stream
+                    );
+
+                    if (action->get_result_type() == action::action_result_type::read_action_fired ||
+                        action->get_result_type() == action::action_result_type::print_action_fired)
+                    {   // If read action fired or print action fired, probe fired
+                        probe_fired = true;
+                    }
+                    else if (action->get_result_type() == action::action_result_type::read_action_not_fired)
+                    {   // If read action didn't fire, probe didn't fire - stop processing probe
+                        probe_fired = false;
+                        break;  // EARLY EXIT - skip remaining actions in probe
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    DTRACE_ERROR("DTRACE_ACTION_SERIALIZE_FAILED",
+                        "Failed to serialize action " << action->create_string()
+                        << " for uC index " << loop_uC_index << ". Exception: " << e.what()
+                    );
+                }
             }
-            catch (const std::exception& e)
+
+            // If any probe fired, we will create the output file
+            if (probe_fired)
             {
-                DTRACE_ERROR("DTRACE_ACTION_SERIALIZE_FAILED", "Failed to serialize action "
-                    << action->create_string() << " for uC index " << loop_uC_index << ". Exception: " << e.what()
-                );
+                // Create file with header on first probe fire
+                if (!file_created)
+                {
+                    script_output.open(output_file_path);
+                    if (!script_output)
+                        DTRACE_ERROR("DTRACE_CONTROL_RESULT_FILE_NOT_FOUND", "result file: " << output_file_path);
+
+                    script_output << "#! /usr/bin/env python3\n";
+                    script_output << "import sys\n\n";
+                    script_output << "if __name__ == '__main__':\n";
+                    file_created = true;
+                }
+                // Append this probe's output to the file
+                script_output << probe_stream.str();
             }
         }
-        script_output << "  " << "sys.exit(0)\n";
-        script_output.close();
+
+        // Only write footer if file was created
+        if (file_created)
+        {
+            script_output << "  " << "sys.exit(0)\n";
+            script_output.close();
+        }
     }
     else if (m_output_format == dtrace::dtrace_output_format::json)
     {
         // Create JSON output
         nlohmann::ordered_json json_output = nlohmann::ordered_json::object();
 
-        for (const auto& item : m_result_actions)
+        // Iterate through probe groups
+        for (const auto& probe_actions : m_result_actions)
         {
-            const auto& action = item.first;
-            uint32_t loop_uC_index = item.second;
-            try
-            {                
-                const auto& buffer_info = buffer_info_map.at(loop_uC_index);
-                // Serialize action to build JSON result
-                action->serialize(
-                    buffer_info.buffer_addr,
-                    buffer_info.buffer_addr + buffer_info.control_buffer.size(),
-                    m_pager.get_action_location_mapping(loop_uC_index),
-                    json_output
-                );
-            }
-            catch (const std::exception& e)
+            // Assume probe fired until proven otherwise
+            bool probe_fired = false;
+
+            // Serialize each action in the probe
+            for (const auto& item : probe_actions)
             {
-                DTRACE_ERROR("DTRACE_ACTION_SERIALIZE_FAILED", "Failed to serialize action "
-                    << action->create_string() << " for uC index " << loop_uC_index << ". Exception: " << e.what()
-                );
+                const auto& action = item.first;
+                uint32_t loop_uC_index = item.second;
+                try
+                {
+                    const auto& buffer_info = buffer_info_map.at(loop_uC_index);
+                    action->serialize(
+                        buffer_info.buffer_addr,
+                        buffer_info.buffer_addr + buffer_info.control_buffer.size(),
+                        m_pager.get_action_location_mapping(loop_uC_index),
+                        json_output
+                    );
+
+                    if (action->get_result_type() == action::action_result_type::read_action_fired ||
+                        action->get_result_type() == action::action_result_type::print_action_fired)
+                    {   // If read action fired or print action fired, probe fired
+                        probe_fired = true;
+                    }
+                    else if (action->get_result_type() == action::action_result_type::read_action_not_fired)
+                    {   // If read action didn't fire, probe didn't fire - stop processing probe
+                        probe_fired = false;
+                        break;  // EARLY EXIT - skip remaining actions in probe
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    DTRACE_ERROR("DTRACE_ACTION_SERIALIZE_FAILED",
+                        "Failed to serialize action " << action->create_string()
+                        << " for uC index " << loop_uC_index << ". Exception: " << e.what()
+                    );
+                }
             }
+
+            // If any probe fired, we will create the JSON output file
+            if (probe_fired)
+                file_created = true;
         }
 
-        // Write JSON to file
-        std::ofstream json_file(output_file);
-        if (!json_file)
-            DTRACE_ERROR("DTRACE_CONTROL_RESULT_FILE_NOT_FOUND", "result file: " << output_file);
+        if (file_created)
+        {
+            std::ofstream json_file(output_file_path);
+            if (!json_file)
+                DTRACE_ERROR("DTRACE_CONTROL_RESULT_FILE_NOT_FOUND", "result file: " << output_file_path);
 
-        json_file << json_output.dump(4) << "\n";
-        json_file.close();
+            json_file << json_output.dump(4) << "\n";
+            json_file.close();
+        }
     }
-    else 
+    else
     {
-        DTRACE_ERROR("DTRACE_OUTPUT_FORMAT_NOT_SUPPORTED", 
+        DTRACE_ERROR("DTRACE_OUTPUT_FORMAT_NOT_SUPPORTED",
             "Output format " << static_cast<int>(m_output_format) << " not supported yet."
         );
     }
@@ -459,26 +537,34 @@ create_result_buffer(const std::unordered_map<uint32_t, dtrace_buffer_info>& buf
             "Output format " << static_cast<int>(m_output_format) << " not supported for buffer result."
         );
 
-    // Process actions and serialize results into JSON object
-    for (const auto& item : m_result_actions)
+    // Iterate through probe groups
+    for (const auto& probe_actions : m_result_actions)
     {
-        const auto& action = item.first;
-        uint32_t loop_uC_index = item.second;
-        try
+        // Serialize each action in the probe
+        for (const auto& item : probe_actions)
         {
-            const auto& buffer_info = buffer_info_map.at(loop_uC_index);
-            action->serialize(
-                buffer_info.buffer_addr,
-                buffer_info.buffer_addr + buffer_info.control_buffer.size(),
-                m_pager.get_action_location_mapping(loop_uC_index),
-                json_output
-            );
-        }
-        catch (const std::exception& e)
-        {
-            DTRACE_ERROR("DTRACE_ACTION_SERIALIZE_FAILED", "Failed to serialize action "
-                << action->create_string() << " for uC index " << loop_uC_index << ". Exception: " << e.what()
-            );
+            const auto& action = item.first;
+            uint32_t loop_uC_index = item.second;
+            try
+            {
+                const auto& buffer_info = buffer_info_map.at(loop_uC_index);
+                action->serialize(
+                    buffer_info.buffer_addr,
+                    buffer_info.buffer_addr + buffer_info.control_buffer.size(),
+                    m_pager.get_action_location_mapping(loop_uC_index),
+                    json_output
+                );
+
+                // If action didn't fire, probe didn't fire - stop processing probe
+                if (action->get_result_type() != action::action_result_type::read_action_not_fired)
+                    break;  // EARLY EXIT - skip remaining actions in probe
+            }
+            catch (const std::exception& e)
+            {
+                DTRACE_ERROR("DTRACE_ACTION_SERIALIZE_FAILED", "Failed to serialize action "
+                    << action->create_string() << " for uC index " << loop_uC_index << ". Exception: " << e.what()
+                );
+            }
         }
     }
 }

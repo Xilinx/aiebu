@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
 #include <iomanip>
@@ -188,6 +188,7 @@ serialize(uint32_t* result_buffer, uint32_t*,
 {
     // serialize string format
     script_output << "  " << "print(\"\"\"\n" << printa_action::serialize_helper(result_buffer) << "  " << "\"\"\")\n";
+    m_result_type = action_result_type::print_action_fired;
 }
 
 //-------------------------printa_action::serialize-------------------------//
@@ -204,6 +205,7 @@ printa_action::
 serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
+    m_result_type = action_result_type::print_action_fired;
 }
 
 } // namespace dtrace::action

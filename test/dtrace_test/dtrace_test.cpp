@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/dtrace.h"
 
@@ -66,8 +66,16 @@ run_dtrace_test(const std::string& script_file,
             return 1;
         }
 
-        // create result file using get_dtrace_result_file api
         if (!result_file.empty()) {
+            // replace init values in the result buffer with 0xabcdabcd
+            const uint32_t result_init_value = 0xfbadcafe;
+            const uint32_t result_mocked_value = 0xabcdabcd;
+            for (uint32_t i = 0; i < dtrace_buffer_length; ++i) {
+                if (dtrace_buffer[i] == result_init_value)
+                    dtrace_buffer[i] = result_mocked_value;
+            }
+
+            // create result file using get_dtrace_result_file api 
             get_dtrace_result_file(dtrace_handle, result_file);
         }
 
@@ -96,10 +104,10 @@ int main(int argc, char** argv)
             std::filesystem::path output_path(output_file);
             if (fmt_arg == "python") {
                 output_fmt = 0U;
-                result_file = (output_path.parent_path() / output_path.stem()).string() + ".py";
+                result_file = output_path.stem().string() + ".py";
             } else if (fmt_arg == "json") {
                 output_fmt = 1U;
-                result_file = (output_path.parent_path() / output_path.stem()).string() + ".json";
+                result_file = output_path.stem().string() + ".json";
             }
         }
 

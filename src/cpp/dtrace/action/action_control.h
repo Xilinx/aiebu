@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef ACTION_CONTROL_H
 #define ACTION_CONTROL_H
@@ -171,6 +171,14 @@ public:
     static constexpr uint32_t mem_rw_action_size = 5;           // Size of a memory read/write action
 };
 
+// -------------------------Action Result Type-------------------------//
+enum class action_result_type {
+    print_action_fired,
+    write_action_fired,
+    read_action_fired,
+    read_action_not_fired
+};
+
 //-------------------------Action class-------------------------//
 /**
  * @class action
@@ -195,6 +203,7 @@ protected:
     uint32_t m_control_location;
     uint32_t m_mem_location;
     std::string m_result;
+    mutable action_result_type m_result_type = action_result_type::write_action_fired;
     void set_location(const std::vector<uint32_t>& buffer, bool is_mem_buffer);
 
 public:
@@ -213,6 +222,7 @@ public:
         uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const = 0;
+    action_result_type get_result_type() const { return m_result_type; }
     virtual uint64_t get_mem_host_addr() const { return 0; }
     uint32_t get_location(bool is_mem_buffer) const;
     std::string create_string() const;
