@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,21 @@ class elfio;
 }
 
 namespace aiebu {
+
+/*!
+ * @struct aie_coredump_meta
+ *
+ * @brief
+ * Optional metadata attached to an AIE coredump ELF.
+ */
+struct aie_coredump_meta {
+  uint64_t    timestamp_ns;     ///< Capture timestamp in nanoseconds
+  std::string driver_version;   ///< Driver version string
+  std::string fw_version;       ///< Firmware version string
+  std::string device_info;      ///< Device identification string
+  uint32_t    context_status;   ///< Context status word at time of dump
+  std::string uuid;             ///< UUID uniquely identifying the AIE ELF loaded on target
+};
 
 /*!
  * @struct instinfo
@@ -131,6 +147,11 @@ class aiebu_assembler
       elf_aie4a_config,
       elf_aie4z,
       elf_aie4z_config,
+      coredump_aie2p,
+      coredump_aie2ps,
+      coredump_aie4,
+      coredump_aie4a,
+      coredump_aie4z,
       unspecified,
       blob_aie2ps,    // Raw binary file for aie2ps architecture
       blob_aie4,      // Raw binary file for aie4 architecture
@@ -216,6 +237,20 @@ class aiebu_assembler
                     const std::vector<std::string>& flags);
 
     /*
+     * Construct an AIE coredump ELF from a raw dump blob.
+     * Only coredump_aie2p, coredump_aie2ps, coredump_aie4, coredump_aie4a,
+     * and coredump_aie4z buffer types are accepted; all others throw
+     * aiebu::error with error_code::invalid_buffer_type.
+     *
+     * @type   One of the coredump_* buffer_type values.
+     * @blob   Raw AIE memory dump bytes.
+     * @meta   Optional metadata (timestamps, versions, etc.).
+     */
+    aiebu_assembler(buffer_type type,
+                    const std::vector<char>& blob,
+                    std::optional<aie_coredump_meta> meta);
+
+    /*
      * This function return vector with elf content.
      *
      * Inside elf for IPU, instr_buf will be placed in .text section and control_buf will
@@ -229,6 +264,15 @@ class aiebu_assembler
     [[nodiscard]]
     std::vector<char>
     get_elf() const;
+
+    /*
+     * Parse the NT_AIE_DUMP_HDR note from a coredump ELF and return its
+     * metadata.  Returns nullopt if the ELF is not ET_CORE or contains
+     * no AMDAIE_CORE note.
+     */
+    [[nodiscard]]
+    std::optional<aie_coredump_meta>
+    get_coredump_meta() const;
 
     void
     get_report(std::ostream &stream) const;

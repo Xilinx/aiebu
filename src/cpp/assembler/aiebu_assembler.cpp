@@ -14,6 +14,8 @@
 #include "aiebu/aiebu.h"
 #include "aiebu/aiebu_assembler.h"
 #include "aiebu/aiebu_error.h"
+#include "aie_elf_constants.h"
+#include "coredump_elfwriter.h"
 #include "json/nlohmann/json.hpp"
 
 #include <algorithm>
@@ -135,11 +137,41 @@ aiebu_assembler(buffer_type type,
   }
 }
 
+static unsigned char arch_to_osabi(aiebu_assembler::buffer_type type)
+{
+  switch (type) {
+    case aiebu_assembler::buffer_type::coredump_aie2p:  return osabi_aie2p;
+    case aiebu_assembler::buffer_type::coredump_aie2ps: return osabi_aie2ps;
+    case aiebu_assembler::buffer_type::coredump_aie4:   return osabi_aie4;
+    case aiebu_assembler::buffer_type::coredump_aie4a:  return osabi_aie4a;
+    case aiebu_assembler::buffer_type::coredump_aie4z:  return osabi_aie4z;
+    default:
+      throw error(error::error_code::invalid_buffer_type,
+                  "Buffer_type not supported for coredump assembler !!!");
+  }
+}
+
+aiebu_assembler::
+aiebu_assembler(buffer_type type,
+                const std::vector<char>& blob,
+                std::optional<aie_coredump_meta> meta)
+{
+  elf_data = coredump_elf_writer(arch_to_osabi(type), blob, std::move(meta)).finalize();
+  m_output_type = type;
+}
+
 std::vector<char>
 aiebu_assembler::
 get_elf() const
 {
   return elf_data;
+}
+
+std::optional<aie_coredump_meta>
+aiebu_assembler::
+get_coredump_meta() const
+{
+  return parse_coredump_meta(elf_data);
 }
 
 void
