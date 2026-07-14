@@ -20,25 +20,29 @@ namespace aiebu {
 // elf_prpsinfo32 – mirrors the Linux kernel's elf_prpsinfo structure for
 // 32-bit ELFs (ILP32).  Must be exactly 124 bytes.
 // ---------------------------------------------------------------------------
+constexpr size_t PRPSINFO_FNAME_LEN  = 16;   // pr_fname field width (Linux ABI)
+constexpr size_t PRPSINFO_PSARGS_LEN = 80;   // pr_psargs field width (Linux ABI)
+constexpr size_t PRPSINFO_STRUCT_SZ  = 124;  // total size of elf_prpsinfo32 (Linux ABI)
+
 #pragma pack(push, 1)
 struct elf_prpsinfo32 {
-  uint8_t  pr_state;        // 1   numeric process state
-  char     pr_sname;        // 1   process state letter
-  uint8_t  pr_zomb;         // 1   zombie
-  uint8_t  pr_nice;         // 1   nice value
-  uint32_t pr_flag;         // 4   process flags
-  uint16_t pr_uid;          // 2   effective uid
-  uint16_t pr_gid;          // 2   effective gid
-  int32_t  pr_pid;          // 4   pid
-  int32_t  pr_ppid;         // 4   parent pid
-  int32_t  pr_pgrp;         // 4   process group
-  int32_t  pr_sid;          // 4   session
-  char     pr_fname[16];    // 16  exec file name (null-padded)
-  char     pr_psargs[80];   // 80  initial process args (null-padded)
-};                          // total = 124
+  uint8_t  pr_state;                    // 1   numeric process state
+  char     pr_sname;                    // 1   process state letter
+  uint8_t  pr_zomb;                     // 1   zombie
+  uint8_t  pr_nice;                     // 1   nice value
+  uint32_t pr_flag;                     // 4   process flags
+  uint16_t pr_uid;                      // 2   effective uid
+  uint16_t pr_gid;                      // 2   effective gid
+  int32_t  pr_pid;                      // 4   pid
+  int32_t  pr_ppid;                     // 4   parent pid
+  int32_t  pr_pgrp;                     // 4   process group
+  int32_t  pr_sid;                      // 4   session
+  char     pr_fname[PRPSINFO_FNAME_LEN];   // NOLINT(cppcoreguidelines-avoid-c-arrays) — Linux ABI
+  char     pr_psargs[PRPSINFO_PSARGS_LEN]; // NOLINT(cppcoreguidelines-avoid-c-arrays) — Linux ABI
+};                                         // total = 124
 #pragma pack(pop)
 
-static_assert(sizeof(elf_prpsinfo32) == 124,
+static_assert(sizeof(elf_prpsinfo32) == PRPSINFO_STRUCT_SZ,
               "elf_prpsinfo32 must be exactly 124 bytes");
 
 // ---------------------------------------------------------------------------
@@ -82,13 +86,13 @@ make_note(const ELFIO::endianess_convertor& conv,
           const std::vector<char>&          desc)
 {
   // Number of padding bytes needed to align n to a 4-byte boundary.
-  auto pad4 = [](uint32_t n) -> uint32_t { return (4u - (n & 3u)) & 3u; };
+  auto pad4 = [](uint32_t n) -> uint32_t { return (4U - (n & 3U)) & 3U; };
 
-  const uint32_t namesz = static_cast<uint32_t>(std::strlen(name)) + 1u;
+  const uint32_t namesz = static_cast<uint32_t>(std::strlen(name)) + 1U;
   const uint32_t descsz = static_cast<uint32_t>(desc.size());
 
   std::vector<char> entry;
-  entry.reserve(3u * sizeof(uint32_t)
+  entry.reserve(3U * sizeof(uint32_t)
                 + namesz + pad4(namesz)
                 + descsz + pad4(descsz));
 
@@ -136,12 +140,14 @@ build_prpsinfo_desc() const
   info.pr_sname = 'R';
   info.pr_pid   = 1;
 
-  static const char fname[] = "aie_coredump";
-  std::strncpy(info.pr_fname,  fname, sizeof(info.pr_fname)  - 1);
-  std::strncpy(info.pr_psargs, fname, sizeof(info.pr_psargs) - 1);
+  static constexpr std::string_view fname = "aie_coredump";
+  static_assert(fname.size() < PRPSINFO_FNAME_LEN,  "fname too long for pr_fname");
+  static_assert(fname.size() < PRPSINFO_PSARGS_LEN, "fname too long for pr_psargs");
+  std::memcpy(info.pr_fname,  fname.data(), fname.size());
+  std::memcpy(info.pr_psargs, fname.data(), fname.size());
 
   const auto* p = reinterpret_cast<const char*>(&info);
-  return std::vector<char>(p, p + sizeof(info));
+  return {p, p + sizeof(info)};
 }
 
 std::vector<char>
@@ -246,33 +252,33 @@ finalize() const
 
   append16(static_cast<uint16_t>(ELFIO::ET_CORE));        // e_type
   append16(static_cast<uint16_t>(em_aiectrlcode));         // e_machine
-  append32(1u);                                            // e_version (EV_CURRENT)
-  append32(0u);                                            // e_entry
+  append32(1U);                                            // e_version (EV_CURRENT)
+  append32(0U);                                            // e_entry
   append32(ELF_HDR_SZ);                                   // e_phoff
-  append32(0u);                                            // e_shoff  = 0 (no SHT)
-  append32(0u);                                            // e_flags
+  append32(0U);                                            // e_shoff  = 0 (no SHT)
+  append32(0U);                                            // e_flags
   append16(static_cast<uint16_t>(ELF_HDR_SZ));            // e_ehsize
   append16(static_cast<uint16_t>(PHDR_SZ));               // e_phentsize
   append16(static_cast<uint16_t>(NUM_PHDRS));              // e_phnum
-  append16(0u);                                            // e_shentsize = 0 (no SHT)
-  append16(0u);                                            // e_shnum     = 0 (no SHT)
-  append16(0u);                                            // e_shstrndx  = 0 (no SHT)
+  append16(0U);                                            // e_shentsize = 0 (no SHT)
+  append16(0U);                                            // e_shnum     = 0 (no SHT)
+  append16(0U);                                            // e_shstrndx  = 0 (no SHT)
 
   // ---- PT_NOTE program header ----
   append32(static_cast<uint32_t>(ELFIO::PT_NOTE));  // p_type
   append32(NOTE_OFF);                                // p_offset
-  append32(0u);                                      // p_vaddr
-  append32(0u);                                      // p_paddr
+  append32(0U);                                      // p_vaddr
+  append32(0U);                                      // p_paddr
   append32(note_size);                               // p_filesz
-  append32(0u);                                      // p_memsz  = 0 (notes not loaded)
+  append32(0U);                                      // p_memsz  = 0 (notes not loaded)
   append32(static_cast<uint32_t>(ELFIO::PF_R));     // p_flags
-  append32(4u);                                      // p_align
+  append32(4U);                                      // p_align
 
   // ---- PT_LOAD program header ----
   append32(static_cast<uint32_t>(ELFIO::PT_LOAD));  // p_type
   append32(load_off);                                // p_offset
-  append32(0u);                                      // p_vaddr
-  append32(0u);                                      // p_paddr
+  append32(0U);                                      // p_vaddr
+  append32(0U);                                      // p_paddr
   append32(load_size);                               // p_filesz
   append32(load_size);                               // p_memsz
   append32(static_cast<uint32_t>(ELFIO::PF_R));     // p_flags

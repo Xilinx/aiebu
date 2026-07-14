@@ -155,9 +155,9 @@ aiebu_assembler::
 aiebu_assembler(buffer_type type,
                 const std::vector<char>& blob,
                 std::optional<aie_coredump_meta> meta)
+  : m_output_type(buffer_type::unspecified)
 {
   elf_data = coredump_elf_writer(arch_to_osabi(type), blob, std::move(meta)).finalize();
-  m_output_type = type;
 }
 
 std::vector<char>

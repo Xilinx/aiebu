@@ -39,8 +39,8 @@ inline constexpr const char* nt_name_amdaie_core = "AMDAIE_CORE";
 // ============================================================================
 // Coredump load sizes per AIE architecture family
 // ============================================================================
-constexpr uint32_t coredump_load_size_aie2p = 0x03000000u;  // 48 MB
-constexpr uint32_t coredump_load_size_aie4  = 0x01B00000u;  // 27 MB
+constexpr uint32_t coredump_load_size_aie2p = 0x03000000U;  // 48 MB
+constexpr uint32_t coredump_load_size_aie4  = 0x01B00000U;  // 27 MB
 
 }
 #endif // AIEBU_ELF_AIE_ELF_CONSTANTS_H_
