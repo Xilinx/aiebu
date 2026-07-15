@@ -1,10 +1,9 @@
-/* SPDX-License-Identifier: Apache MIT */
 /*
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * SPDX-License-Identifier: MIT
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  */
-
-#ifndef _ISA_STUBS_H_
-#define _ISA_STUBS_H_
+#ifndef ISA_STUBS_H_
+#define ISA_STUBS_H_
 
 #include <stdint.h>
 
