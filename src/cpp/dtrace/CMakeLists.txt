@@ -58,7 +58,8 @@ endif()
 
 # As long as we support static linking of targets that depend on static cert dtrace,
 # the cert dtrace static library must be released.
-install(TARGETS cert_dtrace_static
-  EXPORT aiebu-targets
-  ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT}
-  )
+if(AIEBU_INSTALL_STATIC_LIBRARY)
+  install(TARGETS cert_dtrace_static
+    EXPORT aiebu-targets
+    ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT})
+endif()
