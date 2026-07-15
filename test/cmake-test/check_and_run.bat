@@ -1,7 +1,7 @@
 @echo off
 
-REM SPDX-License-Identifier: Apache-2.0
-REM Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
+REM SPDX-License-Identifier: MIT
+REM Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 REM Usage: check_and_run.bat <dir> <cmd> <args...>
 
