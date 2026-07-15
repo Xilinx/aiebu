@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
 #include <sstream>
@@ -78,7 +78,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     control_buffer.push_back(std::stoul(m_arguments[0]));
     set_location(control_buffer, false);
     // write value
-    control_buffer.push_back(std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
+    control_buffer.push_back(std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base));
 }
 
 //-------------------------write_handshake_action::serialize_helper-------------------------//
@@ -94,7 +94,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 void
 write_handshake_action::
-serialize_helper(std::vector<uint32_t>& result_buffer, 
+serialize_helper(uint32_t* result_buffer,
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     uint32_t location = mapping.at(get_location(false));
@@ -120,7 +120,7 @@ serialize_helper(std::vector<uint32_t>& result_buffer,
  */
 void
 write_handshake_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream&) const
 {
     write_handshake_action::serialize_helper(result_buffer, mapping);
@@ -137,7 +137,7 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
  */
 void
 write_handshake_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>& mapping, json&) const
 {
     write_handshake_action::serialize_helper(result_buffer, mapping);

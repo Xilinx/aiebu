@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
 #include <iomanip>
@@ -103,7 +103,6 @@ get_opcode(const uint32_t& value) const
  * serialize_helper() - Formats and prints the results from the result buffer.
  *
  * @param result_buffer 
- *  A vector of uint32_t values containing the result data.
  *
  * This function takes a vector of uint32_t values representing the result buffer,
  * calculates the total number of samples, and prints the formatted results to the
@@ -111,7 +110,7 @@ get_opcode(const uint32_t& value) const
  */
 std::string
 printa_action::
-serialize_helper(const std::vector<uint32_t>& result_buffer) const
+serialize_helper(const uint32_t* result_buffer) const
 {
     constexpr int name_width = 50;
     constexpr int samples_width = 16;
@@ -184,11 +183,12 @@ serialize_helper(const std::vector<uint32_t>& result_buffer) const
  */
 void
 printa_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, std::ostream& script_output) const
 {
     // serialize string format
     script_output << "  " << "print(\"\"\"\n" << printa_action::serialize_helper(result_buffer) << "  " << "\"\"\")\n";
+    m_result_type = action_result_type::print_action_fired;
 }
 
 //-------------------------printa_action::serialize-------------------------//
@@ -202,9 +202,10 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
  */
 void
 printa_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
+    m_result_type = action_result_type::print_action_fired;
 }
 
 } // namespace dtrace::action

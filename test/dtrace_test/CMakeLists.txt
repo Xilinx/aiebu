@@ -12,7 +12,7 @@ target_include_directories(${DTRACE_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cp
 
 # Test single uc script
 add_test(NAME "dtrace_single_column"
-  COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/single_col" "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_single.dat"
+  COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/single_col" "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_single.dat" "python"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
 
@@ -22,9 +22,17 @@ add_test(NAME "dtrace_single_column_md5sum"
   )
 set_tests_properties("dtrace_single_column_md5sum" PROPERTIES DEPENDS "dtrace_single_column")
 
+add_test(NAME "dtrace_single_column_result_md5sum"
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol 
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_single.py"
+  "${CMAKE_CURRENT_SOURCE_DIR}/single_col/gold_result.py"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_single_column_result_md5sum" PROPERTIES DEPENDS "dtrace_single_column")
+
 # Test multi uc script and multi page control block
 add_test(NAME "dtrace_multi_column"
-  COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col" "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_multi.dat"
+  COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col" "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_multi.dat" "json"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
 
@@ -33,6 +41,14 @@ add_test(NAME "dtrace_multi_column_md5sum"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
 set_tests_properties("dtrace_multi_column_md5sum" PROPERTIES DEPENDS "dtrace_multi_column")
+
+add_test(NAME "dtrace_multi_column_result_md5sum"
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol 
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_multi.json"
+  "${CMAKE_CURRENT_SOURCE_DIR}/multi_col/gold_result.json"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_multi_column_result_md5sum" PROPERTIES DEPENDS "dtrace_multi_column")
 
 # Test profile script
 add_test(NAME "dtrace_profile"

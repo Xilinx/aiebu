@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef CONTROL_H
 #define CONTROL_H
@@ -20,6 +20,24 @@
 
 namespace dtrace
 {
+
+/**
+ * @struct dtrace_buffer_info
+ *
+ * @brief
+ * Typed dtrace_buffer_info used to hold dtrace buffer information.
+ *
+ * @details
+ * Contains members that specify virtual and physical address of dtrace buffer,
+ * control buffer and the memory buffer.
+ */
+struct dtrace_buffer_info {
+    uint32_t* buffer_addr = nullptr;
+    uint64_t buffer_dma_addr = 0;
+    std::vector<uint32_t> control_buffer;
+    std::vector<uint32_t> mem_buffer;
+};
+
 //-------------------------Control-------------------------//
 /**
  * @class control
@@ -40,7 +58,7 @@ private:
     std::unordered_map<uint32_t, std::vector<uint32_t>> m_control_buffers;
     std::unordered_map<uint32_t, std::vector<uint32_t>> m_mem_buffers;
     std::unordered_map<uint32_t, std::vector<uint32_t>> m_mem_action_locations;
-    std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> m_result_actions;
+    std::vector<std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>>> m_result_actions;
     dtrace::dtrace_output_format m_output_format;
     void populate_result_actions();
 
@@ -52,11 +70,11 @@ public:
     std::vector<uint32_t> create_control_buffer(uint32_t uC) const;
     std::vector<uint32_t> create_mem_buffer(uint32_t uC) const;
     void patch_control_buffer(const std::unordered_map<uint32_t, uint64_t>& mem_host_addr_map);
-    void create_result_file(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers, 
-        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, 
+    void create_result_file(
+        const std::unordered_map<uint32_t, dtrace_buffer_info>& buffer_info_map,
         const std::string& output_file) const;
-    void create_result_buffer(std::unordered_map<uint32_t, std::vector<uint32_t>>& result_buffers,
-        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers,
+    void create_result_buffer(
+        const std::unordered_map<uint32_t, dtrace_buffer_info>& buffer_info_map,
         nlohmann::ordered_json& json_output) const;
 };
 
