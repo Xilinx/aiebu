@@ -16,23 +16,6 @@
 #include <vector>
 
 /**
- * @struct dtrace_buffer_info
- *
- * @brief 
- * Typed dtrace_buffer_info used to hold dtrace buffer information.
- *
- * @details
- * Contains members that specify virtual and physical address of dtrace buffer,
- * control buffer and the memory buffer.
- */
-struct dtrace_buffer_info {
-    uint32_t* buffer_addr = nullptr;
-    uint64_t buffer_dma_addr = 0;
-    std::vector<uint32_t> control_buffer; 
-    std::vector<uint32_t> mem_buffer;
-};
-
-/**
  * @struct dtrace_command_handle
  *
  * @brief 
@@ -46,7 +29,7 @@ struct dtrace_command_handle {
     // Intial parse to create control buffer and memory buffer
     std::unique_ptr<dtrace::control> g_control = nullptr;
     // multiple uC dtrace
-    std::unordered_map<uint32_t, dtrace_buffer_info> g_dtrace_buffer_info_map;
+    std::unordered_map<uint32_t, dtrace::dtrace_buffer_info> g_dtrace_buffer_info_map;
 };
 
 dtrace_handle_t
@@ -120,7 +103,7 @@ get_dtrace_buffer_size(dtrace_handle_t dtrace_handle, uint64_t* buffers)
         {
             // Get control buffer and memory buffer size and populate the map
             // with the dtrace_buffer_info for uC_index
-            dtrace_buffer_info l_dtrace_buffer_info;
+            dtrace::dtrace_buffer_info l_dtrace_buffer_info;
             l_dtrace_buffer_info.buffer_addr = nullptr;
             l_dtrace_buffer_info.buffer_dma_addr = 0; 
             l_dtrace_buffer_info.control_buffer = handle->g_control->create_control_buffer(uC_index);
@@ -160,7 +143,7 @@ populate_dtrace_buffer(dtrace_handle_t dtrace_handle, uint32_t* dtrace_buffer,
             for (const auto& uC_index : handle->g_control->m_control_uC_indices)
             {
                 // Get the dtrace_buffer_info for the given uC_index
-                dtrace_buffer_info& l_dtrace_buffer_info = handle->g_dtrace_buffer_info_map[uC_index];
+                dtrace::dtrace_buffer_info& l_dtrace_buffer_info = handle->g_dtrace_buffer_info_map[uC_index];
 
                 uC_buffer_dma_addr += l_dtrace_buffer_info.control_buffer.size() * sizeof(uint32_t);
                 if (!l_dtrace_buffer_info.mem_buffer.empty()) {
@@ -187,7 +170,7 @@ populate_dtrace_buffer(dtrace_handle_t dtrace_handle, uint32_t* dtrace_buffer,
         for (const auto& uC_index : handle->g_control->m_control_uC_indices)
         {    
             // Get the dtrace_buffer_info for the given uC_index
-            dtrace_buffer_info& l_dtrace_buffer_info = handle->g_dtrace_buffer_info_map[uC_index];
+            dtrace::dtrace_buffer_info& l_dtrace_buffer_info = handle->g_dtrace_buffer_info_map[uC_index];
 
             // Buffer address for the current uC index
             l_dtrace_buffer_info.buffer_addr = uC_buffer_addr;
@@ -228,60 +211,8 @@ get_dtrace_result_file(dtrace_handle_t dtrace_handle, const std::string& result_
         // dtrace handle
         auto* handle = static_cast<dtrace_command_handle*>(dtrace_handle);
 
-        // Initialize the result buffers and memory buffers vector
-        std::unordered_map<uint32_t, std::vector<uint32_t>> result_buffers;
-        std::unordered_map<uint32_t, std::vector<uint32_t>> mem_buffers;
-
-        // Iterate over all result buffer and memory buffer for each uC in global map
-        for (const auto& [uC_index, l_dtrace_buffer_info] : handle->g_dtrace_buffer_info_map)
-        {
-            std::vector<uint32_t> buffer(
-                l_dtrace_buffer_info.control_buffer.size() + l_dtrace_buffer_info.mem_buffer.size()
-            );
-
-            // Copy the buffer from the dtrace buffer address
-            std::memcpy(
-                buffer.data(),
-                l_dtrace_buffer_info.buffer_addr,
-                (l_dtrace_buffer_info.control_buffer.size() + l_dtrace_buffer_info.mem_buffer.size()) * sizeof(uint32_t)
-            );
-
-            // Get control_buffer and mem_buffer from the buffer
-            std::vector<uint32_t> control_buffer(
-                buffer.begin(),
-                buffer.begin() + l_dtrace_buffer_info.control_buffer.size() // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-            );
-            std::vector<uint32_t> mem_buffer(
-                buffer.begin() + l_dtrace_buffer_info.control_buffer.size(), // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-                buffer.end()
-            );
-            
-            // Populate result buffers and memory buffers vector
-            result_buffers[uC_index] = std::move(control_buffer);
-            mem_buffers[uC_index] = std::move(mem_buffer);
-        }
-
         // Create the result file
-        handle->g_control->create_result_file(result_buffers, mem_buffers, result_file);
-
-        // Iterate over and copy back modified buffers for each uC in global map
-        for (const auto& [uC_index, l_dtrace_buffer_info] : handle->g_dtrace_buffer_info_map)
-        {
-            std::vector<uint32_t> buffer;
-            buffer.insert(
-                buffer.end(), result_buffers[uC_index].begin(), result_buffers[uC_index].end()
-            );
-            buffer.insert(
-                buffer.end(), mem_buffers[uC_index].begin(), mem_buffers[uC_index].end()
-            );
-            
-            // Populate modified buffer back to the dtrace buffer address
-            std::memcpy(
-                l_dtrace_buffer_info.buffer_addr,
-                buffer.data(),
-                buffer.size() * sizeof(uint32_t)
-            );
-        }
+        handle->g_control->create_result_file(handle->g_dtrace_buffer_info_map, result_file);
     }
     catch (const std::exception& e)
     {
@@ -296,61 +227,9 @@ get_dtrace_result_buffer(dtrace_handle_t dtrace_handle)
     {
         auto* handle = static_cast<dtrace_command_handle*>(dtrace_handle);
 
-        // Extract result buffers and memory buffers from device-mapped memory
-        std::unordered_map<uint32_t, std::vector<uint32_t>> result_buffers;
-        std::unordered_map<uint32_t, std::vector<uint32_t>> mem_buffers;
-
-        // Iterate over all result buffer and memory buffer for each uC in global map
-        for (const auto& [uC_index, l_dtrace_buffer_info] : handle->g_dtrace_buffer_info_map)
-        {
-            std::vector<uint32_t> buffer(
-                l_dtrace_buffer_info.control_buffer.size() + l_dtrace_buffer_info.mem_buffer.size()
-            );
-
-            // Copy the buffer from the dtrace buffer address
-            std::memcpy(
-                buffer.data(),
-                l_dtrace_buffer_info.buffer_addr,
-                (l_dtrace_buffer_info.control_buffer.size() + l_dtrace_buffer_info.mem_buffer.size()) * sizeof(uint32_t)
-            );
-
-            // Get control_buffer and mem_buffer from the buffer
-            std::vector<uint32_t> control_buffer(
-                buffer.begin(),
-                buffer.begin() + l_dtrace_buffer_info.control_buffer.size() // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-            );
-            std::vector<uint32_t> mem_buffer(
-                buffer.begin() + l_dtrace_buffer_info.control_buffer.size(), // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-                buffer.end()
-            );
-
-            // Populate result buffers and memory buffers vector
-            result_buffers[uC_index] = std::move(control_buffer);
-            mem_buffers[uC_index] = std::move(mem_buffer);
-        }
-
-        // Create the result buffer as JSON object
+        // Update the result buffer with the given result key and result buffer data
         nlohmann::ordered_json result_json = nlohmann::ordered_json::object();
-        handle->g_control->create_result_buffer(result_buffers, mem_buffers, result_json);
-
-        // Iterate over and copy back modified buffers for each uC in global map
-        for (const auto& [uC_index, l_dtrace_buffer_info] : handle->g_dtrace_buffer_info_map)
-        {
-            std::vector<uint32_t> buffer;
-            buffer.insert(
-                buffer.end(), result_buffers[uC_index].begin(), result_buffers[uC_index].end()
-            );
-            buffer.insert(
-                buffer.end(), mem_buffers[uC_index].begin(), mem_buffers[uC_index].end()
-            );
-
-            // Populate modified buffer back to the dtrace buffer address
-            std::memcpy(
-                l_dtrace_buffer_info.buffer_addr,
-                buffer.data(),
-                buffer.size() * sizeof(uint32_t)
-            );
-        }
+        handle->g_control->create_result_buffer(handle->g_dtrace_buffer_info_map, result_json);
 
         // Return the result buffer as JSON string
         return result_json.dump();

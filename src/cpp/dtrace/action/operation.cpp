@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
 #include <filesystem>
@@ -53,7 +53,7 @@ actionize(uint32_t, std::vector<uint32_t>&, std::vector<uint32_t>&)
  */
 void
 operation_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, std::ostream& script_output) const
 {
     // serialize string format
@@ -71,7 +71,7 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
  */
 void
 operation_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
 }

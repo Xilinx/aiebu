@@ -74,7 +74,7 @@ populate_dtrace_buffer(dtrace_handle_t dtrace_handle, uint32_t* dtrace_buffer,
  * get_dtrace_result_file() - Creates a result file for dynamic tracing.
  *
  * @dtrace_handle:    Handle to the dynamic tracing context.
- * @result_file:      Output file where the readable result will be written.
+ * @result_file:      Output file name where the readable result will be written.
  *
  * This function creates a result file by processing the result buffer and mem buffer, 
  * and writes the output to the specified result file.

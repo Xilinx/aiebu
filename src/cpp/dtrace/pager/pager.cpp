@@ -117,14 +117,20 @@ paging(const std::vector<uint32_t>& buffer, uint32_t uC_index)
  * for current page, and adds the page header for the new page. 
  * It increments the page index and returns true.
  */
-bool 
+bool
 pager::
 expand_page(std::vector<uint32_t>& buffer, uint32_t size, bool force)
 {
+    // Error out if single probe exceeds page size
+    if (size > m_page_size)
+        DTRACE_ERROR("DTRACE_PAGER_PROBE_EXCEEDED_PAGE_SIZE",
+            "Probe size (" << (size * 4) << " bytes) exceeds page size (" << (m_page_size * 4) << " bytes), " 
+            "Probe cannot span multiple pages.");
+
     uint32_t space = (m_page_index + 1) * m_page_size - static_cast<uint32_t>(buffer.size());
     if (size <= space && !force)
         return false;
-    
+
     // Clear the last page flag and update the page header for the current page.
     clear_last_page_flag(buffer);
     update_page_header(buffer);
