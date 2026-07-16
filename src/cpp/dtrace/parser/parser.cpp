@@ -585,6 +585,12 @@ create_action(const std::string& action_string, uint32_t probe_type,
             action_string, probe_type, probe_name, m_buffer_map
         );
     }
+    else if (aiebu::regex_search(action_string, dtrace::action::action_name::mask_poll32_regex))
+    {   // Mask poll32 register action
+        action = std::make_shared<dtrace::action::mask_poll32_action>(
+            action_string, probe_type, probe_name
+        );
+    }
     else if (aiebu::regex_search(action_string, dtrace::action::action_name::write_reg_regex))
     {   // Write register action
         action = std::make_shared<dtrace::action::write_reg_action>(

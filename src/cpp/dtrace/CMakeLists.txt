@@ -23,6 +23,7 @@ add_library(dtrace_library_objects OBJECT
   action/host_timestamps.cpp
   action/sleep.cpp
   action/count.cpp
+  action/mask_poll32.cpp
   probe/begin.cpp
   probe/end.cpp
   probe/jprobe.cpp
