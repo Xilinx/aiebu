@@ -25,7 +25,7 @@ namespace aiebu {
  */
 enum class aie_context_status : uint32_t {
   idle     = 0,  ///< Context is idle — no work queued or running
-  runnable = 1,  ///< Context is ready to run but not yet scheduled
+  ready    = 1,  ///< Context is ready to run but not yet scheduled
   running  = 2,  ///< Context is actively executing on the hardware
   timeout  = 3,  ///< Context timed out waiting for hardware completion
   error    = 4,  ///< Context encountered any other error 

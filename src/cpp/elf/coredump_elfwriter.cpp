@@ -240,11 +240,11 @@ finalize() const
   constexpr uint32_t NOTE_OFF    = ELF_HDR_SZ + NUM_PHDRS * PHDR_SZ;  // 0x74
   constexpr uint32_t LOAD_ALIGN  = 0x1000U;
 
-  const uint32_t note_size = static_cast<uint32_t>(prpsinfo_note.size()
-                                                    + aie_note.size());
+  const auto note_size = static_cast<uint32_t>(prpsinfo_note.size()
+                                               + aie_note.size());
   const uint32_t load_off  = (NOTE_OFF + note_size + LOAD_ALIGN - 1U)
                              & ~(LOAD_ALIGN - 1U);
-  const uint32_t load_size = static_cast<uint32_t>(m_blob.size());
+  const auto load_size = static_cast<uint32_t>(m_blob.size());
 
   std::vector<char> out;
   out.reserve(load_off + load_size);
@@ -344,13 +344,13 @@ parse_aie_dump_hdr(const char* desc, uint32_t descsz)
   size_t off = 0;
 
   auto consume_u64 = [&]() -> uint64_t {
-    if (off + 8 > descsz) throw std::out_of_range("NT_AIE_DUMP_HDR descriptor truncated");
-    uint64_t v = 0; std::memcpy(&v, desc + off, 8); off += 8;
+    if (off + sizeof(uint64_t) > descsz) throw std::out_of_range("NT_AIE_DUMP_HDR descriptor truncated");
+    uint64_t v = 0; std::memcpy(&v, desc + off, sizeof(uint64_t)); off += sizeof(uint64_t);
     return conv(v);
   };
   auto consume_u32 = [&]() -> uint32_t {
-    if (off + 4 > descsz) throw std::out_of_range("NT_AIE_DUMP_HDR descriptor truncated");
-    uint32_t v = 0; std::memcpy(&v, desc + off, 4); off += 4;
+    if (off + sizeof(uint32_t) > descsz) throw std::out_of_range("NT_AIE_DUMP_HDR descriptor truncated");
+    uint32_t v = 0; std::memcpy(&v, desc + off, sizeof(uint32_t)); off += sizeof(uint32_t);
     return conv(v);
   };
   auto consume_str = [&]() -> std::string {
@@ -394,24 +394,26 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
   //           ≈ 832 bytes.  2048 gives ~2× headroom for future fields.
   constexpr uint32_t MAX_AIE_DUMP_HDR_DESC_SZ = 2048U;
 
-  for (ELFIO::Elf_Half i = 0; i < elf.segments.size(); ++i) {
-    const auto* seg = elf.segments[i];
+  for (const auto& seg : elf.segments) {
     if (seg->get_type() != ELFIO::PT_NOTE)
       continue;
 
-    const char*  data = seg->get_data();
-    const size_t size = static_cast<size_t>(seg->get_file_size());
+    const char* data = seg->get_data();
+    const auto  size = static_cast<size_t>(seg->get_file_size());
     size_t off = 0;
 
-    while (off + 12 <= size) {
+    // ELF note header: namesz (4) + descsz (4) + type (4) = 12 bytes.
+    constexpr size_t NOTE_HDR_SZ = 3 * sizeof(uint32_t);
+
+    while (off + NOTE_HDR_SZ <= size) {
       uint32_t namesz = 0, descsz = 0, type = 0;
-      std::memcpy(&namesz, data + off,     4);
-      std::memcpy(&descsz, data + off + 4, 4);
-      std::memcpy(&type,   data + off + 8, 4);
+      std::memcpy(&namesz, data + off,                      sizeof(uint32_t));
+      std::memcpy(&descsz, data + off +     sizeof(uint32_t), sizeof(uint32_t));
+      std::memcpy(&type,   data + off + 2 * sizeof(uint32_t), sizeof(uint32_t));
       namesz = hdr_conv(namesz);
       descsz = hdr_conv(descsz);
       type   = hdr_conv(type);
-      off += 12;
+      off += NOTE_HDR_SZ;
 
       // Read name (namesz bytes including NUL terminator), strip NUL.
       std::string name;

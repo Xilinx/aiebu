@@ -43,7 +43,7 @@ public:
 
 private:
   unsigned char                    m_abi;
-  const std::vector<char>&         m_blob;
+  std::vector<char>                m_blob;
   std::optional<aie_coredump_meta> m_meta;
 
   /// Build the NT_PRPSINFO note descriptor bytes.

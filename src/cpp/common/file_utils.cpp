@@ -5,6 +5,7 @@
 #include "aiebu/aiebu_assembler.h"
 #include "utils.h"
 #include "elfio/elfio.hpp"
+#include <cstring>
 #include <iostream>
 
 namespace aiebu {
@@ -38,6 +39,9 @@ constexpr unsigned int os_abi_aie4z = 105;        // 0x69
 constexpr unsigned int min_elf_header_size = 52;
 // EI_OSABI is at offset 7 in the ELF header
 constexpr unsigned int elf_os_abi_offset = 7;
+// e_type is at offset 16 in the ELF header (uint16_t LE)
+constexpr unsigned int elf_e_type_offset = 16;
+constexpr unsigned int et_core = 4;  // ET_CORE — coredump ELF
 
 aiebu_assembler::buffer_type
 identify_buffer_type(const std::vector<char>& buffer)
@@ -64,25 +68,42 @@ identify_buffer_type(const std::vector<char>& buffer)
 aiebu_assembler::buffer_type
 identify_elf_type(const std::vector<char>& buffer)
 {
-  // ELF header is at least 52 bytes for 32-bit, 64 bytes for 64-bit
-  if (buffer.size() >= min_elf_header_size) {
-    // EI_OSABI is at offset 7 in the ELF header
-    const auto os_abi = static_cast<unsigned char>(buffer.data()[elf_os_abi_offset]);
-    if (os_abi == os_abi_aie2p)
-      return aiebu_assembler::buffer_type::elf_aie2;
-    else if (os_abi == os_abi_aie2ps || os_abi == os_abi_aie2ps_group)
-      return aiebu_assembler::buffer_type::elf_aie2ps;
-    else if (os_abi == os_abi_aie4)
-      return aiebu_assembler::buffer_type::elf_aie4;
-    else if (os_abi == os_abi_aie4a)
-      return aiebu_assembler::buffer_type::elf_aie4a;
-    else if (os_abi == os_abi_aie4z)
-      return aiebu_assembler::buffer_type::elf_aie4z;
-    else
-      return aiebu_assembler::buffer_type::unspecified;
-  }
-  else
+  if (buffer.size() < min_elf_header_size)
     throw error(error::error_code::invalid_elf, "ELF header size is less than expected");
+
+  const auto os_abi = static_cast<unsigned char>(buffer.data()[elf_os_abi_offset]);
+
+  // e_type is a uint16_t at offset 16; read it as LE (AIE ELFs are always LE).
+  uint16_t e_type = 0;
+  std::memcpy(&e_type, buffer.data() + elf_e_type_offset, sizeof(e_type));
+
+  if (e_type == et_core) {
+    // ET_CORE — coredump ELF; OS/ABI encodes the target architecture.
+    if (os_abi == os_abi_aie2p)
+      return aiebu_assembler::buffer_type::coredump_aie2p;
+    if (os_abi == os_abi_aie2ps)
+      return aiebu_assembler::buffer_type::coredump_aie2ps;
+    if (os_abi == os_abi_aie4)
+      return aiebu_assembler::buffer_type::coredump_aie4;
+    if (os_abi == os_abi_aie4a)
+      return aiebu_assembler::buffer_type::coredump_aie4a;
+    if (os_abi == os_abi_aie4z)
+      return aiebu_assembler::buffer_type::coredump_aie4z;
+    return aiebu_assembler::buffer_type::unspecified;
+  }
+
+  // Normal (non-coredump) ELF — OS/ABI encodes the target architecture.
+  if (os_abi == os_abi_aie2p)
+    return aiebu_assembler::buffer_type::elf_aie2;
+  if (os_abi == os_abi_aie2ps || os_abi == os_abi_aie2ps_group)
+    return aiebu_assembler::buffer_type::elf_aie2ps;
+  if (os_abi == os_abi_aie4)
+    return aiebu_assembler::buffer_type::elf_aie4;
+  if (os_abi == os_abi_aie4a)
+    return aiebu_assembler::buffer_type::elf_aie4a;
+  if (os_abi == os_abi_aie4z)
+    return aiebu_assembler::buffer_type::elf_aie4z;
+  return aiebu_assembler::buffer_type::unspecified;
 }
 
 
