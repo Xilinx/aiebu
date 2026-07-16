@@ -163,17 +163,17 @@ class aiebu_assembler
       elf_aie4a_config,
       elf_aie4z,
       elf_aie4z_config,
-      coredump_aie2p,
-      coredump_aie2ps,
-      coredump_aie4,
-      coredump_aie4a,
-      coredump_aie4z,
       unspecified,
       blob_aie2ps,    // Raw binary file for aie2ps architecture
       blob_aie4,      // Raw binary file for aie4 architecture
       blob_aie4a,     // Raw binary file for aie4a architecture
       blob_aie4z,     // Raw binary file for aie4z architecture
-    };
+      coredump_aie2p,
+      coredump_aie2ps,
+      coredump_aie4,
+      coredump_aie4a,
+      coredump_aie4z,
+  };
 
   private:
     buffer_type m_type;
