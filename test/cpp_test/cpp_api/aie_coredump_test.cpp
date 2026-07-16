@@ -22,6 +22,8 @@
 #include "aiebu/aiebu_assembler.h"
 #include "aiebu/aiebu_error.h"
 
+#include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -41,6 +43,33 @@ struct result {
 static std::vector<char> make_blob(size_t n)
 {
   return std::vector<char>(n, static_cast<char>(0xAB));
+}
+
+// ---------------------------------------------------------------------------
+// ELF32 LE field readers (offsets match our coredump_elfwriter layout)
+// ---------------------------------------------------------------------------
+static uint8_t  elf_u8 (const std::vector<char>& e, size_t off) { return static_cast<uint8_t>(e.at(off)); }
+static uint16_t elf_u16(const std::vector<char>& e, size_t off) { uint16_t v = 0; std::memcpy(&v, e.data() + off, 2); return v; }
+
+// ELF32 header offsets
+constexpr size_t OFF_EI_OSABI   =  7;   // e_ident[EI_OSABI]
+constexpr size_t OFF_E_TYPE     = 16;   // e_type     (uint16_t)
+constexpr size_t OFF_E_PHNUM    = 44;   // e_phnum    (uint16_t)
+constexpr size_t OFF_E_SHNUM    = 48;   // e_shnum    (uint16_t)
+
+static result check_elf_structure(const std::vector<char>& elf, uint8_t expected_osabi)
+{
+  constexpr uint16_t ET_CORE = 4;
+
+  if (elf_u16(elf, OFF_E_TYPE) != ET_CORE)
+    return {false, "e_type is not ET_CORE"};
+  if (elf_u8(elf, OFF_EI_OSABI) != expected_osabi)
+    return {false, "EI_OSABI mismatch"};
+  if (elf_u16(elf, OFF_E_PHNUM) != 2)
+    return {false, "e_phnum is not 2"};
+  if (elf_u16(elf, OFF_E_SHNUM) != 0)
+    return {false, "e_shnum is not 0 (section header table should be absent)"};
+  return {true, ""};
 }
 
 static void write_elf(const std::vector<char>& elf, const std::string& path)
@@ -64,6 +93,16 @@ static result test_assembler_coredump_no_meta()
     if (elf.empty())
       return {false, "get_elf() returned empty vector"};
     std::cout << "  ELF size (no meta): " << elf.size() << " bytes\n";
+
+    // Verify ELF structure
+    auto r = check_elf_structure(elf, 0x4BU);  // osabi_aie4
+    if (!r.passed) return r;
+
+    // No metadata supplied — AMDAIE_CORE note must be absent
+    aiebu::aiebu_assembler reader(elf);
+    if (reader.get_coredump_meta().has_value())
+      return {false, "get_coredump_meta() should return nullopt when built without meta"};
+
     write_elf(elf, "coredump_no_meta.elf");
     return {true, ""};
   } catch (const std::exception& ex) {
@@ -84,7 +123,7 @@ static result test_assembler_coredump_with_meta()
     meta.driver_version  = "amdxdna-1.2.3";
     meta.fw_version      = "fw-0.9.0";
     meta.device_info     = "NPU Medusa";
-    meta.context_status  = 0xDEAD0001u;
+    meta.context_status  = aiebu::aie_context_status::timeout;
     meta.uuid            = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
 
     aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::coredump_aie4,
@@ -94,6 +133,11 @@ static result test_assembler_coredump_with_meta()
     if (elf.empty())
       return {false, "get_elf() returned empty vector"};
     std::cout << "  ELF size (with meta): " << elf.size() << " bytes\n";
+
+    // Verify ELF structure
+    auto r = check_elf_structure(elf, 0x4BU);  // osabi_aie4
+    if (!r.passed) return r;
+
     write_elf(elf, "coredump_with_meta.elf");
     return {true, ""};
   } catch (const std::exception& ex) {
@@ -102,7 +146,7 @@ static result test_assembler_coredump_with_meta()
 }
 
 // ---------------------------------------------------------------------------
-// Test 4: round-trip — write coredump ELF then read metadata back
+// Test 3: round-trip — write coredump ELF then read metadata back
 // ---------------------------------------------------------------------------
 static result test_get_coredump_meta()
 {
@@ -114,7 +158,7 @@ static result test_get_coredump_meta()
     in_meta.driver_version = "amdxdna-2.0.0";
     in_meta.fw_version     = "fw-1.0.0";
     in_meta.device_info    = "NPU Strix";
-    in_meta.context_status = 0xCAFEBABEu;
+    in_meta.context_status = aiebu::aie_context_status::error;
     in_meta.uuid           = "deadbeef-dead-beef-dead-beefdeadbeef";
 
     // Write
@@ -147,7 +191,7 @@ static result test_get_coredump_meta()
 }
 
 // ---------------------------------------------------------------------------
-// Test 5: invalid buffer_type passed to coredump assembler constructor
+// Test 4: invalid buffer_type passed to coredump assembler constructor
 // ---------------------------------------------------------------------------
 static result test_assembler_invalid_type()
 {

@@ -16,18 +16,34 @@ class elfio;
 namespace aiebu {
 
 /*!
+ * @enum aie_context_status
+ *
+ * @brief
+ * State of the AIE context at the time the coredump was captured.
+ * Stored as a uint32_t in the NT_AIE_DUMP_HDR note wire format.
+ *
+ */
+enum class aie_context_status : uint32_t {
+  idle     = 0,  ///< Context is idle — no work queued or running
+  runnable = 1,  ///< Context is ready to run but not yet scheduled
+  running  = 2,  ///< Context is actively executing on the hardware
+  timeout  = 3,  ///< Context timed out waiting for hardware completion
+  error    = 4,  ///< Context encountered any other error 
+};
+
+/*!
  * @struct aie_coredump_meta
  *
  * @brief
  * Optional metadata attached to an AIE coredump ELF.
  */
 struct aie_coredump_meta {
-  uint64_t    timestamp_ns;     ///< Capture timestamp in nanoseconds
-  std::string driver_version;   ///< Driver version string
-  std::string fw_version;       ///< Firmware version string
-  std::string device_info;      ///< Device identification string
-  uint32_t    context_status;   ///< Context status word at time of dump
-  std::string uuid;             ///< UUID uniquely identifying the AIE ELF loaded on target
+  uint64_t           timestamp_ns;    ///< Capture timestamp in nanoseconds
+  std::string        driver_version;  ///< Driver version string
+  std::string        fw_version;      ///< Firmware version string
+  std::string        device_info;     ///< Device identification string
+  aie_context_status context_status;  ///< Context state at time of dump
+  std::string        uuid;            ///< UUID uniquely identifying the AIE ELF loaded on target
 };
 
 /*!

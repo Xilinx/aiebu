@@ -6,6 +6,8 @@
 
 #include "elfio/elfio.hpp"
 
+#include "aiebu/aiebu_error.h"
+
 #include <cstdint>
 #include <cstring>
 #include <optional>
@@ -122,12 +124,31 @@ make_note(const ELFIO::endianess_convertor& conv,
 // coredump_elf_writer
 // ---------------------------------------------------------------------------
 
+// Map OS/ABI byte to the maximum expected coredump blob size for that architecture.
+static uint32_t max_blob_size_for_abi(unsigned char abi)
+{
+  if (abi == osabi_aie2p)
+    return coredump_load_size_aie2p;
+  if (abi == osabi_aie2ps)
+    return coredump_load_size_aie2ps;
+  if (abi == osabi_aie4  ||
+      abi == osabi_aie4a ||
+      abi == osabi_aie4z)
+    return coredump_load_size_aie4;
+  throw error(error::error_code::invalid_buffer_type,
+              "Unknown OS/ABI for coredump blob size validation");
+}
+
 coredump_elf_writer::
 coredump_elf_writer(unsigned char                    abi,
                     const std::vector<char>&         blob,
                     std::optional<aie_coredump_meta> meta)
   : m_abi(abi), m_blob(blob), m_meta(std::move(meta))
-{}
+{
+  if (blob.size() > max_blob_size_for_abi(abi))
+    throw error(error::error_code::invalid_input,
+                "coredump blob size exceeds maximum for architecture");
+}
 
 std::vector<char>
 coredump_elf_writer::
@@ -164,7 +185,7 @@ build_aie_dump_hdr_desc(const aie_coredump_meta& meta) const
   //   uint32_t  len(device_info)    + bytes
   //   uint32_t  len(uuid)           + bytes
   append_le<uint64_t>(desc, meta.timestamp_ns);
-  append_le<uint32_t>(desc, meta.context_status);
+  append_le<uint32_t>(desc, static_cast<uint32_t>(meta.context_status));
   append_lp_string(desc, meta.driver_version);
   append_lp_string(desc, meta.fw_version);
   append_lp_string(desc, meta.device_info);
@@ -200,7 +221,7 @@ finalize() const
   conv.setup(ELFIO::ELFDATA2LSB);
 
   // ---- build note entries ----
-  constexpr ELFIO::Elf_Word NT_PRPSINFO = 3u;
+  constexpr ELFIO::Elf_Word NT_PRPSINFO = 3U;
 
   auto prpsinfo_note = make_note(conv, NT_PRPSINFO,
                                  nt_name_core,
@@ -213,16 +234,16 @@ finalize() const
                          build_aie_dump_hdr_desc(*m_meta));
 
   // ---- compute file layout ----
-  constexpr uint32_t ELF_HDR_SZ  = 52u;
-  constexpr uint32_t PHDR_SZ     = 32u;
-  constexpr uint32_t NUM_PHDRS   = 2u;
+  constexpr uint32_t ELF_HDR_SZ  = 52U;
+  constexpr uint32_t PHDR_SZ     = 32U;
+  constexpr uint32_t NUM_PHDRS   = 2U;
   constexpr uint32_t NOTE_OFF    = ELF_HDR_SZ + NUM_PHDRS * PHDR_SZ;  // 0x74
-  constexpr uint32_t LOAD_ALIGN  = 0x1000u;
+  constexpr uint32_t LOAD_ALIGN  = 0x1000U;
 
   const uint32_t note_size = static_cast<uint32_t>(prpsinfo_note.size()
                                                     + aie_note.size());
-  const uint32_t load_off  = (NOTE_OFF + note_size + LOAD_ALIGN - 1u)
-                             & ~(LOAD_ALIGN - 1u);
+  const uint32_t load_off  = (NOTE_OFF + note_size + LOAD_ALIGN - 1U)
+                             & ~(LOAD_ALIGN - 1U);
   const uint32_t load_size = static_cast<uint32_t>(m_blob.size());
 
   std::vector<char> out;
@@ -294,6 +315,16 @@ finalize() const
   // ---- raw AIE dump payload ----
   out.insert(out.end(), m_blob.begin(), m_blob.end());
 
+  if (load_off % LOAD_ALIGN != 0)
+    throw error(error::error_code::internal_error,
+                "PT_LOAD offset is not page-aligned");
+  if (load_off < NOTE_OFF + note_size)
+    throw error(error::error_code::internal_error,
+                "Note segment overlaps PT_LOAD segment");
+  if (out.size() != load_off + load_size)
+    throw error(error::error_code::internal_error,
+                "ELF output size mismatch");
+
   return out;
 }
 
@@ -314,12 +345,12 @@ parse_aie_dump_hdr(const char* desc, uint32_t descsz)
 
   auto consume_u64 = [&]() -> uint64_t {
     if (off + 8 > descsz) throw std::out_of_range("NT_AIE_DUMP_HDR descriptor truncated");
-    uint64_t v; std::memcpy(&v, desc + off, 8); off += 8;
+    uint64_t v = 0; std::memcpy(&v, desc + off, 8); off += 8;
     return conv(v);
   };
   auto consume_u32 = [&]() -> uint32_t {
     if (off + 4 > descsz) throw std::out_of_range("NT_AIE_DUMP_HDR descriptor truncated");
-    uint32_t v; std::memcpy(&v, desc + off, 4); off += 4;
+    uint32_t v = 0; std::memcpy(&v, desc + off, 4); off += 4;
     return conv(v);
   };
   auto consume_str = [&]() -> std::string {
@@ -331,7 +362,7 @@ parse_aie_dump_hdr(const char* desc, uint32_t descsz)
 
   aie_coredump_meta meta;
   meta.timestamp_ns   = consume_u64();
-  meta.context_status = consume_u32();
+  meta.context_status = static_cast<aie_context_status>(consume_u32());
   meta.driver_version = consume_str();
   meta.fw_version     = consume_str();
   meta.device_info    = consume_str();
@@ -354,7 +385,14 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
   ELFIO::endianess_convertor hdr_conv;
   hdr_conv.setup(elf.get_encoding());
 
-  auto pad4 = [](uint32_t n) -> uint32_t { return (4u - (n & 3u)) & 3u; };
+  auto pad4 = [](uint32_t n) -> uint32_t { return (4U - (n & 3U)) & 3U; };
+
+  // Reject oversized descriptors before allocating any string memory.
+  // Actual max: 8 (timestamp) + 4 (context_status)
+  //           + 4 strings × (4-byte length prefix + content):
+  //               driver_version ~256 + fw_version ~256 + device_info ~256 + uuid 36
+  //           ≈ 832 bytes.  2048 gives ~2× headroom for future fields.
+  constexpr uint32_t MAX_AIE_DUMP_HDR_DESC_SZ = 2048U;
 
   for (ELFIO::Elf_Half i = 0; i < elf.segments.size(); ++i) {
     const auto* seg = elf.segments[i];
@@ -366,7 +404,7 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
     size_t off = 0;
 
     while (off + 12 <= size) {
-      uint32_t namesz, descsz, type;
+      uint32_t namesz = 0, descsz = 0, type = 0;
       std::memcpy(&namesz, data + off,     4);
       std::memcpy(&descsz, data + off + 4, 4);
       std::memcpy(&type,   data + off + 8, 4);
@@ -384,6 +422,8 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
       if (name == nt_name_amdaie_core &&
           type == static_cast<uint32_t>(nt_aie_dump_hdr) &&
           off + descsz <= size) {
+        if (descsz > MAX_AIE_DUMP_HDR_DESC_SZ)
+          return std::nullopt;  // reject oversized descriptor — possible heap exhaustion attack
         try {
           return parse_aie_dump_hdr(data + off, descsz);
         } catch (const std::out_of_range&) {
