@@ -90,8 +90,8 @@ make_note(const ELFIO::endianess_convertor& conv,
   // Number of padding bytes needed to align n to a 4-byte boundary.
   auto pad4 = [](uint32_t n) -> uint32_t { return (4U - (n & 3U)) & 3U; };
 
-  const uint32_t namesz = static_cast<uint32_t>(std::strlen(name)) + 1U;
-  const uint32_t descsz = static_cast<uint32_t>(desc.size());
+  const auto namesz = static_cast<uint32_t>(std::strlen(name)) + 1U;
+  const auto descsz = static_cast<uint32_t>(desc.size());
 
   std::vector<char> entry;
   entry.reserve(3U * sizeof(uint32_t)
@@ -239,6 +239,7 @@ finalize() const
   constexpr uint32_t NUM_PHDRS   = 2U;
   constexpr uint32_t NOTE_OFF    = ELF_HDR_SZ + NUM_PHDRS * PHDR_SZ;  // 0x74
   constexpr uint32_t LOAD_ALIGN  = 0x1000U;
+  constexpr uint32_t EI_PAD_SZ   = 7U;  // e_ident padding bytes (ELF spec, offsets 9–15)
 
   const auto note_size = static_cast<uint32_t>(prpsinfo_note.size()
                                                + aie_note.size());
@@ -269,7 +270,7 @@ finalize() const
   out.push_back('\x01');                                // EV_CURRENT
   out.push_back(static_cast<char>(m_abi));              // EI_OSABI
   out.push_back(static_cast<char>(elf_version_config)); // EI_ABIVERSION
-  out.insert(out.end(), 7, '\0');                       // EI_PAD
+  out.insert(out.end(), EI_PAD_SZ, '\0');               // EI_PAD
 
   append16(static_cast<uint16_t>(ELFIO::ET_CORE));        // e_type
   append16(static_cast<uint16_t>(em_aiectrlcode));         // e_machine
