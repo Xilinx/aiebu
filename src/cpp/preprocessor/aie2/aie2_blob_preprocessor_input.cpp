@@ -737,6 +737,11 @@ add_preemption_code(uint32_t col)
       std::cout << "txn buffer is empty\n";
       return 0;
     }
+
+    if (mc_code.size() < sizeof(XAie_TxnHeader))
+      throw error(error::error_code::invalid_asm,
+                  "txn buffer smaller than header");
+
     const char *ptr = (mc_code.data());
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
 
