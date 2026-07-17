@@ -7,6 +7,7 @@
 #include "elfio/elfio.hpp"
 #include <cstring>
 #include <iostream>
+#include <map>
 
 namespace aiebu {
 
@@ -65,44 +66,42 @@ identify_buffer_type(const std::vector<char>& buffer)
 }
 
 
+// OS/ABI → buffer_type lookup tables.  Adding a new architecture requires
+// only a new entry in the appropriate map.
+static const std::map<unsigned int, aiebu_assembler::buffer_type> coredump_abi_map = {
+  {os_abi_aie2p,  aiebu_assembler::buffer_type::coredump_aie2p},
+  {os_abi_aie2ps, aiebu_assembler::buffer_type::coredump_aie2ps},
+  {os_abi_aie4,   aiebu_assembler::buffer_type::coredump_aie4},
+  {os_abi_aie4a,  aiebu_assembler::buffer_type::coredump_aie4a},
+  {os_abi_aie4z,  aiebu_assembler::buffer_type::coredump_aie4z},
+};
+
+static const std::map<unsigned int, aiebu_assembler::buffer_type> elf_abi_map = {
+  {os_abi_aie2p,        aiebu_assembler::buffer_type::elf_aie2},
+  {os_abi_aie2ps,       aiebu_assembler::buffer_type::elf_aie2ps},
+  {os_abi_aie2ps_group, aiebu_assembler::buffer_type::elf_aie2ps},  // legacy group variant
+  {os_abi_aie4,         aiebu_assembler::buffer_type::elf_aie4},
+  {os_abi_aie4a,        aiebu_assembler::buffer_type::elf_aie4a},
+  {os_abi_aie4z,        aiebu_assembler::buffer_type::elf_aie4z},
+};
+
 aiebu_assembler::buffer_type
 identify_elf_type(const std::vector<char>& buffer)
 {
   if (buffer.size() < min_elf_header_size)
     throw error(error::error_code::invalid_elf, "ELF header size is less than expected");
 
-  const auto os_abi = static_cast<unsigned char>(buffer.data()[elf_os_abi_offset]);
+  const auto os_abi = static_cast<unsigned int>(
+      static_cast<unsigned char>(buffer.data()[elf_os_abi_offset]));
 
   // e_type is a uint16_t at offset 16; read it as LE (AIE ELFs are always LE).
   uint16_t e_type = 0;
   std::memcpy(&e_type, buffer.data() + elf_e_type_offset, sizeof(e_type));
 
-  if (e_type == et_core) {
-    // ET_CORE — coredump ELF; OS/ABI encodes the target architecture.
-    if (os_abi == os_abi_aie2p)
-      return aiebu_assembler::buffer_type::coredump_aie2p;
-    if (os_abi == os_abi_aie2ps)
-      return aiebu_assembler::buffer_type::coredump_aie2ps;
-    if (os_abi == os_abi_aie4)
-      return aiebu_assembler::buffer_type::coredump_aie4;
-    if (os_abi == os_abi_aie4a)
-      return aiebu_assembler::buffer_type::coredump_aie4a;
-    if (os_abi == os_abi_aie4z)
-      return aiebu_assembler::buffer_type::coredump_aie4z;
-    return aiebu_assembler::buffer_type::unspecified;
-  }
-
-  // Normal (non-coredump) ELF — OS/ABI encodes the target architecture.
-  if (os_abi == os_abi_aie2p)
-    return aiebu_assembler::buffer_type::elf_aie2;
-  if (os_abi == os_abi_aie2ps || os_abi == os_abi_aie2ps_group)
-    return aiebu_assembler::buffer_type::elf_aie2ps;
-  if (os_abi == os_abi_aie4)
-    return aiebu_assembler::buffer_type::elf_aie4;
-  if (os_abi == os_abi_aie4a)
-    return aiebu_assembler::buffer_type::elf_aie4a;
-  if (os_abi == os_abi_aie4z)
-    return aiebu_assembler::buffer_type::elf_aie4z;
+  const auto& abi_map = (e_type == et_core) ? coredump_abi_map : elf_abi_map;
+  const auto  it      = abi_map.find(os_abi);
+  if (it != abi_map.end())
+    return it->second;
   return aiebu_assembler::buffer_type::unspecified;
 }
 
