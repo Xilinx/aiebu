@@ -27,7 +27,6 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -43,8 +42,8 @@ struct result {
 // Make a simple synthetic blob of `n` bytes filled with a fixed pattern byte.
 static std::vector<char> make_blob(size_t n)
 {
-  constexpr char BLOB_FILL = static_cast<char>(0xAB);  // arbitrary non-zero fill pattern
-  return std::vector<char>(n, BLOB_FILL);
+  constexpr char blob_fill = static_cast<char>(0xAB);  // arbitrary non-zero fill pattern
+  return std::vector<char>(n, blob_fill);  // NOLINT(modernize-return-braced-init-list) — braced form would select initializer_list ctor, not (count,value)
 }
 
 // ---------------------------------------------------------------------------
@@ -54,31 +53,31 @@ static uint8_t  elf_u8 (const std::vector<char>& e, size_t off) { return static_
 static uint16_t elf_u16(const std::vector<char>& e, size_t off) { uint16_t v = 0; std::memcpy(&v, e.data() + off, sizeof(v)); return v; }
 
 // ELF32 header offsets
-constexpr size_t  OFF_EI_OSABI  =  7;   // e_ident[EI_OSABI]
-constexpr size_t  OFF_E_TYPE    = 16;   // e_type     (uint16_t)
-constexpr size_t  OFF_E_PHNUM   = 44;   // e_phnum    (uint16_t)
-constexpr size_t  OFF_E_SHNUM   = 48;   // e_shnum    (uint16_t)
+constexpr size_t  off_ei_osabi  =  7;   // e_ident[EI_OSABI]
+constexpr size_t  off_e_type    = 16;   // e_type     (uint16_t)
+constexpr size_t  off_e_phnum   = 44;   // e_phnum    (uint16_t)
+constexpr size_t  off_e_shnum   = 48;   // e_shnum    (uint16_t)
 
 // OS/ABI values for AIE architectures (mirrors aie_elf_constants.h, internal header)
-constexpr uint8_t OSABI_AIE4    = 0x4BU;
+constexpr uint8_t osabi_aie4    = 0x4BU;
 
 // Synthetic timestamps used in tests (arbitrary values, chosen for distinctness)
-constexpr uint64_t TS_WITH_META  = 1234567890123456789ULL;  // test_assembler_coredump_with_meta
-constexpr uint64_t TS_ROUND_TRIP = 9876543210ULL;           // test_get_coredump_meta
+constexpr uint64_t ts_with_meta  = 1234567890123456789ULL;  // test_assembler_coredump_with_meta
+constexpr uint64_t ts_round_trip = 9876543210ULL;           // test_get_coredump_meta
 
 static result check_elf_structure(const std::vector<char>& elf, uint8_t expected_osabi)
 {
-  constexpr uint16_t ET_CORE         = 4;
-  constexpr uint16_t EXPECTED_PHNUM  = 2;  // PT_NOTE + PT_LOAD
-  constexpr uint16_t EXPECTED_SHNUM  = 0;  // no section header table
+  constexpr uint16_t et_core         = 4;
+  constexpr uint16_t expected_phnum  = 2;  // PT_NOTE + PT_LOAD
+  constexpr uint16_t expected_shnum  = 0;  // no section header table
 
-  if (elf_u16(elf, OFF_E_TYPE) != ET_CORE)
+  if (elf_u16(elf, off_e_type) != et_core)
     return {false, "e_type is not ET_CORE"};
-  if (elf_u8(elf, OFF_EI_OSABI) != expected_osabi)
+  if (elf_u8(elf, off_ei_osabi) != expected_osabi)
     return {false, "EI_OSABI mismatch"};
-  if (elf_u16(elf, OFF_E_PHNUM) != EXPECTED_PHNUM)
+  if (elf_u16(elf, off_e_phnum) != expected_phnum)
     return {false, "e_phnum is not 2"};
-  if (elf_u16(elf, OFF_E_SHNUM) != EXPECTED_SHNUM)
+  if (elf_u16(elf, off_e_shnum) != expected_shnum)
     return {false, "e_shnum is not 0 (section header table should be absent)"};
   return {true, ""};
 }
@@ -98,15 +97,14 @@ static result test_assembler_coredump_no_meta()
   try {
     const auto blob = make_blob(256);
     aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::coredump_aie4,
-                              blob,
-                              std::nullopt);
+                              blob, aiebu::aiebu_assembler::no_meta);
     const auto elf = as.get_elf();
     if (elf.empty())
       return {false, "get_elf() returned empty vector"};
     std::cout << "  ELF size (no meta): " << elf.size() << " bytes\n";
 
     // Verify ELF structure
-    auto r = check_elf_structure(elf, OSABI_AIE4);
+    auto r = check_elf_structure(elf, osabi_aie4);
     if (!r.passed) return r;
 
     // No metadata supplied — AMDAIE_CORE note must be absent
@@ -130,7 +128,7 @@ static result test_assembler_coredump_with_meta()
     const auto blob = make_blob(512);
 
     aiebu::aie_coredump_meta meta;
-    meta.timestamp_ns    = TS_WITH_META;
+    meta.timestamp_ns    = ts_with_meta;
     meta.driver_version  = "amdxdna-1.2.3";
     meta.fw_version      = "fw-0.9.0";
     meta.device_info     = "NPU Medusa";
@@ -138,15 +136,14 @@ static result test_assembler_coredump_with_meta()
     meta.uuid            = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
 
     aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::coredump_aie4,
-                              blob,
-                              std::make_optional(meta));
+                              blob, meta);
     const auto elf = as.get_elf();
     if (elf.empty())
       return {false, "get_elf() returned empty vector"};
     std::cout << "  ELF size (with meta): " << elf.size() << " bytes\n";
 
     // Verify ELF structure
-    auto r = check_elf_structure(elf, OSABI_AIE4);
+    auto r = check_elf_structure(elf, osabi_aie4);
     if (!r.passed) return r;
 
     write_elf(elf, "coredump_with_meta.elf");
@@ -165,7 +162,7 @@ static result test_get_coredump_meta()
     const auto blob = make_blob(256);
 
     aiebu::aie_coredump_meta in_meta;
-    in_meta.timestamp_ns   = TS_ROUND_TRIP;
+    in_meta.timestamp_ns   = ts_round_trip;
     in_meta.driver_version = "amdxdna-2.0.0";
     in_meta.fw_version     = "fw-1.0.0";
     in_meta.device_info    = "NPU Strix";
@@ -174,7 +171,7 @@ static result test_get_coredump_meta()
 
     // Write
     aiebu::aiebu_assembler writer(aiebu::aiebu_assembler::buffer_type::coredump_aie4,
-                                  blob, std::make_optional(in_meta));
+                                  blob, in_meta);
     const auto elf = writer.get_elf();
 
     // Read back
@@ -210,8 +207,7 @@ static result test_assembler_invalid_type()
   try {
     // blob_instr_dpu is not a coredump type — must throw.
     aiebu::aiebu_assembler as(aiebu::aiebu_assembler::buffer_type::blob_instr_dpu,
-                              blob,
-                              std::nullopt);
+                              blob, aiebu::aiebu_assembler::no_meta);
     return {false, "no exception thrown for invalid buffer_type"};
   } catch (const aiebu::error& ex) {
     constexpr int EXPECTED = aiebu_invalid_buffer_type;

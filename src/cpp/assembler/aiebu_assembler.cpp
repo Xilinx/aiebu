@@ -140,11 +140,16 @@ aiebu_assembler(buffer_type type,
 static unsigned char arch_to_osabi(aiebu_assembler::buffer_type type)
 {
   switch (type) {
-    case aiebu_assembler::buffer_type::coredump_aie2p:  return osabi_aie2p;
-    case aiebu_assembler::buffer_type::coredump_aie2ps: return osabi_aie2ps;
-    case aiebu_assembler::buffer_type::coredump_aie4:   return osabi_aie4;
-    case aiebu_assembler::buffer_type::coredump_aie4a:  return osabi_aie4a;
-    case aiebu_assembler::buffer_type::coredump_aie4z:  return osabi_aie4z;
+    case aiebu_assembler::buffer_type::coredump_aie2p:
+      return osabi_aie2p;
+    case aiebu_assembler::buffer_type::coredump_aie2ps:
+      return osabi_aie2ps;
+    case aiebu_assembler::buffer_type::coredump_aie4:
+      return osabi_aie4;
+    case aiebu_assembler::buffer_type::coredump_aie4a:
+      return osabi_aie4a;
+    case aiebu_assembler::buffer_type::coredump_aie4z:
+      return osabi_aie4z;
     default:
       throw error(error::error_code::invalid_buffer_type,
                   "Buffer_type not supported for coredump assembler !!!");
@@ -154,10 +159,19 @@ static unsigned char arch_to_osabi(aiebu_assembler::buffer_type type)
 aiebu_assembler::
 aiebu_assembler(buffer_type type,
                 const std::vector<char>& blob,
-                std::optional<aie_coredump_meta> meta)
+                no_meta_t /*tag*/)
   : m_output_type(buffer_type::unspecified)
 {
-  elf_data = coredump_elf_writer(arch_to_osabi(type), blob, std::move(meta)).finalize();
+  elf_data = coredump_elf_writer(arch_to_osabi(type), blob, std::nullopt).finalize();
+}
+
+aiebu_assembler::
+aiebu_assembler(buffer_type type,
+                const std::vector<char>& blob,
+                const aie_coredump_meta& meta)
+  : m_output_type(buffer_type::unspecified)
+{
+  elf_data = coredump_elf_writer(arch_to_osabi(type), blob, meta).finalize();
 }
 
 std::vector<char>

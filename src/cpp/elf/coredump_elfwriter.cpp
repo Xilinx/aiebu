@@ -22,9 +22,9 @@ namespace aiebu {
 // elf_prpsinfo32 – mirrors the Linux kernel's elf_prpsinfo structure for
 // 32-bit ELFs (ILP32).  Must be exactly 124 bytes.
 // ---------------------------------------------------------------------------
-constexpr size_t PRPSINFO_FNAME_LEN  = 16;   // pr_fname field width (Linux ABI)
-constexpr size_t PRPSINFO_PSARGS_LEN = 80;   // pr_psargs field width (Linux ABI)
-constexpr size_t PRPSINFO_STRUCT_SZ  = 124;  // total size of elf_prpsinfo32 (Linux ABI)
+constexpr size_t prpsinfo_fname_len  = 16;   // pr_fname field width (Linux ABI)
+constexpr size_t prpsinfo_psargs_len = 80;   // pr_psargs field width (Linux ABI)
+constexpr size_t prpsinfo_struct_sz  = 124;  // total size of elf_prpsinfo32 (Linux ABI)
 
 #pragma pack(push, 1)
 struct elf_prpsinfo32 {
@@ -39,12 +39,12 @@ struct elf_prpsinfo32 {
   int32_t  pr_ppid;                     // 4   parent pid
   int32_t  pr_pgrp;                     // 4   process group
   int32_t  pr_sid;                      // 4   session
-  char     pr_fname[PRPSINFO_FNAME_LEN];   // NOLINT(cppcoreguidelines-avoid-c-arrays) — Linux ABI
-  char     pr_psargs[PRPSINFO_PSARGS_LEN]; // NOLINT(cppcoreguidelines-avoid-c-arrays) — Linux ABI
+  char     pr_fname[prpsinfo_fname_len];   // NOLINT(cppcoreguidelines-avoid-c-arrays) — Linux ABI
+  char     pr_psargs[prpsinfo_psargs_len]; // NOLINT(cppcoreguidelines-avoid-c-arrays) — Linux ABI
 };                                         // total = 124
 #pragma pack(pop)
 
-static_assert(sizeof(elf_prpsinfo32) == PRPSINFO_STRUCT_SZ,
+static_assert(sizeof(elf_prpsinfo32) == prpsinfo_struct_sz,
               "elf_prpsinfo32 must be exactly 124 bytes");
 
 // ---------------------------------------------------------------------------
@@ -162,8 +162,8 @@ build_prpsinfo_desc() const
   info.pr_pid   = 1;
 
   static constexpr std::string_view fname = "aie_coredump";
-  static_assert(fname.size() < PRPSINFO_FNAME_LEN,  "fname too long for pr_fname");
-  static_assert(fname.size() < PRPSINFO_PSARGS_LEN, "fname too long for pr_psargs");
+  static_assert(fname.size() < prpsinfo_fname_len,  "fname too long for pr_fname");
+  static_assert(fname.size() < prpsinfo_psargs_len, "fname too long for pr_psargs");
   std::memcpy(info.pr_fname,  fname.data(), fname.size());
   std::memcpy(info.pr_psargs, fname.data(), fname.size());
 
@@ -221,9 +221,9 @@ finalize() const
   conv.setup(ELFIO::ELFDATA2LSB);
 
   // ---- build note entries ----
-  constexpr ELFIO::Elf_Word NT_PRPSINFO = 3U;
+  constexpr ELFIO::Elf_Word nt_prpsinfo = 3U;
 
-  auto prpsinfo_note = make_note(conv, NT_PRPSINFO,
+  auto prpsinfo_note = make_note(conv, nt_prpsinfo,
                                  nt_name_core,
                                  build_prpsinfo_desc());
 
@@ -234,17 +234,17 @@ finalize() const
                          build_aie_dump_hdr_desc(*m_meta));
 
   // ---- compute file layout ----
-  constexpr uint32_t ELF_HDR_SZ  = 52U;
-  constexpr uint32_t PHDR_SZ     = 32U;
-  constexpr uint32_t NUM_PHDRS   = 2U;
-  constexpr uint32_t NOTE_OFF    = ELF_HDR_SZ + NUM_PHDRS * PHDR_SZ;  // 0x74
-  constexpr uint32_t LOAD_ALIGN  = 0x1000U;
-  constexpr uint32_t EI_PAD_SZ   = 7U;  // e_ident padding bytes (ELF spec, offsets 9–15)
+  constexpr uint32_t elf_hdr_sz  = 52U;
+  constexpr uint32_t phdr_sz     = 32U;
+  constexpr uint32_t num_phdrs   = 2U;
+  constexpr uint32_t note_off    = elf_hdr_sz + num_phdrs * phdr_sz;  // 0x74
+  constexpr uint32_t load_align  = 0x1000U;
+  constexpr uint32_t ei_pad_sz   = 7U;  // e_ident padding bytes (ELF spec, offsets 9–15)
 
   const auto note_size = static_cast<uint32_t>(prpsinfo_note.size()
                                                + aie_note.size());
-  const uint32_t load_off  = (NOTE_OFF + note_size + LOAD_ALIGN - 1U)
-                             & ~(LOAD_ALIGN - 1U);
+  const uint32_t load_off  = (note_off + note_size + load_align - 1U)
+                             & ~(load_align - 1U);
   const auto load_size = static_cast<uint32_t>(m_blob.size());
 
   std::vector<char> out;
@@ -270,25 +270,25 @@ finalize() const
   out.push_back('\x01');                                // EV_CURRENT
   out.push_back(static_cast<char>(m_abi));              // EI_OSABI
   out.push_back(static_cast<char>(elf_version_config)); // EI_ABIVERSION
-  out.insert(out.end(), EI_PAD_SZ, '\0');               // EI_PAD
+  out.insert(out.end(), ei_pad_sz, '\0');               // EI_PAD
 
   append16(static_cast<uint16_t>(ELFIO::ET_CORE));        // e_type
   append16(static_cast<uint16_t>(em_aiectrlcode));         // e_machine
   append32(1U);                                            // e_version (EV_CURRENT)
   append32(0U);                                            // e_entry
-  append32(ELF_HDR_SZ);                                   // e_phoff
+  append32(elf_hdr_sz);                                    // e_phoff
   append32(0U);                                            // e_shoff  = 0 (no SHT)
   append32(0U);                                            // e_flags
-  append16(static_cast<uint16_t>(ELF_HDR_SZ));            // e_ehsize
-  append16(static_cast<uint16_t>(PHDR_SZ));               // e_phentsize
-  append16(static_cast<uint16_t>(NUM_PHDRS));              // e_phnum
+  append16(static_cast<uint16_t>(elf_hdr_sz));             // e_ehsize
+  append16(static_cast<uint16_t>(phdr_sz));                // e_phentsize
+  append16(static_cast<uint16_t>(num_phdrs));              // e_phnum
   append16(0U);                                            // e_shentsize = 0 (no SHT)
   append16(0U);                                            // e_shnum     = 0 (no SHT)
   append16(0U);                                            // e_shstrndx  = 0 (no SHT)
 
   // ---- PT_NOTE program header ----
   append32(static_cast<uint32_t>(ELFIO::PT_NOTE));  // p_type
-  append32(NOTE_OFF);                                // p_offset
+  append32(note_off);                                // p_offset
   append32(0U);                                      // p_vaddr
   append32(0U);                                      // p_paddr
   append32(note_size);                               // p_filesz
@@ -304,7 +304,7 @@ finalize() const
   append32(load_size);                               // p_filesz
   append32(load_size);                               // p_memsz
   append32(static_cast<uint32_t>(ELFIO::PF_R));     // p_flags
-  append32(LOAD_ALIGN);                              // p_align
+  append32(load_align);                              // p_align
 
   // ---- note blob ----
   out.insert(out.end(), prpsinfo_note.begin(), prpsinfo_note.end());
@@ -316,12 +316,6 @@ finalize() const
   // ---- raw AIE dump payload ----
   out.insert(out.end(), m_blob.begin(), m_blob.end());
 
-  if (load_off % LOAD_ALIGN != 0)
-    throw error(error::error_code::internal_error,
-                "PT_LOAD offset is not page-aligned");
-  if (load_off < NOTE_OFF + note_size)
-    throw error(error::error_code::internal_error,
-                "Note segment overlaps PT_LOAD segment");
   if (out.size() != load_off + load_size)
     throw error(error::error_code::internal_error,
                 "ELF output size mismatch");
@@ -393,7 +387,7 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
   //           + 4 strings × (4-byte length prefix + content):
   //               driver_version ~256 + fw_version ~256 + device_info ~256 + uuid 36
   //           ≈ 832 bytes.  2048 gives ~2× headroom for future fields.
-  constexpr uint32_t MAX_AIE_DUMP_HDR_DESC_SZ = 2048U;
+  constexpr uint32_t max_aie_dump_hdr_desc_sz = 2048U;
 
   for (const auto& seg : elf.segments) {
     if (seg->get_type() != ELFIO::PT_NOTE)
@@ -401,31 +395,42 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
 
     const char* data = seg->get_data();
     const auto  size = static_cast<size_t>(seg->get_file_size());
+    if (data == nullptr || size == 0)
+      continue;
     size_t off = 0;
 
     // ELF note header: namesz (4) + descsz (4) + type (4) = 12 bytes.
-    constexpr size_t NOTE_HDR_SZ = 3 * sizeof(uint32_t);
+    constexpr size_t note_hdr_fields = 3;  // namesz, descsz, type
+    constexpr size_t note_hdr_sz = note_hdr_fields * sizeof(uint32_t);
 
-    while (off + NOTE_HDR_SZ <= size) {
+    while (off + note_hdr_sz <= size) {
       uint32_t namesz = 0, descsz = 0, type = 0;
-      std::memcpy(&namesz, data + off,                      sizeof(uint32_t));
+      std::memcpy(&namesz, data + off,                        sizeof(uint32_t));
       std::memcpy(&descsz, data + off +     sizeof(uint32_t), sizeof(uint32_t));
       std::memcpy(&type,   data + off + 2 * sizeof(uint32_t), sizeof(uint32_t));
       namesz = hdr_conv(namesz);
       descsz = hdr_conv(descsz);
       type   = hdr_conv(type);
-      off += NOTE_HDR_SZ;
+      off += note_hdr_sz;
+
+      // namesz == 0 is malformed
+      // namesz extending past the segment is also malformed.
+      if (namesz == 0 || off + namesz > size)
+        break;
 
       // Read name (namesz bytes including NUL terminator), strip NUL.
-      std::string name;
-      if (namesz > 0 && off + namesz <= size)
-        name.assign(data + off, namesz - 1);
-      off += namesz + pad4(namesz);
+      std::string name(data + off, namesz - 1);
+
+      // Advance past name + 4-byte padding; guard against uint32_t overflow.
+      const uint32_t name_advance = namesz + pad4(namesz);
+      if (name_advance < namesz || off + name_advance > size)
+        break;
+      off += name_advance;
 
       if (name == nt_name_amdaie_core &&
           type == static_cast<uint32_t>(nt_aie_dump_hdr) &&
           off + descsz <= size) {
-        if (descsz > MAX_AIE_DUMP_HDR_DESC_SZ)
+        if (descsz > max_aie_dump_hdr_desc_sz)
           return std::nullopt;  // reject oversized descriptor — possible heap exhaustion attack
         try {
           return parse_aie_dump_hdr(data + off, descsz);
@@ -433,7 +438,13 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
           return std::nullopt;  // malformed descriptor
         }
       }
-      off += descsz + pad4(descsz);
+
+      // Advance past descriptor + 4-byte padding; guard against uint32_t overflow
+      // and running past the segment end.
+      const uint32_t desc_advance = descsz + pad4(descsz);
+      if (desc_advance < descsz || off + desc_advance > size)
+        break;
+      off += desc_advance;
     }
   }
   return std::nullopt;

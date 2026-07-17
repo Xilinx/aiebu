@@ -38,7 +38,6 @@ public:
   /*!
    * Assemble and return the ELF binary.
    */
-  [[nodiscard]]
   std::vector<char> finalize() const;
 
 private:
@@ -47,11 +46,9 @@ private:
   std::optional<aie_coredump_meta> m_meta;
 
   /// Build the NT_PRPSINFO note descriptor bytes.
-  [[nodiscard]]
   std::vector<char> build_prpsinfo_desc() const;
 
   /// Build the NT_AIE_DUMP_HDR note descriptor bytes from metadata.
-  [[nodiscard]]
   std::vector<char> build_aie_dump_hdr_desc(const aie_coredump_meta& meta) const;
 };
 

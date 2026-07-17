@@ -252,19 +252,38 @@ class aiebu_assembler
                     const file_artifact& artifact,
                     const std::vector<std::string>& flags);
 
+    /// Tag type: pass aiebu_assembler::no_meta to select the no-metadata
+    /// coredump constructor.
+    struct no_meta_t { explicit no_meta_t() = default; };
+    static constexpr no_meta_t no_meta{};
+
     /*
-     * Construct an AIE coredump ELF from a raw dump blob.
+     * Construct an AIE coredump ELF from a raw dump blob, without metadata.
      * Only coredump_aie2p, coredump_aie2ps, coredump_aie4, coredump_aie4a,
      * and coredump_aie4z buffer types are accepted; all others throw
      * aiebu::error with error_code::invalid_buffer_type.
      *
      * @type   One of the coredump_* buffer_type values.
      * @blob   Raw AIE memory dump bytes.
-     * @meta   Optional metadata (timestamps, versions, etc.).
+     * @       Pass aiebu_assembler::no_meta as the third argument.
      */
     aiebu_assembler(buffer_type type,
                     const std::vector<char>& blob,
-                    std::optional<aie_coredump_meta> meta);
+                    no_meta_t);
+
+    /*
+     * Construct an AIE coredump ELF from a raw dump blob, with metadata.
+     * Only coredump_aie2p, coredump_aie2ps, coredump_aie4, coredump_aie4a,
+     * and coredump_aie4z buffer types are accepted; all others throw
+     * aiebu::error with error_code::invalid_buffer_type.
+     *
+     * @type   One of the coredump_* buffer_type values.
+     * @blob   Raw AIE memory dump bytes.
+     * @meta   Metadata to embed (timestamp, versions, uuid, context status).
+     */
+    aiebu_assembler(buffer_type type,
+                    const std::vector<char>& blob,
+                    const aie_coredump_meta& meta);
 
     /*
      * This function return vector with elf content.
@@ -286,7 +305,6 @@ class aiebu_assembler
      * metadata.  Returns nullopt if the ELF is not ET_CORE or contains
      * no AMDAIE_CORE note.
      */
-    [[nodiscard]]
     std::optional<aie_coredump_meta>
     get_coredump_meta() const;
 

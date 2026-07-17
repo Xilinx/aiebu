@@ -3,6 +3,7 @@
 
 #include "file_utils.h"
 #include "aiebu/aiebu_assembler.h"
+#include "aie_elf_constants.h"
 #include "utils.h"
 #include "elfio/elfio.hpp"
 #include <cstring>
@@ -28,14 +29,6 @@ constexpr unsigned int word_size = 4;
 // For AIE2 control packets are 8 words (8words * 4bytes/word = 32bytes) aligned
 constexpr unsigned int ctrlpkt_offset_aie2 = 8 * word_size;
 
-// ELF OS ABI values for AIE architectures
-// Values chosen with high Hamming distance for robustness against bit flips
-constexpr unsigned int os_abi_aie2p = 69;         // 0x45
-constexpr unsigned int os_abi_aie2ps = 64;        // 0x40
-constexpr unsigned int os_abi_aie2ps_group = 70;  // 0x46
-constexpr unsigned int os_abi_aie4 = 75;          // 0x4B
-constexpr unsigned int os_abi_aie4a = 86;         // 0x56
-constexpr unsigned int os_abi_aie4z = 105;        // 0x69
 // ELF header is at least 52 bytes for 32-bit, 64 bytes for 64-bit
 constexpr unsigned int min_elf_header_size = 52;
 // EI_OSABI is at offset 7 in the ELF header
@@ -68,21 +61,21 @@ identify_buffer_type(const std::vector<char>& buffer)
 
 // OS/ABI → buffer_type lookup tables.  Adding a new architecture requires
 // only a new entry in the appropriate map.
-static const std::map<unsigned int, aiebu_assembler::buffer_type> coredump_abi_map = {
-  {os_abi_aie2p,  aiebu_assembler::buffer_type::coredump_aie2p},
-  {os_abi_aie2ps, aiebu_assembler::buffer_type::coredump_aie2ps},
-  {os_abi_aie4,   aiebu_assembler::buffer_type::coredump_aie4},
-  {os_abi_aie4a,  aiebu_assembler::buffer_type::coredump_aie4a},
-  {os_abi_aie4z,  aiebu_assembler::buffer_type::coredump_aie4z},
+static const std::map<unsigned char, aiebu_assembler::buffer_type> coredump_abi_map = {
+  {osabi_aie2p,  aiebu_assembler::buffer_type::coredump_aie2p},
+  {osabi_aie2ps, aiebu_assembler::buffer_type::coredump_aie2ps},
+  {osabi_aie4,   aiebu_assembler::buffer_type::coredump_aie4},
+  {osabi_aie4a,  aiebu_assembler::buffer_type::coredump_aie4a},
+  {osabi_aie4z,  aiebu_assembler::buffer_type::coredump_aie4z},
 };
 
-static const std::map<unsigned int, aiebu_assembler::buffer_type> elf_abi_map = {
-  {os_abi_aie2p,        aiebu_assembler::buffer_type::elf_aie2},
-  {os_abi_aie2ps,       aiebu_assembler::buffer_type::elf_aie2ps},
-  {os_abi_aie2ps_group, aiebu_assembler::buffer_type::elf_aie2ps},  // legacy group variant
-  {os_abi_aie4,         aiebu_assembler::buffer_type::elf_aie4},
-  {os_abi_aie4a,        aiebu_assembler::buffer_type::elf_aie4a},
-  {os_abi_aie4z,        aiebu_assembler::buffer_type::elf_aie4z},
+static const std::map<unsigned char, aiebu_assembler::buffer_type> elf_abi_map = {
+  {osabi_aie2p,        aiebu_assembler::buffer_type::elf_aie2},
+  {osabi_aie2ps,       aiebu_assembler::buffer_type::elf_aie2ps},
+  {osabi_aie2ps_group, aiebu_assembler::buffer_type::elf_aie2ps},  // legacy group variant
+  {osabi_aie4,         aiebu_assembler::buffer_type::elf_aie4},
+  {osabi_aie4a,        aiebu_assembler::buffer_type::elf_aie4a},
+  {osabi_aie4z,        aiebu_assembler::buffer_type::elf_aie4z},
 };
 
 aiebu_assembler::buffer_type
@@ -91,8 +84,7 @@ identify_elf_type(const std::vector<char>& buffer)
   if (buffer.size() < min_elf_header_size)
     throw error(error::error_code::invalid_elf, "ELF header size is less than expected");
 
-  const auto os_abi = static_cast<unsigned int>(
-      static_cast<unsigned char>(buffer.data()[elf_os_abi_offset]));
+  const auto os_abi = static_cast<unsigned char>(buffer.data()[elf_os_abi_offset]);
 
   // e_type is a uint16_t at offset 16; read it as LE (AIE ELFs are always LE).
   uint16_t e_type = 0;
