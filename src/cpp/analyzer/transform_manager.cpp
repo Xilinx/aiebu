@@ -667,8 +667,14 @@ set_controlcode_bd_offset(const std::string& section_name, uint32_t offset, uint
       throw error(error::error_code::internal_error, "ctrldata size lesser than offset:"
                   + std::to_string(offset) + "\n");
     uint32_t data_offset = offset - static_cast<uint32_t>(ctrltext->get_size()) + elf_section_header_size;
-    if (data_offset > ctrldata->get_size())
-      throw error(error::error_code::internal_error, "ctrldata offset out of range:"
+    // write57() accesses indices [1], [2], [8]
+    // write57_aie4() accesses indices [0], [1]
+    // write_pl_ddr64() accesses indices [8], [9]
+    constexpr size_t kBDWords = 10; // helps catch bogus offset
+
+    if (data_offset >= ctrldata->get_size() ||
+        ctrldata->get_size() - data_offset < kBDWords * sizeof(uint32_t))
+      throw error(error::error_code::internal_error, "ctrldata BD offset out of range:"
                   + std::to_string(offset) + "\n");
     bd_data_ptr = reinterpret_cast<uint32_t*>(const_cast<char*>(ctrldata->get_data()) + data_offset);
   }
@@ -703,8 +709,10 @@ get_ctrlpkt_bd_offset(const std::string& section_name, uint32_t offset, symbol::
   auto ctrlpkt = m_elfio.sections[section_name];
   if (!ctrlpkt)
     throw error(error::error_code::internal_error, "ctrlpkt " + section_name + " not found\n");
-  if (offset > ctrlpkt->get_size())
-    throw error(error::error_code::internal_error, "ctrlpkt size lesser than offset:"
+  constexpr size_t kBDWords = 4; // ctrlpkt_write57() accesses indices [2], [3]
+  if (offset >= ctrlpkt->get_size() ||
+      ctrlpkt->get_size() - offset < kBDWords * sizeof(uint32_t))
+    throw error(error::error_code::internal_error, "ctrlpkt BD offset out of range:"
                 + std::to_string(offset) + "\n");
 
 
@@ -736,8 +744,10 @@ set_ctrlpkt_bd_offset(const std::string& section_name, uint32_t offset, uint64_t
   auto ctrlpkt = m_elfio.sections[section_name];
   if (!ctrlpkt)
     throw error(error::error_code::internal_error, "ctrlpkt " + section_name + " not found\n");
-  if (offset > ctrlpkt->get_size())
-    throw error(error::error_code::internal_error, "ctrlpkt size lesser than offset:"
+  constexpr size_t kBDWords = 4; // ctrlpkt_write57() accesses indices [2], [3]
+  if (offset >= ctrlpkt->get_size() ||
+      ctrlpkt->get_size() - offset < kBDWords * sizeof(uint32_t))
+    throw error(error::error_code::internal_error, "ctrlpkt BD offset out of range:"
                 + std::to_string(offset) + "\n");
 
   auto* bd_data_ptr = reinterpret_cast<uint32_t*>(const_cast<char*>(ctrlpkt->get_data()) + offset);
@@ -1055,7 +1065,7 @@ update_rela_sections(const std::vector<arginfo>& entries, const std::string& ker
     // Special patches (control-code-idx, .ctrlpkt-idx) keep their original names
     const bool is_special_patch = is_ctrlpkt_patch_name(symname) || is_controlcode_patch_name(symname);
     std::string name = is_special_patch ? symname : should_patch ? std::to_string(entries[num].xrt_idx) : symname;
-    
+
     // Verify consistency: all instances of a symbol should map to the same new name
     auto name_it = name_map.find(symname);
     if (should_patch == true) {
