@@ -160,7 +160,7 @@ aiebu_assembler::
 aiebu_assembler(buffer_type type,
                 const std::vector<char>& blob,
                 no_meta_t /*tag*/)
-  : m_output_type(buffer_type::unspecified)
+  : m_type(type), m_output_type(buffer_type::unspecified)
 {
   elf_data = coredump_elf_writer(arch_to_osabi(type), blob, std::nullopt).finalize();
 }
@@ -169,7 +169,7 @@ aiebu_assembler::
 aiebu_assembler(buffer_type type,
                 const std::vector<char>& blob,
                 const aie_coredump_meta& meta)
-  : m_output_type(buffer_type::unspecified)
+  : m_type(type), m_output_type(buffer_type::unspecified)
 {
   elf_data = coredump_elf_writer(arch_to_osabi(type), blob, meta).finalize();
 }

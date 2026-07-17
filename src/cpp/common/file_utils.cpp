@@ -61,7 +61,7 @@ identify_buffer_type(const std::vector<char>& buffer)
 
 // OS/ABI → buffer_type lookup tables.  Adding a new architecture requires
 // only a new entry in the appropriate map.
-static const std::map<unsigned char, aiebu_assembler::buffer_type> coredump_abi_map = {
+static const std::map<unsigned char, aiebu_assembler::buffer_type> coredump_abi_map = { // NOLINT(cert-err58-cpp)
   {osabi_aie2p,  aiebu_assembler::buffer_type::coredump_aie2p},
   {osabi_aie2ps, aiebu_assembler::buffer_type::coredump_aie2ps},
   {osabi_aie4,   aiebu_assembler::buffer_type::coredump_aie4},
@@ -69,7 +69,7 @@ static const std::map<unsigned char, aiebu_assembler::buffer_type> coredump_abi_
   {osabi_aie4z,  aiebu_assembler::buffer_type::coredump_aie4z},
 };
 
-static const std::map<unsigned char, aiebu_assembler::buffer_type> elf_abi_map = {
+static const std::map<unsigned char, aiebu_assembler::buffer_type> elf_abi_map = { // NOLINT(cert-err58-cpp)
   {osabi_aie2p,        aiebu_assembler::buffer_type::elf_aie2},
   {osabi_aie2ps,       aiebu_assembler::buffer_type::elf_aie2ps},
   {osabi_aie2ps_group, aiebu_assembler::buffer_type::elf_aie2ps},  // legacy group variant

@@ -39,8 +39,8 @@ struct elf_prpsinfo32 {
   int32_t  pr_ppid;                     // 4   parent pid
   int32_t  pr_pgrp;                     // 4   process group
   int32_t  pr_sid;                      // 4   session
-  char     pr_fname[prpsinfo_fname_len];   // NOLINT(cppcoreguidelines-avoid-c-arrays) — Linux ABI
-  char     pr_psargs[prpsinfo_psargs_len]; // NOLINT(cppcoreguidelines-avoid-c-arrays) — Linux ABI
+  char     pr_fname[prpsinfo_fname_len];   // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays) — Linux ABI
+  char     pr_psargs[prpsinfo_psargs_len]; // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays) — Linux ABI
 };                                         // total = 124
 #pragma pack(pop)
 
