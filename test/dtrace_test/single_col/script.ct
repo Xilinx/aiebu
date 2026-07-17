@@ -50,6 +50,9 @@ jprobe:aie_runtime_control.asm:uc0:line4
 {
     write_reg(0x100000, 0xabcdabcd)
     print(f"write 0xabcdabcd to memtile 0_1 offset 0")
+
+    mask_poll32(0x100000, 0xFFFFFFFF, 0xabcdabcd)
+
     mask_write_reg(0x100000, 0x0000FFFF, 0x12345678)
     print(f"mask write 0x12345678 to memtile 0_1 offset 0, mask value 0x0000FFFF")
 }

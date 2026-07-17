@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 // This file contains the implementation of the pager class, which is responsible 
 // for managing paging operations on control buffers.
@@ -503,9 +503,10 @@ get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset)
             uint32_t action_length = source[action_offset + 1];
             action_size += dtrace::action::action_ctrl::timestamps_action_size + action_length;
         }
-        else if (action_type == dtrace::action::action_type::reg_mask_write)
-        {   // mask write register action
-            action_size += dtrace::action::action_ctrl::reg_mask_w_action_size;
+        else if (action_type == dtrace::action::action_type::reg_mask_write ||
+            action_type == dtrace::action::action_type::mask_poll32)
+        {   // mask write register action, mask poll32 action
+            action_size += dtrace::action::action_ctrl::reg_mask_action_size;
         }
         else
         {
