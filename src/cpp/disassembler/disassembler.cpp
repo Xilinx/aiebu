@@ -78,27 +78,27 @@ void asm_disassembler::add_data_sec_comment() {
 }
 
 // Common text block processing (used by both ELF and binary disassemblers)
-void asm_disassembler::process_text_block(const char* data, size_t start_offset, size_t end_offset, 
+void asm_disassembler::process_text_block(const char* data, size_t start_offset, size_t end_offset,
                                          std::shared_ptr<disassembler_state> state) {
     for (size_t offset = start_offset; offset < end_offset;) {
         uint8_t opcode = *reinterpret_cast<const uint8_t*>(data + offset);
-        
+
         // Handle alignment padding
         if (opcode == align_opcode) {
             state->increment_address(1);
             ++offset;
             continue;
         }
-        
+
         // Look up opcode in ISA map
         auto op_it = isa_op_map->find(opcode);
         if (op_it == isa_op_map->end()) {
             std::ostringstream err;
-            err << "Unknown Opcode: 0x" << std::hex << static_cast<int>(opcode) 
+            err << "Unknown Opcode: 0x" << std::hex << static_cast<int>(opcode)
                 << " at offset " << std::dec << offset << "\n";
             throw error(error::error_code::invalid_asm, err.str());
         }
-        
+
         // Deserialize and consume bytes
         auto deserializer = op_it->second.create_deserializer();
         size_t consumed = deserializer->deserialize(m_asm_writer, state, data + offset);
@@ -107,22 +107,22 @@ void asm_disassembler::process_text_block(const char* data, size_t start_offset,
 }
 
 // Common data block processing (used by both ELF and binary disassemblers)
-void asm_disassembler::process_data_block(const char* data, size_t size, 
+void asm_disassembler::process_data_block(const char* data, size_t size,
                                          std::shared_ptr<disassembler_state> state) {
     isa_op_disasm dummy_isa_op("dummy", 0, std::vector<opArg>{});
     bool align_4_written = false;
-    
+
     for (size_t offset = 0; offset < size;) {
         uint8_t opcode = *reinterpret_cast<const uint8_t*>(data + offset);
         auto label_map = state->get_labels();
         auto local_ptr_map = state->get_local_ptrs();
-        
+
         // Check for UC_DMA_BD at label positions
         if (label_map.find(state->get_address()) != label_map.end()) {
             ucDmaBd_op_deserializer deserializer(&dummy_isa_op);
             size_t consumed = deserializer.deserialize(m_asm_writer, state, data + offset);
             offset += consumed;
-        } 
+        }
         // Check for .long at local pointer positions
         else if (local_ptr_map.find(state->get_address()) != local_ptr_map.end()) {
             if (!align_4_written) {
@@ -133,15 +133,15 @@ void asm_disassembler::process_data_block(const char* data, size_t size,
             long_op_deserializer deserializer(&dummy_isa_op);
             size_t consumed = deserializer.deserialize(m_asm_writer, state, data + offset);
             offset += consumed;
-        } 
+        }
         // Handle padding bytes
         else if (opcode == align_opcode || opcode == zero_padding) {
             state->increment_address(1);
             ++offset;
-        } 
+        }
         else {
             std::ostringstream err;
-            err << "Illegal state at offset " << offset 
+            err << "Illegal state at offset " << offset
                 << " (opcode: 0x" << std::hex << static_cast<int>(opcode) << ")\n";
             throw error(error::error_code::invalid_asm, err.str());
         }
@@ -164,12 +164,12 @@ void elf_asm_disassembler::run() {
 }
 
 // Binary disassembler constructor
-bin_asm_disassembler::bin_asm_disassembler(const std::vector<char>& binary_data, 
-                                          std::ostream& output_stream, 
+bin_asm_disassembler::bin_asm_disassembler(const std::vector<char>& binary_data,
+                                          std::ostream& output_stream,
                                           aiebu_assembler::buffer_type buffer_type)
     : asm_disassembler(output_stream), m_binary_data(binary_data) {
     m_buffer_type = buffer_type;
-    
+
     // Output target architecture information for binary files
     std::string arch_name = (buffer_type == aiebu_assembler::buffer_type::blob_aie4) ? "aie4" : "aie2ps";
     m_asm_writer.write_directive("; Target Architecture: " + arch_name);
@@ -361,47 +361,53 @@ void bin_asm_disassembler::process_binary() {
     if (m_binary_data.empty()) {
         throw error(error::error_code::invalid_input, "Binary data is empty\n");
     }
-    
+
     size_t offset = 0;
     int page_num = 0;
-    
+
     while (offset < m_binary_data.size()) {
         // Check if there's enough data for a page
         size_t remaining = m_binary_data.size() - offset;
         if (remaining < page_header_size) {
             break; // Not enough data for another page
         }
-        
+
         // Check for page header magic bytes
         if (static_cast<uint8_t>(m_binary_data[offset + page_header_magic_byte_0]) != page_header_magic ||
             static_cast<uint8_t>(m_binary_data[offset + page_header_magic_byte_1]) != page_header_magic) {
             // No more pages
             break;
         }
-        
+
         // Read cur_page_len from header
-        uint16_t cur_page_len = static_cast<uint8_t>(m_binary_data[offset + page_header_cur_len_low]) | 
+        uint16_t cur_page_len = static_cast<uint8_t>(m_binary_data[offset + page_header_cur_len_low]) |
                                (static_cast<uint8_t>(m_binary_data[offset + page_header_cur_len_high]) << byte_shift);
-        
-        // cur_page_len includes the header itself, so content is (cur_page_len - page_header_size)
-        size_t content_size = (cur_page_len > page_header_size) ? 
-                             (cur_page_len - page_header_size) : 0;
-        
+
+        // cur_page_len includes the header itself, so content is (cur_page_len
+        // - page_header_size)
+
+        const size_t avail = remaining - page_header_size;
+        const size_t content_size = (cur_page_len > page_header_size) ?
+            (cur_page_len - page_header_size) : 0;
+        if (content_size > avail)
+            throw error(error::error_code::invalid_asm,
+                        "page_len exceeds remaining bytes");
+
         // Process this page
         auto state = create_disassembler_state();
-        
+
         if (content_size > 0) {
-            process_binary_data(m_binary_data.data() + offset + page_header_size, 
+            process_binary_data(m_binary_data.data() + offset + page_header_size,
                                content_size, state);
         }
-        
+
         // Move to next page (always at page_size boundary)
         offset += page_size;
         page_num++;
     }
-    
+
     if (page_num == 0) {
-        throw error(error::error_code::invalid_input, 
+        throw error(error::error_code::invalid_input,
                    "No valid pages found in binary file\n");
     }
 }
@@ -411,15 +417,15 @@ size_t bin_asm_disassembler::detect_binary_header_offset() const {
     if (m_binary_data.size() < min_header_size) {
         return 0; // Too small for any header
     }
-    
+
     // Check for AIE2PS/AIE4 page header
-    // Page header format: { 0xFF, 0xFF, page_index[2], ooo_len1[2], ooo_len2[2], 
+    // Page header format: { 0xFF, 0xFF, page_index[2], ooo_len1[2], ooo_len2[2],
     //                       cur_len[2], in_order_len[2], reserved[4] }
-    if (static_cast<uint8_t>(m_binary_data[page_header_magic_byte_0]) == page_header_magic && 
+    if (static_cast<uint8_t>(m_binary_data[page_header_magic_byte_0]) == page_header_magic &&
         static_cast<uint8_t>(m_binary_data[page_header_magic_byte_1]) == page_header_magic) {
         return page_header_size;
     }
-    
+
     // Check if this looks like ELF section padding (all zeros or alignment padding)
     if (m_binary_data.size() >= min_header_size) {
         bool looks_like_padding = true;
@@ -433,7 +439,7 @@ size_t bin_asm_disassembler::detect_binary_header_offset() const {
             return page_header_size;
         }
     }
-    
+
     // No header detected, start from beginning
     return 0;
 }
@@ -441,10 +447,10 @@ size_t bin_asm_disassembler::detect_binary_header_offset() const {
 void bin_asm_disassembler::process_binary_data(const char* data, size_t size, std::shared_ptr<disassembler_state> state) {
     // Process PAGE structure: TEXT section → EOF → DATA section → padding
     // This mirrors how ELF sections are processed
-    
+
     size_t text_end_offset = 0;
     bool found_eof = false;
-    
+
     // Find EOF to determine TEXT section boundary
     for (size_t i = 0; i < size; i++) {
         if (static_cast<uint8_t>(data[i]) == eof_opcode) {
@@ -457,25 +463,25 @@ void bin_asm_disassembler::process_binary_data(const char* data, size_t size, st
             }
         }
     }
-    
+
     // If no EOF found, entire file is TEXT section
     if (!found_eof) {
         text_end_offset = size;
     }
-    
+
     // Process TEXT section (mirroring process_text_section for ELF)
     add_text_sec_comment();
-    
+
     // Use common base class method for text processing
     process_text_block(data, 0, text_end_offset, state);
-    
+
     // Process DATA section if present (mirroring process_data_section for ELF)
     if (found_eof && text_end_offset < size) {
         add_data_sec_comment();
         m_asm_writer.write_directive("  .align             " + std::to_string(align_16));
-        
+
         process_data_section_binary(data + text_end_offset, size - text_end_offset, state);
-        
+
         // Reset state after DATA section (like ELF disassembler does)
         state->reset();
     }
