@@ -55,6 +55,7 @@ using json = nlohmann::ordered_json;
  * - timestamps:     Multiple Timestamp action.
  * - timestamps32:   Multiple Timestamps32 action.
  * - reg_mask_write: Register mask write action.
+ * - mask_poll32:    Register mask poll action 32-bit.
  * - handshake_read: Handshake region read action.
  * - handshake_write:Handshake region write action.
  * - host_timestamp: Host timestamp action.
@@ -85,6 +86,7 @@ public:
     static constexpr uint32_t sleep = ACTION_SLEEP;
     static constexpr uint32_t count = ACTION_COUNT;
     static constexpr uint32_t host_timestamps = ACTION_HOST_TIMESTAMPS;
+    static constexpr uint32_t mask_poll32 = ACTION_MASK_POLL32;
 #else
     static constexpr uint32_t reg_read = 0;
     static constexpr uint32_t reg_write = 1;
@@ -105,6 +107,7 @@ public:
     static constexpr uint32_t sleep = 16;
     static constexpr uint32_t count = 17;
     static constexpr uint32_t host_timestamps = 18;
+    static constexpr uint32_t mask_poll32 = 19;
 #endif
 };
 
@@ -145,6 +148,7 @@ public:
     static inline const aiebu::regex sleep_regex = aiebu::regex(R"(sleep\()");                      // NOLINT
     static inline const aiebu::regex count_regex = aiebu::regex(R"(count\()");                      // NOLINT
     static inline const aiebu::regex host_timestamps_regex = aiebu::regex(R"(host_timestamps\()");  // NOLINT
+    static inline const aiebu::regex mask_poll32_regex = aiebu::regex(R"(mask_poll32\()");            // NOLINT
     static inline const aiebu::regex operation_regex = aiebu::regex(R"(^(\w+)\s*=\s*(.+)$)");       // NOLINT
     static inline const aiebu::regex action_regex = aiebu::regex(R"((\w+)\((.*)\))");               // NOLINT
 };
@@ -167,7 +171,7 @@ public:
     static constexpr uint32_t timestamps_action_size = 2;       // Size of a multiple timestamp action
     static constexpr uint32_t timestamps_value_size = 2;        // Size of value (Low and high) for timestamp
     static constexpr uint32_t reg_rw_action_size = 3;           // Size of a register read/write action
-    static constexpr uint32_t reg_mask_w_action_size = 4;       // Size of a register read/write action
+    static constexpr uint32_t reg_mask_action_size = 4;         // Size of a register mask write/poll action
     static constexpr uint32_t mem_rw_action_size = 5;           // Size of a memory read/write action
 };
 
@@ -325,6 +329,34 @@ public:
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
     uint32_t get_mode() const { return m_mode; }
+};
+
+//-------------------------Mask poll register-------------------------//
+/**
+ * @class mask_poll32_action
+ *
+ * @brief
+ * dtrace::action::mask_poll32_action represents an action to mask poll a register.
+ *
+ * @details
+ * This class inherits from the base class `action` and provides functionality
+ * for mask poll register action in the control block and serialize the result.
+ */
+class mask_poll32_action : public action
+{
+public:
+    mask_poll32_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    void actionize(
+        uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
+    ) override;
+    void serialize(
+        uint32_t* result_buffer, uint32_t* mem_buffer,
+        const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
+    ) const override;
+    void serialize(
+        uint32_t* result_buffer, uint32_t* mem_buffer,
+        const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
+    ) const override;
 };
 
 //-------------------------Timestamp-------------------------//

@@ -556,7 +556,7 @@ create_result_buffer(const std::unordered_map<uint32_t, dtrace_buffer_info>& buf
                 );
 
                 // If action didn't fire, probe didn't fire - stop processing probe
-                if (action->get_result_type() != action::action_result_type::read_action_not_fired)
+                if (action->get_result_type() == action::action_result_type::read_action_not_fired)
                     break;  // EARLY EXIT - skip remaining actions in probe
             }
             catch (const std::exception& e)
