@@ -70,19 +70,16 @@ private:
 public:
     implementation(const char *txn, uint64_t size) {
 
-        // TXN with transaction_op_t header is not suupported.
-        const auto *hdr = reinterpret_cast<const XAie_TxnHeader *>(txn);
-        if (hdr->TxnSize != size) {
-            throw std::runtime_error("Corrupted transaction binary");
-        }
+       // TXN with transaction_op_t header is not suupported.
 
-        txn_.resize(hdr->TxnSize);
+       if (size < sizeof(XAie_TxnHeader))
+           throw std::runtime_error("Transaction binary smaller than header");
 
-        uint8_t *ptr = txn_.data();
-        std::memcpy(ptr, hdr, sizeof(XAie_TxnHeader));
-
-        uint8_t *txn_ptr = ptr + sizeof(*hdr);
-        std::memcpy((char *)txn_ptr, txn + sizeof(*hdr), hdr->TxnSize - sizeof(XAie_TxnHeader));
+       const auto *hdr = reinterpret_cast<const XAie_TxnHeader *>(txn);
+       if (hdr->TxnSize != size)
+           throw std::runtime_error("Corrupted transaction binary: TxnSize mismatch");
+       txn_.assign(reinterpret_cast<const uint8_t*>(txn),
+                   reinterpret_cast<const uint8_t*>(txn) + size);
     }
 
     [[nodiscard]] std::string get_txn_summary() const {
@@ -124,6 +121,8 @@ private:
 
         for (auto i = 0U; i < num_ops; i++) {
             auto op_hdr = (const XAie_OpHdr *)(ptr);
+            if (op_hdr->Op >= op_count.size())
+                throw std::runtime_error("Unknown opcode " + std::to_string(op_hdr->Op));
             op_count[op_hdr->Op]++;
             switch (op_hdr->Op) {
             case XAIE_IO_WRITE: {

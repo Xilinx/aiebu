@@ -390,6 +390,7 @@ add_preemption_code(uint32_t col)
     uint32_t loadsequence = 0;
     bool pm_exist = false;
     uint32_t pm_id = 0;
+    const char *mc_code_end = &mc_code.back();
 
     ptr += sizeof(XAie_TxnHeader);
     for(uint32_t num = 0; num < txn_header->NumOps; num++) {
@@ -403,7 +404,10 @@ add_preemption_code(uint32_t col)
         case XAIE_IO_BLOCKWRITE: {
           auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr *>(ptr);
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr));
-          auto offset = static_cast<uint32_t>(payload-mc_code.data());
+          auto offset = static_cast<uint32_t>(payload - mc_code.data());
+          if (bw_header->Size < sizeof(*bw_header) ||
+              bw_header->Size > static_cast<size_t>(mc_code_end - reinterpret_cast<const char*>(bw_header)))
+            throw error(error::error_code::invalid_asm, "BLOCKWRITE size out of range");
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
           if (loadsequence > 0 && pm_exist)
           {
@@ -563,6 +567,7 @@ add_preemption_code(uint32_t col)
     uint32_t loadsequence = 0;
     bool pm_exist = false;
     uint32_t pm_id = 0;
+    const char *mc_code_end = &mc_code.back();
 
     ptr += sizeof(XAie_TxnHeader);
     for(uint32_t num = 0; num < txn_header->NumOps; num++) {
@@ -575,7 +580,10 @@ add_preemption_code(uint32_t col)
         case XAIE_IO_BLOCKWRITE: {
           auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr_opt *>(ptr);
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr_opt));
-          auto offset = static_cast<uint32_t>(payload-mc_code.data());
+          auto offset = static_cast<uint32_t>(payload - mc_code.data());
+          if (bw_header->Size < sizeof(*bw_header) ||
+              bw_header->Size > static_cast<size_t>(mc_code_end - reinterpret_cast<const char*>(bw_header)))
+            throw error(error::error_code::invalid_asm, "BLOCKWRITE size out of range");
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
           if (loadsequence > 0 && pm_exist)
           {
