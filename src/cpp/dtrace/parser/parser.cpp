@@ -20,12 +20,12 @@ namespace dtrace::parser
 //-------------------------Parser Constructor-------------------------//
 /**
  * parser() - Constructor for the parser class.
- * 
- * @param map_data 
+ *
+ * @param map_data
  *  Map data with details of control code.
  *
  * Initializes the parser object with the provided map data and memory host address map.
- * It sets the initial state to `probe` and initializes parser member variables. 
+ * It sets the initial state to `probe` and initializes parser member variables.
  * Map data is parsed from a JSON string and stored in the `m_maps` member variable.
  */
 parser::
@@ -67,7 +67,7 @@ parser(const std::string& map_data)
             auto operation = item.second.get<std::string>("operation");
             std::transform(operation.begin(), operation.end(), operation.begin(),
                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-            if (operation == "eof" || operation.find(".align") != std::string::npos || 
+            if (operation == "eof" || operation.find(".align") != std::string::npos ||
                 operation.find(".long") != std::string::npos)
                 continue;
 
@@ -125,7 +125,7 @@ parser(const std::string& map_data)
             {
                 auto annotation = item.second.get_child("annotation");
                 const auto annotation_id = annotation.get<std::string>("id");
-                const std::string m_maps_annotation_key = 
+                const std::string m_maps_annotation_key =
                     "jprobe:" + (has_conflict ? file_path : file_name) + ":uc" + column + ":annotation" + annotation_id;
                 m_maps[m_maps_annotation_key] = probe_value;
 
@@ -141,14 +141,14 @@ parser(const std::string& map_data)
 
 //-------------------------jprobe::lookup_control_code_location-------------------------//
 /**
- * lookup_control_code_location() - 
+ * lookup_control_code_location() -
  *  Retrieves the control code location from the control code map.
- * 
- * @return 
+ *
+ * @return
  *  std::pair<int, int> pair containing the page and offset of the control code location.
- * 
- * This function iterates through the control code map to find the matching file 
- * and line number specified in the probe fields. If a match is found, 
+ *
+ * This function iterates through the control code map to find the matching file
+ * and line number specified in the probe fields. If a match is found,
  * it calculates the page and offset for the control code location.
  */
 std::pair<int, int>
@@ -161,7 +161,7 @@ lookup_control_code_location(const std::string& probe_name) const
     {
         const auto& value = m_maps.at(probe_name);
         page = std::stoi(value.get<std::string>("page_index"));
-        offset = std::stoi(value.get<std::string>("page_offset")) - 
+        offset = std::stoi(value.get<std::string>("page_offset")) -
             static_cast<int>(page * dtrace::dtrace_ctrl::page_length_check);
     }
     return {page, offset};
@@ -169,7 +169,7 @@ lookup_control_code_location(const std::string& probe_name) const
 
 //-------------------------parser::get_list-------------------------//
 /**
- * get_list() - 
+ * get_list() -
  *  Parses comma-separated string of integers and ranges into a list of integers.
  *
  * @return
@@ -192,7 +192,7 @@ get_list(const std::string& token) const
     // Check if the token is empty
     if (token_list.empty())
     {
-        DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE_ID_TOKEN", 
+        DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE_ID_TOKEN",
             "Invalid token: " << token);
     }
 
@@ -213,7 +213,7 @@ get_list(const std::string& token) const
         int end_int = std::stoi(end);
 
         if (start_int > end_int) {
-            DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE_ID_RANGE", 
+            DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE_ID_RANGE",
                 "Invalid range: " << token_item);
         }
 
@@ -245,28 +245,28 @@ expand_jprobe(uint32_t probe_type, const std::string& probe_name)
     while (std::getline(probe_stream, item, ':'))
         probe_fields.push_back(item);
 
-    if (probe_fields.size() < 4) 
-        DTRACE_ERROR("DTRACE_PARSER_INVALID_JPROBE_PROBE_ARGUMENTS", 
-            "Invalid jprobe format: '" << probe_name << 
+    if (probe_fields.size() < 4)
+        DTRACE_ERROR("DTRACE_PARSER_INVALID_JPROBE_PROBE_ARGUMENTS",
+            "Invalid jprobe format: '" << probe_name <<
             "' Expected 'jprobe:name_of_asm:ucX:line|annotationY'");
 
     auto uCs = get_list(probe_fields[2].substr(2));
 
     std::string label;
     std::vector<int> range;
-    if (probe_fields[3].substr(0, dtrace::dtrace_ctrl::label_line_length) == "line") 
+    if (probe_fields[3].substr(0, dtrace::dtrace_ctrl::label_line_length) == "line")
     {
         range = get_list(probe_fields[3].substr(dtrace::dtrace_ctrl::label_line_length));
         label = probe_fields[3].substr(0, dtrace::dtrace_ctrl::label_line_length);
-    } 
-    else if (probe_fields[3].substr(0, dtrace::dtrace_ctrl::label_annotation_length) == "annotation") 
+    }
+    else if (probe_fields[3].substr(0, dtrace::dtrace_ctrl::label_annotation_length) == "annotation")
     {
         range = get_list(probe_fields[3].substr(dtrace::dtrace_ctrl::label_annotation_length));
         label = probe_fields[3].substr(0, dtrace::dtrace_ctrl::label_annotation_length);
     }
-    else 
+    else
     {
-        DTRACE_ERROR("DTRACE_PARSER_INVALID_JPROBE_LABEL", 
+        DTRACE_ERROR("DTRACE_PARSER_INVALID_JPROBE_LABEL",
             "Invalid jprobe label: " << probe_fields[3]);
     }
     // For each uC and line, generate probe name and store it in the probe expand map
@@ -277,12 +277,12 @@ expand_jprobe(uint32_t probe_type, const std::string& probe_name)
         m_mem_host_addr_map.insert({m_uC_index, 0});
         for (const auto& index : range)
         {
-            std::string probe = 
-                probe_fields[0] + ":" + probe_fields[1] + 
-                ":uc" + std::to_string(uC) + 
+            std::string probe =
+                probe_fields[0] + ":" + probe_fields[1] +
+                ":uc" + std::to_string(uC) +
                 ":" + label + std::to_string(index);
-            // If we don't find the page/offset in map file, we just ignore the 
-            // probe instead of raising exception; this is useful for declaring probes 
+            // If we don't find the page/offset in map file, we just ignore the
+            // probe instead of raising exception; this is useful for declaring probes
             // with line range where there are empty line and/or comment line in the range
             auto [page, offset] = lookup_control_code_location(probe);
             if (page == -1 || offset == -1)
@@ -290,10 +290,10 @@ expand_jprobe(uint32_t probe_type, const std::string& probe_name)
                 DTRACE_WARNING("jprobe does not exist: " << probe);
                 continue;
             }
-                
+
             m_probe_expand[probe_name].emplace_back(probe, m_uC_index);
             m_probe_order[m_uC_index].push_back(probe);
-            m_probes[m_uC_index][probe] = 
+            m_probes[m_uC_index][probe] =
                 std::make_shared<dtrace::probe::jprobe>(probe_type, probe, page, offset);
         }
     }
@@ -322,9 +322,9 @@ expand_tracepoint(uint32_t probe_type, const std::string& probe_name)
         probe_fields.push_back(item);
 
     if (probe_fields.size() < 3)
-        DTRACE_ERROR("DTRACE_PARSER_INVALID_TRACEPOINT_PROBE_ARGUMENTS", 
+        DTRACE_ERROR("DTRACE_PARSER_INVALID_TRACEPOINT_PROBE_ARGUMENTS",
             "Invalid tracepoint format: '" << probe_name << "' Expected 'tracepoint:ucX:idZ'");
-    
+
     auto uCs = get_list(probe_fields[1].substr(2));
     auto ids = get_list(probe_fields[2].substr(2));
     // For each uC and line, generate probe name and store it in the probe expand map
@@ -335,13 +335,13 @@ expand_tracepoint(uint32_t probe_type, const std::string& probe_name)
         m_mem_host_addr_map.insert({m_uC_index, 0});
         for (const auto& id : ids)
         {
-            std::string probe = 
-                probe_fields[0] + 
-                ":uc" + std::to_string(uC) + 
+            std::string probe =
+                probe_fields[0] +
+                ":uc" + std::to_string(uC) +
                 ":id" + std::to_string(id);
             m_probe_expand[probe_name].emplace_back(probe, m_uC_index);
             m_probe_order[m_uC_index].push_back(probe);
-            m_probes[m_uC_index][probe] = 
+            m_probes[m_uC_index][probe] =
                 std::make_shared<dtrace::probe::tracepoint_probe>(probe_type, probe);
         }
     }
@@ -370,7 +370,7 @@ expand_profile(uint32_t probe_type, const std::string& probe_name)
         probe_fields.push_back(item);
 
     if (probe_fields.size() < 3)
-        DTRACE_ERROR("DTRACE_PARSER_INVALID_PROFILE_PROBE_ARGUMENTS", 
+        DTRACE_ERROR("DTRACE_PARSER_INVALID_PROFILE_PROBE_ARGUMENTS",
             "Invalid profile format: '" << probe_name << "' Expected 'profile:ucX:Whz'");
 
     auto uCs = get_list(probe_fields[1].substr(2));
@@ -380,11 +380,11 @@ expand_profile(uint32_t probe_type, const std::string& probe_name)
         m_uC_index = uC;
         m_uC_indices.insert(m_uC_index);
         m_mem_host_addr_map.insert({m_uC_index, 0});
-        std::string probe = 
+        std::string probe =
             probe_fields[0] + ":uc" + std::to_string(uC) + ":" + probe_fields[2];
         m_probe_expand[probe_name].emplace_back(probe, m_uC_index);
         m_probe_order[m_uC_index].push_back(probe);
-        m_probes[m_uC_index][probe] = 
+        m_probes[m_uC_index][probe] =
             std::make_shared<dtrace::probe::profile_probe>(probe_type, probe);
     }
 }
@@ -396,7 +396,7 @@ expand_profile(uint32_t probe_type, const std::string& probe_name)
  * @param write_buffer
  *  String containing buffer information and values to be added.
  *
- * This function parses the buffer from the write buffer string and adds them to 
+ * This function parses the buffer from the write buffer string and adds them to
  * the buffer map based on the buffer name.
  */
 void
@@ -406,20 +406,20 @@ expand_write_buffer(const std::string& write_buffer)
     // Regex to extract buffer name and values
     aiebu::regex buffer_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\[(.*)\]\s*$)");
     aiebu::smatch buffer;
-    if (!aiebu::regex_match(write_buffer, buffer, buffer_regex)) 
+    if (!aiebu::regex_match(write_buffer, buffer, buffer_regex))
     {
         DTRACE_ERROR("DTRACE_PARSER_INVALID_WRITE_BUFFER",
             "Invalid write buffer format: " << write_buffer);
         return;
     }
-    std::string buffer_name = buffer[1]; 
+    std::string buffer_name = buffer[1];
     size_t buffer_length = std::stoul(buffer[2], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base);
     std::string buffer_values = buffer[3];
 
     // Add values to the buffer
     std::vector<uint32_t> buffer_addr = {
         static_cast<uint32_t>(
-            (m_mem_host_addr_map[m_uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift) 
+            (m_mem_host_addr_map[m_uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift)
             & dtrace::dtrace_ctrl::mask_32
         ),
         static_cast<uint32_t>(
@@ -427,19 +427,19 @@ expand_write_buffer(const std::string& write_buffer)
         )
     };
     m_buffer_map[buffer_name] = std::make_pair(buffer_addr, std::vector<uint32_t>());
-    
+
     std::vector<uint32_t>& buffer_map_values = m_buffer_map.at(buffer_name).second;
     buffer_map_values.clear();
     std::string item;
     std::istringstream value_stream(buffer_values);
-    while (std::getline(value_stream, item, ',')) 
+    while (std::getline(value_stream, item, ','))
     {
         item = dtrace::action::action::strip(item);
 
         // Skip empty items
         if (item.empty())
             continue;
-    
+
         buffer_map_values.push_back(
             std::stoul(item, nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base)
         );
@@ -468,7 +468,7 @@ expand_write_buffer(const std::string& write_buffer)
  * @param init_buffer
  *  String containing buffer information and values to be added.
  *
- * This function parses the buffer from the initialize buffer string and adds them to 
+ * This function parses the buffer from the initialize buffer string and adds them to
  * the buffer map based on the buffer name.
  */
 void
@@ -478,7 +478,7 @@ expand_init_buffer(const std::string& init_buffer)
     // Regex to extract buffer name and length
     aiebu::regex buffer_init_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\{0\}\s*$)");
     aiebu::smatch buffer;
-    if (!aiebu::regex_match(init_buffer, buffer, buffer_init_regex)) 
+    if (!aiebu::regex_match(init_buffer, buffer, buffer_init_regex))
     {
         DTRACE_ERROR("DTRACE_PARSER_INVALID_INITIALIZE_BUFFER",
             "Invalid initialize buffer format: " << init_buffer);
@@ -486,8 +486,9 @@ expand_init_buffer(const std::string& init_buffer)
     }
 
     std::string buffer_name = buffer[1];
+    constexpr size_t kMaxBufferWords = 1u << 16;
     size_t buffer_length = std::stoul(buffer[2], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base);
-    if (buffer_length < 1)
+    if (buffer_length < 1 || buffer_length > kMaxBufferWords)
         DTRACE_ERROR("DTRACE_PARSER_INVALID_BUFFER_LENGTH",
             "Invalid buffer length for buffer " << buffer_name << ": " << buffer_length);
 
@@ -496,7 +497,7 @@ expand_init_buffer(const std::string& init_buffer)
     // Set the memory host address for the buffer in the buffer map vector
     std::vector<uint32_t> buffer_addr = {
         static_cast<uint32_t>(
-            (m_mem_host_addr_map[m_uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift) 
+            (m_mem_host_addr_map[m_uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift)
             & dtrace::dtrace_ctrl::mask_32
         ),
         static_cast<uint32_t>(
@@ -504,7 +505,7 @@ expand_init_buffer(const std::string& init_buffer)
         )
     };
     m_buffer_map[buffer_name] = std::make_pair(buffer_addr, buffer_values);
-        
+
     // Update the memory host address map
     m_mem_host_addr_map[m_uC_index] += static_cast<uint64_t>(
         buffer_length * dtrace::dtrace_ctrl::word_byte_size
@@ -519,9 +520,9 @@ expand_init_buffer(const std::string& init_buffer)
  * @param probe_name
  * @param action
  *
- * This function adds an action to a probe based on the provided probe type, probe name, 
- * and action string. If the probe name exists in the m_probe_expand map, 
- * it iterates through the associated probes and creates an action for each probe. 
+ * This function adds an action to a probe based on the provided probe type, probe name,
+ * and action string. If the probe name exists in the m_probe_expand map,
+ * it iterates through the associated probes and creates an action for each probe.
  * Otherwise, it creates an action for the given probe name and uC index.
  */
 void
@@ -547,13 +548,13 @@ probe_add_action(uint32_t probe_type, const std::string& probe_name, const std::
 /**
  * create_action() - Creates an action based on the provided action string.
  *
- * @param action_string 
+ * @param action_string
  *  String representing the action to be created.
  * @param probe_type
  * @param probe_name
- * @param uC_index 
+ * @param uC_index
  *  Index of the uC where the action is to be stored.
- * @return 
+ * @return
  *  shared pointer to the created action.
  * @throws std::runtime_error If the action string does not match any known action type.
  *
@@ -563,7 +564,7 @@ probe_add_action(uint32_t probe_type, const std::string& probe_name, const std::
  */
 std::shared_ptr<dtrace::action::action>
 parser::
-create_action(const std::string& action_string, uint32_t probe_type, 
+create_action(const std::string& action_string, uint32_t probe_type,
     const std::string& probe_name, uint32_t uC_index)
 {
     std::shared_ptr<dtrace::action::action> action;
@@ -702,7 +703,7 @@ create_action(const std::string& action_string, uint32_t probe_type,
     }
     else
     {
-        DTRACE_ERROR("DTRACE_PARSER_INVALID_ACTION_LINE", 
+        DTRACE_ERROR("DTRACE_PARSER_INVALID_ACTION_LINE",
             "Invalid action line: '" << action_string << "' at position " << m_position);
     }
     return action;
@@ -710,15 +711,15 @@ create_action(const std::string& action_string, uint32_t probe_type,
 
 //-------------------------parser::parse_line-------------------------//
 /**
- * parse_line() - 
+ * parse_line() -
  *  Parses input script file line and updates the parser state accordingly.
  *
- * @param parse_line 
+ * @param parse_line
  *  Input script file line to be parsed.
  *
  * This function processes a input script file line and determines its type based on
- * predefined regular expressions for probe and action. It updates the parser 
- * state and parser data structures based on the type of line. 
+ * predefined regular expressions for probe and action. It updates the parser
+ * state and parser data structures based on the type of line.
  */
 void
 parser::
@@ -763,14 +764,14 @@ parse_line(const std::string& parse_line)
     {
         if (m_state != state_type::probe || m_begin_exist)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
-    
+
         m_uC_index = 0;
         m_begin_exist = true;
         m_state = state_type::action_open;
         m_probe_type = dtrace::probe::probe_type::begin;
         m_probe_name = line;
         m_probe_order[m_uC_index].push_back(m_probe_name);
-        m_probes[m_uC_index][m_probe_name] = 
+        m_probes[m_uC_index][m_probe_name] =
             std::make_shared<dtrace::probe::begin_probe>(m_probe_type, m_probe_name);
         m_uC_indices.insert(m_uC_index);
         m_mem_host_addr_map.insert({m_uC_index, 0});
@@ -788,14 +789,14 @@ parse_line(const std::string& parse_line)
     {
         if (m_state != state_type::probe || m_end_exist)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
-        
+
         m_uC_index = 0;
         m_end_exist = true;
         m_state = state_type::action_open;
         m_probe_type = dtrace::probe::probe_type::end;
         m_probe_name = line;
         m_probe_order[m_uC_index].push_back(m_probe_name);
-        m_probes[m_uC_index][m_probe_name] = 
+        m_probes[m_uC_index][m_probe_name] =
             std::make_shared<dtrace::probe::end_probe>(m_probe_type, m_probe_name);
         m_uC_indices.insert(m_uC_index);
         m_mem_host_addr_map.insert({m_uC_index, 0});
@@ -812,7 +813,7 @@ parse_line(const std::string& parse_line)
     {
         if (m_state != state_type::action_open)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
-        
+
         m_state = state_type::action;
         m_open = true;
         return;
@@ -823,7 +824,7 @@ parse_line(const std::string& parse_line)
     {
         if (!m_open || m_state != state_type::action)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
-        
+
         m_state = state_type::probe;
         m_open = false;
         return;
@@ -835,7 +836,7 @@ parse_line(const std::string& parse_line)
     {
         if (m_state != state_type::probe)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
-        
+
         m_state = state_type::action_open;
         m_probe_type = dtrace::probe::probe_type::jprobe;
         m_probe_name = line;
@@ -847,14 +848,14 @@ parse_line(const std::string& parse_line)
         }
         return;
     }
- 
+
     // Parse the line for tracepoint probe
     aiebu::regex tracepoint_regex(R"(^tracepoint:(uc[0-9,-]+)\:(id[0-9,-]+)\s*\{?$)");
     if (aiebu::regex_match(line, tracepoint_regex))
     {
         if (m_state != state_type::probe)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
-        
+
         m_state = state_type::action_open;
         m_probe_type = dtrace::probe::probe_type::tracepoint;
         m_probe_name = line;
@@ -873,7 +874,7 @@ parse_line(const std::string& parse_line)
     {
         if (m_state != state_type::probe)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
-        
+
         m_state = state_type::action_open;
         m_probe_type = dtrace::probe::probe_type::profile;
         m_probe_name = line;
@@ -916,14 +917,14 @@ parse_line(const std::string& parse_line)
     aiebu::regex buffer_open_regex(R"(^(\w+\[(0x[a-fA-F0-9]+|\d+)\])(?:\s*=\s*(\[.*)?)?$)");
     aiebu::regex buffer_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\[(.*)\]\s*$)");
     if (aiebu::regex_match(line, buffer_open_regex) && m_state == state_type::action)
-    {  
+    {
         m_state = state_type::buffer_open;
         m_open_buffer = true;
         m_write_buffer += line;
         // single line buffer
         if (aiebu::regex_match(m_write_buffer, buffer_regex))
             expand_write_buffer(m_write_buffer);
-            
+
         return;
     }
 

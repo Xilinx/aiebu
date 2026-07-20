@@ -305,7 +305,10 @@ private:
 
     size_t stringify_preempt(const XAie_OpHdr *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_PreemptHdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_PREEMPT " << preempt_code_table[mp_header->Preempt_level] << std::endl;
+        const auto lvl = mp_header->Preempt_level;
+        ss_ops_ << op_format << "XAIE_IO_PREEMPT "
+                << (lvl < preempt_code_table.size() ? preempt_code_table[lvl] : std::string_view("#INVALID"))
+                << std::endl;
         return sizeof(XAie_PreemptHdr);
     }
 
@@ -452,7 +455,10 @@ ss_ops_ << op_format << "XAIE_IO_MASKPOLL_BUSY " << "@0x" << std::hex << mp_head
 
     size_t stringify_preempt_opt(const XAie_OpHdr_opt *ptr, std::ostream &ss_ops_) const {
         auto mp_header = (const XAie_PreemptHdr *)(ptr);
-        ss_ops_ << op_format << "XAIE_IO_PREEMPT " << preempt_code_table[mp_header->Preempt_level] << std::endl;
+        const auto lvl = mp_header->Preempt_level;
+        ss_ops_ << op_format << "XAIE_IO_PREEMPT "
+                << (lvl < preempt_code_table.size() ? preempt_code_table[lvl] : std::string_view("#INVALID"))
+                << std::endl;
         return sizeof(XAie_PreemptHdr);
     }
 
