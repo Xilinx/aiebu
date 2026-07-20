@@ -36,6 +36,14 @@ if (NOT WIN32)
   target_link_libraries(${AIEBU_ERROR_TESTNAME} PRIVATE pthread)
 endif()
 
+set(AIE_COREDUMP_TESTNAME "aie_coredump_cpp")
+add_executable(${AIE_COREDUMP_TESTNAME} aie_coredump_test.cpp)
+target_link_libraries(${AIE_COREDUMP_TESTNAME} PRIVATE aiebu_static)
+target_include_directories(${AIE_COREDUMP_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/include)
+if (NOT WIN32)
+  target_link_libraries(${AIE_COREDUMP_TESTNAME} PRIVATE pthread)
+endif()
+
 
 if (NOT WIN32)
   target_link_libraries(${AIE2_TESTNAME} PRIVATE pthread)
@@ -119,4 +127,9 @@ add_test(NAME "aie4_1col_preempt_savetimestamps_target"
 # exit code 0 means every test case reported PASS).
 add_test(NAME "aiebu_error_duplicate_asm_filename"
   COMMAND ${AIEBU_ERROR_TESTNAME}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# AIE Coredump ELF generation tests.
+add_test(NAME "aie_coredump_elf_generation"
+  COMMAND ${AIE_COREDUMP_TESTNAME}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
