@@ -33,8 +33,12 @@ size_t packets::serialize(std::ostream &stream, size_t offset) const
          << "?], C[" << header->source_col << "?]}\n";
 
   stream << "CH {@0x" << std::hex << info->local_byte_addr << std::dec << ", ["
-         << info->num_data_beat + 1 << "], " << control_packet_operations_map(info->operation) << "}\n";
-  for (uint32_t i = 0; i <= info->num_data_beat; i++) {
+         << info->num_data_beat + 1 << "], "
+         << control_packet_operations_map(info->operation) << "}\n";
+
+  const uint32_t beats = std::min<uint32_t>(info->num_data_beat + 1u,
+                                            static_cast<uint32_t>((m_size - offset) / sizeof(unsigned int)));
+  for (uint32_t i = 0; i < beats; i++) {
     stream << "   [" << i << "] 0x" << std::hex
            << *(reinterpret_cast<const unsigned int *>(m_buffer + offset))
            << std::dec << "\n";

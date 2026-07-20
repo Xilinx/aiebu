@@ -369,6 +369,8 @@ add_preemption_code(uint32_t col)
   {
     constexpr static uint32_t DMA_BD_1_IN_BYTES = 1 * 4;
     constexpr static uint32_t DMA_BD_2_IN_BYTES = 2 * 4;
+    if (offset >= mc_code.size() || mc_code.size() - offset <= DMA_BD_2_IN_BYTES + 1)
+      throw error(error::error_code::invalid_asm, "shimBD offset OOB");
     //Clearing address bits as they are set at runtime during patching(xrt/firmware).
     //Lower Base Address. 30 LSB of a 46-bit long 32-bit-word-address. (bits [31:2] in DMA_BD_1 of a 48-bit byte-address)
     //Upper Base Address. 16 MSB of a 46-bit long 32-bit-word-address. (bits [47:32] in DMA_BD_2 of a 48-bit byte-address)
@@ -737,6 +739,11 @@ add_preemption_code(uint32_t col)
       std::cout << "txn buffer is empty\n";
       return 0;
     }
+
+    if (mc_code.size() < sizeof(XAie_TxnHeader))
+      throw error(error::error_code::invalid_asm,
+                  "txn buffer smaller than header");
+
     const char *ptr = (mc_code.data());
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
 

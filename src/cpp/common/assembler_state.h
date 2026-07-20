@@ -225,7 +225,7 @@ public:
 
   std::string get_label_at(size_t index) const
   {
-    if (index >  m_labellist.size())
+    if (index >=  m_labellist.size())
       throw error(error::error_code::internal_error, "index " + std::to_string(index) + " > label list size!!!");
     return "@" + m_labellist.at(index);
   }
