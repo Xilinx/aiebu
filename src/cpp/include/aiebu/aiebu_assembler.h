@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,37 @@ class elfio;
 }
 
 namespace aiebu {
+
+/*!
+ * @enum aie_context_status
+ *
+ * @brief
+ * State of the AIE context at the time the coredump was captured.
+ * Stored as a uint32_t in the NT_AIE_DUMP_HDR note wire format.
+ *
+ */
+enum class aie_context_status : uint32_t {
+  idle     = 0,  ///< Context is idle — no work queued or running
+  ready    = 1,  ///< Context is ready to run but not yet scheduled
+  running  = 2,  ///< Context is actively executing on the hardware
+  timeout  = 3,  ///< Context timed out waiting for hardware completion
+  error    = 4,  ///< Context encountered any other error 
+};
+
+/*!
+ * @struct aie_coredump_meta
+ *
+ * @brief
+ * Optional metadata attached to an AIE coredump ELF.
+ */
+struct aie_coredump_meta {
+  uint64_t           timestamp_ns;    ///< Capture timestamp in nanoseconds
+  std::string        driver_version;  ///< Driver version string
+  std::string        fw_version;      ///< Firmware version string
+  std::string        device_info;     ///< Device identification string
+  aie_context_status context_status;  ///< Context state at time of dump
+  std::string        uuid;            ///< UUID uniquely identifying the AIE ELF loaded on target
+};
 
 /*!
  * @struct instinfo
@@ -136,7 +168,12 @@ class aiebu_assembler
       blob_aie4,      // Raw binary file for aie4 architecture
       blob_aie4a,     // Raw binary file for aie4a architecture
       blob_aie4z,     // Raw binary file for aie4z architecture
-    };
+      coredump_aie2p,
+      coredump_aie2ps,
+      coredump_aie4,
+      coredump_aie4a,
+      coredump_aie4z,
+  };
 
   private:
     buffer_type m_type;
@@ -215,6 +252,39 @@ class aiebu_assembler
                     const file_artifact& artifact,
                     const std::vector<std::string>& flags);
 
+    /// Tag type: pass aiebu_assembler::no_meta to select the no-metadata
+    /// coredump constructor.
+    struct no_meta_t { explicit no_meta_t() = default; };
+    static constexpr no_meta_t no_meta{};
+
+    /*
+     * Construct an AIE coredump ELF from a raw dump blob, without metadata.
+     * Only coredump_aie2p, coredump_aie2ps, coredump_aie4, coredump_aie4a,
+     * and coredump_aie4z buffer types are accepted; all others throw
+     * aiebu::error with error_code::invalid_buffer_type.
+     *
+     * @type   One of the coredump_* buffer_type values.
+     * @blob   Raw AIE memory dump bytes.
+     * @       Pass aiebu_assembler::no_meta as the third argument.
+     */
+    aiebu_assembler(buffer_type type,
+                    const std::vector<char>& blob,
+                    no_meta_t);
+
+    /*
+     * Construct an AIE coredump ELF from a raw dump blob, with metadata.
+     * Only coredump_aie2p, coredump_aie2ps, coredump_aie4, coredump_aie4a,
+     * and coredump_aie4z buffer types are accepted; all others throw
+     * aiebu::error with error_code::invalid_buffer_type.
+     *
+     * @type   One of the coredump_* buffer_type values.
+     * @blob   Raw AIE memory dump bytes.
+     * @meta   Metadata to embed (timestamp, versions, uuid, context status).
+     */
+    aiebu_assembler(buffer_type type,
+                    const std::vector<char>& blob,
+                    const aie_coredump_meta& meta);
+
     /*
      * This function return vector with elf content.
      *
@@ -229,6 +299,14 @@ class aiebu_assembler
     [[nodiscard]]
     std::vector<char>
     get_elf() const;
+
+    /*
+     * Parse the NT_AIE_DUMP_HDR note from a coredump ELF and return its
+     * metadata.  Returns nullopt if the ELF is not ET_CORE or contains
+     * no AMDAIE_CORE note.
+     */
+    std::optional<aie_coredump_meta>
+    get_coredump_meta() const;
 
     void
     get_report(std::ostream &stream) const;
