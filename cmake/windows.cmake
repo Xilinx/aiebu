@@ -14,6 +14,10 @@ if (NOT AIEBU_MSVC_LEGACY_LINKING)
     )
 endif()
 
+option(AIEBU_EXPLICIT_DEBUG_FLAGS
+  "Set /Zi and /DEBUG explicitly for all build types. Parent projects may set to OFF to control debug info format externally."
+  ON)
+
 add_compile_options(
   /Zc:__cplusplus
   /WX           # treat warnings as errors
@@ -22,6 +26,10 @@ add_compile_options(
   /ZH:SHA_256   # enable secure source code hashing
   /guard:cf     # enable compiler control guard feature (CFG) to prevent attackers from redirecting execution to unsafe locations
   )
+
+if(AIEBU_EXPLICIT_DEBUG_FLAGS)
+  add_compile_options(/Zi)
+endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   add_compile_options(/Qspectre)  # compile with the Spectre mitigations switch
@@ -36,11 +44,18 @@ add_compile_options("$<$<STREQUAL:$<CONFIG>,Release>:/O2>")
 add_compile_options("$<$<STREQUAL:$<CONFIG>,Release>:/Ot>")
 add_compile_definitions($<$<STREQUAL:$<CONFIG>,Release>:_ITERATOR_DEBUG_LEVEL=0>)
 
+if(AIEBU_EXPLICIT_DEBUG_FLAGS)
+  add_link_options(/DEBUG)
+endif()
+
 add_link_options(
   /guard:cf   # enable linker control guard feature (CFG) to prevent attackers from redirecting execution to unsafe locations
   )
 
-set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+if(NOT AIEBU_EXPLICIT_DEBUG_FLAGS)
+  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
+    "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+endif()
 
 if (NOT ${CMAKE_CXX_COMPILER} MATCHES "(arm64|ARM64)")
     add_link_options(/CETCOMPAT) # enable Control-flow Enforcement Technology (CET) Shadow Stack mitigation
