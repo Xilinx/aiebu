@@ -24,6 +24,8 @@ operation_action(std::string token, uint32_t probe_type, const std::string& prob
     : action(probe_type, probe_name)
     , m_token(std::move(token))
 {
+    // Set action name for creating action control print
+    m_action_name = "operation";
 }
 
 //-------------------------operation_action::actionize-------------------------//

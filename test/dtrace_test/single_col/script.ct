@@ -87,6 +87,8 @@ jprobe:default:uc0:line4
 }
 tracepoint:uc0:id4-5
 {
+    cnt = count()
+
     ts4[5] = timestamps()
     print(f"{probename}: page load timestamps: {ts4}")
 

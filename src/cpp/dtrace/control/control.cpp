@@ -67,14 +67,16 @@ control(const std::string& script_file, const std::string& map_data)
 
     file.close();
 
+    DTRACE_INFO("DTRACE CONTROL SCRIPT PARSING FILE: " << script_file);
     // Compile the script
     for (const auto& script_line : file_lines)
         m_parser.parse_line(script_line);
 
     // Check if any uC indices were parsed
-    if (m_parser.m_uC_indices.empty()) {
+    if (m_parser.m_uC_indices.empty())
         DTRACE_ERROR("DTRACE_CONTROL_NO_uC_INDICES", "script file: " << script_file);
-    }
+
+    DTRACE_INFO("DTRACE CONTROL SCRIPT PARSING COMPLETE");
 
     // Set last uC index to the number of uCs
     m_num_uCs = *m_parser.m_uC_indices.rbegin() + 1;
@@ -129,6 +131,8 @@ control(const std::string& script_file, const std::string& map_data)
                     << probe->create_string() << " for uC index " << uC << ".Exception: " << e.what());
             }
         }
+        DTRACE_INFO("DTRACE CONTROL BUFFER CREATED for uC index " << uC << " with size " 
+            << m_control_buffers.at(uC).size() * sizeof(uint32_t) << " bytes");
 
         // Memory buffer present flag
         if (m_mem_buffers.at(uC).size() > 0)
@@ -136,6 +140,7 @@ control(const std::string& script_file, const std::string& map_data)
 
         // Trace control block paging
         m_control_buffers[uC] = m_pager.paging(m_control_buffers.at(uC), uC);
+        DTRACE_INFO("DTRACE CONTROL BUFFER PAGING COMPLETE for uC index " << uC);
     }
 
     // Populate result actions in execution order across probes
@@ -372,6 +377,7 @@ create_result_file(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffe
     std::string output_file_path = (std::filesystem::current_path() / output_file).string();
     bool file_created = false;
 
+    DTRACE_INFO("DTRACE RESULT FILE CREATION STARTED");
     // Process actions based on output format
     if (m_output_format == dtrace::dtrace_output_format::python)
     {
@@ -398,6 +404,7 @@ create_result_file(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffe
                         m_pager.get_action_location_mapping(loop_uC_index),
                         probe_stream
                     );
+                    DTRACE_INFO("Serialized action " << action->create_string() << " for uC index " << loop_uC_index);
 
                     if (action->get_result_type() == action::action_result_type::read_action_fired ||
                         action->get_result_type() == action::action_result_type::print_action_fired)
@@ -471,6 +478,7 @@ create_result_file(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffe
                         m_pager.get_action_location_mapping(loop_uC_index),
                         json_output
                     );
+                    DTRACE_INFO("Serialized action " << action->create_string() << " for uC index " << loop_uC_index);
 
                     if (action->get_result_type() == action::action_result_type::read_action_fired ||
                         action->get_result_type() == action::action_result_type::print_action_fired)
@@ -513,6 +521,7 @@ create_result_file(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffe
             "Output format " << static_cast<int>(m_output_format) << " not supported yet."
         );
     }
+    DTRACE_INFO("DTRACE RESULT FILE CREATION COMPLETE: " << output_file_path);
 }
 
 //-------------------------control::create_result_buffer-------------------------//
@@ -537,6 +546,7 @@ create_result_buffer(const std::unordered_map<uint32_t, dtrace_buffer_info>& buf
             "Output format " << static_cast<int>(m_output_format) << " not supported for buffer result."
         );
 
+    DTRACE_INFO("DTRACE RESULT BUFFER CREATION STARTED");
     // Iterate through probe groups
     for (const auto& probe_actions : m_result_actions)
     {
@@ -554,6 +564,7 @@ create_result_buffer(const std::unordered_map<uint32_t, dtrace_buffer_info>& buf
                     m_pager.get_action_location_mapping(loop_uC_index),
                     json_output
                 );
+                DTRACE_INFO("Serialized action " << action->create_string() << " for uC index " << loop_uC_index);
 
                 // If action didn't fire, probe didn't fire - stop processing probe
                 if (action->get_result_type() == action::action_result_type::read_action_not_fired)
@@ -567,6 +578,7 @@ create_result_buffer(const std::unordered_map<uint32_t, dtrace_buffer_info>& buf
             }
         }
     }
+    DTRACE_INFO("DTRACE RESULT BUFFER CREATION COMPLETE");
 }
 
 } // namespace dtrace
