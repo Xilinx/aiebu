@@ -492,7 +492,7 @@ get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset)
         else if (action_type == dtrace::action::action_type::timestamps ||
             action_type == dtrace::action::action_type::host_timestamps)
         {   // timestamps action, host timestamps action
-            uint32_t action_length = source[action_offset + 1];
+            uint32_t action_length = source[action_offset + action_size + 1];
             action_size += (
                 dtrace::action::action_ctrl::timestamps_action_size + 
                 (action_length * dtrace::action::action_ctrl::timestamps_value_size)
@@ -500,7 +500,7 @@ get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset)
         }
         else if (action_type == dtrace::action::action_type::timestamps32)
         {   // timestamps32 action
-            uint32_t action_length = source[action_offset + 1];
+            uint32_t action_length = source[action_offset + action_size + 1];
             action_size += dtrace::action::action_ctrl::timestamps_action_size + action_length;
         }
         else if (action_type == dtrace::action::action_type::reg_mask_write ||

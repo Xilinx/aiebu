@@ -92,12 +92,14 @@ if __name__ == '__main__':
   print("end job ts: {ts_end_job:d}")
   v = 2882382797
   print(f"read from memtile 1_1 offset 0: {hex(v)}")
+  cnt = 2954879183
   ts4 = [12379739850550389709, 12379739850550389709, 12379739850550389709, 12379739850550389709, 12379739850550389709]
   probename = "tracepoint:uc0:id4"
   print(f"{probename}: page load timestamps: {ts4}")
   ts10 = [12379739850550389709, 12379739850550389709, 12379739850550389709, 12379739850550389709, 12379739850550389709]
   probename = "tracepoint:uc0:id4"
   print(f"{probename}: page load host timestamps: {ts10}")
+  cnt = 2954879183
   ts4 = [12379739850550389709, 12379739850550389709, 12379739850550389709, 12379739850550389709, 12379739850550389709]
   probename = "tracepoint:uc0:id5"
   print(f"{probename}: page load timestamps: {ts4}")
