@@ -228,7 +228,9 @@ add_preemption_code(uint32_t col)
                                uint32_t arg_index,
                                const boost::property_tree::ptree& pt)
   {
-    const uint32_t addend = get_32_bit_property(pt, "offset_in_bytes", true);
+    const uint64_t addend_64 = pt.get<uint64_t>("offset_in_bytes", 0);
+    const bool large_addend = addend_64 > RANGE_32BIT;
+    const uint32_t addend = large_addend ? 0 : static_cast<uint32_t>(addend_64);
     const auto control_packet_patch_pt = pt.get_child_optional("control_packet_patch_locations");
     if (!control_packet_patch_pt)
       return;
@@ -244,6 +246,11 @@ add_preemption_code(uint32_t col)
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
       uint32_t offset = control_packet_offset - 8;
+      if (large_addend)
+      {
+        log_info() << boost::format("Warning: offset_in_bytes (0x%x) > 32bit for control_packet_48, baking into BD and patching with addend=0\n") % addend_64;
+        patch_ctrl48_addend(m_data[ctrl_data], offset, addend_64);
+      }
       add_symbol({name, offset, 0, 0, addend, 0, ctrl_data, symbol::patch_schema::control_packet_48});
     }
   }
@@ -312,7 +319,14 @@ add_preemption_code(uint32_t col)
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
       uint32_t offset = control_packet_offset - 8;
-      const uint32_t addend = get_32_bit_property(patch, "bo_offset");
+      const uint64_t addend_64 = patch.get<uint64_t>("bo_offset", 0);
+      const bool large_addend = addend_64 > RANGE_32BIT;
+      const uint32_t addend = large_addend ? 0 : static_cast<uint32_t>(addend_64);
+      if (large_addend)
+      {
+        log_info() << boost::format("Warning: bo_offset (0x%x) > 32bit for control_packet_48, baking into BD and patching with addend=0\n") % addend_64;
+        patch_ctrl48_addend(m_data[ctrl_data], offset, addend_64);
+      }
       add_symbol({std::to_string(arg_index + arg_offset), offset, 0, 0, addend, 0, ctrl_data, symbol::patch_schema::control_packet_48});
     }
 
@@ -379,6 +393,34 @@ add_preemption_code(uint32_t col)
     mc_code[offset + DMA_BD_1_IN_BYTES + 3] = mc_code[offset + DMA_BD_1_IN_BYTES + 3] & (0x00);
     mc_code[offset + DMA_BD_2_IN_BYTES] = mc_code[offset + DMA_BD_2_IN_BYTES] & (0x00);
     mc_code[offset + DMA_BD_2_IN_BYTES + 1] = mc_code[offset + DMA_BD_2_IN_BYTES + 1] & (0x00);
+  }
+
+  // Patch a >32bit addend into the shim BD bytes (bd_data_ptr[1] and bd_data_ptr[2]).
+  void
+  aie2_blob_preprocessor_input::
+  patch_shim48_addend(std::vector<char>& mc_code, uint32_t offset, uint64_t addend) const
+  {
+    uint32_t* bd_data_ptr = reinterpret_cast<uint32_t*>(mc_code.data() + offset);
+    uint64_t base_address =
+      ((static_cast<uint64_t>(bd_data_ptr[2]) & 0xFFFF) << 32) |
+      ((static_cast<uint64_t>(bd_data_ptr[1])));
+    base_address += addend;
+    bd_data_ptr[1] = static_cast<uint32_t>(base_address & 0xFFFFFFFC);
+    bd_data_ptr[2] = (bd_data_ptr[2] & 0xFFFF0000) | static_cast<uint32_t>(base_address >> 32);
+  }
+
+  // Patch a >32bit addend into the control packet BD bytes (bd_data_ptr[2] and bd_data_ptr[3]).
+  void
+  aie2_blob_preprocessor_input::
+  patch_ctrl48_addend(std::vector<char>& buf, uint32_t offset, uint64_t addend) const
+  {
+    uint32_t* bd_data_ptr = reinterpret_cast<uint32_t*>(buf.data() + offset);
+    uint64_t base_address =
+      ((static_cast<uint64_t>(bd_data_ptr[3]) & 0xFFF) << 32) |
+      ((static_cast<uint64_t>(bd_data_ptr[2])));
+    base_address += addend;
+    bd_data_ptr[2] = static_cast<uint32_t>(base_address & 0xFFFFFFFC);
+    bd_data_ptr[3] = (bd_data_ptr[3] & 0xFFFF0000) | static_cast<uint32_t>(base_address >> 32);
   }
 
   #define MAJOR_VER 1
@@ -776,18 +818,15 @@ add_preemption_code(uint32_t col)
     uint32_t offset = input.offset;
     uint64_t buffer_length_in_bytes = input.buffer_length_in_bytes;
 
-    if (input.addend > RANGE_32BIT)
-    {
-      auto error_msg = boost::format("Invalid addend (0x%x) > 32bit found") % input.addend;
-      throw error(error::error_code::invalid_asm, error_msg.str());
-    }
-    uint32_t addend = static_cast<uint32_t>(input.addend);
-
     if (argidx > (MAX_ARG_INDEX + arg_offset))
     {
       auto error_msg = boost::format("Arg index: %d in patch opcode > 32") % argidx;
       throw error(error::error_code::invalid_asm, error_msg.str());
     }
+
+    const bool large_addend = input.addend > RANGE_32BIT;
+    uint32_t addend = large_addend ? 0 : static_cast<uint32_t>(input.addend);
+
     std::vector<uint32_t> MEM_BD_ADDRESS;
     for (auto i=0U; i < MEM_DMA_BD_NUM; ++i)
       MEM_BD_ADDRESS.push_back(MEM_DMA_BD0_0 + i * MEM_DMA_BD_SIZE);
@@ -843,6 +882,11 @@ add_preemption_code(uint32_t col)
       if (it != SHIM_BD_ADDRESS.end())
       {
         clear_shimBD_address_bits(mc_code, offset);
+        if (large_addend)
+        {
+          log_info() << boost::format("Warning: addend (0x%x) > 32bit for shim_dma_48, baking into BD and patching with addend=0\n") % input.addend;
+          patch_shim48_addend(mc_code, offset, input.addend);
+        }
         if (!argname.empty())
         {
           // in case of scratchpad
