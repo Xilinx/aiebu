@@ -70,7 +70,7 @@ static T le_conv(T v)
 {
   if (is_le_host())
     return v;
-  constexpr size_t bits_per_byte = static_cast<size_t>(8U);
+  constexpr auto bits_per_byte = static_cast<size_t>(8U);
   T result = 0;
   for (size_t i = 0; i < sizeof(T); ++i) {
     const auto byte_val = static_cast<T>(static_cast<uint8_t>(v >> (bits_per_byte * i)));
