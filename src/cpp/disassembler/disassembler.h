@@ -47,11 +47,11 @@ protected:
     void add_data_sec_comment();
 
     // Common section processing methods
-    void process_text_block(const char* data, size_t start_offset, size_t end_offset, 
+    void process_text_block(const char* data, size_t start_offset, size_t end_offset,
                            std::shared_ptr<disassembler_state> state);
-    void process_data_block(const char* data, size_t size, 
+    void process_data_block(const char* data, size_t size,
                            std::shared_ptr<disassembler_state> state);
-    
+
     // Create architecture-specific disassembler state
     [[nodiscard]] std::shared_ptr<disassembler_state> create_disassembler_state() const;
 };
@@ -62,7 +62,9 @@ public:
     // Constructor for ELF input files
     elf_asm_disassembler(const std::string& input_elf_path, std::ostream& output_stream,
                         aiebu_assembler::buffer_type buffer_type = aiebu_assembler::buffer_type::elf_aie2ps);
-    
+
+    elf_asm_disassembler(std::istream& input_stream, std::ostream& output_stream,
+                        aiebu_assembler::buffer_type buffer_type = aiebu_assembler::buffer_type::elf_aie2ps);
     void run() override;
 
 private:
@@ -82,10 +84,10 @@ private:
 class bin_asm_disassembler : public asm_disassembler {
 public:
     // Constructor for binary input files
-    bin_asm_disassembler(const std::vector<char>& binary_data, 
-                        std::ostream& output_stream, 
+    bin_asm_disassembler(const std::vector<char>& binary_data,
+                        std::ostream& output_stream,
                         aiebu_assembler::buffer_type buffer_type = aiebu_assembler::buffer_type::blob_aie2ps);
-    
+
     void run() override;
 
 private:

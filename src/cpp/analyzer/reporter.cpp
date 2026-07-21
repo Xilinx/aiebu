@@ -189,20 +189,11 @@ namespace aiebu {
         }
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps ||
                  m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie4) {
-            // Write buffer to temp file and use elf_asm_disassembler
+            // Use elf_asm_disassembler with input stream
             try {
-                std::filesystem::path temp_file = std::filesystem::temp_directory_path() / "aiebu_temp.elf";
-                std::ofstream ofs(temp_file, std::ios::binary);
-                if (!ofs) {
-                    throw error(error::error_code::internal_error, "Failed to create temp file");
-                }
-                ofs.write(m_buffer.data(), static_cast<std::streamsize>(m_buffer.size()));
-                ofs.close();
-
-                aiebu::elf_asm_disassembler disasm(temp_file.string(), stream, m_buffer_type);
+                std::istringstream iss(std::string(m_buffer.begin(), m_buffer.end()), std::ios::binary);
+                aiebu::elf_asm_disassembler disasm(iss, stream, m_buffer_type);
                 disasm.run();
-
-                std::filesystem::remove(temp_file);
             } catch (const std::exception& ex) {
                 throw error(error::error_code::internal_error,
                     "ELF disassembler error: " + std::string(ex.what()));
