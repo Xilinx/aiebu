@@ -8,6 +8,7 @@
 
 #include "aiebu/aiebu_error.h"
 
+#include <boost/endian/detail/order.hpp>
 #include <cstdint>
 #include <cstring>
 #include <optional>
@@ -51,16 +52,10 @@ static_assert(sizeof(elf_prpsinfo32) == prpsinfo_struct_sz,
 // Endianness helpers
 // ---------------------------------------------------------------------------
 
-// Returns true if the host is little-endian. Result is cached on first call.
-static bool is_le_host()
+// Returns true at compile time if the host is little-endian.
+static constexpr bool is_little_endian()
 {
-  static const bool s_cached = [] { // NOLINT(cert-err58-cpp) — lambda cannot throw
-    uint8_t probe = 0;
-    const uint16_t endian_test = 1U;
-    std::memcpy(&probe, &endian_test, sizeof(probe));
-    return probe == 1U;
-  }();
-  return s_cached;
+  return boost::endian::order::native == boost::endian::order::little;
 }
 
 // Convert between little-endian (wire format) and host byte order.
@@ -68,7 +63,7 @@ static bool is_le_host()
 template <typename T>
 static T le_conv(T v)
 {
-  if (is_le_host())
+  if constexpr (is_little_endian())
     return v;
   constexpr auto bits_per_byte = static_cast<size_t>(8U);
   T result = 0;
