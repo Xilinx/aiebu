@@ -8,7 +8,7 @@
 
 #include "aiebu/aiebu_error.h"
 
-#include <boost/endian/detail/order.hpp>
+#include <boost/endian/conversion.hpp>
 #include <cstdint>
 #include <cstring>
 #include <optional>
@@ -49,43 +49,16 @@ static_assert(sizeof(elf_prpsinfo32) == prpsinfo_struct_sz,
               "elf_prpsinfo32 must be exactly 124 bytes");
 
 // ---------------------------------------------------------------------------
-// Endianness helpers
-// ---------------------------------------------------------------------------
-
-// Returns true at compile time if the host is little-endian.
-static constexpr bool is_little_endian()
-{
-  return boost::endian::order::native == boost::endian::order::little;
-}
-
-// Convert between little-endian (wire format) and host byte order.
-// On LE hosts: identity. On BE hosts: byte-swap.
-template <typename T>
-static T le_conv(T v)
-{
-  if constexpr (is_little_endian())
-    return v;
-  constexpr auto bits_per_byte = static_cast<size_t>(8U);
-  T result = 0;
-  for (size_t i = 0; i < sizeof(T); ++i) {
-    const auto byte_val = static_cast<T>(static_cast<uint8_t>(v >> (bits_per_byte * i)));
-    const auto shifted  = static_cast<T>(byte_val << (bits_per_byte * (sizeof(T) - 1U - i)));
-    result = static_cast<T>(result | shifted);
-  }
-  return result;
-}
-
-// ---------------------------------------------------------------------------
 // Descriptor-content helpers.
 //
-// append_le writes a value in LE byte order on any host (le_conv handles
-// the conversion); append_lp_string writes a 4-byte LE length then the bytes.
+// append_le converts a host value to LE wire format and appends its bytes.
+// append_lp_string writes a 4-byte LE length prefix then the string bytes.
 // ---------------------------------------------------------------------------
 
 template <typename T>
 static void append_le(std::vector<char>& v, T value)
 {
-  value = le_conv(value);
+  value = boost::endian::native_to_little(value);
   const auto* p = reinterpret_cast<const char*>(&value);
   v.insert(v.end(), p, p + sizeof(T));
 }
@@ -100,7 +73,7 @@ static void append_lp_string(std::vector<char>& v, const std::string& s)
 // make_note — build one ELF note entry.
 //
 // Note header fields (namesz, descsz, type) are written in LE byte order
-// via le_conv() so that the framing is correct on both LE and BE hosts.
+// via append_le() so that the framing is correct on both LE and BE hosts.
 //
 // ELF note layout:
 //   uint32_t namesz   (length of name including NUL, LE)
@@ -226,7 +199,7 @@ finalize() const
   // object, no section header table, no intermediate serialization.
   //
   // All ELF structure fields (header, phdrs, note framing) are written
-  // in LE byte order via le_conv() so byte order is correct on both
+  // in LE byte order via append_le() so byte order is correct on both
   // LE and BE hosts.
   //
   // Layout (ELF32 LE, e_shoff = e_shnum = e_shentsize = 0):
@@ -343,18 +316,18 @@ finalize() const
 static aie_coredump_meta
 parse_aie_dump_hdr(const char* desc, uint32_t descsz)
 {
-  // Descriptor is always little-endian by definition; le_conv() converts to host.
+  // Descriptor is always little-endian on the wire; little_to_native converts to host.
   size_t off = 0;
 
   auto consume_u64 = [&]() -> uint64_t {
     if (off + sizeof(uint64_t) > descsz) throw std::out_of_range("NT_AIE_DUMP_HDR descriptor truncated");
     uint64_t v = 0; std::memcpy(&v, desc + off, sizeof(uint64_t)); off += sizeof(uint64_t);
-    return le_conv(v);
+    return boost::endian::little_to_native(v);
   };
   auto consume_u32 = [&]() -> uint32_t {
     if (off + sizeof(uint32_t) > descsz) throw std::out_of_range("NT_AIE_DUMP_HDR descriptor truncated");
     uint32_t v = 0; std::memcpy(&v, desc + off, sizeof(uint32_t)); off += sizeof(uint32_t);
-    return le_conv(v);
+    return boost::endian::little_to_native(v);
   };
   auto consume_str = [&]() -> std::string {
     uint32_t len = consume_u32();
@@ -384,7 +357,7 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
   if (elf.get_type() != ELFIO::ET_CORE)
     return std::nullopt;
 
-  // AIE coredump ELFs are always LE; le_conv() converts note header fields to host.
+  // AIE coredump ELFs are always LE on the wire; little_to_native converts to host.
   auto pad4 = [](uint32_t n) -> uint32_t { return (4U - (n & 3U)) & 3U; };
 
   // Reject oversized descriptors before allocating any string memory.
@@ -413,9 +386,9 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
       std::memcpy(&namesz, data + off,                        sizeof(uint32_t));
       std::memcpy(&descsz, data + off +     sizeof(uint32_t), sizeof(uint32_t));
       std::memcpy(&type,   data + off + 2 * sizeof(uint32_t), sizeof(uint32_t));
-      namesz = le_conv(namesz);
-      descsz = le_conv(descsz);
-      type   = le_conv(type);
+      namesz = boost::endian::little_to_native(namesz);
+      descsz = boost::endian::little_to_native(descsz);
+      type   = boost::endian::little_to_native(type);
       off += note_hdr_sz;
 
       // namesz == 0 is malformed
