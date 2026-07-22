@@ -8,6 +8,7 @@
 
 #include "aiebu/aiebu_error.h"
 
+#include <boost/endian/conversion.hpp>
 #include <cstdint>
 #include <cstring>
 #include <optional>
@@ -50,14 +51,14 @@ static_assert(sizeof(elf_prpsinfo32) == prpsinfo_struct_sz,
 // ---------------------------------------------------------------------------
 // Descriptor-content helpers.
 //
-// These write the payload bytes of each note.  The AIE coredump descriptor
-// wire format is defined as little-endian, so append_le is intentional here
-// and not a portability concern.
+// append_le converts a host value to LE wire format and appends its bytes.
+// append_lp_string writes a 4-byte LE length prefix then the string bytes.
 // ---------------------------------------------------------------------------
 
 template <typename T>
 static void append_le(std::vector<char>& v, T value)
 {
+  value = boost::endian::native_to_little(value);
   const auto* p = reinterpret_cast<const char*>(&value);
   v.insert(v.end(), p, p + sizeof(T));
 }
@@ -71,21 +72,20 @@ static void append_lp_string(std::vector<char>& v, const std::string& s)
 // ---------------------------------------------------------------------------
 // make_note — build one ELF note entry.
 //
-// Uses ELFIO's endianess_convertor for the namesz/descsz/type header fields
-// so that the note framing is correct on both LE and BE hosts.
+// Note header fields (namesz, descsz, type) are written in LE byte order
+// via append_le() so that the framing is correct on both LE and BE hosts.
 //
 // ELF note layout:
-//   uint32_t namesz   (length of name including NUL, endian-converted)
-//   uint32_t descsz   (length of descriptor, endian-converted)
-//   uint32_t type     (note type, endian-converted)
+//   uint32_t namesz   (length of name including NUL, LE)
+//   uint32_t descsz   (length of descriptor, LE)
+//   uint32_t type     (note type, LE)
 //   char     name[]   (namesz bytes, padded to 4-byte boundary)
 //   char     desc[]   (descsz bytes, padded to 4-byte boundary)
 // ---------------------------------------------------------------------------
 static std::vector<char>
-make_note(const ELFIO::endianess_convertor& conv,
-          uint32_t                          type,
-          const char*                       name,
-          const std::vector<char>&          desc)
+make_note(uint32_t                 type,
+          const char*              name,
+          const std::vector<char>& desc)
 {
   // Number of padding bytes needed to align n to a 4-byte boundary.
   auto pad4 = [](uint32_t n) -> uint32_t { return (4U - (n & 3U)) & 3U; };
@@ -98,12 +98,8 @@ make_note(const ELFIO::endianess_convertor& conv,
                 + namesz + pad4(namesz)
                 + descsz + pad4(descsz));
 
-  // Write a uint32_t through the convertor (no-op on LE hosts).
-  auto emit = [&entry, &conv](uint32_t v) {
-    v = conv(v);
-    const auto* p = reinterpret_cast<const char*>(&v);
-    entry.insert(entry.end(), p, p + sizeof(v));
-  };
+  // Write a uint32_t in LE byte order.
+  auto emit = [&entry](uint32_t v) { append_le<uint32_t>(entry, v); };
 
   emit(namesz);
   emit(descsz);
@@ -202,9 +198,9 @@ finalize() const
   // Build the ET_CORE ELF binary directly as raw bytes — no ELFIO
   // object, no section header table, no intermediate serialization.
   //
-  // ELFIO's endianess_convertor is used for all ELF structure fields
-  // (header + program headers + note framing) so byte order is correct
-  // on both LE and BE hosts.
+  // All ELF structure fields (header, phdrs, note framing) are written
+  // in LE byte order via append_le() so byte order is correct on both
+  // LE and BE hosts.
   //
   // Layout (ELF32 LE, e_shoff = e_shnum = e_shentsize = 0):
   //
@@ -216,20 +212,16 @@ finalize() const
   //   [???  ]  raw AIE dump      (m_blob.size() bytes)
   // ------------------------------------------------------------------
 
-  // Endianness convertor: no-op on LE hosts, swaps on BE hosts.
-  ELFIO::endianess_convertor conv;
-  conv.setup(ELFIO::ELFDATA2LSB);
-
   // ---- build note entries ----
   constexpr ELFIO::Elf_Word nt_prpsinfo = 3U;
 
-  auto prpsinfo_note = make_note(conv, nt_prpsinfo,
+  auto prpsinfo_note = make_note(nt_prpsinfo,
                                  nt_name_core,
                                  build_prpsinfo_desc());
 
   std::vector<char> aie_note;
   if (m_meta.has_value())
-    aie_note = make_note(conv, static_cast<uint32_t>(nt_aie_dump_hdr),
+    aie_note = make_note(static_cast<uint32_t>(nt_aie_dump_hdr),
                          nt_name_amdaie_core,
                          build_aie_dump_hdr_desc(*m_meta));
 
@@ -250,17 +242,9 @@ finalize() const
   std::vector<char> out;
   out.reserve(load_off + load_size);
 
-  // Emit helpers — apply convertor then append bytes.
-  auto append16 = [&out, &conv](uint16_t v) {
-    v = conv(v);
-    const auto* p = reinterpret_cast<const char*>(&v);
-    out.insert(out.end(), p, p + sizeof(v));
-  };
-  auto append32 = [&out, &conv](uint32_t v) {
-    v = conv(v);
-    const auto* p = reinterpret_cast<const char*>(&v);
-    out.insert(out.end(), p, p + sizeof(v));
-  };
+  // Emit helpers — convert to LE then append bytes.
+  auto append16 = [&out](uint16_t v) { append_le<uint16_t>(out, v); };
+  auto append32 = [&out](uint32_t v) { append_le<uint32_t>(out, v); };
 
   // ---- ELF32 header ----
   // e_ident (16 bytes): single bytes, no endian conversion needed.
@@ -332,21 +316,18 @@ finalize() const
 static aie_coredump_meta
 parse_aie_dump_hdr(const char* desc, uint32_t descsz)
 {
-  // Descriptor is always little-endian by definition.
-  ELFIO::endianess_convertor conv;
-  conv.setup(ELFIO::ELFDATA2LSB);
-
+  // Descriptor is always little-endian on the wire; little_to_native converts to host.
   size_t off = 0;
 
   auto consume_u64 = [&]() -> uint64_t {
     if (off + sizeof(uint64_t) > descsz) throw std::out_of_range("NT_AIE_DUMP_HDR descriptor truncated");
     uint64_t v = 0; std::memcpy(&v, desc + off, sizeof(uint64_t)); off += sizeof(uint64_t);
-    return conv(v);
+    return boost::endian::little_to_native(v);
   };
   auto consume_u32 = [&]() -> uint32_t {
     if (off + sizeof(uint32_t) > descsz) throw std::out_of_range("NT_AIE_DUMP_HDR descriptor truncated");
     uint32_t v = 0; std::memcpy(&v, desc + off, sizeof(uint32_t)); off += sizeof(uint32_t);
-    return conv(v);
+    return boost::endian::little_to_native(v);
   };
   auto consume_str = [&]() -> std::string {
     uint32_t len = consume_u32();
@@ -376,10 +357,7 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
   if (elf.get_type() != ELFIO::ET_CORE)
     return std::nullopt;
 
-  // ELF note header fields use the ELF's own encoding.
-  ELFIO::endianess_convertor hdr_conv;
-  hdr_conv.setup(elf.get_encoding());
-
+  // AIE coredump ELFs are always LE on the wire; little_to_native converts to host.
   auto pad4 = [](uint32_t n) -> uint32_t { return (4U - (n & 3U)) & 3U; };
 
   // Reject oversized descriptors before allocating any string memory.
@@ -408,9 +386,9 @@ parse_coredump_meta(const std::vector<char>& elf_bytes)
       std::memcpy(&namesz, data + off,                        sizeof(uint32_t));
       std::memcpy(&descsz, data + off +     sizeof(uint32_t), sizeof(uint32_t));
       std::memcpy(&type,   data + off + 2 * sizeof(uint32_t), sizeof(uint32_t));
-      namesz = hdr_conv(namesz);
-      descsz = hdr_conv(descsz);
-      type   = hdr_conv(type);
+      namesz = boost::endian::little_to_native(namesz);
+      descsz = boost::endian::little_to_native(descsz);
+      type   = boost::endian::little_to_native(type);
       off += note_hdr_sz;
 
       // namesz == 0 is malformed
