@@ -116,18 +116,25 @@ serialize_helper(const uint32_t* result_buffer) const
     constexpr int samples_width = 16;
     constexpr int percentage_width = 16;
     constexpr int percentage_multiplier = 100;
-    
-    uint32_t total = 0;
-    uint32_t start = 0;
-
-    for (size_t i = 0; i < result_buffer[0]; i += 2)
-        total += result_buffer[i + 2];
 
     std::ostringstream output_format; 
     output_format << std::left << std::setw(name_width) << "name"
         << std::right << std::setw(samples_width) << "samples"
         << std::right << std::setw(percentage_width) << "percentage"
         << "\n";
+
+    // Index [0] is device-written profile_index; 0 means no samples were collected.
+    if (result_buffer[0] == 0)
+        return output_format.str();
+
+    constexpr size_t result_buffer_size = dtrace::dtrace_ctrl::trace_page_size >> 2;
+    const size_t profile_length = std::min(
+        static_cast<size_t>(result_buffer[0]), result_buffer_size - 2
+    );
+    uint32_t total = 0;
+    uint32_t start = 0;
+    for (size_t i = 0; i < profile_length; i += 2)
+        total += result_buffer[i+2];
 
     if (result_buffer[1] == dtrace::dtrace_ctrl::empty_buffer_check)
     {
@@ -140,7 +147,7 @@ serialize_helper(const uint32_t* result_buffer) const
         start += 2;
     }
 
-    for (size_t i = start; i < result_buffer[0]; i += 2)
+    for (size_t i = start; i < profile_length; i += 2)
     {
         std::string operation;
         if ((result_buffer[i+2] & dtrace::dtrace_ctrl::mask_16) == 0)
@@ -154,19 +161,19 @@ serialize_helper(const uint32_t* result_buffer) const
 
         output_format << std::left << std::setw(name_width) << operation
             << std::right << std::setw(samples_width) 
-            << (std::to_string(result_buffer[i + 2]) + "/" + std::to_string(total))
+            << (std::to_string(result_buffer[i+2]) + "/" + std::to_string(total))
             << std::right << std::setw(percentage_width) << std::fixed << std::setprecision(3) 
             << (static_cast<double>(result_buffer[i+2]) / total) * percentage_multiplier << "%"
             << "\n";
     }
 
-    if ((result_buffer[result_buffer[0]-1] & dtrace::dtrace_ctrl::mask_16) == 0) 
+    if ((result_buffer[profile_length-1] & dtrace::dtrace_ctrl::mask_16) == 0) 
     {
         output_format << std::left << std::setw(name_width) << "post-run"
             << std::right << std::setw(samples_width) 
-            << (std::to_string(result_buffer[result_buffer[0]]) + "/" + std::to_string(total))
+            << (std::to_string(result_buffer[profile_length]) + "/" + std::to_string(total))
             << std::right << std::setw(percentage_width) << std::fixed << std::setprecision(3) 
-            << (static_cast<double>(result_buffer[result_buffer[0]]) / total) * percentage_multiplier << "%"
+            << (static_cast<double>(result_buffer[profile_length]) / total) * percentage_multiplier << "%"
             << "\n";
     }
     return output_format.str();
