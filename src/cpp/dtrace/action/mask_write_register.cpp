@@ -146,7 +146,7 @@ serialize_helper(uint32_t* mem_buffer) const
         uint32_t index = get_location(true);
         auto length = static_cast<uint32_t>(m_write_buffer_values.size());
         // reset value after serialization
-        for (uint32_t i = index; i < index+length; ++i)
+        for (uint32_t i = index; i < index + length; ++i)
             mem_buffer[i] = m_write_buffer_values[i - index];
     }
 }

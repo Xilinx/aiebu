@@ -450,6 +450,13 @@ create_result_file(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffe
         if (file_created)
         {
             script_output << "  " << "sys.exit(0)\n";
+            if (!script_output)
+                DTRACE_ERROR("DTRACE_CONTROL_RESULT_FILE_WRITE_FAILED", "result file: " << output_file_path);
+
+            script_output.flush();
+            if (!script_output)
+                DTRACE_ERROR("DTRACE_CONTROL_RESULT_FILE_FLUSH_FAILED", "result file: " << output_file_path);
+
             script_output.close();
         }
     }
@@ -512,6 +519,13 @@ create_result_file(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffe
                 DTRACE_ERROR("DTRACE_CONTROL_RESULT_FILE_NOT_FOUND", "result file: " << output_file_path);
 
             json_file << json_output.dump(4) << "\n";
+            if (!json_file)
+                DTRACE_ERROR("DTRACE_CONTROL_RESULT_FILE_WRITE_FAILED", "result file: " << output_file_path);
+
+            json_file.flush();
+            if (!json_file)
+                DTRACE_ERROR("DTRACE_CONTROL_RESULT_FILE_FLUSH_FAILED", "result file: " << output_file_path);
+
             json_file.close();
         }
     }

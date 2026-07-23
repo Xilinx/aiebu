@@ -644,10 +644,7 @@ public:
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
-    std::vector<uint32_t> serialize_helper(
-        uint32_t* result_buffer, uint32_t* mem_buffer,
-        const std::unordered_map<uint32_t, uint32_t>& mapping
-    ) const;
+    std::vector<uint32_t> serialize_helper(uint32_t* mem_buffer) const;
     void serialize(
         uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
