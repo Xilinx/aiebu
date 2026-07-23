@@ -136,23 +136,19 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
 /**
  * serialize_helper() - Helper function to serialize action.
  *
- * @param result_buffer
  * @param mem_buffer
- * @param mapping
  *
  * @return 
- *  The value from the result buffer based on the location mapping and
+ *  The value from the mem buffer based on the location mapping and
  *  resets the value in the result buffer after serialization.
  */
 std::vector<uint32_t>
 read_mem_action::
-serialize_helper(uint32_t* result_buffer, uint32_t* mem_buffer,
-    const std::unordered_map<uint32_t, uint32_t>& mapping) const
+serialize_helper(uint32_t* mem_buffer) const
 {
     std::vector<uint32_t> result;
     uint32_t index = get_location(true);
-    uint32_t length = result_buffer[mapping.at(get_location(false) + 1)];
-    for (uint32_t i = index; i < index+length; ++i)
+    for (uint32_t i = index; i < index + m_length; ++i)
     {        
         result.push_back(mem_buffer[i]);
         // reset value after serialization
@@ -172,10 +168,10 @@ serialize_helper(uint32_t* result_buffer, uint32_t* mem_buffer,
  */
 void
 read_mem_action::
-serialize(uint32_t* result_buffer, uint32_t* mem_buffer,
-    const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output) const
+serialize(uint32_t*, uint32_t* mem_buffer,
+    const std::unordered_map<uint32_t, uint32_t>&, std::ostream& script_output) const
 {
-    std::vector<uint32_t> result = read_mem_action::serialize_helper(result_buffer, mem_buffer, mapping);
+    std::vector<uint32_t> result = read_mem_action::serialize_helper(mem_buffer);
     // Check if probe fired
     bool has_data = false;
     for (uint32_t value : result) {
@@ -212,10 +208,10 @@ serialize(uint32_t* result_buffer, uint32_t* mem_buffer,
  */
 void
 read_mem_action::
-serialize(uint32_t* result_buffer, uint32_t* mem_buffer,
-    const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output) const
+serialize(uint32_t*, uint32_t* mem_buffer,
+    const std::unordered_map<uint32_t, uint32_t>&, json& json_output) const
 {
-    std::vector<uint32_t> result = read_mem_action::serialize_helper(result_buffer, mem_buffer, mapping);
+    std::vector<uint32_t> result = read_mem_action::serialize_helper(mem_buffer);
     // Check if probe fired
     bool has_data = false;
     for (uint32_t value : result) {
