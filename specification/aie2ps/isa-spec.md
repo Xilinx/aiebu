@@ -693,8 +693,9 @@ save/restore context of an inference at preemption point in control code
 | opcode (8b) | pad (8b) | const (16b) | page_id (16b) | page_id (16b) | 8B |
 
 If the control code supports preemption, there will be preemption points inserted in it. `id` specifies the preemption
-point index. We assume all aie cores are stateless, so at each preemption point, we only need to save/restore contents
-in memtile. `save_control_code_offset` specifies a relative address in unit of page to the 1st page of the control code,
+point index. `id` values should be consecutive, starting with index 0. We assume all aie cores are stateless,
+so at each preemption point, we only need to save/restore contents in memtile.
+`save_control_code_offset` specifies a relative address in unit of page to the 1st page of the control code,
 and this address is where the `SAVE` control code resides. `restore_control_code_offset` specifies a relative address in
 unit of page to the 1st page of control code, and this address is where the `RESTORE` control code resides. The opcode
 can determine whether preemption is required, and if required, it can also distinguish whether it is to `SAVE` or to
@@ -724,7 +725,8 @@ load pdi
 
 A PDI itself is also a piece of control code. It can be loaded by other control code anywhere anytime.
 `pdi_id` is an ELF-wide unique ID and specifies a unique PDI. If multiple control code ELFs run in one hwctx,
-the `pdi_id` should be hwctx-wide unique. When this opcode runs, consecutive loading of same PDI will cause subsequent
+the `pdi_id` should be hwctx-wide unique. `pdi_id` value of `0xffffffff` is reserved and invalid for opcode use, 
+as CERT initializes the last PDI ID to this value. When this opcode runs, consecutive loading of same PDI will cause subsequent
 loading skipped by the uC. `pdi_host_addr_offset` specifies a page-unit relative address to the 1st page of
 the control code, indicating where the PDI control code resides
 This opcode should take one whole job but the job can share a page with other jobs. All jobs following the load_pdi job
@@ -756,6 +758,7 @@ load cores
 | opcode (8b) | pad (8b) | pad (16b) | const (32b) | page_id (16b) | pad (16b) | 12B |
 
 This is essentially the same as LOAD_PDI except that CERT will save the ELF info for AIE cores to a different location than the PDI so that CERT can recover both during preemption.
+`core_elf_id` value of `0xffffffff` is reserved and invalid for opcode use, as CERT initializes the last core ELF ID to this value.
 
 Note that similar to LOAD_PDI, reset/unreset and enable/disable of the core are required to load a new core ELF. This should be part of the generated control code.
 
@@ -768,13 +771,22 @@ load cores_cp
 | :-: | - | - | - | -: |
 | opcode (8b) | pad (8b) | pad (16b) | const (32b) | 8B |
 
-This is to load control packet format core ELFs. Compared to the `LOAD_CORES`, this opcode assumes the control code to load the control packet through shimDMA fits a page, so the current page that holds this opcode will not be overwritten. As a result, the control-packet-loading code can be placed immediately after this opcode and kept in a single job. The `core_elf_id` in this opcode and the one in `LOAD_CORES` share the same ID space, so if both `LOAD_CORES` and `LOAD_CORES_CP`are present, CERT saves the ID of the last one.
+This is to load control packet format core ELFs. Compared to the `LOAD_CORES`,
+this opcode assumes the control code to load the control packet through shimDMA fits a page,
+so the current page that holds this opcode will not be overwritten.
+As a result, the control-packet-loading code can be placed immediately after this opcode and kept in a single job. 
+The `core_elf_id` in this opcode and the one in `LOAD_CORES` share the same ID space, so if both `LOAD_CORES` and `LOAD_CORES_CP`are present, CERT saves the ID of the last one.
+`core_elf_id` value of `0xffffffff` is reserved and invalid for opcode use, as CERT initializes the last core ELF ID to this value.
 
 Notes:
 
 1. Similar to LOAD_PDI, reset/unreset core and enable/disable of the core are required to load a new core ELF. This should be part of the generated control code.
 
-2. Completion of shimDMA transferring control packet blob doesn't imply the completion of the control packet loading. Control code itself is responsible for checking completion of control packet loading. There are two approaches for doing this, one is to enable the write response of the last control packet and the other is to add one extra control packet write to a known register. For the former approach, routing for response packet should be configured, and `WAIT_TCTS` is used to check the response. For the latter approach, `POLL_32`/`MASK_POLL_32` is used to check the register of the extra control packet.
+2. Completion of shimDMA transferring control packet blob doesn't imply the completion of the control packet loading.
+Control code itself is responsible for checking completion of control packet loading.
+There are two approaches for doing this, one is to enable the write response of the last control packet and the other is to add one extra control packet write to a known register.
+For the former approach, routing for response packet should be configured, and `WAIT_TCTS` is used to check the response. 
+For the latter approach, `POLL_32`/`MASK_POLL_32` is used to check the register of the extra control packet.
 
 3. In the broadcast case, completion check should be performed on all destination cores.
 
