@@ -21,7 +21,8 @@ if (AIEBU_CTRLCODE_CODEGEN)
   add_subdirectory(lib)
 endif()
 
-if (AIEBU_NATIVE_BUILD)
+option(AIEBU_BUILD_TESTS "Build aiebu's own test suite" ON)
+if (AIEBU_NATIVE_BUILD AND AIEBU_BUILD_TESTS)
   add_subdirectory(test)
 endif()
 
