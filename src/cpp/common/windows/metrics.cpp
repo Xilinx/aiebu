@@ -4,7 +4,9 @@
 
 #include "metrics.h"
 
-#define NOMINMAX
+#ifndef NOMINMAX
+  #define NOMINMAX
+#endif
 #include <windows.h>
 #include <psapi.h>
 
