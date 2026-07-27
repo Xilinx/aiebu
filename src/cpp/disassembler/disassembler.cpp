@@ -158,6 +158,16 @@ elf_asm_disassembler::elf_asm_disassembler(const std::string& input_elf_path, st
     m_buffer_type = buffer_type;
 }
 
+// ELF disassembler constructor from input stream
+elf_asm_disassembler::elf_asm_disassembler(std::istream& input_stream, std::ostream& output_stream,
+                                          aiebu_assembler::buffer_type buffer_type)
+    : asm_disassembler(output_stream) {
+    if (!m_elf_reader.load(input_stream)) {
+        throw error(error::error_code::invalid_elf, "Failed to load ELF from input stream\n");
+    }
+    m_buffer_type = buffer_type;
+}
+
 // ELF disassembler run method
 void elf_asm_disassembler::run() {
     process_sections();

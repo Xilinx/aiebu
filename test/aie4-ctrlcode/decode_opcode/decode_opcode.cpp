@@ -188,13 +188,14 @@ void append_array_children(const boost::property_tree::ptree& arr,
       have_empty_key = true;
     else {
       char* end_ptr = nullptr;
-      std::strtol(kv.first.c_str(), &end_ptr, 10);
+      std::strtol(kv.first.c_str(), &end_ptr, 10);  // NOLINT: return value intentionally ignored
       if (end_ptr != kv.first.c_str() && *end_ptr == '\0')
         have_numeric_key = true;
     }
   }
-  if (have_empty_key && have_numeric_key)
+  if (have_empty_key && have_numeric_key) {
     throw std::runtime_error("JSON array mixes empty and numeric child keys (unsupported)");
+  }
 
   if (have_empty_key) {
     for (const auto& kv : arr) {
@@ -214,8 +215,8 @@ void append_array_children(const boost::property_tree::ptree& arr,
     tmp.emplace_back(static_cast<int>(n), kv.second);
   }
   std::sort(tmp.begin(), tmp.end(),
-            [](const std::pair<int, boost::property_tree::ptree>& a,
-               const std::pair<int, boost::property_tree::ptree>& b) { return a.first < b.first; });
+            [](const std::pair<int, boost::property_tree::ptree>& lhs,
+               const std::pair<int, boost::property_tree::ptree>& rhs) { return lhs.first < rhs.first; });
   for (auto& e : tmp)
     out.push_back(std::move(e.second));
 }

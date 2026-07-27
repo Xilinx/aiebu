@@ -84,8 +84,9 @@ public:
 
     [[nodiscard]] std::string get_txn_summary() const {
         const uint8_t *ptr = txn_.data();
+        size_t txn_size = txn_.size();
         std::array<unsigned int, XAIE_IO_CUSTOM_OP_NEXT> op_count = {};
-        count_txn_ops(ptr, op_count);
+        count_txn_ops(ptr, txn_size, op_count);
         std::stringstream ss;
 
         ss << op_format << "XAIE_IO_WRITE " << dec_format << op_count[XAIE_IO_WRITE] << std::endl;
@@ -114,52 +115,58 @@ public:
 private:
 
     template <std::size_t N>
-    void count_tnx(const uint8_t *ptr, std::array<unsigned int, N> &op_count) const {
+    void count_tnx(const uint8_t *ptr, size_t size, std::array<unsigned int, N> &op_count) const {
+        if (size < sizeof(XAie_TxnHeader))
+            throw std::runtime_error("Buffer too small for transaction header");
         auto Hdr = (const XAie_TxnHeader *)(ptr);
         const auto num_ops = Hdr->NumOps;
         ptr += sizeof(*Hdr);
+        size -= sizeof(*Hdr);
 
         for (auto i = 0U; i < num_ops; i++) {
+            if (size < sizeof(XAie_OpHdr))
+                throw std::runtime_error("Buffer too small for operation header");
             auto op_hdr = (const XAie_OpHdr *)(ptr);
             if (op_hdr->Op >= op_count.size())
                 throw std::runtime_error("Unknown opcode " + std::to_string(op_hdr->Op));
             op_count[op_hdr->Op]++;
+            uint32_t op_size = 0;
             switch (op_hdr->Op) {
             case XAIE_IO_WRITE: {
                 auto w_hdr = (const XAie_Write32Hdr *)(ptr);
-                ptr += w_hdr->Size;
+                op_size = w_hdr->Size;
                 break;
             }
             case XAIE_IO_BLOCKWRITE: {
                 auto bw_header = (const XAie_BlockWrite32Hdr *)(ptr);
-                ptr += bw_header->Size;
+                op_size = bw_header->Size;
                 break;
             }
             case XAIE_IO_MASKWRITE: {
                 auto mw_header = (const XAie_MaskWrite32Hdr *)(ptr);
-                ptr += mw_header->Size;
+                op_size = mw_header->Size;
                 break;
             }
             case XAIE_IO_MASKPOLL:
             case XAIE_IO_MASKPOLL_BUSY: {
                 auto mp_header = (const XAie_MaskPoll32Hdr *)(ptr);
-                ptr += mp_header->Size;
+                op_size = mp_header->Size;
                 break;
             }
             case XAIE_IO_NOOP: {
-                ptr +=  sizeof(XAie_NoOpHdr);
+                op_size = sizeof(XAie_NoOpHdr);
                 break;
             }
             case XAIE_IO_PREEMPT: {
-                ptr += sizeof(XAie_PreemptHdr);
+                op_size = sizeof(XAie_PreemptHdr);
                 break;
             }
             case XAIE_IO_LOADPDI: {
-                ptr += sizeof(XAie_LoadPdiHdr);
+                op_size = sizeof(XAie_LoadPdiHdr);
                 break;
             }
             case XAIE_IO_LOAD_PM_START: {
-                ptr += sizeof(XAie_PmLoadHdr);
+                op_size = sizeof(XAie_PmLoadHdr);
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_TCT):
@@ -168,57 +175,67 @@ private:
             case (XAIE_IO_CUSTOM_OP_RECORD_TIMER):
             case (XAIE_IO_CUSTOM_OP_MERGE_SYNC): {
                 auto custom_hdr = reinterpret_cast<const XAie_CustomOpHdr *>(ptr);
-                ptr += custom_hdr->Size;
+                op_size = custom_hdr->Size;
                 break;
             }
             default:
                 throw std::runtime_error("Unknown op to pass through");
                 break;
             }
+            if (size < static_cast<size_t>(op_size))
+                throw std::runtime_error("Buffer too small for operation data");
+            ptr += op_size;
+            size -= op_size;
         }
     }
 
     template <std::size_t N>
-    void count_tnx_opt(const uint8_t *ptr, std::array<unsigned int, N> &op_count) const {
+    void count_tnx_opt(const uint8_t *ptr, size_t size, std::array<unsigned int, N> &op_count) const {
+        if (size < sizeof(XAie_TxnHeader))
+            throw std::runtime_error("Buffer too small for transaction header");
         auto Hdr = (const XAie_TxnHeader *)(ptr);
         const auto num_ops = Hdr->NumOps;
         ptr += sizeof(*Hdr);
+        size -= sizeof(*Hdr);
         for (auto i = 0U; i < num_ops; i++) {
+            if (size < sizeof(XAie_OpHdr_opt))
+                throw std::runtime_error("Buffer too small for operation header");
             auto op_hdr = (const XAie_OpHdr_opt *)(ptr);
             op_count[op_hdr->Op]++;
+            uint32_t op_size = 0;
             switch (op_hdr->Op) {
             case XAIE_IO_WRITE: {
-                ptr += sizeof(XAie_Write32Hdr_opt);
+                op_size = sizeof(XAie_Write32Hdr_opt);
                 break;
             }
             case XAIE_IO_BLOCKWRITE: {
                 auto bw_header = (const XAie_BlockWrite32Hdr_opt *)(ptr);
-                ptr += bw_header->Size;
+                op_size = bw_header->Size;
                 break;
             }
             case XAIE_IO_MASKWRITE: {
-                ptr += sizeof(XAie_MaskWrite32Hdr_opt);
+                op_size = sizeof(XAie_MaskWrite32Hdr_opt);
                 break;
             }
             case XAIE_IO_MASKPOLL:
             case XAIE_IO_MASKPOLL_BUSY: {
-                ptr += sizeof(XAie_MaskPoll32Hdr_opt);
+                op_size = sizeof(XAie_MaskPoll32Hdr_opt);
                 break;
             }
             case XAIE_IO_NOOP: {
-                ptr +=  sizeof(XAie_NoOpHdr);
+                op_size = sizeof(XAie_NoOpHdr);
                 break;
             }
             case XAIE_IO_PREEMPT: {
-                ptr += sizeof(XAie_PreemptHdr);
+                op_size = sizeof(XAie_PreemptHdr);
                 break;
             }
             case XAIE_IO_LOADPDI: {
-                ptr += sizeof(XAie_LoadPdiHdr);
+                op_size = sizeof(XAie_LoadPdiHdr);
                 break;
             }
             case XAIE_IO_LOAD_PM_START: {
-                ptr += sizeof(XAie_PmLoadHdr);
+                op_size = sizeof(XAie_PmLoadHdr);
                 break;
             }
             case (XAIE_IO_CUSTOM_OP_TCT):
@@ -227,18 +244,24 @@ private:
             case (XAIE_IO_CUSTOM_OP_RECORD_TIMER):
             case (XAIE_IO_CUSTOM_OP_MERGE_SYNC): {
                 auto custom_hdr_opt = reinterpret_cast<const XAie_CustomOpHdr_opt *>(ptr);
-                ptr += custom_hdr_opt->Size;
+                op_size = custom_hdr_opt->Size;
                 break;
             }
             default:
                 throw std::runtime_error("Unknown op to pass through");
                 break;
             }
+            if (size < static_cast<size_t>(op_size))
+                throw std::runtime_error("Buffer too small for operation data");
+            ptr += op_size;
+            size -= op_size;
         }
     }
 
     template <std::size_t N>
-    void count_txn_ops(const uint8_t *ptr, std::array<unsigned int, N> &op_count) const {
+    void count_txn_ops(const uint8_t *ptr, size_t size, std::array<unsigned int, N> &op_count) const {
+        if (size < sizeof(XAie_TxnHeader))
+            throw std::runtime_error("Buffer too small for transaction header");
         auto Hdr = (const XAie_TxnHeader *)(ptr);
 
         /**
@@ -247,9 +270,9 @@ private:
          */
         if ((Hdr->Major == MAJOR_VER) && (Hdr->Minor == MINOR_VER)) {
             std::cout << "Optimized HEADER version detected \n";
-            count_tnx_opt(ptr, op_count);
+            count_tnx_opt(ptr, size, op_count);
         } else {
-            count_tnx(ptr, op_count);
+            count_tnx(ptr, size, op_count);
         }
     }
 
