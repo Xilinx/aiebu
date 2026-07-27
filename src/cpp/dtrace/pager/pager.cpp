@@ -489,14 +489,17 @@ get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset)
         {   // break action
             action_size += dtrace::action::action_ctrl::break_action_size;
         }
-        else if (action_type == dtrace::action::action_type::timestamps ||
-            action_type == dtrace::action::action_type::host_timestamps)
-        {   // timestamps action, host timestamps action
+        else if (action_type == dtrace::action::action_type::timestamps)
+        {   // timestamps action
             uint32_t action_length = source[action_offset + action_size + 1];
             action_size += (
                 dtrace::action::action_ctrl::timestamps_action_size + 
                 (action_length * dtrace::action::action_ctrl::timestamps_value_size)
             );
+        }
+        else if (action_type == dtrace::action::action_type::host_timestamps)
+        {   // host timestamps action
+            action_size += dtrace::action::action_ctrl::host_timestamps_action_size;
         }
         else if (action_type == dtrace::action::action_type::timestamps32)
         {   // timestamps32 action

@@ -131,6 +131,7 @@ control(const std::string& script_file, const std::string& map_data)
                     << probe->create_string() << " for uC index " << uC << ".Exception: " << e.what());
             }
         }
+
         DTRACE_INFO("DTRACE CONTROL BUFFER CREATED for uC index " << uC << " with size " 
             << m_control_buffers.at(uC).size() * sizeof(uint32_t) << " bytes");
 
@@ -246,7 +247,8 @@ patch_control_buffer(const std::unordered_map<uint32_t, uint64_t>& mem_host_addr
             // adding 2 for mem_host_addr location
             uint32_t location = (location_index & dtrace::dtrace_ctrl::mask_16) + 2;
 
-            if (action_type == dtrace::action::action_type::mem_write)
+            if (action_type == dtrace::action::action_type::mem_write ||
+                action_type == dtrace::action::action_type::host_timestamps)
             {
                 uint32_t location_h = mapping.at(location);
                 uint32_t location_l = mapping.at(location + 1);
@@ -487,8 +489,7 @@ create_result_file(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffe
                     );
                     DTRACE_INFO("Serialized action " << action->create_string() << " for uC index " << loop_uC_index);
 
-                    if (action->get_result_type() == action::action_result_type::read_action_fired ||
-                        action->get_result_type() == action::action_result_type::print_action_fired)
+                    if (action->get_result_type() == action::action_result_type::read_action_fired)
                     {   // If read action fired or print action fired, probe fired
                         probe_fired = true;
                     }

@@ -605,10 +605,11 @@ create_action(const std::string& action_string, uint32_t probe_type,
         );
     }
     else if (aiebu::regex_search(action_string, dtrace::action::action_name::host_timestamps_regex))
-    {   // Host Timestamp action
+    {   // Host Timestamps action
         action = std::make_shared<dtrace::action::host_timestamps_action>(
-            action_string, probe_type, probe_name
+            action_string, probe_type, probe_name, m_mem_host_addr_map[uC_index]
         );
+        m_mem_host_addr_map[uC_index] = action->get_mem_host_addr();
     }
     else if (aiebu::regex_search(action_string, dtrace::action::action_name::timestamp_regex))
     {   // Timestamp action

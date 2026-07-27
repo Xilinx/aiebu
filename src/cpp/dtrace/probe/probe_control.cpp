@@ -96,6 +96,7 @@ actionize(std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buff
         // in the mem_action_locations vector for mem_host_address patching
         if (dynamic_cast<dtrace::action::read_mem_action*>(m_control_actions[i].get()) != nullptr ||
             dynamic_cast<dtrace::action::write_mem_action*>(m_control_actions[i].get()) != nullptr ||
+            dynamic_cast<dtrace::action::host_timestamps_action*>(m_control_actions[i].get()) != nullptr ||
             dynamic_cast<dtrace::action::mask_write_reg_action*>(m_control_actions[i].get()) != nullptr)
         {
             uint32_t action_type = dtrace::action::action_type::mem_write;
@@ -108,6 +109,10 @@ actionize(std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buff
                     continue;
 
                 action_type = dtrace::action::action_type::reg_mask_write;
+            }
+            else if (dynamic_cast<dtrace::action::host_timestamps_action*>(m_control_actions[i].get()) != nullptr)
+            {
+                action_type = dtrace::action::action_type::host_timestamps;
             }
 
             mem_action_locations.push_back(
