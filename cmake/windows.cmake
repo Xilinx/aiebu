@@ -1,13 +1,24 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
 
+# Declared here so a standalone aiebu build has the flag; as an XRT submodule
+# the parent's cache option carries through and this is a no-op.
+option(ENABLE_ASAN "Build with AddressSanitizer (/fsanitize=address). Requires MSVC v145 (VS 2026) for ARM64." OFF)
+
 # This flag is set to enable legacy linking in windows
 # If this is not set, aiebu will have hybrid linking
 message("-- AIEBU_MSVC_LEGACY_LINKING=${AIEBU_MSVC_LEGACY_LINKING}")
 
 if (NOT AIEBU_MSVC_LEGACY_LINKING)
-  add_compile_options(/MT$<$<CONFIG:Debug>:d>  # static linking with the CRT
-    )
+  if (NOT ENABLE_ASAN)
+    # Explicit /MT only on the non-ASAN path. Under ASAN the CRT is dynamic (/MD),
+    # driven by CMAKE_MSVC_RUNTIME_LIBRARY, so cert_dtrace_static/aiebu_static match
+    # the /MD xrt_coreutil.dll they are linked into. An explicit /MT here would be
+    # mapped into <RuntimeLibrary> by the VS generator and force these static libs
+    # back to /MT, mismatching the instrumented /MD runtime (LNK2038/LNK1319).
+    add_compile_options(/MT$<$<CONFIG:Debug>:d>  # static linking with the CRT
+      )
+  endif()
   add_link_options(
     /NODEFAULTLIB:libucrt$<$<CONFIG:Debug>:d>.lib  # Hybrid CRT
     /DEFAULTLIB:ucrt$<$<CONFIG:Debug>:d>.lib       # Hybrid
