@@ -4,8 +4,8 @@
 #ifndef AIEBU_DEBUG_H_
 #define AIEBU_DEBUG_H_
 
-#include <elfio/elfio.hpp>
 #include <cstdint>
+#include <elfio/elfio.hpp>
 #include <string>
 
 /**
@@ -84,7 +84,7 @@ public:
 private:
   const ELFIO::elfio& m_elf; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-  uint32_t    resolve_group_name_id(const std::string& kernel_name) const;
+  uint32_t resolve_group_name_id(const std::string& kernel_name) const;
   std::string get_dump_json_from_elf(uint32_t name_id) const;
   opcode_information decode_opcode(uint32_t uc_idx, uint32_t page_idx,
                                     uint32_t offset, uint32_t name_id) const;
