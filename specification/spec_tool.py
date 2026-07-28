@@ -115,7 +115,7 @@ def run(spec_filename, template_dir, command):
   _environment = Environment(loader=FileSystemLoader(template_dir))
 
   with open(spec_filename, 'r') as f:
-    spec = yaml.load(f, Loader=yaml.Loader)
+    spec = yaml.safe_load(f)
   postprocess_spec(spec)
 
   if command == 'generate_docs':
