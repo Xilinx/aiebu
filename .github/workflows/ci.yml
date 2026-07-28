@@ -89,6 +89,9 @@ jobs:
         )
         if ($isArm64) {
           $cmakeArgs += "-A", "ARM64", "-DCMAKE_SYSTEM_PROCESSOR=ARM64"
+        } else {
+          # Exercise MSVC whole-program optimization for the generated preemption data.
+          $cmakeArgs += "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE=ON"
         }
         cmake @cmakeArgs
 
