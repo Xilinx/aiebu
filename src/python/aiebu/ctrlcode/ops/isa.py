@@ -40,7 +40,7 @@ class ISA:
     def populate(self):
         spec = None
         with open(self.yaml_file, 'r') as f:
-            spec = yaml.load(f, Loader=yaml.Loader)
+            spec = yaml.safe_load(f)
         self.postprocess_spec(spec)
         self.PLATFORM = spec['platform']
 
