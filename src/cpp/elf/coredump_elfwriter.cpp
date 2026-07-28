@@ -55,6 +55,8 @@ static_assert(sizeof(elf_prpsinfo32) == prpsinfo_struct_sz,
 // append_lp_string writes a 4-byte LE length prefix then the string bytes.
 // ---------------------------------------------------------------------------
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
 template <typename T>
 static void append_le(std::vector<char>& v, T value)
 {
@@ -62,6 +64,7 @@ static void append_le(std::vector<char>& v, T value)
   const auto* p = reinterpret_cast<const char*>(&value);
   v.insert(v.end(), p, p + sizeof(T));
 }
+#pragma GCC diagnostic pop
 
 static void append_lp_string(std::vector<char>& v, const std::string& s)
 {
