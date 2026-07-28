@@ -19,6 +19,7 @@ pager(bool restricted_order)
     , m_page_index(0)
     , m_probe_in_order(restricted_order)
     , m_probes_in_page(0)
+    , m_has_tracepoint(false)
 {
 }
 
@@ -40,6 +41,7 @@ reset_state()
     m_secondary_action_location_mapping.clear();
     m_page_index = 0;
     m_probes_in_page = 0;
+    m_has_tracepoint = false;
 }
 
 //-------------------------pager::paging-------------------------//
@@ -60,6 +62,19 @@ std::vector<uint32_t>
 pager::
 paging(const std::vector<uint32_t>& buffer, uint32_t uC_index)
 {
+    // Reset the state of the pager for each uC.
+    reset_state();
+
+    // Check if the control block contains tracepoint probes and exceeds page size
+    m_has_tracepoint = (buffer[dtrace::probe::probe_type::tracepoint] >> 
+        dtrace::dtrace_ctrl::second_byte_shift) != dtrace::probe::probe_ctrl::link_end;
+    if (m_has_tracepoint && buffer.size() > m_page_size)
+    {
+        DTRACE_ERROR("DTRACE_PAGER_TRACEPOINT_PAGING_NOT_SUPPORTED",
+            "Control block contains tracepoint probes and exceeds page size,"
+            " paging is not supported with tracepoints.");
+    }
+
     try
     {
         // Check if the buffer is a profile buffer, single page support for profiling.
@@ -71,8 +86,6 @@ paging(const std::vector<uint32_t>& buffer, uint32_t uC_index)
             return buffer;
         }
 
-        // Reset the state of the pager for each uC.
-        reset_state();
         // Add the page header to the primary and secondary buffers.
         add_page_header(m_primary_buffer);
         add_page_header(m_secondary_buffer);
@@ -130,6 +143,14 @@ expand_page(std::vector<uint32_t>& buffer, uint32_t size, bool force)
     uint32_t space = (m_page_index + 1) * m_page_size - static_cast<uint32_t>(buffer.size());
     if (size <= space && !force)
         return false;
+
+    // Error out if control block contains tracepoint probes and exceeds page size
+    if (m_has_tracepoint)
+    {
+        DTRACE_ERROR("DTRACE_PAGER_TRACEPOINT_PAGING_NOT_SUPPORTED",
+            "Control block contains tracepoint probes and exceeds page size,"
+            " paging is not supported with tracepoints.");
+    }
 
     // Clear the last page flag and update the page header for the current page.
     clear_last_page_flag(buffer);

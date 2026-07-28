@@ -64,6 +64,7 @@ private:
     uint32_t m_page_index;
     bool m_probe_in_order;
     uint32_t m_probes_in_page;
+    bool m_has_tracepoint;
     void reset_state();
     bool expand_page(std::vector<uint32_t>& buffer, uint32_t size, bool force = false);
     void clear_last_page_flag(std::vector<uint32_t>& buffer);

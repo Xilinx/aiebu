@@ -96,8 +96,9 @@ void
 host_timestamps_action::
 actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer)
 {
+    // control_buffer
     set_location(control_buffer, false);
-    // control buffer
+    // timestamp header
     control_buffer.push_back(
         (last << dtrace::dtrace_ctrl::second_byte_shift) | action_type::host_timestamps
     );
