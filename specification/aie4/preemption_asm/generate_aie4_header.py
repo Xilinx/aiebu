@@ -33,13 +33,15 @@ def read_file_as_bytes(filepath, label_prefix=None):
 
     return bytes_list
 
-def format_bytes_array(bytes_list):
-    """Format a list of bytes as a C++ initializer list."""
-    if not bytes_list:
-        return "{}"
-
-    hex_bytes = [f"0x{b:02x}" for b in bytes_list]
-    return "{" + ", ".join(hex_bytes) + "}"
+def format_bytes_array(name, bytes_list):
+    """Format bytes as an inline constexpr array."""
+    lines = [f"inline constexpr std::array<std::uint8_t, {len(bytes_list)}> {name} = {{{{"]
+    for offset in range(0, len(bytes_list), 16):
+        chunk = bytes_list[offset:offset + 16]
+        suffix = "," if offset + 16 < len(bytes_list) else ""
+        lines.append("  " + ", ".join(f"0x{byte:02x}" for byte in chunk) + suffix)
+    lines.append("}};")
+    return "\n".join(lines)
 
 def generate_header(asm_dir, output_file):
     """Generate the header file from assembly files."""
@@ -97,9 +99,12 @@ def generate_header(asm_dir, output_file):
 #ifndef AIEBU_AIE4_PREEMPTION_FILES_H
 #define AIEBU_AIE4_PREEMPTION_FILES_H
 
+#include "preprocessor/prebuilt_save_restore.h"
+
+#include <array>
+#include <cstdint>
 #include <map>
 #include <vector>
-#include <cstdint>
 #include <string>
 
 // C++17 inline variable - single instance across all translation units
@@ -139,31 +144,42 @@ get_aie4_save_restore_membd()
   return aie4_save_restore_membd_map;
 }
 
-inline const std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> aie4_save_restore_map = {
+namespace aiebu {
+namespace prebuilt {
+
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
 """
 
-    # Add entries
-    entries = []
     sorted_keys = sorted(data.keys())
-    for i, key in enumerate(sorted_keys):
+    for key in sorted_keys:
         save_bytes, restore_bytes = data[key]
-        save_str = format_bytes_array(save_bytes)
-        restore_str = format_bytes_array(restore_bytes)
-        # Last entry has no trailing comma
-        if i == len(sorted_keys) - 1:
-            entries.append(f"  {{{key}, {{{save_str}, {restore_str}}}}}  // NOLINT")
-        else:
-            entries.append(f"  {{{key}, {{{save_str}, {restore_str}}}}},  // NOLINT")
+        header += format_bytes_array(f"aie4_save_{key}", save_bytes) + "\n\n"
+        header += format_bytes_array(f"aie4_restore_{key}", restore_bytes) + "\n\n"
+        header += f"""inline constexpr prebuilt_save_restore aie4_save_restore_{key} = {{
+  {{aie4_save_{key}.data(), aie4_save_{key}.size()}},
+  {{aie4_restore_{key}.data(), aie4_restore_{key}.size()}}
+}};
 
-    header += "\n".join(entries)
+"""
 
-    header += """
-};
+    header += """// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+} // namespace prebuilt
+} // namespace aiebu
 
-inline const std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>&
-get_aie4_save_restore()
+inline constexpr const aiebu::prebuilt_save_restore*
+get_aie4_save_restore(uint32_t key) noexcept
 {
-  return aie4_save_restore_map;
+  switch (key) {
+"""
+
+    for key in sorted_keys:
+        header += f"""  case {key}:
+    return &aiebu::prebuilt::aie4_save_restore_{key};
+"""
+
+    header += """  default:
+    return nullptr;
+  }
 }
 
 #endif // AIEBU_AIE4_PREEMPTION_FILES_H

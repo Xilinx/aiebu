@@ -559,40 +559,69 @@ static std::vector<uint8_t> generate_tran(uint8_t device, enum PreemptOp type, u
     return vec;
 }
 
+namespace {
+
+void
+write_byte_array(std::ostream& output, const std::string& name,
+                 const std::vector<uint8_t>& data)
+{
+    output << "inline constexpr std::array<std::uint8_t, " << std::dec << data.size()
+           << "> " << name << " = {{\n";
+    for (size_t i = 0; i < data.size(); ++i) {
+        if (i % 16 == 0)
+            output << "  ";
+
+        output << "0x" << std::hex << std::setw(2) << std::setfill('0')
+               << static_cast<unsigned int>(data[i]);
+
+        if (i + 1 == data.size())
+            output << '\n';
+        else if (i % 16 == 15)
+            output << ",\n";
+        else
+            output << ", ";
+    }
+    output << "}};\n\n";
+}
+
+} // namespace
+
 void generateHeaderFile(const std::map<uint8_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>& stx_save_restore_map, const std::string& headerPath) {
     std::ofstream headerFile(headerPath);
     headerFile << "// SPDX-License-Identifier: MIT\n";
     headerFile << "// Copyright (C) 2024, Advanced Micro Devices, Inc. All rights reserved.\n\n";
     headerFile << "#ifndef AIEBU_STX_PREEMPTION_FILES_H\n#define AIEBU_STX_PREEMPTION_FILES_H\n\n";
-    headerFile << "#include <map>\n#include <vector>\n#include <cstdint>\n\n";
-    headerFile << "std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>&\nget_stx_save_restore()\n{\n";
-    headerFile << "  static std::map<uint32_t, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> stx_save_restore_map = {\n";
+    headerFile << "#include \"preprocessor/prebuilt_save_restore.h\"\n\n";
+    headerFile << "#include <array>\n#include <cstdint>\n\n";
+    headerFile << "namespace aiebu {\nnamespace prebuilt {\n\n";
+    headerFile << "// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)\n";
 
     for (const auto& entry : stx_save_restore_map) {
-        headerFile << "    {" << static_cast<unsigned int>(entry.first) << ", {";
-
-        // Write the first vector (save)
-        headerFile << "{";
-        for (size_t i = 0; i < entry.second.first.size(); ++i) {
-            headerFile << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(entry.second.first[i]);
-            if (i != entry.second.first.size() - 1) {
-                headerFile << ", ";
-            }
-        }
-        headerFile << "}, ";
-
-        // Write the second vector (restore)
-        headerFile << "{";
-        for (size_t i = 0; i < entry.second.second.size(); ++i) {
-            headerFile << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(entry.second.second[i]);
-            if (i != entry.second.second.size() - 1) {
-                headerFile << ", ";
-            }
-        }
-        headerFile << "}}},\n";
+        const auto suffix = std::to_string(static_cast<unsigned int>(entry.first));
+        write_byte_array(headerFile, "stx_save_" + suffix, entry.second.first);
+        write_byte_array(headerFile, "stx_restore_" + suffix, entry.second.second);
+        headerFile << "inline constexpr prebuilt_save_restore stx_save_restore_" << suffix << " = {\n";
+        headerFile << "  {stx_save_" << suffix << ".data(), stx_save_" << suffix << ".size()},\n";
+        headerFile << "  {stx_restore_" << suffix << ".data(), stx_restore_" << suffix << ".size()}\n";
+        headerFile << "};\n\n";
     }
-    headerFile << "  };\n";
-    headerFile << "  return stx_save_restore_map;\n}\n\n#endif // AIEBU_STX_PREEMPTION_FILES_H\n";
+
+    headerFile << "// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)\n";
+    headerFile << "} // namespace prebuilt\n";
+    headerFile << "} // namespace aiebu\n\n";
+    headerFile << "inline constexpr const aiebu::prebuilt_save_restore*\n";
+    headerFile << "get_stx_save_restore(std::uint32_t columns) noexcept\n";
+    headerFile << "{\n";
+    headerFile << "  switch (columns) {\n";
+    for (const auto& entry : stx_save_restore_map) {
+        const auto columns = static_cast<unsigned int>(entry.first);
+        headerFile << "  case " << std::dec << columns << ":\n";
+        headerFile << "    return &aiebu::prebuilt::stx_save_restore_" << columns << ";\n";
+    }
+    headerFile << "  default:\n";
+    headerFile << "    return nullptr;\n";
+    headerFile << "  }\n";
+    headerFile << "}\n\n#endif // AIEBU_STX_PREEMPTION_FILES_H\n";
 }
 
 int main(int /* argc */, char** /* argv */)
