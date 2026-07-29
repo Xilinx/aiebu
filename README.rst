@@ -5,7 +5,7 @@
     comment:: Copyright (C) 2024-2026 Advanced Micro Devices, Inc.
 
 ============================
-AIE Binary Utilities (AIEBU)
+AIE Binary Utilities (aiebu)
 ============================
 
 This repository contains library and utilities to work with AIE *ctrlcode*
@@ -26,13 +26,13 @@ Build Dependencies
  * cxxopts (included as submodule)
  * ELFIO (included as submodule)
 
-Python Dependencies
--------------------
+Python Dependencies (optional)
+------------------------------
 
  * pylint
- * markdown
- * pyyaml
- * Jinja2
+ * markdown (for generating ISA stubs and documentation)
+ * pyyaml (for generating ISA stubs and documentation)
+ * Jinja2 (for generating ISA stubs and documentation)
  * colorama (for testing)
  * GitPython (for testing)
 
@@ -58,7 +58,6 @@ dynamic linking with Universal C Runtime. There is no dependency on MS VCRT.
    cd build
    ./build22.bat
 
-
 Test
 ----
 Directories ``test/cpp_test`` and ``test/cmake-test/sample`` contain sample code to show usage of public C/C++ APIs.
@@ -67,22 +66,41 @@ Directories ``test/cpp_test`` and ``test/cmake-test/sample`` contain sample code
 Public Header Files
 -------------------
 
-Directory ``opt/xilinx/aiebu/include``
- * aiebu.h
- * aiebu_assembler.h
- * aiebu_error.h
+::
+
+   opt/xilinx/aiebu/include
+   └── aiebu
+       ├── aiebu_assembler.h
+       ├── aiebu_error.h
+       └── aiebu.h
 
 Compiled Libraries
 ------------------
 
-Directory ``opt/xilinx/aiebu/lib``
- * libaiebu.so
- * libaiebu_static.a
+By default aiebu produces a static library for static linking with clients like `XRT <https://github.com/Xilinx/XRT>`_.
+
+::
+
+   opt/xilinx/aiebu/lib
+   └── libaiebu.a
+
+Generating ISA Stubs and HTML Documentation
+===========================================
+
+AIE4 ctrlcode ISA stubs and documentation can be generated on Linux if desired. It requires python packages listed above in Python Dependencies above.
+
+Linux
+-----
+
+::
+
+   cd build/Release
+   make isa-spec-gen
 
 ELF Format for AIE Architectures
 ================================
 
-AIEBU generates ELF files for AIE control code. The ELF header contains OS/ABI
+aiebu generates ELF files for AIE ctrlcode. The ELF header contains OS/ABI
 and ABI version fields that identify the target architecture and ELF format version.
 
 OS/ABI Values
