@@ -70,9 +70,9 @@ host_timestamps_action(std::string token, uint32_t probe_type, const std::string
  * @return
  *  Updated memory host address.
  *
- * This function calculates the memory length by converting the second argument 
- * (action length) in `m_arguments` into word bytes. It then adds this memory length to the 
- * base memory host address (`m_mem_host_addr`) and returns the result. 
+ * This function calculates the memory length by converting the action length
+ * in into word bytes. It then adds this memory length to the base memory host address
+ * (`m_mem_host_addr`) and returns the result. 
  */
 uint64_t
 host_timestamps_action::
@@ -157,9 +157,6 @@ serialize_helper(uint32_t* mem_buffer,
  * @param mem_buffer
  * @param mapping
  * @param script_output
- *
- * @return
- *  true if action fired, false otherwise
  */
 void
 host_timestamps_action::

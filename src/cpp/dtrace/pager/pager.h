@@ -74,8 +74,7 @@ private:
         std::vector<uint32_t>& destination, uint32_t uC_index);
     void get_end_probe(const std::vector<uint32_t>& source, 
         std::vector<uint32_t>& destination, uint32_t uC_index);
-    void get_half_tracepoint_probe(const std::vector<uint32_t>& source, 
-        std::vector<uint32_t>& destination, bool is_first_half, uint32_t uC_index);
+    void get_probe(const std::vector<uint32_t>& source, uint32_t uC_index);
     void get_jprobe_probe(const std::vector<uint32_t>& source, 
         std::vector<uint32_t>& destination, uint32_t uC_index);
     uint32_t get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset);

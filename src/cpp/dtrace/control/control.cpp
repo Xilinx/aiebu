@@ -490,7 +490,7 @@ create_result_file(const std::unordered_map<uint32_t, dtrace_buffer_info>& buffe
                     DTRACE_INFO("Serialized action " << action->create_string() << " for uC index " << loop_uC_index);
 
                     if (action->get_result_type() == action::action_result_type::read_action_fired)
-                    {   // If read action fired or print action fired, probe fired
+                    {   // If read action fired, probe fired
                         probe_fired = true;
                     }
                     else if (action->get_result_type() == action::action_result_type::read_action_not_fired)
