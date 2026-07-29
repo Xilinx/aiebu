@@ -99,15 +99,25 @@ class AttachToGroup:
         parser.setcurrentcol(args[0])
 
 class Include:
+    def __init__(self):
+        self._including = {}
+
     def readfile(self, path, parser):
         if not os.path.isfile(path):
             return False
         print(f"Reading file: {path}")
-        ifile = open(path, 'r')
-        for linenumber, line in enumerate(ifile, 1):
-            parser.parse_line(line, path, linenumber)
-        ifile.close()
-        return True
+        rp = os.path.realpath(path)
+        if rp in parser._including:
+            raise RuntimeError(f"Cyclic include {rp}")
+        parser._including.add(rp)
+        try:
+            ifile = open(path, 'r')
+            for linenumber, line in enumerate(ifile, 1):
+                parser.parse_line(line, path, linenumber)
+                ifile.close()
+            return True
+        finally:
+            parser._including.discard(rp)
 
     def operate(self, args, parser):
         args = [x.strip().strip('"') for x in args.strip().split(',')] if args is not None else []
