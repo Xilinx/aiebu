@@ -16,18 +16,17 @@ void
 aie2_blob_preprocessor_input::
 add_preemption_code(uint32_t col)
 {
-  auto& stx_save_restore_map = get_stx_save_restore();
-  if (stx_save_restore_map.count(col) == 0)
+  const auto* save_restore = get_stx_save_restore(col);
+  if (!save_restore)
   {
     auto error_msg = boost::format("Preemption save/restore code for not available for txn buffer with col:(%d)\n") % col;
     throw error(error::error_code::invalid_asm, error_msg.str());
   }
   log_info() << "Save/Restore preemption code added for col " << col << "\n";
-  m_data[preempt_save].resize(stx_save_restore_map.at(col).first.size());
-  std::memcpy(m_data[preempt_save].data(), stx_save_restore_map.at(col).first.data(), stx_save_restore_map.at(col).first.size());
-
-  m_data[preempt_restore].resize(stx_save_restore_map.at(col).second.size());
-  std::memcpy(m_data[preempt_restore].data(), stx_save_restore_map.at(col).second.data(), stx_save_restore_map.at(col).second.size());
+  m_data[preempt_save].assign(save_restore->save.data,
+                              save_restore->save.data + save_restore->save.size);
+  m_data[preempt_restore].assign(save_restore->restore.data,
+                                 save_restore->restore.data + save_restore->restore.size);
 
   extractSymbolFromBuffer(m_data[preempt_save], preempt_save, scratch_pad);
   extractSymbolFromBuffer(m_data[preempt_restore], preempt_restore, scratch_pad);

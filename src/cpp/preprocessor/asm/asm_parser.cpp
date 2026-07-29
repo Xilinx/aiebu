@@ -503,11 +503,14 @@ get_preempt_save_restore(uint32_t num_cols) const
   // 10 (1c0)    save_1:     restore_1:
   // 12 (1c1)    save_2:     restore_2:
   // 14 (1c2)    save_3:     restore_3:
-  auto& save_restore_map = get_aie4_save_restore();
-  auto it = save_restore_map.find(num_cols);
-  if (it != save_restore_map.end())
-    return it->second;
-  return {{}, {}};
+  const auto* save_restore = get_aie4_save_restore(num_cols);
+  if (!save_restore)
+    return {{}, {}};
+
+  return {
+    {save_restore->save.data, save_restore->save.data + save_restore->save.size},
+    {save_restore->restore.data, save_restore->restore.data + save_restore->restore.size}
+  };
 }
 
 

@@ -20,7 +20,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-26.04, ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm]
+        os: [ubuntu-26.04, ubuntu-latest, ubuntu-24.04-arm, windows-2025-vs2026, windows-11-arm]
 
     runs-on: ${{ matrix.os }}
 
@@ -89,6 +89,9 @@ jobs:
         )
         if ($isArm64) {
           $cmakeArgs += "-A", "ARM64", "-DCMAKE_SYSTEM_PROCESSOR=ARM64"
+        } else {
+          # Exercise MSVC whole-program optimization for the generated preemption data.
+          $cmakeArgs += "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE=ON"
         }
         cmake @cmakeArgs
 
