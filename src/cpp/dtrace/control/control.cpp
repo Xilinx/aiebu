@@ -248,6 +248,7 @@ patch_control_buffer(const std::unordered_map<uint32_t, uint64_t>& mem_host_addr
             uint32_t location = (location_index & dtrace::dtrace_ctrl::mask_16) + 2;
 
             if (action_type == dtrace::action::action_type::mem_write ||
+                action_type == dtrace::action::action_type::mem_read ||
                 action_type == dtrace::action::action_type::host_timestamps)
             {
                 uint32_t location_h = mapping.at(location);
