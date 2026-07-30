@@ -19,6 +19,7 @@ pager(bool restricted_order)
     , m_page_index(0)
     , m_probe_in_order(restricted_order)
     , m_probes_in_page(0)
+    , m_has_tracepoint(false)
 {
 }
 
@@ -40,6 +41,7 @@ reset_state()
     m_secondary_action_location_mapping.clear();
     m_page_index = 0;
     m_probes_in_page = 0;
+    m_has_tracepoint = false;
 }
 
 //-------------------------pager::paging-------------------------//
@@ -60,6 +62,19 @@ std::vector<uint32_t>
 pager::
 paging(const std::vector<uint32_t>& buffer, uint32_t uC_index)
 {
+    // Reset the state of the pager for each uC.
+    reset_state();
+
+    // Check if the control block contains tracepoint probes and exceeds page size
+    m_has_tracepoint = (buffer[dtrace::probe::probe_type::tracepoint] >> 
+        dtrace::dtrace_ctrl::second_byte_shift) != dtrace::probe::probe_ctrl::link_end;
+    if (m_has_tracepoint && buffer.size() > m_page_size)
+    {
+        DTRACE_ERROR("DTRACE_PAGER_TRACEPOINT_PAGING_NOT_SUPPORTED",
+            "Control block contains tracepoint probes and exceeds page size,"
+            " paging is not supported with tracepoints.");
+    }
+
     try
     {
         // Check if the buffer is a profile buffer, single page support for profiling.
@@ -71,22 +86,25 @@ paging(const std::vector<uint32_t>& buffer, uint32_t uC_index)
             return buffer;
         }
 
-        // Reset the state of the pager for each uC.
-        reset_state();
-        // Add the page header to the primary and secondary buffers.
+        // Single-page path for page size control block
+        if (buffer.size() <= m_page_size)
+        {
+            // Get the probe information from the buffer 
+            get_probe(buffer, uC_index);
+            // Update the page header of the primary buffer with the number of probes in the page, 
+            // page length and page index.
+            update_page_header(m_primary_buffer);
+            return m_primary_buffer;
+        }
+
+        // Multi-page jprobe paging.
         add_page_header(m_primary_buffer);
         add_page_header(m_secondary_buffer);
         // Add the begin probe to the primary buffer and the end probe to the secondary buffer.
         get_begin_probe(buffer, m_primary_buffer, uC_index);
         get_end_probe(buffer, m_secondary_buffer, uC_index);
-        // Add the first half tracepoint probe to the primary buffer and second half 
-        // tracepoint probe to the secondary buffer.
-        get_half_tracepoint_probe(buffer, m_primary_buffer, true, uC_index);
-        get_half_tracepoint_probe(buffer, m_secondary_buffer, false, uC_index);
         // Add the jprobe probe to the primary buffer.
         get_jprobe_probe(buffer, m_primary_buffer, uC_index);
-        // Add the second half tracepoint probe to the primary buffer from secondary buffer.
-        get_half_tracepoint_probe(m_secondary_buffer, m_primary_buffer, false, uC_index);
         // Add the end probe to the primary buffer from secondary buffer.
         get_end_probe(m_secondary_buffer, m_primary_buffer, uC_index);
         // Update the page header of the primary buffer with the number of probes 
@@ -130,6 +148,14 @@ expand_page(std::vector<uint32_t>& buffer, uint32_t size, bool force)
     uint32_t space = (m_page_index + 1) * m_page_size - static_cast<uint32_t>(buffer.size());
     if (size <= space && !force)
         return false;
+
+    // Error out if control block contains tracepoint probes and exceeds page size
+    if (m_has_tracepoint)
+    {
+        DTRACE_ERROR("DTRACE_PAGER_TRACEPOINT_PAGING_NOT_SUPPORTED",
+            "Control block contains tracepoint probes and exceeds page size,"
+            " paging is not supported with tracepoints.");
+    }
 
     // Clear the last page flag and update the page header for the current page.
     clear_last_page_flag(buffer);
@@ -305,69 +331,39 @@ get_end_probe(const std::vector<uint32_t>& source, std::vector<uint32_t>& destin
     }
 }
 
-//-------------------------pager::get_half_tracepoint_probe-------------------------//
+//-------------------------pager::get_probe-------------------------//
 /**
- * get_half_tracepoint_probe() - Extracts and copies half of the tracepoint probes 
- * from the source control block buffer vector to the destination vector.
+ * get_probe() - Single-page path for control blocks without paging.
  *
  * @param source 
- *  Source control block buffer vector containing the tracepoint probes to be copied.
- * @param destination 
- *  Destination buffer vector where the selected tracepoint probes will be copied.
- * @param is_first_half 
- *  Boolean flag indicating first half (true) or the second half (false) of the tracepoint probes.
- * @param uC_index
+ *  Source control block buffer vector containing the probes.
+ * @param uC_index 
  *  Index of the uC to be used while paging.
  *
- * This function iterates through the tracepoint probes in the source vector and 
- * selectively copies them to the destination vector based on the specified half (first or second). 
- * It ensures that the destination vector is expanded as needed to accommodate the 
- * new probes and their associated actions.
+ * This function copies the control block buffer to the primary buffer and updates the 
+ * action location mapping for the given uC index. It also updates the number of probes 
+ * in the page.
  */
-void 
+void
 pager::
-get_half_tracepoint_probe(const std::vector<uint32_t>& source, std::vector<uint32_t>& destination, 
-    bool is_first_half, uint32_t uC_index)
+get_probe(const std::vector<uint32_t>& source, uint32_t uC_index)
 {
-    uint32_t link = 
-        destination[m_page_index * m_page_size + dtrace::probe::probe_type::tracepoint] >> 
+    m_primary_buffer = source;
+    m_primary_action_location_mapping[uC_index] = {};
+    for (uint32_t i = 0; i < static_cast<uint32_t>(source.size()); ++i)
+        m_primary_action_location_mapping[uC_index][i] = i;
+
+    // count the number of jprobes in the page
+    uint32_t link = source[dtrace::probe::probe_type::jprobe] >> 
         dtrace::dtrace_ctrl::second_byte_shift;
-    uint32_t destination_location = m_page_index * m_page_size + dtrace::probe::probe_type::tracepoint;
     while (link != dtrace::probe::probe_ctrl::link_end)
     {
-        destination_location = link;
-        link = destination[link] >> dtrace::dtrace_ctrl::second_byte_shift;
+        ++m_probes_in_page;
+        link = source[link] >> dtrace::dtrace_ctrl::second_byte_shift;
     }
 
-    uint32_t source_probe_offset = source[dtrace::probe::probe_type::tracepoint] >> 
-        dtrace::dtrace_ctrl::second_byte_shift;
-    while (true)
-    {
-        if (source_probe_offset == dtrace::probe::probe_ctrl::link_end)
-            break;
-        
-        uint32_t probe = source[source_probe_offset + 1];
-        if (((probe >> dtrace::dtrace_ctrl::second_byte_shift) < 
-            dtrace::probe::probe_ctrl::tracepoint_split) == is_first_half)
-        {
-            uint32_t action_size = get_action_size(source, source_probe_offset + 2);
-            if (expand_page(destination, action_size + 2))
-                destination_location = m_page_index * m_page_size + dtrace::probe::probe_type::tracepoint;
-            
-            destination[destination_location] = 
-                ((static_cast<uint32_t>(destination.size()) - m_page_index * m_page_size) << 
-                dtrace::dtrace_ctrl::second_byte_shift) | 
-                (dtrace::probe::probe_type::tracepoint << dtrace::dtrace_ctrl::first_byte_shift);
-            destination_location = (m_page_index * m_page_size) + 
-                (destination[destination_location] >> dtrace::dtrace_ctrl::second_byte_shift);
-            destination.push_back(
-                (dtrace::probe::probe_ctrl::link_end << dtrace::dtrace_ctrl::second_byte_shift) | 
-                (dtrace::probe::probe_type::tracepoint << dtrace::dtrace_ctrl::first_byte_shift));
-            destination.push_back(probe);
-            copy_actions(source, source_probe_offset + 2, destination, action_size, uC_index);
-        }
-        source_probe_offset = source[source_probe_offset] >> dtrace::dtrace_ctrl::second_byte_shift;
-    }
+    // mark last page
+    m_primary_buffer[dtrace::probe::probe_type::begin] |= 1;
 }
 
 //-------------------------pager::get_jprobe_probe-------------------------//
@@ -489,14 +485,17 @@ get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset)
         {   // break action
             action_size += dtrace::action::action_ctrl::break_action_size;
         }
-        else if (action_type == dtrace::action::action_type::timestamps ||
-            action_type == dtrace::action::action_type::host_timestamps)
-        {   // timestamps action, host timestamps action
+        else if (action_type == dtrace::action::action_type::timestamps)
+        {   // timestamps action
             uint32_t action_length = source[action_offset + action_size + 1];
             action_size += (
                 dtrace::action::action_ctrl::timestamps_action_size + 
                 (action_length * dtrace::action::action_ctrl::timestamps_value_size)
             );
+        }
+        else if (action_type == dtrace::action::action_type::host_timestamps)
+        {   // host timestamps action
+            action_size += dtrace::action::action_ctrl::host_timestamps_action_size;
         }
         else if (action_type == dtrace::action::action_type::timestamps32)
         {   // timestamps32 action

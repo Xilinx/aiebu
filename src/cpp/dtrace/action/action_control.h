@@ -173,6 +173,7 @@ public:
     static constexpr uint32_t reg_rw_action_size = 3;           // Size of a register read/write action
     static constexpr uint32_t reg_mask_action_size = 4;         // Size of a register mask write/poll action
     static constexpr uint32_t mem_rw_action_size = 5;           // Size of a memory read/write action
+    static constexpr uint32_t host_timestamps_action_size = 4;  // Size of a host timestamps action
 };
 
 // -------------------------Action Result Type-------------------------//
@@ -808,16 +809,21 @@ class host_timestamps_action : public action
 {
 private:
     uint32_t m_length;
-    
+    uint64_t m_mem_host_addr;
+    std::vector<uint32_t> m_mem_buffer_addr;
+
 public:
-    host_timestamps_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    host_timestamps_action(
+        std::string token, uint32_t probe_type, const std::string& probe_name, uint64_t mem_host_addr
+    );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::vector<uint64_t> serialize_helper(
-        uint32_t* result_buffer,
+        uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
+    uint64_t get_mem_host_addr() const override;
     void serialize(
         uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output

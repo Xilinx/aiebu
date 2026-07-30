@@ -17,10 +17,14 @@ namespace dtrace::action
  *  Multiple Host Timestamp action token: name[length] = host_timestamps()
  * @param probe_type
  * @param probe_name
+ * @param mem_host_addr
+ *  Memory buffer host address for host timestamps action in control buffer.
  */
 host_timestamps_action::
-host_timestamps_action(std::string token, uint32_t probe_type, const std::string& probe_name)
+host_timestamps_action(std::string token, uint32_t probe_type, const std::string& probe_name,
+    uint64_t mem_host_addr)
     : action(probe_type, probe_name)
+    , m_mem_host_addr(mem_host_addr)
 {
     std::vector<std::string> fields;
     std::stringstream token_stream(token);
@@ -49,11 +53,39 @@ host_timestamps_action(std::string token, uint32_t probe_type, const std::string
 
     m_action_name = action[1];
     m_length = static_cast<uint32_t>(std::stoull(length, nullptr, 0));
+
+    // Store the memory host address in the memory buffer address vector
+    m_mem_buffer_addr.push_back(
+        (m_mem_host_addr >> dtrace::dtrace_ctrl::forth_byte_shift) & dtrace::dtrace_ctrl::mask_32
+    );
+    m_mem_buffer_addr.push_back(
+        m_mem_host_addr & dtrace::dtrace_ctrl::mask_32
+    );
+}
+
+//-------------------------host_timestamps_action::get_mem_host_addr-------------------------//
+/**
+ * get_mem_host_addr() - Retrieves the memory host address after adjusting for the buffer length.
+ *
+ * @return
+ *  Updated memory host address.
+ *
+ * This function calculates the memory length by converting the action length
+ * in into word bytes. It then adds this memory length to the base memory host address
+ * (`m_mem_host_addr`) and returns the result. 
+ */
+uint64_t
+host_timestamps_action::
+get_mem_host_addr() const
+{
+    return m_mem_host_addr +
+        static_cast<uint64_t>(m_length) * dtrace::action::action_ctrl::timestamps_value_size *
+        dtrace::dtrace_ctrl::word_byte_size;
 }
 
 //-------------------------host_timestamps_action::actionize-------------------------//
 /**
- * actionize() - Adds host timestamp action values to the control buffer.
+ * actionize() - Adds host timestamp action values to the control and memory buffers.
  *
  * @param last 
  *  Last action for the current probe.
@@ -62,22 +94,29 @@ host_timestamps_action(std::string token, uint32_t probe_type, const std::string
  */
 void
 host_timestamps_action::
-actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>&)
+actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer)
 {
-    // control_buffer 
+    // control_buffer
+    set_location(control_buffer, false);
     // timestamp header
     control_buffer.push_back(
         (last << dtrace::dtrace_ctrl::second_byte_shift) | action_type::host_timestamps
     );
-    set_location(control_buffer, false);
     // timestamp length
     control_buffer.push_back(m_length);
-    // timestamp values for m_length
+    // mem_host_addr high
+    control_buffer.push_back(m_mem_buffer_addr[0]);
+    // mem_host_addr low
+    control_buffer.push_back(m_mem_buffer_addr[1]);
+
+    // mem buffer
+    set_location(mem_buffer, true);
     for (size_t i = 0; i < m_length; ++i)
-    {   // timestamp high values
-        control_buffer.push_back(dtrace::dtrace_ctrl::result_value_init);
-        // timestamp low values
-        control_buffer.push_back(dtrace::dtrace_ctrl::result_value_init);
+    {
+        // timestamp value high
+        mem_buffer.push_back(dtrace::dtrace_ctrl::result_value_init);
+        // timestamp value low
+        mem_buffer.push_back(dtrace::dtrace_ctrl::result_value_init);
     }
 }
 
@@ -85,29 +124,27 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
 /**
  * serialize_helper() - Helper function to serialize action.
  *
- * @param result_buffer
+ * @param mem_buffer
  * @param mapping
  *
  * @return 
- *  The value from the result buffer based on the location mapping and
- *  resets the value in the result buffer after serialization.
+ *  The value from the memory buffer and resets the value after serialization.
  */
 std::vector<uint64_t>
 host_timestamps_action::
-serialize_helper(uint32_t* result_buffer,
-    const std::unordered_map<uint32_t, uint32_t>& mapping) const
+serialize_helper(uint32_t* mem_buffer,
+    const std::unordered_map<uint32_t, uint32_t>&) const
 {
     std::vector<uint64_t> result;
-    for (uint32_t i = 0; i < m_length; ++i) 
+    for (uint32_t i = 0; i < m_length; ++i)
     {
-        // action location + length word + high and low value
-        uint32_t location = mapping.at(get_location(false)) + 1 + i*2;
-        uint64_t high = static_cast<uint64_t>(result_buffer[location]) << dtrace::dtrace_ctrl::forth_byte_shift;
-        uint64_t low = result_buffer[location + 1];
+        uint32_t location = get_location(true) + i * dtrace::action::action_ctrl::timestamps_value_size;
+        uint64_t high = static_cast<uint64_t>(mem_buffer[location]) << dtrace::dtrace_ctrl::forth_byte_shift;
+        uint64_t low = mem_buffer[location + 1];
         result.push_back(high + low);
         // reset value after serialization
-        result_buffer[location] = dtrace::dtrace_ctrl::result_value_init;
-        result_buffer[location + 1] = dtrace::dtrace_ctrl::result_value_init;
+        mem_buffer[location] = dtrace::dtrace_ctrl::result_value_init;
+        mem_buffer[location + 1] = dtrace::dtrace_ctrl::result_value_init;
     }
     return result;
 }
@@ -120,16 +157,13 @@ serialize_helper(uint32_t* result_buffer,
  * @param mem_buffer
  * @param mapping
  * @param script_output
- *
- * @return
- *  true if action fired, false otherwise
  */
 void
 host_timestamps_action::
-serialize(uint32_t* result_buffer, uint32_t*,
+serialize(uint32_t*, uint32_t* mem_buffer,
     const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output) const
 {
-    std::vector<uint64_t> result = host_timestamps_action::serialize_helper(result_buffer, mapping);
+    std::vector<uint64_t> result = host_timestamps_action::serialize_helper(mem_buffer, mapping);
     uint64_t result_init = (static_cast<uint64_t>(dtrace::dtrace_ctrl::result_value_init) << dtrace::dtrace_ctrl::forth_byte_shift) 
                          + dtrace::dtrace_ctrl::result_value_init;
     // Check if probe fired
@@ -168,10 +202,10 @@ serialize(uint32_t* result_buffer, uint32_t*,
  */
 void
 host_timestamps_action::
-serialize(uint32_t* result_buffer, uint32_t*,
+serialize(uint32_t*, uint32_t* mem_buffer,
     const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output) const
 {
-    std::vector<uint64_t> result = host_timestamps_action::serialize_helper(result_buffer, mapping);
+    std::vector<uint64_t> result = host_timestamps_action::serialize_helper(mem_buffer, mapping);
     uint64_t result_init = (static_cast<uint64_t>(dtrace::dtrace_ctrl::result_value_init) << dtrace::dtrace_ctrl::forth_byte_shift) 
                          + dtrace::dtrace_ctrl::result_value_init;
     // Check if probe fired

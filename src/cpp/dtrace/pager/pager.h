@@ -64,6 +64,7 @@ private:
     uint32_t m_page_index;
     bool m_probe_in_order;
     uint32_t m_probes_in_page;
+    bool m_has_tracepoint;
     void reset_state();
     bool expand_page(std::vector<uint32_t>& buffer, uint32_t size, bool force = false);
     void clear_last_page_flag(std::vector<uint32_t>& buffer);
@@ -73,8 +74,7 @@ private:
         std::vector<uint32_t>& destination, uint32_t uC_index);
     void get_end_probe(const std::vector<uint32_t>& source, 
         std::vector<uint32_t>& destination, uint32_t uC_index);
-    void get_half_tracepoint_probe(const std::vector<uint32_t>& source, 
-        std::vector<uint32_t>& destination, bool is_first_half, uint32_t uC_index);
+    void get_probe(const std::vector<uint32_t>& source, uint32_t uC_index);
     void get_jprobe_probe(const std::vector<uint32_t>& source, 
         std::vector<uint32_t>& destination, uint32_t uC_index);
     uint32_t get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset);
