@@ -101,7 +101,7 @@ serialize_helper(uint32_t* result_buffer,
     for (uint32_t i = 0; i < m_length; ++i) 
     {
         // action location + length word + high and low value
-        uint32_t location = mapping.at(get_location(false)) + 1 + i*2;
+        uint32_t location = mapping.at(get_location(false)) + 1 + i * dtrace::action::action_ctrl::timestamps_value_size;
         uint64_t high = static_cast<uint64_t>(result_buffer[location]) << dtrace::dtrace_ctrl::forth_byte_shift;
         uint64_t low = result_buffer[location + 1];
         result.push_back(high + low);
