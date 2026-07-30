@@ -1,7 +1,7 @@
 @ECHO OFF
 
 REM SPDX-License-Identifier: MIT
-REM Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
+REM Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 setlocal enabledelayedexpansion
 set SCRIPTDIR=%~dp0
 set SCRIPTDIR=%SCRIPTDIR:~0,-1%
@@ -92,8 +92,9 @@ if [%DEBUG%] == [1] (
 
    if [%NOCTEST%] == [0] (
       echo ctest --test-dir %BUILDDIR%\%PLATFORM% -C Debug -j %NUMBER_OF_PROCESSORS%
-      ctest --test-dir %BUILDDIR%\%PLATFORM% -C Debug -j %NUMBER_OF_PROCESSORS%
-      if errorlevel 1 (exit /B %errorlevel%)
+      ctest --test-dir %BUILDDIR%\%PLATFORM% -C Debug -j %NUMBER_OF_PROCESSORS% --output-on-failure
+      set CTEST_ERRORLEVEL=!ERRORLEVEL!
+      if !CTEST_ERRORLEVEL! neq 0 (exit /B !CTEST_ERRORLEVEL!)
    )
 )
 
@@ -108,8 +109,9 @@ if [%RELEASE%] == [1] (
 
    if [%NOCTEST%] == [0] (
       echo ctest --test-dir %BUILDDIR%\%PLATFORM% -C Release -j %NUMBER_OF_PROCESSORS%
-      ctest --test-dir %BUILDDIR%\%PLATFORM% -C Release -j %NUMBER_OF_PROCESSORS%
-      if errorlevel 1 (exit /B %errorlevel%)
+      ctest --test-dir %BUILDDIR%\%PLATFORM% -C Release -j %NUMBER_OF_PROCESSORS% --output-on-failure
+      set CTEST_ERRORLEVEL=!ERRORLEVEL!
+      if !CTEST_ERRORLEVEL! neq 0 (exit /B !CTEST_ERRORLEVEL!)
    )
 
    ECHO ====================== Create SDK ZIP archive ============================
