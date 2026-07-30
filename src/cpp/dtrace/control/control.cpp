@@ -320,9 +320,11 @@ populate_result_actions()
 {
     m_result_actions.clear();
     uint32_t uC_index = 0;  // uC_index 0 for begin and end probes
+    const bool begin_end_exist = m_parser.m_probes.find(uC_index) != m_parser.m_probes.end();
 
     // Probe - begin
-    if (m_parser.m_probes.at(uC_index).find("begin") != m_parser.m_probes.at(uC_index).end())
+    if (begin_end_exist &&
+        m_parser.m_probes.at(uC_index).find("begin") != m_parser.m_probes.at(uC_index).end())
     {
         std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> begin_actions;
         for (const auto& action : m_parser.m_probes.at(uC_index).at("begin")->m_actions)
@@ -349,7 +351,8 @@ populate_result_actions()
     }
 
     // Probe - end
-    if (m_parser.m_probes.at(uC_index).find("end") != m_parser.m_probes.at(uC_index).end())
+    if (begin_end_exist &&
+        m_parser.m_probes.at(uC_index).find("end") != m_parser.m_probes.at(uC_index).end())
     {
         std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> end_actions;
         for (const auto& action : m_parser.m_probes.at(uC_index).at("end")->m_actions)
