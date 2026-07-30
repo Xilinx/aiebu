@@ -19,7 +19,9 @@ using dtrace_handle_t = void*;  // NOLINT
  * create_dtrace_handle() - Creates a handle to the dynamic tracing context.
  *
  * @script_file:    Path to script file containing probe and action details.
- * @map_data:       Map JSON string with details of control code.
+ * @map_data:       Optional map JSON from the ELF .dump section. Required when
+ *                  the control script uses jprobe or profile; may be empty for
+ *                  begin, end, and tracepoint probes.
  * @log_level:      Log level for debugging.
  * @output_fmt:     Output format for result file.
  *

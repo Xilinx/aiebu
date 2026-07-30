@@ -74,4 +74,16 @@ add_test(NAME "dtrace_duplicate_filename_md5sum"
   )
 set_tests_properties("dtrace_duplicate_filename_md5sum" PROPERTIES DEPENDS "dtrace_duplicate_filename")
 
+# Test empty elf dump section
+add_test(NAME "dtrace_empty_elf_dump"
+  COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/empty_elf_dump" "${CMAKE_CURRENT_BINARY_DIR}/control_empty_elf_dump.dat"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+add_test(NAME "dtrace_empty_elf_dump_md5sum"
+  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake" "${CMAKE_CURRENT_BINARY_DIR}/control_empty_elf_dump.dat" "${AIEBU_SOURCE_DIR}/test/dtrace_test/empty_elf_dump/gold.md5"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_empty_elf_dump_md5sum" PROPERTIES DEPENDS "dtrace_empty_elf_dump")
+
 add_subdirectory(duplicate_filename)

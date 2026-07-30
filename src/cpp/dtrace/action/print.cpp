@@ -57,6 +57,10 @@ print_action(std::string token, uint32_t probe_type, const std::string& probe_na
     // operation built-in variable for jprobe and check if operation is requested.
     if (m_token.find("operation") != std::string::npos) 
     {
+        if (maps.empty())
+            DTRACE_ERROR("DTRACE_ACTION_OPERATION_VARIABLE_REQUIRES_MAP_DATA",
+                "'operation' built-in variable requires ELF dump-section map data");
+
         if (m_probe_type == dtrace::probe::probe_type::jprobe)
         {
             if (maps.find(m_probe_name) != maps.end()) 
