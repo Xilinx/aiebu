@@ -233,7 +233,6 @@ class filename_table {
   //TODO: redundant data for fast insertion and lookup. To be removed in future.
   std::vector<std::string> m_table;
   std::unordered_map<std::string, uint32_t> m_index;
-  uint32_t m_default_idx = static_cast<uint32_t>(-1);
 
 public:
   uint32_t intern_filename(const std::string& fname) {
@@ -256,11 +255,6 @@ public:
     return it != m_index.end() ? it->second : static_cast<uint32_t>(-1);
   }
 
-  uint32_t default_source_file_idx() {
-    if (m_default_idx == static_cast<uint32_t>(-1))
-      m_default_idx = intern_filename(std::string("default"));
-    return m_default_idx;
-  }
 };
 } // namespace detail
 
@@ -511,6 +505,7 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::stack<bool> isdatastack;
   std::string m_current_label = "default";
   int m_current_col = -1;
+  uint32_t m_current_parse_file_idx = static_cast<uint32_t>(-1);
   const std::vector<std::string>& m_include_list;
   bool annotation_state = false;
   std::vector<annotation_type> m_annotation_list;
@@ -867,13 +862,11 @@ public:
     return it->second.count(idx) > 0;
   }
 
-  uint32_t default_source_file_idx() {
-    return m_filename_table.default_source_file_idx();
-  }
+  uint32_t current_parse_file_idx() const { return m_current_parse_file_idx; }
 
-  void parse_lines();
+  void parse_lines(const std::string& source_filename = default_source_filename);
 
-  void parse_lines(const std::vector<char>& data, std::string& file);
+  void parse_lines(const std::vector<char>& data, const std::string& file);
 
   // Rewrites arg_str and line in-place for a PREEMPT opcode.
   void handle_preempt_opcode(std::string& arg_str, std::string& line);

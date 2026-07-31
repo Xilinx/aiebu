@@ -200,7 +200,7 @@ get_col_asmdata(uint32_t colnum)
 
 void
 asm_parser::
-parse_lines()
+parse_lines(const std::string& source_filename)
 {
   directive_list[static_cast<std::size_t>(asm_directive_id::attach_to_group)] =
       std::make_shared<attach_to_group_directive>();
@@ -212,8 +212,7 @@ parse_lines()
   directive_list[static_cast<std::size_t>(asm_directive_id::section)] = std::make_shared<section_directive>();
   directive_list[static_cast<std::size_t>(asm_directive_id::partition)] = std::make_shared<partition_directive>();
   directive_list[static_cast<std::size_t>(asm_directive_id::target)] = std::make_shared<target_directive>();
-  std::string file = "default";
-  parse_lines(m_data, file);
+  parse_lines(m_data, source_filename);
 
   // After all parsing is done, inject actual save/restore code
   finalize_preempt();
@@ -335,7 +334,7 @@ handle_load_or_preempt_cond(const std::string& op_name, const std::string& arg_s
 
 void
 asm_parser::
-parse_lines(const std::vector<char>& data, std::string& file)
+parse_lines(const std::vector<char>& data, const std::string& file)
 {
   //parse asm code
   const static regex COMMENT_REGEX("^;(.*)$");
@@ -356,6 +355,7 @@ parse_lines(const std::vector<char>& data, std::string& file)
     }
   }
   const uint32_t parse_file_idx = intern_filename(file);
+  m_current_parse_file_idx = parse_file_idx;
   // Scan str for newlines directly instead of copying it into an istringstream
   size_t pos = 0;
   const size_t str_len = str.size();
@@ -1407,7 +1407,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
   // dummy eof added if col change happens before eof
   m_parserptr->insert_col_asmdata(std::make_shared<asm_data>(operation("eof", ""),
                                                               operation_type::op, code_section::unknown, 0,
-                                                              (uint32_t)-1, 0, m_parserptr->default_source_file_idx()));
+                                                              (uint32_t)-1, 0, m_parserptr->current_parse_file_idx()));
   m_parserptr->set_current_col(std::stoi(args_tail));
   m_parserptr->set_data_state(false);
 }

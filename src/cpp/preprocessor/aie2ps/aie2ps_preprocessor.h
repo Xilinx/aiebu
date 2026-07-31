@@ -86,7 +86,7 @@ public:
     
     std::shared_ptr<asm_parser> parser(new asm_parser(tinput->get_ctrlcode_data(), tinput->get_include_paths(), get_target_name(), tinput->get_artifacts()));
 
-    parser->parse_lines();
+    parser->parse_lines(tinput->get_source_filename());
 
     // Verify PREEMPT opcode count is equal across all columns in the control code.
     // All controllers must have the same number of preemption points to ensure consistent
@@ -200,7 +200,7 @@ public:
         std::vector<std::shared_ptr<asm_data>> data = coldata.get_label_asmdata(label);
         std::shared_ptr<assembler_state> state = create_assembler_state(m_isa, data, scratchpad, label_page_index, ctrlpkt_id_map, optimize, true);
       // create pages
-        pager(PAGE_SIZE, parser->default_source_file_idx()).pagify(*state, col, pages, relative_page_index);
+        pager(PAGE_SIZE, parser->get_filename_table().find_filename(tinput->get_source_filename())).pagify(*state, col, pages, relative_page_index);
         label_page_index[get_pagelabel(label)] = relative_page_index;
         log_debug() << "num pages: " << pages.size() - relative_page_index << std::endl;
         relative_page_index = static_cast<uint32_t>(pages.size());

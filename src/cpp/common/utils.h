@@ -35,6 +35,7 @@ constexpr int WORD_SIZE = 4;
 constexpr uint32_t byte_to_bits = 8;
 constexpr uint32_t shim_bd_len = 9;
 constexpr opcode_type align_opcode = 0xA5;
+const std::string default_source_filename = "default";
 
 namespace aiebu {
 

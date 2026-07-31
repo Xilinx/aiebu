@@ -87,3 +87,4 @@ add_subdirectory(legal_duplicate_include)
 add_subdirectory(decode_opcode)
 
 add_subdirectory(plip)
+add_subdirectory(ctrlcode_filename)
