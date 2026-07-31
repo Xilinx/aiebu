@@ -38,16 +38,10 @@ create_dtrace_handle(const std::string& script_file, const std::string& map_data
 {
     try
     {
-        // Validate script file path and map data
+        // Validate script file path
         if (script_file.empty())
         {
             std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config script data";
-            return nullptr;
-        }
-
-        if (map_data.empty())
-        {
-            std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config map data";
             return nullptr;
         }
 
