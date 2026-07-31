@@ -40,7 +40,7 @@ parser(const std::string& map_data)
     , m_position(0)
 {
     if (map_data.empty())
-        DTRACE_ERROR("DTRACE_PARSER_MAP_DATA_EMPTY", "Failed to open map data for reading.");
+        return;
 
     std::istringstream data(map_data);
     boost::property_tree::ptree pt;
@@ -237,6 +237,9 @@ void
 parser::
 expand_jprobe(uint32_t probe_type, const std::string& probe_name)
 {
+    if (m_maps.empty())
+        DTRACE_ERROR("DTRACE_PARSER_MAP_DATA_EMPTY", "ELF dump-section map data is required for jprobe");
+
     m_probe_expand[probe_name] = {};
     std::vector<std::string> probe_fields;
     // Split the probe name into its components
@@ -361,6 +364,9 @@ void
 parser::
 expand_profile(uint32_t probe_type, const std::string& probe_name)
 {
+    if (m_maps.empty())
+        DTRACE_ERROR("DTRACE_PARSER_MAP_DATA_EMPTY", "ELF dump-section map data is required for profile probe");
+
     m_probe_expand[probe_name] = {};
     std::vector<std::string> probe_fields;
     // Split the probe name into its components

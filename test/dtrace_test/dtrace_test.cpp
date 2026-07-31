@@ -111,16 +111,14 @@ int main(int argc, char** argv)
             }
         }
 
-        if (!std::filesystem::exists(map_file)) {
-            throw std::runtime_error("[ERROR]: map file does not exist: " + map_file);
-            return 1;
+        std::string map_data;
+        if (std::filesystem::exists(map_file)) {
+            std::ifstream map_file_stream(map_file, std::ios::binary);
+            std::vector<uint8_t> map_buffer((std::istreambuf_iterator<char>(map_file_stream)),
+                std::istreambuf_iterator<char>());
+            map_file_stream.close();
+            map_data = std::string(map_buffer.begin(), map_buffer.end());
         }
-
-        std::ifstream map_file_stream(map_file, std::ios::binary);
-        std::vector<uint8_t> map_buffer((std::istreambuf_iterator<char>(map_file_stream)),
-            std::istreambuf_iterator<char>());
-        map_file_stream.close();
-        std::string map_data = std::string(map_buffer.begin(), map_buffer.end());
 
         int ret = run_dtrace_test(script_file, map_data, output_file, result_file, output_fmt);
         return ret;
