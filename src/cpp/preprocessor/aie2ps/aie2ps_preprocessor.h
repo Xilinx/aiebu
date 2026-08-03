@@ -208,7 +208,8 @@ public:
 
       for (auto& pad : scratchpad)
       {
-        pad.second->set_offset(preemption_scratchpad);
+        //pad.second->set_offset(preemption_scratchpad);
+        pad.second->set_offset(0);
         preemption_scratchpad += pad.second->get_size();
       }
 
