@@ -416,7 +416,7 @@ add_preemption_code(uint32_t col)
   {
     uint32_t* bd_data_ptr = reinterpret_cast<uint32_t*>(buf.data() + offset);
     uint64_t base_address =
-      ((static_cast<uint64_t>(bd_data_ptr[3]) & 0xFFF) << 32) |
+      ((static_cast<uint64_t>(bd_data_ptr[3]) & 0xFFFF) << 32) |
       ((static_cast<uint64_t>(bd_data_ptr[2])));
     base_address += addend;
     bd_data_ptr[2] = static_cast<uint32_t>(base_address & 0xFFFFFFFC);
