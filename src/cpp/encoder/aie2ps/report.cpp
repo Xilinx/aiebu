@@ -29,10 +29,12 @@ summary(std::ostream& output) {
       output << "\tJOBS:              ";
       for (const auto& j : page.m_jobids)
         output << j << ",";
-      output << "\n\tSECTIONS:          .ctrltext." << page.m_colnum << "." << page.m_pagenum
-             << ", .ctrldata." << page.m_colnum << "." << page.m_pagenum << std::endl;
+      output << "\n\tSECTIONS:          .ctrltext." << page.m_colnum;
+      if (!m_merged)
+        output << "." << page.m_pagenum << ", .ctrldata." << page.m_colnum << "." << page.m_pagenum;
+      output << std::endl;
       output << "\tTEXT SIZE: " << page.m_textsize << std::endl;
-      output << "\tDATA SIZE: " << page.m_datasize << std::endl;
+      output << "\tDATA SIZE: " << page.m_datasize - page.m_padsize << std::endl;
       output << "\tPAD SIZE: " << page.m_padsize << std::endl;
       total_pad += page.m_padsize;
       total_controlcode += (page.m_textsize +  page.m_datasize);
@@ -54,7 +56,8 @@ summary(std::ostream& output) {
       output << std::endl;
     }
   }
-  output << "Total pad size:" << total_pad << "\n";
-  output << "Total controlcode size:" << total_controlcode << "\n";
+  output << "Total pad size: " << total_pad << std::endl;
+  output << "Total controlcode size: " << total_controlcode << std::endl;
+  output << "Padding Ratio: " << (static_cast<double>(total_pad) / static_cast<double>(total_controlcode)) << std::endl;
 }
 }

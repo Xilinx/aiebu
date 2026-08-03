@@ -151,6 +151,8 @@ private:
 
 // Class to generate asm report summary
 class asm_report {
+  bool m_merged = false;
+
   class report_page {
   public:
     uint32_t m_colnum;
@@ -174,6 +176,8 @@ class asm_report {
   std::string m_build_id = aiebu_build_version_hash;
   std::map<uint32_t, std::vector<report_page>> m_colpages;
 public:
+  void set_merged(bool merged) { m_merged = merged; }
+
   void addpage(page& lpage, std::shared_ptr<assembler_state> page_state, offset_type textsize, offset_type datasize, offset_type padsize); // Implementation assumed
 
   void summary(std::ostream& output);
