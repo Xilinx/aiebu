@@ -157,15 +157,16 @@ class asm_report {
     pageid_type m_pagenum;
     offset_type m_textsize;
     offset_type m_datasize;
+    offset_type m_padsize;
     std::vector<jobid_type> m_jobids;
     std::map<barrierid_type, std::vector<jobid_type>> m_localbarriermap;
     std::map<jobid_type, std::vector<jobid_type>> m_joblaunchmap;
 
-    report_page(uint32_t colnum, pageid_type pagenum, offset_type textsize, offset_type datasize,
+    report_page(uint32_t colnum, pageid_type pagenum, offset_type textsize, offset_type datasize, offset_type padsize,
                 const std::vector<jobid_type>& jobids,
                 const std::map<barrierid_type, std::vector<jobid_type>>& barriermap,
                 const std::map<jobid_type, std::vector<jobid_type>>& launchmap)
-        : m_colnum(colnum), m_pagenum(pagenum), m_textsize(textsize), m_datasize(datasize),
+        : m_colnum(colnum), m_pagenum(pagenum), m_textsize(textsize), m_datasize(datasize), m_padsize(padsize),
           m_jobids(jobids), m_localbarriermap(barriermap), m_joblaunchmap(launchmap) {}
 
   };
@@ -173,7 +174,7 @@ class asm_report {
   std::string m_build_id = aiebu_build_version_hash;
   std::map<uint32_t, std::vector<report_page>> m_colpages;
 public:
-  void addpage(page& lpage, std::shared_ptr<assembler_state> page_state, offset_type textsize, offset_type datasize); // Implementation assumed
+  void addpage(page& lpage, std::shared_ptr<assembler_state> page_state, offset_type textsize, offset_type datasize, offset_type padsize); // Implementation assumed
 
   void summary(std::ostream& output);
 };

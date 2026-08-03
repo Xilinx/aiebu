@@ -272,10 +272,10 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
   if (textwriter->tell() + datawriter->tell() > PAGE_SIZE)
     throw error(error::error_code::internal_error, "page content more the pagesize !!!");
 
+  offset_type padsize = PAGE_SIZE - textwriter->tell() - datawriter->tell();
   if (merged) {
     merged_writer->write_bytes(textwriter->get_data());
     merged_writer->write_bytes(datawriter->get_data());
-    offset_type padsize = PAGE_SIZE - textwriter->tell() - datawriter->tell();
     if (padsize > 0) {
       std::vector<uint8_t> zeros(padsize, 0x00);
       merged_writer->write_bytes(zeros);
@@ -290,7 +290,7 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
     twriter.push_back(datawriter);
   }
 
-  m_report.addpage(lpage, page_state, textwriter->tell(), datawriter->tell());
+  m_report.addpage(lpage, page_state, textwriter->tell(), datawriter->tell(), padsize);
 }
 
 void

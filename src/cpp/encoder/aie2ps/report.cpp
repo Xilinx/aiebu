@@ -8,11 +8,11 @@ namespace aiebu {
 
 void
 asm_report::
-addpage(page& lpage,  std::shared_ptr<assembler_state> page_state, offset_type textsize, offset_type datasize)
+addpage(page& lpage,  std::shared_ptr<assembler_state> page_state, offset_type textsize, offset_type datasize, offset_type padsize)
 {
   std::vector<jobid_type> &jobs = page_state->m_jobids;
   jobs.erase(std::remove(jobs.begin(), jobs.end(), "EOF"), jobs.end());
-  m_colpages[lpage.get_colnum()].emplace_back(lpage.get_colnum(), lpage.get_pagenum(), textsize, datasize, jobs, page_state->m_localbarriermap, page_state->m_joblaunchmap);
+  m_colpages[lpage.get_colnum()].emplace_back(lpage.get_colnum(), lpage.get_pagenum(), textsize, datasize, padsize, jobs, page_state->m_localbarriermap, page_state->m_joblaunchmap);
 }
 
 void
@@ -32,6 +32,7 @@ summary(std::ostream& output) {
              << ", .ctrldata." << page.m_colnum << "." << page.m_pagenum << std::endl;
       output << "\tTEXT SECTION SIZE: " << page.m_textsize << std::endl;
       output << "\tDATA SECTION SIZE: " << page.m_datasize << std::endl;
+      output << "\tPAD SIZE: " << page.m_padsize << std::endl;
       output << "\tGRAPH:\n";
 
       for (const auto& [barrier, ids] : page.m_localbarriermap) {
