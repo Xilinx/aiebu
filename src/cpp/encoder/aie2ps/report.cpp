@@ -20,7 +20,8 @@ asm_report::
 summary(std::ostream& output) {
   output << "************************** ASSEMBLER REPORT **************************" << std::endl;
   output << "BUILD ID: " << m_build_id << std::endl;
-
+  uint64_t total_pad = 0;
+  uint64_t total_controlcode = 0;
   for (const auto& [col, pages] : m_colpages) {
     output << "COLUMN: " << col << std::endl;
     for (const auto& page : pages) {
@@ -30,9 +31,11 @@ summary(std::ostream& output) {
         output << j << ",";
       output << "\n\tSECTIONS:          .ctrltext." << page.m_colnum << "." << page.m_pagenum
              << ", .ctrldata." << page.m_colnum << "." << page.m_pagenum << std::endl;
-      output << "\tTEXT SECTION SIZE: " << page.m_textsize << std::endl;
-      output << "\tDATA SECTION SIZE: " << page.m_datasize << std::endl;
+      output << "\tTEXT SIZE: " << page.m_textsize << std::endl;
+      output << "\tDATA SIZE: " << page.m_datasize << std::endl;
       output << "\tPAD SIZE: " << page.m_padsize << std::endl;
+      total_pad += page.m_padsize;
+      total_controlcode += (page.m_textsize +  page.m_datasize);
       output << "\tGRAPH:\n";
 
       for (const auto& [barrier, ids] : page.m_localbarriermap) {
@@ -51,5 +54,7 @@ summary(std::ostream& output) {
       output << std::endl;
     }
   }
+  output << "Total pad size:" << total_pad << "\n";
+  output << "Total controlcode size:" << total_controlcode << "\n";
 }
 }
