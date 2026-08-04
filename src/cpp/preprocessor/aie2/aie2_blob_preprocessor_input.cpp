@@ -401,12 +401,13 @@ add_preemption_code(uint32_t col)
   patch_shim48_addend(std::vector<char>& mc_code, uint32_t offset, uint64_t addend) const
   {
     uint32_t* bd_data_ptr = reinterpret_cast<uint32_t*>(mc_code.data() + offset);
+    const uint32_t bd1_low_bits = bd_data_ptr[1] & 0x3;
     uint64_t base_address =
       ((static_cast<uint64_t>(bd_data_ptr[2]) & 0xFFFF) << 32) |
-      ((static_cast<uint64_t>(bd_data_ptr[1])));
+      (static_cast<uint64_t>(bd_data_ptr[1]) & 0xFFFFFFFC);
     base_address += addend;
-    bd_data_ptr[1] = static_cast<uint32_t>(base_address & 0xFFFFFFFC);
-    bd_data_ptr[2] = (bd_data_ptr[2] & 0xFFFF0000) | static_cast<uint32_t>(base_address >> 32);
+    bd_data_ptr[1] = bd1_low_bits | static_cast<uint32_t>(base_address & 0xFFFFFFFC);
+    bd_data_ptr[2] = (bd_data_ptr[2] & 0xFFFF0000) | static_cast<uint32_t>((base_address >> 32) & 0xFFFF);
   }
 
   // Patch a >32bit addend into the control packet BD bytes (bd_data_ptr[2] and bd_data_ptr[3]).
