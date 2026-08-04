@@ -555,7 +555,7 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   void update_preempt_opcodes(int col);
 
   // Inject default (no-hintmap) save/restore asm into column col.
-  void inject_default_save_restore(int col,
+  void inject_default_save_restore(int col, int group_index,
                                    const std::string& save_file,
                                    const std::string& restore_file,
                                    const std::vector<uint8_t>& save_data,

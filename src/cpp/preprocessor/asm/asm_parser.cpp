@@ -670,9 +670,13 @@ parse_hintmap_and_calculate_scratchpad(int group,
 {
   constexpr uint64_t DEFAULT_SIZE = 9ULL * 1024ULL * 1024ULL;
   constexpr uint64_t DEFAULT_BASE = 0x0ULL;
+  constexpr uint64_t DEFAULT_SIZE_PER_COL = 3ULL * 1024ULL * 1024ULL;
 
-  if (hintmap_label.empty())
+  if (hintmap_label.empty()) {
+    if (is_multi_column_mode())
+      return {DEFAULT_SIZE_PER_COL*group/2, DEFAULT_SIZE_PER_COL};
     return {DEFAULT_BASE, DEFAULT_SIZE};
+  }
 
   const std::string ctx     = find_hintmap_context(group, search_context, hintmap_label);
   auto& col_data            = get_col_asmdata(static_cast<uint32_t>(group));
@@ -915,11 +919,11 @@ patch_membd_in_asm(std::string& text, const std::string& label,
 /*
   //6.3.4 Inter-MEM tile memory and lock access
   Offset -> Address ranges (bytes)
-  -2     -> 0x1A0_0000 – 0x1CF_FFFF
-  -1     -> 0x1D0_0000 – 0x1FF_FFFF
-  0      -> 0x200_0000 – 0x22F_FFFF
-  +1     -> 0x230_0000 – 0x25F_FFFF
-  +2     -> 0x260_0000 – 0x28F_FFFF
+  -2     -> 0x1A0_0000 – 0x1CF_FFFF  ---> 0x68_0000 - 0x73_ffff
+  -1     -> 0x1D0_0000 – 0x1FF_FFFF  ---> 0x74_0000 - 0x7f_ffff
+  0      -> 0x200_0000 – 0x22F_FFFF  ---> 0x80_0000 - 0x8b_ffff
+  +1     -> 0x230_0000 – 0x25F_FFFF  ---> 0x8c_0000 - 0x97_ffff
+  +2     -> 0x260_0000 – 0x28F_FFFF  ---> 0x98_0000 - 0xA3_ffff
 */
 
   // Translate physical scratchpad byte_addr to the inter-MEM tile word address seen by group_index col.
@@ -1246,7 +1250,7 @@ asm_parser::update_preempt_opcodes(int col)
 //   Create a default scratchpad and inject unpatched save/restore asm.
 // ---------------------------------------------------------------------------
 void
-asm_parser::inject_default_save_restore(int col,
+asm_parser::inject_default_save_restore(int col, int group_index,
                                         const std::string& save_file,
                                         const std::string& restore_file,
                                         const std::vector<uint8_t>& save_data,
@@ -1282,7 +1286,7 @@ asm_parser::inject_default_save_restore(int col,
   std::vector<char> save_chars(save_data.begin(), save_data.end());
   std::string save_text(save_chars.begin(), save_chars.end());
   for (std::size_t i = 0; i < save_bd.size() && i < save_bd_ranges.size(); ++i) {
-    int bd_col = col + static_cast<int>(i / save_channel);
+    int bd_col = group_index + static_cast<int>(i / save_channel);
     patch_bd_in_asm(save_text, save_bd[i], save_bd_ranges[i].first, save_bd_ranges[i].second);
     patch_membd_in_asm(save_text, save_membd[i], save_bd_ranges[i].first, save_bd_ranges[i].second, bd_col);
   }
@@ -1291,7 +1295,7 @@ asm_parser::inject_default_save_restore(int col,
   std::vector<char> restore_chars(restore_data.begin(), restore_data.end());
   std::string restore_text(restore_chars.begin(), restore_chars.end());
   for (std::size_t i = 0; i < restore_bd.size() && i < restore_bd_ranges.size(); ++i) {
-    int bd_col = col + static_cast<int>(i / restore_channel);
+    int bd_col = group_index + static_cast<int>(i / restore_channel);
     patch_bd_in_asm(restore_text, restore_bd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second);
     patch_membd_in_asm(restore_text, restore_membd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second, bd_col);
   }
@@ -1342,7 +1346,7 @@ asm_parser::process_preempt_group(int group,
 
   // Handle PREEMPT opcodes with no hintmap (use group-level default labels)
   if (m_preempt_without_hintmap.count(group))
-    inject_default_save_restore(group, save_file, restore_file,
+    inject_default_save_restore(group, group_index, save_file, restore_file,
                                 save_data, restore_data,
                                 save_bd, restore_bd, save_membd, restore_membd);
 }
