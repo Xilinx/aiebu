@@ -416,12 +416,13 @@ add_preemption_code(uint32_t col)
   patch_ctrl48_addend(std::vector<char>& buf, uint32_t offset, uint64_t addend) const
   {
     uint32_t* bd_data_ptr = reinterpret_cast<uint32_t*>(buf.data() + offset);
+    const uint32_t bd2_low_bits = bd_data_ptr[2] & 0x3;
     uint64_t base_address =
       ((static_cast<uint64_t>(bd_data_ptr[3]) & 0xFFFF) << 32) |
-      ((static_cast<uint64_t>(bd_data_ptr[2])));
+      (static_cast<uint64_t>(bd_data_ptr[2]) & 0xFFFFFFFC);
     base_address += addend;
-    bd_data_ptr[2] = static_cast<uint32_t>(base_address & 0xFFFFFFFC);
-    bd_data_ptr[3] = (bd_data_ptr[3] & 0xFFFF0000) | static_cast<uint32_t>(base_address >> 32);
+    bd_data_ptr[2] = bd2_low_bits | static_cast<uint32_t>(base_address & 0xFFFFFFFC);
+    bd_data_ptr[3] = (bd_data_ptr[3] & 0xFFFFF000) | static_cast<uint32_t>((base_address >> 32) & 0xFFFF);
   }
 
   #define MAJOR_VER 1
