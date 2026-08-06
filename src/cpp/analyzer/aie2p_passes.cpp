@@ -230,7 +230,11 @@ void XAie_OpHdr_drop_preempt::transform() {
       it = m_nodes.erase(it);
       auto noop = allocXaie<XAie_NoOpHdr>();
       noop->Op = XAIE_IO_NOOP;
-      m_nodes.emplace(it, reinterpret_cast<const XAie_OpHdr *>(noop),
+      // XAie_NoOpHdr does not embed XAie_OpHdr as its first member (unlike all
+      // other *Hdr types), so reinterpret_cast between them is invalid per the
+      // C++ standard. Routing through void* is well-defined and preserves the
+      // wire size (sizeof(XAie_NoOpHdr) == 4) expected by the reader in itemize().
+      m_nodes.emplace(it, static_cast<const XAie_OpHdr *>(static_cast<const void *>(noop)),
                       sizeof(XAie_NoOpHdr), original_offset, basic_node_state::added);
       break;
     }
