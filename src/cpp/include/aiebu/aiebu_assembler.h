@@ -238,14 +238,30 @@ class aiebu_assembler
      * In memory api for full elfs.
      * Construct aiebu_assembler from config json buffer and in memory buffers
      *
-     * @type:               ELF buffer type (aie2_config, aie2ps_config, aie4_config)
+     * @type:               ELF buffer type (aie2_config, aie2ps_config, aie4_config,
+     *                      aie4a_config, aie4z_config)
      * @config_json_buffer: Config json content
      * @artifact:           file_artifact object contains the mapping between
      *                      virtual file (in-memory buffer) name and its binary
-     * @flags:              for passing configuration flags to the assembler
-     *                      ex: disabledump (disable debug dump),
-     *                          fulldump (enable debug dump),
-     *                          opt_level_1 (for optimization)
+     * @flags:              Configuration flags for the assembler. Recognized values:
+     *                        disabledump           — disable debug dump sections
+     *                        fulldump              — enable full debug dump
+     *                        opt_level_1           — enable optimization level 1
+     *                        compress             — compress .ctrltext* / .ctrldata*
+     *                                               sections using zstd at default
+     *                                               level 3 (SHF_COMPRESSED)
+     *                        compress=zstd         — same as "compress"
+     *                        compress=zstd:<level> — zstd at explicit level; <level>
+     *                                               is an integer in
+     *                                               [ZSTD_minCLevel(), ZSTD_maxCLevel()]
+     *                                               (typically -131072..22); higher =
+     *                                               better ratio, slower; e.g.
+     *                                               "compress=zstd:1"  fastest
+     *                                               "compress=zstd:19" best ratio
+     *                        compress=none         — no compression (default)
+     *                      Multiple flags may be combined, e.g. {"fulldump","compress=zstd:5"}.
+     *                      Only one compress flag is allowed; duplicates throw
+     *                      std::invalid_argument. Unknown values also throw.
      */
     aiebu_assembler(buffer_type type,
                     const std::vector<char>& config_json_buffer,
@@ -299,6 +315,45 @@ class aiebu_assembler
     [[nodiscard]]
     std::vector<char>
     get_elf() const;
+
+    /*
+     * Return true if the ELF contains any SHF_COMPRESSED sections.
+     *
+     * Implemented as a direct raw scan of ELF section headers — no ELFIO, no
+     * heap allocation.  XRT callers should use this to avoid the full ELFIO
+     * parse cost of decompress_elf() for ELFs that are not compressed:
+     *
+     *   if (aiebu::aiebu_assembler::is_elf_compressed(elf))
+     *       elf = aiebu::aiebu_assembler::decompress_elf(std::move(elf));
+     *
+     * @elf_bytes: ELF bytes to inspect.
+     * @return:    true if at least one section has SHF_COMPRESSED set.
+     */
+    static bool
+    is_elf_compressed(const std::vector<char>& elf_bytes);
+
+    /*
+     * Decompress a compressed AIE ELF in-place and return the decompressed bytes.
+     *
+     * Callers such as XRT invoke this before patching to ensure the ELF sections
+     * are in their original uncompressed form.  The algorithm is auto-detected
+     * per section from ch_type in the standard ELF Elf_Chdr header — callers do
+     * not need to know which algorithm was used during assembly.
+     *
+     * Pass-by-value is intentional: callers should std::move their buffer in to
+     * avoid an extra copy of a potentially large ELF on the critical path.
+     * If the ELF contains no SHF_COMPRESSED sections, the buffer is returned
+     * unchanged via move — zero allocation, zero copy.
+     *
+     * @elf_bytes: ELF bytes, possibly containing SHF_COMPRESSED sections.
+     * @return:    Decompressed ELF bytes.  Throws std::runtime_error on corrupt
+     *             data or unsupported compression type.
+     *
+     * Example (XRT call site):
+     *   auto patching_buf = aiebu::aiebu_assembler::decompress_elf(std::move(elf));
+     */
+    static std::vector<char>
+    decompress_elf(std::vector<char> elf_bytes);
 
     /*
      * Parse the NT_AIE_DUMP_HDR note from a coredump ELF and return its

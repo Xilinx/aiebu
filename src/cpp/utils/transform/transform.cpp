@@ -2,11 +2,13 @@
 // Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
 
 #include <boost/format.hpp>
+#include <boost/interprocess/streams/bufferstream.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <cxxopts.hpp>
 #include <string>
 #include <iostream>
 
+#include "aiebu/aiebu_assembler.h"
 #include "analyzer/passmanager.h"
 #include "common/file_utils.h"
 #include "common/utils.h"
@@ -87,8 +89,13 @@ int main(int argc, char* argv[])
   if (!aiebu::check_buffer_type(result["filename"].as<std::string>()))
     return 1;
 
+  // Decompress SHF_COMPRESSED sections before loading into ELFIO.
+  // decompress_elf() is a zero-allocation no-op for uncompressed ELFs.
+  const std::vector<char> elf_buf =
+      aiebu::aiebu_assembler::decompress_elf(aiebu::readfile(result["filename"].as<std::string>()));
+  boost::interprocess::ibufferstream elf_stream(elf_buf.data(), elf_buf.size());
   ELFIO::elfio ebin;
-  if (!ebin.load(result["filename"].as<std::string>()))
+  if (!ebin.load(elf_stream))
     return 1;
 
   boost::property_tree::ptree spec;

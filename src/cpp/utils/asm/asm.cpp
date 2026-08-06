@@ -10,8 +10,22 @@
 
 #include "target.h"
 #include "utils.h"
+#include "elf/elf_compression.h"
 
 namespace aiebu::utilities {
+
+// Returns true if subcmd_options contains a compress= flag requesting actual
+// compression.
+static bool has_compress_flag(const std::vector<std::string>& options)
+{
+  for (const auto& opt : options) {
+    if (opt == "compress" || opt.rfind("compress=", 0) == 0) {
+      if (opt != "compress=none")
+        return true;
+    }
+  }
+  return false;
+}
 
 void main_helper(int argc, char** argv,
                  const std::string & _executable,
@@ -74,7 +88,21 @@ void main_helper(int argc, char** argv,
     subcmd_options.emplace_back("--help");
 
   subcmd_options.insert(subcmd_options.begin(), _executable);
+
   starget->assemble(subcmd_options);
+
+  // Compression warnings — printed whenever a compress= flag is active.
+  if (has_compress_flag(subcmd_options)) {
+    const aiebu::compress_stats& cs = aiebu::get_last_compress_stats();
+    if (cs.has_unmerged_sections)
+      std::cerr << "Warning: ELF uses legacy per-page sections (.ctrltext/<col>/<page>, "
+                   ".ctrldata/<col>/<page>).\n"
+                   "         Compression is less effective without merged sections. \n";
+    if (cs.has_dump_section)
+      std::cerr << "Warning: ELF contains .dump section(s) which are not compressed.\n"
+                   "         The compression ratio reflects the full ELF size including "
+                   "uncompressed .dump data.\n";
+  }
 }
 
 } //namespace aiebu::utilities

@@ -44,6 +44,27 @@ if (NOT WIN32)
   target_link_libraries(${AIE_COREDUMP_TESTNAME} PRIVATE pthread)
 endif()
 
+set(ELF_COMPRESS_DECOMPRESS_TESTNAME "elf_compress_decompress_cpp")
+add_executable(${ELF_COMPRESS_DECOMPRESS_TESTNAME} elf_compress_decompress_test.cpp)
+target_link_libraries(${ELF_COMPRESS_DECOMPRESS_TESTNAME} PRIVATE aiebu_static)
+target_include_directories(${ELF_COMPRESS_DECOMPRESS_TESTNAME} PRIVATE
+  ${AIEBU_SOURCE_DIR}/src/cpp/include
+  ${AIEBU_ELFIO_SRC_DIR})
+if (NOT WIN32)
+  target_link_libraries(${ELF_COMPRESS_DECOMPRESS_TESTNAME} PRIVATE pthread)
+endif()
+
+# ELF compression ratio reporter — not a CTest test (requires a user-supplied directory).
+# Usage: elf_compression_ratio <dir> --arch <aie4|aie2ps> [--algorithm zstd] [--level <N>] --mode [plain|compress|decompress]
+set(ELF_COMPRESSION_RATIO_NAME "elf_compression_ratio")
+add_executable(${ELF_COMPRESSION_RATIO_NAME} elf_compression_ratio.cpp)
+target_link_libraries(${ELF_COMPRESSION_RATIO_NAME} PRIVATE aiebu_static)
+target_include_directories(${ELF_COMPRESSION_RATIO_NAME} PRIVATE
+  ${AIEBU_SOURCE_DIR}/src/cpp/include)
+if (NOT WIN32)
+  target_link_libraries(${ELF_COMPRESSION_RATIO_NAME} PRIVATE pthread)
+endif()
+
 
 if (NOT WIN32)
   target_link_libraries(${AIE2_TESTNAME} PRIVATE pthread)
@@ -71,6 +92,12 @@ add_test(NAME "aie2ps_cpp_eff_net_coal"
 
 add_test(NAME "aie4_move_ddr_to_memtile"
   COMMAND ${AIE2PS_TESTNAME} "move_ddr_to_memtile" "${AIEBU_SOURCE_DIR}/test/cpp_test/aie4/move_ddr_to_memtile/"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "elf_compress_decompress"
+  COMMAND ${ELF_COMPRESS_DECOMPRESS_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/cpp_test/aie4/move_ddr_to_memtile"
+    "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_coal"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 # add_test(NAME "aie2ps_cpp_eff_net_ctrlpacket"

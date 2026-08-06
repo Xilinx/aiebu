@@ -422,7 +422,7 @@ asm_config_parser::parser(const sub_cmd_options &options)
     all_options.add_options()
             ("o,outputelf", "ELF output file name", cxxopts::value<decltype(output_elffile)>())
             ("j,json", "control packet Patching json file", cxxopts::value<decltype(json_file)>())
-            ("f,flag", "flags (e.g., 'disabledump', 'fulldump', 'loglevel_error', 'loglevel_warn', 'loglevel_info', 'loglevel_debug')", cxxopts::value<decltype(flags)>())
+            ("f,flag", "flags (e.g., 'disabledump', 'fulldump', 'opt_level_1', 'compress=zstd', 'compress=zstd:<level>', 'compress=none', 'loglevel_error', 'loglevel_warn', 'loglevel_info', 'loglevel_debug')", cxxopts::value<decltype(flags)>())
             ("O,optimization", "optimization level (1-4)", cxxopts::value<int>()->default_value("0"))
             ("h,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
     ;
