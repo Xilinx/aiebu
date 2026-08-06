@@ -35,7 +35,7 @@ add_test(NAME "aie2_fused_transform_nopreempt"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "aie2_fused_transform_nopreempt_md5sum"
-  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake"
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/fused-nopreempt.elf"
     "${CMAKE_CURRENT_SOURCE_DIR}/fused-nopreempt.md5"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
