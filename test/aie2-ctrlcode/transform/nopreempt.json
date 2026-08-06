@@ -1,0 +1,17 @@
+{
+  "_comment": "Run nopreempt before print so the disassembly output reflects XAIE_IO_PREEMPT replaced by XAIE_IO_NOOP",
+  "allpasses": [
+    {
+      "section": ".ctrltext",
+      "passes": [
+        {
+          "pass": "nopreempt"
+        },
+        {
+          "pass": "print",
+          "sync": "console"
+        }
+      ]
+    }
+  ]
+}
