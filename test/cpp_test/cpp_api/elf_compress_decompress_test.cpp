@@ -16,6 +16,7 @@
 #include <elfio/elfio.hpp>
 #include <boost/interprocess/streams/bufferstream.hpp>
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -110,6 +111,88 @@ static bool compare_ctrl_sections(const ELFIO::elfio& expected,
       ok = false;
     }
   }
+  return ok;
+}
+
+// Compare metadata sections (.group, .rela.dyn, .dynsym, .dynstr, .symtab,
+// .strtab) between two ELFs to verify compression does not break patching,
+// kernel names, or instance mapping.
+static bool compare_metadata_sections(const ELFIO::elfio& expected,
+                                      const ELFIO::elfio& actual,
+                                      const std::string& label)
+{
+  // Sections whose data must survive a compress/decompress round-trip unchanged.
+  static const std::vector<std::string> metadata_names = {
+    ".dynsym", ".dynstr", ".symtab", ".strtab", ".rela.dyn",
+  };
+  // Sections matched by prefix (there may be multiple .group.* or .rela.* sections).
+  static const std::vector<std::string> metadata_prefixes = {
+    ".group", ".rela.",
+  };
+
+  auto is_metadata = [&](const std::string& name) -> bool {
+    for (const auto& n : metadata_names)
+      if (name == n)
+        return true;
+    for (const auto& p : metadata_prefixes)
+      if (name.rfind(p, 0) == 0)
+        return true;
+    return false;
+  };
+
+  bool ok = true;
+  for (ELFIO::Elf_Half i = 0; i < expected.sections.size(); ++i) {
+    const auto* esec = expected.sections[i];
+    const std::string& name = esec->get_name();
+
+    if (!is_metadata(name))
+      continue;
+
+    const ELFIO::section* asec = nullptr;
+    for (ELFIO::Elf_Half j = 0; j < actual.sections.size(); ++j) {
+      if (actual.sections[j]->get_name() == name) {
+        asec = actual.sections[j];
+        break;
+      }
+    }
+    if (!asec) {
+      std::cerr << "FAIL [" << label << "]: metadata section '" << name
+                << "' missing from actual ELF\n";
+      ok = false;
+      continue;
+    }
+
+    if (esec->get_type() != asec->get_type()) {
+      std::cerr << "FAIL [" << label << "]: section '" << name
+                << "' type mismatch: expected=" << esec->get_type()
+                << " actual=" << asec->get_type() << "\n";
+      ok = false;
+    }
+
+    if (esec->get_size() != asec->get_size()) {
+      std::cerr << "FAIL [" << label << "]: section '" << name
+                << "' size mismatch: expected=" << esec->get_size()
+                << " actual=" << asec->get_size() << "\n";
+      ok = false;
+      continue;
+    }
+
+    if (esec->get_size() > 0 && esec->get_data() && asec->get_data() &&
+        std::memcmp(esec->get_data(), asec->get_data(), esec->get_size()) != 0) {
+      std::cerr << "FAIL [" << label << "]: section '" << name
+                << "' data mismatch\n";
+      ok = false;
+    }
+  }
+
+  // Also verify section count hasn't changed (no sections lost or duplicated).
+  if (expected.sections.size() != actual.sections.size()) {
+    std::cerr << "FAIL [" << label << "]: section count mismatch: expected="
+              << expected.sections.size() << " actual="
+              << actual.sections.size() << "\n";
+    ok = false;
+  }
+
   return ok;
 }
 
@@ -218,8 +301,11 @@ static bool test_aie4_roundtrip_zstd(const std::string& dir)
   ELFIO::elfio plain_elf = load_elf(plain);
   if (!compare_ctrl_sections(plain_elf, decompressed_elf, "aie4_roundtrip_zstd"))
     return false;
+  if (!compare_metadata_sections(plain_elf, decompressed_elf, "aie4_roundtrip_zstd"))
+    return false;
 
-  std::cout << "PASS [aie4_roundtrip_zstd]: " << decompressed.size() << " B, ctrl sections match\n";
+  std::cout << "PASS [aie4_roundtrip_zstd]: " << decompressed.size()
+            << " B, ctrl + metadata sections match\n";
   return true;
 }
 
@@ -238,6 +324,8 @@ static bool test_aie4_roundtrip_bare_flag(const std::string& dir)
     return false;
   }
   if (!compare_ctrl_sections(plain_elf, decompressed_elf, "aie4_roundtrip_bare_flag"))
+    return false;
+  if (!compare_metadata_sections(plain_elf, decompressed_elf, "aie4_roundtrip_bare_flag"))
     return false;
 
   std::cout << "PASS [aie4_roundtrip_bare_flag]\n";
@@ -260,8 +348,10 @@ static bool test_aie4_roundtrip_levels(const std::string& dir)
                 << " SHF_COMPRESSED sections remain\n";
       return false;
     }
-    if (!compare_ctrl_sections(plain_elf, decompressed_elf,
-                               "aie4_roundtrip_levels_L" + std::to_string(lvl)))
+    std::string lvl_label = "aie4_roundtrip_levels_L" + std::to_string(lvl);
+    if (!compare_ctrl_sections(plain_elf, decompressed_elf, lvl_label))
+      return false;
+    if (!compare_metadata_sections(plain_elf, decompressed_elf, lvl_label))
       return false;
 
     std::cout << "PASS [aie4_roundtrip_levels]: level=" << lvl << "\n";
@@ -308,8 +398,11 @@ static bool test_aie2ps_roundtrip_zstd(const std::string& dir)
   ELFIO::elfio plain_elf = load_elf(plain);
   if (!compare_ctrl_sections(plain_elf, decompressed_elf, "aie2ps_roundtrip_zstd"))
     return false;
+  if (!compare_metadata_sections(plain_elf, decompressed_elf, "aie2ps_roundtrip_zstd"))
+    return false;
 
-  std::cout << "PASS [aie2ps_roundtrip_zstd]: " << decompressed.size() << " B, ctrl sections match\n";
+  std::cout << "PASS [aie2ps_roundtrip_zstd]: " << decompressed.size()
+            << " B, ctrl + metadata sections match\n";
   return true;
 }
 

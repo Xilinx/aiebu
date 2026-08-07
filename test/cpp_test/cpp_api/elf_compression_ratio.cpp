@@ -148,6 +148,41 @@ static int mode_compress(const std::string& dir,
   return 0;
 }
 
+static int mode_decompress_file(const std::string& input_file,
+                               const std::string& output_file)
+{
+  auto compressed = read_file(input_file);
+  const std::size_t comp_size = compressed.size();
+
+  if (!aiebu::aiebu_assembler::is_elf_compressed(compressed)) {
+    std::cerr << "ELF is not compressed, nothing to do.\n"
+              << "  input  : " << input_file << " (" << comp_size << " B)\n";
+    // Still write the output so the user gets a usable file
+    std::ofstream out(output_file, std::ios::binary);
+    if (!out)
+      throw std::runtime_error("cannot open output: " + output_file);
+    out.write(compressed.data(), compressed.size());
+    return 0;
+  }
+
+  auto decompressed = aiebu::aiebu_assembler::decompress_elf(std::move(compressed));
+
+  std::ofstream out(output_file, std::ios::binary);
+  if (!out)
+    throw std::runtime_error("cannot open output: " + output_file);
+  out.write(decompressed.data(), decompressed.size());
+
+  std::cout << std::fixed << std::setprecision(2)
+            << "[decompress-file]\n"
+            << "  input           : " << input_file           << "\n"
+            << "  output          : " << output_file          << "\n"
+            << "  compressed size : " << comp_size             << " B\n"
+            << "  decompressed    : " << decompressed.size()   << " B\n"
+            << "  ratio           : "
+            << (100.0 * comp_size / decompressed.size()) << " %\n";
+  return 0;
+}
+
 static int mode_decompress(const std::string& dir,
                            aiebu::aiebu_assembler::buffer_type type,
                            const std::vector<std::string>& extra_flags,
@@ -181,14 +216,22 @@ static int mode_decompress(const std::string& dir,
 static void print_usage(const char* prog)
 {
   std::cerr
-    << "Usage: " << prog
+    << "Usage:\n"
+    << "  Assembly modes (require --arch):\n"
+    << "    " << prog
     << " <directory> --arch <aie4|aie2ps> --mode <plain|compress|decompress>"
-       " [--algorithm zstd] [--level <N>] [-f <flag>]\n"
+       " [--algorithm zstd] [--level <N>] [-f <flag>]\n\n"
+    << "  File mode (no --arch needed):\n"
+    << "    " << prog
+    << " --mode decompress-file --input <compressed.elf> --output <decompressed.elf>\n\n"
     << "  directory   directory containing config.json and artifact files\n"
     << "  --arch      target architecture: aie4 or aie2ps\n"
-    << "  --mode      plain      : time plain assembly, report ELF size\n"
-    << "              compress   : time compressed assembly, report sizes + ratio\n"
-    << "              decompress : time decompress_elf() only, report sizes\n"
+    << "  --mode      plain            : time plain assembly, report ELF size\n"
+    << "              compress         : time compressed assembly, report sizes + ratio\n"
+    << "              decompress       : time decompress_elf() only, report sizes\n"
+    << "              decompress-file  : decompress an ELF file and write output\n"
+    << "  --input     input ELF file (for decompress-file mode)\n"
+    << "  --output    output ELF file (for decompress-file mode)\n"
     << "  --algorithm compression algorithm (default: zstd)\n"
     << "  --level     compression level (default: 3)\n"
     << "  -f <flag>   extra assembler flag (may be repeated), e.g. -f disabledump\n";
@@ -200,6 +243,8 @@ int main(int argc, char** argv)
   std::string arch;
   std::string mode;
   std::string algorithm = "zstd";
+  std::string input_file;
+  std::string output_file;
   int level = 3;
   std::vector<std::string> extra_flags;
 
@@ -213,6 +258,10 @@ int main(int argc, char** argv)
       algorithm = argv[++i];
     else if (arg == "--level" && i + 1 < argc)
       level = std::stoi(argv[++i]);
+    else if (arg == "--input" && i + 1 < argc)
+      input_file = argv[++i];
+    else if (arg == "--output" && i + 1 < argc)
+      output_file = argv[++i];
     else if (arg == "-f" && i + 1 < argc)
       extra_flags.emplace_back(argv[++i]);
     else if (arg == "-h" || arg == "--help") {
@@ -228,29 +277,46 @@ int main(int argc, char** argv)
     }
   }
 
-  if (dir.empty() || arch.empty() || mode.empty()) {
+  if (mode.empty()) {
     print_usage(argv[0]);
     return 1;
   }
 
-  if (arch != "aie4" && arch != "aie2ps") {
-    std::cerr << "Error: --arch must be aie4 or aie2ps\n";
-    return 1;
+  // decompress-file mode: only needs --input and --output
+  if (mode == "decompress-file") {
+    if (input_file.empty() || output_file.empty()) {
+      std::cerr << "Error: decompress-file mode requires --input and --output\n";
+      print_usage(argv[0]);
+      return 1;
+    }
   }
-
-  if (mode != "plain" && mode != "compress" && mode != "decompress") {
-    std::cerr << "Error: --mode must be plain, compress, or decompress\n";
-    return 1;
+  else {
+    // Assembly modes need dir and arch
+    if (dir.empty() || arch.empty()) {
+      print_usage(argv[0]);
+      return 1;
+    }
+    if (arch != "aie4" && arch != "aie2ps") {
+      std::cerr << "Error: --arch must be aie4 or aie2ps\n";
+      return 1;
+    }
+    if (mode != "plain" && mode != "compress" && mode != "decompress") {
+      std::cerr << "Error: --mode must be plain, compress, decompress, or decompress-file\n";
+      return 1;
+    }
   }
-
-  const auto type = (arch == "aie4")
-      ? aiebu::aiebu_assembler::buffer_type::aie4_config
-      : aiebu::aiebu_assembler::buffer_type::aie2ps_config;
-
-  const std::string compress_flag =
-      "compress=" + algorithm + ":" + std::to_string(level);
 
   try {
+    if (mode == "decompress-file")
+      return mode_decompress_file(input_file, output_file);
+
+    const auto type = (arch == "aie4")
+        ? aiebu::aiebu_assembler::buffer_type::aie4_config
+        : aiebu::aiebu_assembler::buffer_type::aie2ps_config;
+
+    const std::string compress_flag =
+        "compress=" + algorithm + ":" + std::to_string(level);
+
     if (mode == "plain")
       return mode_plain(dir, type, extra_flags, arch);
     if (mode == "compress")

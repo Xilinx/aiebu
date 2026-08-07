@@ -29,6 +29,21 @@
 
 namespace aiebu {
 
+// Check if any compress flag is present in a flags/libs vector.
+// Throws std::invalid_argument for non-config targets that don't support compression.
+static void reject_compress_flags(const std::vector<std::string>& flags,
+                                  const char* target_name)
+{
+  for (const auto& flag : flags) {
+    if (flag == "compress" || flag.find("compress=") == 0) {
+      throw std::invalid_argument(
+          std::string("compression is not supported for ") + target_name
+          + " targets; remove the '" + flag + "' flag"
+          + " (only *_config targets support compression)");
+    }
+  }
+}
+
 aiebu_assembler::
 aiebu_assembler(buffer_type type,
                 const std::vector<char>& buffer,
@@ -49,24 +64,28 @@ aiebu_assembler(buffer_type type,
 {
   if (m_type == buffer_type::blob_instr_dpu)
   {
+    reject_compress_flags(libs, "blob_instr_dpu");
     aiebu::assembler a(assembler::elf_type::aie2_dpu_blob);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
   else if (m_type == buffer_type::blob_instr_transaction)
   {
+    reject_compress_flags(libs, "blob_instr_transaction");
     aiebu::assembler a(assembler::elf_type::aie2_transaction_blob);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
   else if (m_type == buffer_type::asm_aie2)
   {
+    reject_compress_flags(libs, "asm_aie2");
     aiebu::assembler a(assembler::elf_type::aie2_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
   else if (m_type == buffer_type::asm_aie2ps)
   {
+    reject_compress_flags(libs, "asm_aie2ps");
     aiebu::assembler a(assembler::elf_type::aie2ps_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, {}, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps;
@@ -82,6 +101,7 @@ aiebu_assembler(buffer_type type,
            m_type == buffer_type::asm_aie4a ||
            m_type == buffer_type::asm_aie4z)
   {
+    reject_compress_flags(libs, "asm_aie4");
     // All aie4 family uses same elf_type - specific OSABI determined from .target directive
     aiebu::assembler a(assembler::elf_type::aie4_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, {}, {}, &artifacts);
@@ -205,6 +225,25 @@ decompress_elf(std::vector<char> elf_bytes)
   if (!is_elf_compressed(elf_bytes))
     return elf_bytes;
   return make_elf_decompressor()->decompress(std::move(elf_bytes));
+}
+
+std::size_t
+aiebu_assembler::
+get_uncompressed_section_size(
+    const char* section_data, std::size_t section_size,
+    unsigned char elf_class)
+{
+  return get_uncompressed_section_size_impl(section_data, section_size, elf_class);
+}
+
+std::size_t
+aiebu_assembler::
+decompress_section_into(
+    const char* section_data, std::size_t section_size,
+    void* dest, std::size_t dest_size, unsigned char elf_class)
+{
+  return decompress_section_into_impl(
+      section_data, section_size, dest, dest_size, elf_class);
 }
 
 std::optional<aie_coredump_meta>

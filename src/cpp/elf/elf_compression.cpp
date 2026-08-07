@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #include "elf_compression.h"
 
@@ -26,6 +26,7 @@ namespace {
 
 constexpr std::string_view kCtrltext = ".ctrltext";
 constexpr std::string_view kCtrldata = ".ctrldata";
+constexpr std::string_view kCtrlpkt  = ".ctrlpkt";
 constexpr std::string_view kDump     = ".dump";
 
 inline bool starts_with(std::string_view value, std::string_view prefix)
@@ -36,7 +37,9 @@ inline bool starts_with(std::string_view value, std::string_view prefix)
 
 inline bool is_compressible_section(std::string_view name)
 {
-  return starts_with(name, kCtrltext) || starts_with(name, kCtrldata);
+  return starts_with(name, kCtrltext)
+      || starts_with(name, kCtrldata)
+      || starts_with(name, kCtrlpkt);
 }
 
 // Set by compress_elf_zstd during its existing section scan — no extra ELF parse.
@@ -185,21 +188,37 @@ void remap_section_references(
 }
 
 // ---------------------------------------------------------------------------
-// Shared helper: copy segments from reader to writer.
+// Shared helper: recreate program headers in the writer.
+//
+// Instead of copying stale file_size / memory_size / offset values from the
+// reader (which become wrong after section sizes change due to compression or
+// decompression), this function creates fresh PT_LOAD segments from the
+// writer's own sections — one per SHF_ALLOC section, matching the original
+// elfwriter.cpp pattern (1:1 section-to-segment mapping).  ELFIO computes
+// correct offsets and sizes from the linked sections when saving.
+//
+// Compressed sections have SHF_ALLOC cleared (standard for SHF_COMPRESSED),
+// so they correctly get no PT_LOAD segment.  Decompressed sections have
+// SHF_ALLOC restored, so their PT_LOAD segments are recreated.
 // ---------------------------------------------------------------------------
 
-void copy_segments(const ELFIO::elfio& reader, ELFIO::elfio& writer)
+void recreate_segments(ELFIO::elfio& writer)
 {
-  for (ELFIO::Elf_Half i = 0; i < reader.segments.size(); ++i) {
-    const ELFIO::segment* src = reader.segments[i];
-    ELFIO::segment* dst = writer.segments.add();
-    dst->set_type(src->get_type());
-    dst->set_flags(src->get_flags());
-    dst->set_align(src->get_align());
-    dst->set_virtual_address(src->get_virtual_address());
-    dst->set_physical_address(src->get_physical_address());
-    dst->set_file_size(src->get_file_size());
-    dst->set_memory_size(src->get_memory_size());
+  for (ELFIO::Elf_Half i = 0; i < writer.sections.size(); ++i) {
+    const ELFIO::section* sec = writer.sections[i];
+    if (!(sec->get_flags() & ELFIO::SHF_ALLOC))
+      continue;
+
+    ELFIO::segment* seg = writer.segments.add();
+    seg->set_type(ELFIO::PT_LOAD);
+    if (sec->get_flags() & ELFIO::SHF_EXECINSTR)
+      seg->set_flags(ELFIO::PF_X | ELFIO::PF_R);
+    else
+      seg->set_flags(ELFIO::PF_W | ELFIO::PF_R);
+    seg->set_align(sec->get_addr_align());
+    seg->set_virtual_address(sec->get_address());
+    seg->set_physical_address(0);
+    seg->add_section_index(sec->get_index(), sec->get_addr_align());
   }
 }
 
@@ -321,7 +340,7 @@ std::vector<char> compress_elf_zstd(const std::vector<char>& elf_bytes, int leve
   for (const auto& p : pending)
     remap_section_references(p.src, p.dst, index_map);
 
-  copy_segments(reader, writer);
+  recreate_segments(writer);
 
   std::ostringstream oss;
   if (!writer.save(oss))
@@ -499,7 +518,7 @@ std::vector<char> decompress_elf_impl(std::vector<char> elf_bytes)
   for (const auto& p : pending)
     remap_section_references(p.src, p.dst, index_map);
 
-  copy_segments(reader, writer);
+  recreate_segments(writer);
 
   std::ostringstream oss;
   if (!writer.save(oss))
@@ -659,6 +678,103 @@ std::vector<char> AutoElfDecompressor::decompress(std::vector<char> elf_bytes) c
 std::unique_ptr<ElfDecompressor> make_elf_decompressor()
 {
   return std::make_unique<AutoElfDecompressor>();
+}
+
+// ---------------------------------------------------------------------------
+// Per-section decompression — parse Chdr and decompress into caller buffer.
+// Extracted from AutoElfDecompressor::decompress() Chdr parsing (lines above)
+// into reusable functions for deferred per-section decompression in XRT.
+// ---------------------------------------------------------------------------
+
+// Internal helper: parse the Elf_Chdr at the start of a compressed section.
+// Returns true on success, populating ch_type, ch_size, ch_addralign, chdr_sz.
+// Returns false if section_data is too small for the Chdr.
+namespace {
+
+struct chdr_info {
+  ELFIO::Elf_Word  ch_type;
+  std::uint64_t    ch_size;       // uncompressed size
+  ELFIO::Elf_Xword ch_addralign;
+  std::size_t      chdr_sz;       // sizeof(Elf32_Chdr) or sizeof(Elf64_Chdr)
+};
+
+bool parse_chdr(const char* data, std::size_t size,
+                unsigned char elf_class, chdr_info& out)
+{
+  if (elf_class == ELFIO::ELFCLASS64) {
+    if (size < sizeof(ELFIO::Elf64_Chdr))
+      return false;
+    ELFIO::Elf64_Chdr hdr{};
+    std::memcpy(&hdr, data, sizeof(hdr));
+    out.ch_type      = hdr.ch_type;
+    out.ch_size      = hdr.ch_size;
+    out.ch_addralign = hdr.ch_addralign;
+    out.chdr_sz      = sizeof(hdr);
+    return true;
+  }
+
+  if (elf_class == ELFIO::ELFCLASS32) {
+    if (size < sizeof(ELFIO::Elf32_Chdr))
+      return false;
+    ELFIO::Elf32_Chdr hdr{};
+    std::memcpy(&hdr, data, sizeof(hdr));
+    out.ch_type      = hdr.ch_type;
+    out.ch_size      = hdr.ch_size;
+    out.ch_addralign = hdr.ch_addralign;
+    out.chdr_sz      = sizeof(hdr);
+    return true;
+  }
+
+  return false;
+}
+
+} // anonymous namespace
+
+std::size_t get_uncompressed_section_size_impl(
+    const char* section_data, std::size_t section_size, unsigned char elf_class)
+{
+  chdr_info info{};
+  if (!parse_chdr(section_data, section_size, elf_class, info))
+    return 0;
+  return static_cast<std::size_t>(info.ch_size);
+}
+
+std::size_t decompress_section_into_impl(
+    const char* section_data, std::size_t section_size,
+    void* dest, std::size_t dest_size, unsigned char elf_class)
+{
+  chdr_info info{};
+  if (!parse_chdr(section_data, section_size, elf_class, info))
+    throw std::runtime_error(
+        "decompress_section_into: section too small for Elf_Chdr");
+
+  if (info.ch_type != ELFCOMPRESS_ZSTD_VAL)
+    throw std::runtime_error(
+        "decompress_section_into: unsupported ch_type "
+        + std::to_string(info.ch_type)
+        + " (only ELFCOMPRESS_ZSTD=2 is supported)");
+
+  const auto uncompressed_size = static_cast<std::size_t>(info.ch_size);
+  if (dest_size < uncompressed_size)
+    throw std::runtime_error(
+        "decompress_section_into: dest_size ("
+        + std::to_string(dest_size) + ") < uncompressed size ("
+        + std::to_string(uncompressed_size) + ")");
+
+  const char* compressed_data = section_data + info.chdr_sz;
+  const std::size_t compressed_size = section_size - info.chdr_sz;
+
+  const std::size_t result = ZSTD_decompress(
+      dest, dest_size, compressed_data, compressed_size);
+  if (ZSTD_isError(result))
+    throw std::runtime_error(
+        std::string("decompress_section_into: zstd failed: ")
+        + ZSTD_getErrorName(result));
+  if (result != uncompressed_size)
+    throw std::runtime_error(
+        "decompress_section_into: output size mismatch");
+
+  return uncompressed_size;
 }
 
 // ---------------------------------------------------------------------------

@@ -67,8 +67,13 @@ load_elf(const std::vector<char>& elf_data)
   if (elf_data.empty())
     throw error(error::error_code::invalid_input, "Input buffer is empty");
 
-  // Create in-memory stream from buffer
-  boost::interprocess::ibufferstream istr(elf_data.data(), elf_data.size());
+  // Transparently decompress SHF_COMPRESSED sections if present.
+  // decompress_elf() is a zero-allocation no-op for uncompressed ELFs.
+  const auto buf = aiebu_assembler::decompress_elf(
+      std::vector<char>(elf_data.begin(), elf_data.end()));
+
+  // Create in-memory stream from (possibly decompressed) buffer
+  boost::interprocess::ibufferstream istr(buf.data(), buf.size());
 
   if (!m_elfio.load(istr))
     throw error(error::error_code::invalid_input, "Failed to load ELF from buffer\n");

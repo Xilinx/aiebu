@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef _AIEBU_ELF_ELF_COMPRESSION_H_
 #define _AIEBU_ELF_ELF_COMPRESSION_H_
@@ -82,6 +82,32 @@ std::unique_ptr<ElfDecompressor> make_elf_decompressor();
 // Used by aiebu_assembler::is_elf_compressed() to short-circuit the full ELFIO
 // parse for uncompressed ELFs on the XRT hot path.
 bool is_elf_compressed_impl(const char* data, std::size_t size);
+
+// ---------------------------------------------------------------------------
+// Per-section decompression — deferred decompression support.
+//
+// These functions operate on a single SHF_COMPRESSED section's raw data
+// (starting with an Elf_Chdr header).  They allow XRT to keep the ELF
+// compressed inside ELFIO and decompress individual sections on demand,
+// directly into a caller-provided buffer (e.g. a device BO).
+// ---------------------------------------------------------------------------
+
+// Read the uncompressed size (ch_size) from the Elf_Chdr header at the start
+// of an SHF_COMPRESSED section.
+// Returns 0 if the section data is too small to contain a valid Chdr.
+// elf_class: ELFCLASS32 (1) or ELFCLASS64 (2).
+std::size_t get_uncompressed_section_size_impl(
+    const char* section_data, std::size_t section_size, unsigned char elf_class);
+
+// Decompress a single SHF_COMPRESSED section directly into a caller-provided
+// buffer.  section_data must start with an Elf_Chdr header.
+// Writes exactly ch_size bytes to dest.  dest_size must be >= ch_size.
+// Returns the number of bytes written (== ch_size on success).
+// Throws std::runtime_error on corrupt data, unsupported ch_type, or
+// dest_size too small.
+std::size_t decompress_section_into_impl(
+    const char* section_data, std::size_t section_size,
+    void* dest, std::size_t dest_size, unsigned char elf_class);
 
 // ---------------------------------------------------------------------------
 // Per-call compression flags — populated by ZstdElfCompressor::compress().
