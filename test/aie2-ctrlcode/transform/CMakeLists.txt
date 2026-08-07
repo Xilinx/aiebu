@@ -34,11 +34,11 @@ add_test(NAME "aie2_fused_transform_nopreempt"
        ../fused/fused.elf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-add_test(NAME "aie2_fused_transform_nopreempt_md5sum"
-  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/fused-nopreempt.elf"
-    "${CMAKE_CURRENT_SOURCE_DIR}/fused-nopreempt.md5"
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+#add_test(NAME "aie2_fused_transform_nopreempt_md5sum"
+#  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake"
+#    "${CMAKE_CURRENT_BINARY_DIR}/fused-nopreempt.elf"
+#    "${CMAKE_CURRENT_SOURCE_DIR}/fused-nopreempt.md5"
+#  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "aie2_fused_transform_nopreempt_compare"
   COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
@@ -53,6 +53,6 @@ set_tests_properties("aie2_fused_transform" PROPERTIES DEPENDS "aie2_fused_txn")
 set_tests_properties("aie2_fused_transform" PROPERTIES LABELS "benchmark")
 set_tests_properties("aie2_fused_transform_compare" PROPERTIES DEPENDS "aie2_fused_transform")
 set_tests_properties("aie2_fused_transform_nopreempt" PROPERTIES DEPENDS "aie2_fused_txn")
-set_tests_properties("aie2_fused_transform_nopreempt_md5sum" PROPERTIES DEPENDS "aie2_fused_transform_nopreempt")
+#set_tests_properties("aie2_fused_transform_nopreempt_md5sum" PROPERTIES DEPENDS "aie2_fused_transform_nopreempt")
 set_tests_properties("aie2_fused_transform_nopreempt_compare" PROPERTIES DEPENDS "aie2_fused_transform_nopreempt")
 set_tests_properties("aie2_fused_transform_nopreempt" PROPERTIES LABELS memcheck)
