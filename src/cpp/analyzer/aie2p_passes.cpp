@@ -228,13 +228,15 @@ void XAie_OpHdr_drop_preempt::transform() {
       it->m_state = basic_node_state::dropped;
       size_t original_offset = it->m_original_offset;
       it = m_nodes.erase(it);
-      auto noop = allocXaie<XAie_NoOpHdr>();
-      noop->Op = XAIE_IO_NOOP;
       // XAie_NoOpHdr is a 4-byte wire-format header and does not contain an
       // XAie_OpHdr subobject. We treat node headers as raw bytes and only use
       // the first byte (Op) for dispatch; cast via void* to avoid CodeQL's
       // type-confusion warning while preserving the 4-byte encoding.
-      m_nodes.emplace(it, static_cast<const XAie_OpHdr *>(static_cast<const void *>(noop)),
+      // Allocate XAie_OpHdr (not XAie_NoOpHdr) so m_op has the correct static type;
+      // sizeof(XAie_NoOpHdr) is passed as m_size to preserve the 4-byte wire encoding.
+      auto noop = allocXaie<XAie_OpHdr>();
+      noop->Op = XAIE_IO_NOOP;
+      m_nodes.emplace(it, noop,
                       sizeof(XAie_NoOpHdr), original_offset, basic_node_state::added);
       break;
     }
