@@ -69,7 +69,7 @@ load_elf(const std::vector<char>& elf_data)
 
   // Transparently decompress SHF_COMPRESSED sections if present.
   // decompress_elf() is a zero-allocation no-op for uncompressed ELFs.
-  const auto buf = aiebu_assembler::decompress_elf(
+  auto buf = aiebu_assembler::decompress_elf(
       std::vector<char>(elf_data.begin(), elf_data.end()));
 
   // Create in-memory stream from (possibly decompressed) buffer

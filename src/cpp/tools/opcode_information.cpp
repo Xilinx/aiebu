@@ -389,7 +389,38 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
   }
   const std::string& section_name = sec->get_name();
 
-  const size_t sec_size = sec->get_size();
+  // If the section is compressed (SHF_COMPRESSED), decompress only this one section
+  // into a local buffer. All other sections (.symtab, .strtab, .dump.*) are never
+  // compressed and are read directly from ELFIO. This avoids a full ELF decompress.
+  std::vector<char> decompressed_section_buf;
+  const char* section_data = sec->get_data();
+  std::size_t sec_size = sec->get_size();
+
+  if (sec->get_flags() & ELFIO::SHF_COMPRESSED) {
+    try {
+      const std::size_t uncomp_size =
+          aiebu_assembler::get_uncompressed_section_size(
+              sec->get_data(), sec->get_size(),
+              static_cast<unsigned char>(m_elf.get_class()));
+      if (uncomp_size == 0) {
+        result.diag_info = "compressed section " + section_name + " has invalid Chdr";
+        return result;
+      }
+      decompressed_section_buf.resize(uncomp_size);
+      aiebu_assembler::decompress_section_into(
+          sec->get_data(), sec->get_size(),
+          decompressed_section_buf.data(), uncomp_size,
+          static_cast<unsigned char>(m_elf.get_class()));
+      section_data = decompressed_section_buf.data();
+      sec_size     = uncomp_size;
+    }
+    catch (const std::exception& e) {
+      result.diag_info = "failed to decompress section "
+                         + section_name + ": " + e.what();
+      return result;
+    }
+  }
+
   // offset counts from page-slot start; bytes [0, k_binary_page_header_size) are
   // the page header — no ctrl-code instruction can reside there.
   if (offset < static_cast<uint32_t>(k_binary_page_header_size)) {
@@ -401,7 +432,7 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
 
   // instr_start : first instruction byte (absolute offset within the section).
   // region_end  : one past the last byte of the current page's region in the section.
-  size_t instr_start =0, region_end=0;
+  size_t instr_start = 0, region_end = 0;
   if (is_merged) {
     const size_t page_base = static_cast<size_t>(page_idx) * k_page_length;
     instr_start = page_base + k_binary_page_header_size;
@@ -423,7 +454,7 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
     return result;
 
   // Walk instructions from the start of the page region to find the one spanning instr_offset
-  const char* instr_data = sec->get_data() + instr_start;
+  const char* instr_data = section_data + instr_start;
 
   isa_disassembler isa;
   const std::map<uint8_t, isa_op_disasm>* isa_map = isa.get_isa_map();
