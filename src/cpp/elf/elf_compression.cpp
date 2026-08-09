@@ -3,20 +3,21 @@
 
 #include "elf_compression.h"
 
-#include "elfio/elfio.hpp"
-#include <zstd.h>
-
-#include <boost/endian/conversion.hpp>
-#include <boost/interprocess/streams/bufferstream.hpp>
-
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include "elfio/elfio.hpp"
+#include <zstd.h>
+
+#include <boost/endian/conversion.hpp>
+#include <boost/interprocess/streams/bufferstream.hpp>
 
 namespace {
 
@@ -42,9 +43,6 @@ inline bool is_compressible_section(std::string_view name)
       || starts_with(name, kCtrlpkt);
 }
 
-// Set by compress_elf_zstd during its existing section scan — no extra ELF parse.
-static bool has_dump_section      = false;
-static bool has_unmerged_sections = false;
 
 // ---------------------------------------------------------------------------
 // ELF compression constants
@@ -77,6 +75,7 @@ std::vector<std::uint8_t> compress_buffer_zstd(
 // ELF Chdr wrapper
 // ---------------------------------------------------------------------------
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 std::vector<std::uint8_t> wrap_elf_compressed(
     unsigned char elf_class,
     ELFIO::Elf_Word ch_type,
@@ -100,9 +99,10 @@ std::vector<std::uint8_t> wrap_elf_compressed(
   }
 
   if (elf_class == ELFIO::ELFCLASS32) {
-    if (uncompressed_size > 0xFFFFFFFFu)
+    constexpr std::uint64_t kMax32 = std::numeric_limits<std::uint32_t>::max();
+    if (uncompressed_size > kMax32)
       throw std::runtime_error("uncompressed section too large for Elf32_Chdr");
-    if (addralign > 0xFFFFFFFFu)
+    if (addralign > kMax32)
       throw std::runtime_error("section alignment too large for Elf32_Chdr");
 
     ELFIO::Elf32_Chdr header{};
@@ -204,8 +204,8 @@ void remap_section_references(
 
 void recreate_segments(ELFIO::elfio& writer)
 {
-  for (ELFIO::Elf_Half i = 0; i < writer.sections.size(); ++i) {
-    const ELFIO::section* sec = writer.sections[i];
+  for (const auto& sec_ptr : writer.sections) {
+    const ELFIO::section* sec = sec_ptr.get();
     if (!(sec->get_flags() & ELFIO::SHF_ALLOC))
       continue;
 
@@ -228,7 +228,8 @@ void recreate_segments(ELFIO::elfio& writer)
 // fresh ELFIO writer so ELFIO recomputes all section offsets from scratch.
 // ---------------------------------------------------------------------------
 
-std::vector<char> compress_elf_zstd(const std::vector<char>& elf_bytes, int level)
+std::pair<std::vector<char>, aiebu::compress_stats>
+compress_elf_zstd(const std::vector<char>& elf_bytes, int level)
 {
   boost::interprocess::ibufferstream iss(elf_bytes.data(), elf_bytes.size());
   ELFIO::elfio reader;
@@ -239,18 +240,18 @@ std::vector<char> compress_elf_zstd(const std::vector<char>& elf_bytes, int leve
 
   // Detect legacy (unmerged) format: abi_version 0x21 = merged, anything else = per-page.
   constexpr ELFIO::Elf_Word kAbiVersionMerged = 0x21;
-  has_unmerged_sections = (reader.get_abi_version() != kAbiVersionMerged);
+  aiebu::compress_stats stats;
+  stats.has_unmerged_sections = (reader.get_abi_version() != kAbiVersionMerged);
 
   // Compress eligible sections into a name-keyed map.
   // Also detect .dump* sections in the same pass — no extra ELF parse.
   std::map<std::string, std::vector<std::uint8_t>> compressed;
-  has_dump_section = false;
 
-  for (ELFIO::Elf_Half i = 0; i < reader.sections.size(); ++i) {
-    ELFIO::section* sec = reader.sections[i];
+  for (const auto& sec_ptr : reader.sections) {
+    ELFIO::section* sec = sec_ptr.get();
     const std::string& name = sec->get_name();
     if (starts_with(name, kDump))
-      has_dump_section = true;
+      stats.has_dump_section = true;
     if (!is_compressible_section(name))
       continue;
 
@@ -271,7 +272,7 @@ std::vector<char> compress_elf_zstd(const std::vector<char>& elf_bytes, int leve
   }
 
   if (compressed.empty())
-    return elf_bytes;  // nothing to compress — return unchanged
+    return {elf_bytes, stats};  // nothing to compress — return unchanged with stats
 
   // Build output ELF with a fresh writer so offsets are computed from scratch.
   ELFIO::elfio writer;
@@ -291,7 +292,8 @@ std::vector<char> compress_elf_zstd(const std::vector<char>& elf_bytes, int leve
   struct PendingSection { ELFIO::section* src; ELFIO::section* dst; };
   std::vector<PendingSection> pending;
 
-  for (ELFIO::Elf_Half i = 0; i < reader.sections.size(); ++i) {
+  // NOLINT(modernize-loop-convert): index i needed for index_map and null-section skip
+  for (ELFIO::Elf_Half i = 0; i < reader.sections.size(); ++i) { // NOLINT(modernize-loop-convert)
     ELFIO::section* src = reader.sections[i];
     const std::string& name = src->get_name();
 
@@ -347,9 +349,9 @@ std::vector<char> compress_elf_zstd(const std::vector<char>& elf_bytes, int leve
     throw std::runtime_error("ZstdElfCompressor: failed to save output ELF");
 
   std::string bytes = oss.str();
-  return std::vector<char>(
-      std::make_move_iterator(bytes.begin()),
-      std::make_move_iterator(bytes.end()));
+  std::vector<char> out{std::make_move_iterator(bytes.begin()),
+                        std::make_move_iterator(bytes.end())};
+  return {std::move(out), stats};
 }
 
 // ---------------------------------------------------------------------------
@@ -405,8 +407,8 @@ std::vector<char> decompress_elf_impl(std::vector<char> elf_bytes)
 
   // Early exit if nothing is compressed — return the owned buffer via move, no copy.
   bool has_compressed = false;
-  for (ELFIO::Elf_Half i = 0; i < reader.sections.size(); ++i) {
-    if (reader.sections[i]->get_flags() & ELFIO::SHF_COMPRESSED) {
+  for (const auto& sec_ptr : reader.sections) {
+    if (sec_ptr->get_flags() & ELFIO::SHF_COMPRESSED) {
       has_compressed = true;
       break;
     }
@@ -430,7 +432,7 @@ std::vector<char> decompress_elf_impl(std::vector<char> elf_bytes)
   struct PendingSection { ELFIO::section* src; ELFIO::section* dst; };
   std::vector<PendingSection> pending;
 
-  for (ELFIO::Elf_Half i = 0; i < reader.sections.size(); ++i) {
+  for (ELFIO::Elf_Half i = 0; i < reader.sections.size(); ++i) { // NOLINT(modernize-loop-convert)
     ELFIO::section* src = reader.sections[i];
     const std::string& name = src->get_name();
 
@@ -459,10 +461,10 @@ std::vector<char> decompress_elf_impl(std::vector<char> elf_bytes)
       const char* raw      = src->get_data();
       const std::size_t sz = src->get_size();
 
-      ELFIO::Elf_Word  ch_type;
-      std::uint64_t    ch_size;
-      ELFIO::Elf_Xword ch_addralign;
-      std::size_t      chdr_sz;
+      ELFIO::Elf_Word  ch_type      = 0;
+      std::uint64_t    ch_size      = 0;
+      ELFIO::Elf_Xword ch_addralign = 0;
+      std::size_t      chdr_sz      = 0;
 
       if (elf_class == ELFIO::ELFCLASS64) {
         if (sz < sizeof(ELFIO::Elf64_Chdr))
@@ -525,9 +527,8 @@ std::vector<char> decompress_elf_impl(std::vector<char> elf_bytes)
     throw std::runtime_error("AutoElfDecompressor: failed to save output ELF");
 
   std::string bytes = oss.str();
-  return std::vector<char>(
-      std::make_move_iterator(bytes.begin()),
-      std::make_move_iterator(bytes.end()));
+  return {std::make_move_iterator(bytes.begin()),
+          std::make_move_iterator(bytes.end())};
 }
 
 } // namespace
@@ -552,22 +553,24 @@ ZstdElfCompressor::ZstdElfCompressor(int level)
 {
 }
 
-// Warning flags from the most recent compress_elf_zstd() call.
-static compress_stats last_compress_stats;
+// Returns a mutable reference to the function-local static compress_stats.
+// Using a function-local static avoids a non-const global variable.
+static compress_stats& mutable_last_compress_stats()
+{
+  static compress_stats s;
+  return s;
+}
 
 std::vector<char> ZstdElfCompressor::compress(std::vector<char> elf_bytes) const
 {
-  auto result = compress_elf_zstd(elf_bytes, m_level);
-
-  last_compress_stats.has_dump_section      = has_dump_section;
-  last_compress_stats.has_unmerged_sections = has_unmerged_sections;
-
+  auto [result, stats] = compress_elf_zstd(elf_bytes, m_level);
+  mutable_last_compress_stats() = stats;
   return result;
 }
 
 const compress_stats& get_last_compress_stats()
 {
-  return last_compress_stats;
+  return mutable_last_compress_stats();
 }
 
 // ---------------------------------------------------------------------------
@@ -692,10 +695,10 @@ std::unique_ptr<ElfDecompressor> make_elf_decompressor()
 namespace {
 
 struct chdr_info {
-  ELFIO::Elf_Word  ch_type;
-  std::uint64_t    ch_size;       // uncompressed size
-  ELFIO::Elf_Xword ch_addralign;
-  std::size_t      chdr_sz;       // sizeof(Elf32_Chdr) or sizeof(Elf64_Chdr)
+  ELFIO::Elf_Word  ch_type      = 0;
+  std::uint64_t    ch_size      = 0; // uncompressed size
+  ELFIO::Elf_Xword ch_addralign = 0;
+  std::size_t      chdr_sz      = 0; // sizeof(Elf32_Chdr) or sizeof(Elf64_Chdr)
 };
 
 bool parse_chdr(const char* data, std::size_t size,

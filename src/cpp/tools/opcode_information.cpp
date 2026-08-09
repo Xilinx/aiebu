@@ -552,7 +552,7 @@ AIEDebug::get_opcode_information(const std::string& kernel_name,
   // Resolve the group index N for this kernel:instance.
   // UINT32_MAX → single-instance ELF (no group suffix applied).
   const uint32_t name_id = resolve_group_name_id(kernel_name);
-  if (name_id == 0xffffffff)
+  if (name_id == UINT32_MAX)
     return {};
 
   const std::string dump_json = get_dump_json_from_elf(name_id);
