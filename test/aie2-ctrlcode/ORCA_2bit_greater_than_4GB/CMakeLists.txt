@@ -1,12 +1,43 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
 
+# Running command to decode the base64 ctrlcode instruction binary
+add_custom_command(OUTPUT cluster_0_0instr_bo_fname.bin
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake" -d "${CMAKE_CURRENT_SOURCE_DIR}/cluster_0_0instr_bo_fname.b64" cluster_0_0instr_bo_fname.bin
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/cluster_0_0instr_bo_fname.b64"
+  COMMENT "Decoding base64 ctrlcode instruction binary in ${CMAKE_CURRENT_BINARY_DIR}"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  VERBATIM)
+
+# Running command to concatenate the base64 super instruction binary parts
+add_custom_command(OUTPUT cluster_0_0super_instr_bo_fname.b64
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/concat.cmake" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/cluster_0_0super_instr_bo_fname.b64-part1"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cluster_0_0super_instr_bo_fname.b64-part2"
+    -o cluster_0_0super_instr_bo_fname.b64
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/cluster_0_0super_instr_bo_fname.b64-part1" "${CMAKE_CURRENT_SOURCE_DIR}/cluster_0_0super_instr_bo_fname.b64-part2"
+  COMMENT "Concatenating base64 super instruction binary parts in ${CMAKE_CURRENT_BINARY_DIR}"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  VERBATIM)
+
+# Running command to decode the base64 ctrlcode super instruction binary
+add_custom_command(OUTPUT cluster_0_0super_instr_bo_fname.bin
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake" -d cluster_0_0super_instr_bo_fname.b64 cluster_0_0super_instr_bo_fname.bin
+  DEPENDS cluster_0_0super_instr_bo_fname.b64
+  COMMENT "Decoding base64 ctrlcode super instruction binary in ${CMAKE_CURRENT_BINARY_DIR}"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  VERBATIM)
+
+# Add a custom target to ensure the binaries are built before running tests
+add_custom_target(aie2_orca_2bit_greater_than_4gb_bins ALL
+  DEPENDS cluster_0_0instr_bo_fname.bin cluster_0_0super_instr_bo_fname.bin)
+
 # Assemble a ctrlcode txn binary, a ctrlpkt and associated JSON to ELF
 # Tests that addend > 32bit is handled correctly (warn + bake into BD) for shim_dma_48/control_packet_48
 add_test(NAME "aie2_orca_2bit_greater_than_4gb"
   COMMAND aiebu-asm -t aie2txn
-    -c "${CMAKE_CURRENT_SOURCE_DIR}/cluster_0_0instr_bo_fname.bin"
-    -p "${CMAKE_CURRENT_SOURCE_DIR}/cluster_0_0super_instr_bo_fname.bin"
+    -c "${CMAKE_CURRENT_BINARY_DIR}/cluster_0_0instr_bo_fname.bin"
+    -p "${CMAKE_CURRENT_BINARY_DIR}/cluster_0_0super_instr_bo_fname.bin"
     -j "${CMAKE_CURRENT_SOURCE_DIR}/cluster_0_0ctrl_pkt_info.json"
     -o orca_2bit_greater_than_4gb.elf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
