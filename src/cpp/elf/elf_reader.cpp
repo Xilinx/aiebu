@@ -248,32 +248,46 @@ class elf_reader
 public:
   ELFIO::elfio  m_elfio;
   elf::platform m_platform;
-  std::string   m_path;
+  std::string   m_path;  // file path this ELF was loaded from; empty if loaded from stream/buffer
 
+  // section index -> group index (no_ctrl_code_id for legacy ELFs with no .group sections)
   std::map<uint32_t, uint32_t>              m_section_to_group_map;
+
+  // group index (ctrl-code-id) -> member section indices
   std::map<uint32_t, std::vector<uint32_t>> m_group_to_sections_map;
+
+  // "kernel_name + subkernel_name" -> group index; used by get_ctrlcode_id()
   std::map<std::string, uint32_t>           m_kernel_name_to_id_map;
+
+  // kernel name -> vector of subkernel/instance names
   std::map<std::string, std::vector<std::string>> m_kernel_to_subkernels_map;
 
+  // Final kernel objects exposed through aiebu::elf::get_kernels()
   std::vector<elf::kernel>                        m_kernels;
+
+  // Custom sections (ELF type SHT_LOUSER+1); key = section name, value = zero-copy span
   std::map<std::string, std::span<const std::byte>> m_custom_section_map;
 
-  // Patch points: ctrl-code-id -> key-string -> patch points
+  // Patch points grouped by ctrl-code-id then by key-string.
+  // key-string = arg_name + to_string(buf_type), matching xrt_core::elf_patcher convention.
   std::map<uint32_t, std::map<std::string, std::vector<elf::patch_point>>>
     m_patch_points;
 
-  // Addend encoding constants
+  // rela->r_addend encoding for ABI version 1:
+  //   bits [0:3]  = patching schema
+  //   bits [4:31] = base-bo address offset
   static constexpr uint32_t addend_shift = 4;
   static constexpr uint32_t addend_mask  = ~((uint32_t)0) << addend_shift;
   static constexpr uint32_t schema_mask  = ~addend_mask;
 
-  // Byte cache for stable span returns — mutable because get_section is const
+  // Byte cache backing the zero-copy spans returned by get_section() and materialise().
+  // Mutable so const accessors on aiebu::elf can populate it on first use.
   mutable std::unordered_map<std::string, std::vector<std::byte>> m_byte_cache;
 
   virtual ~elf_reader() = default;
 
   ////////////////////////////////////////////////////////////////
-  // Static factory helpers
+  // Static load helpers — construct an ELFIO object from various sources
   ////////////////////////////////////////////////////////////////
 
   static ELFIO::elfio
@@ -330,9 +344,11 @@ public:
   }
 
   ////////////////////////////////////////////////////////////////
-  // Common version / shape queries
+  // Version helpers
   ////////////////////////////////////////////////////////////////
 
+  // Returns ELF ABI version as (major, minor).
+  // The version byte encodes: upper nibble = major, lower nibble = minor.
   std::pair<uint8_t, uint8_t>
   abi_version() const
   {
@@ -350,9 +366,11 @@ public:
   get_ctrlcode_id(const std::string& name) const = 0;
 
   ////////////////////////////////////////////////////////////////
-  // Shared span materialisation
+  // Span materialisation
   ////////////////////////////////////////////////////////////////
 
+  // Copy buf into m_byte_cache[key] on first call and return a stable span.
+  // Subsequent calls return the cached span without copying.
   std::span<const std::byte>
   materialise(const std::string& key, const section_buf& buf) const
   {
@@ -364,15 +382,17 @@ public:
   }
 
   ////////////////////////////////////////////////////////////////
-  // .symtab helpers (used by parse_sections, shared by both platforms)
+  // .symtab helpers — used during parse_sections(), shared by both platforms
   ////////////////////////////////////////////////////////////////
 
+  // Symbol information extracted from the .symtab section
   struct symbol_info {
     std::string     name;
-    unsigned char   type = 0;
-    ELFIO::Elf_Half section_index = UINT16_MAX;
+    unsigned char   type = 0;            // STT_FUNC, STT_OBJECT, etc.
+    ELFIO::Elf_Half section_index = UINT16_MAX;  // st_shndx field
   };
 
+  // Retrieve symbol at sym_index from .symtab; throws if not found
   symbol_info
   get_symbol_from_symtab(uint32_t sym_index) const
   {
@@ -393,9 +413,13 @@ public:
     return info;
   }
 
-  // Working map used only during parse_sections; cleared afterwards
+  // Transient: kernel name -> arg list, populated during .group section parsing
+  // and used to build m_kernels.  Cleared by parse_sections() when done.
   std::map<std::string, std::vector<elf::arg>> m_kernel_args_map;
 
+  // Follow the .group info field through .symtab to recover the kernel name
+  // (from the STT_FUNC symbol) and subkernel name (from the STT_OBJECT symbol).
+  // Also populates m_kernel_args_map on first encounter of a kernel name.
   std::pair<std::string, std::string>
   get_kernel_subkernel_from_symtab(uint32_t sym_index)
   {
@@ -416,9 +440,12 @@ public:
   }
 
   ////////////////////////////////////////////////////////////////
-  // Section map building (shared)
+  // Section map building — shared by both platform subclasses
   ////////////////////////////////////////////////////////////////
 
+  // Populate group/section maps for legacy ELFs that have no .group sections.
+  // All sections are assigned to no_ctrl_code_id; the empty string is used
+  // as the kernel name so get_ctrlcode_id("") returns a valid id.
   void
   init_legacy_section_maps()
   {
@@ -432,6 +459,9 @@ public:
     m_group_to_sections_map.emplace(no_ctrl_code_id, std::move(all_ids));
   }
 
+  // Parse one .group section: resolve the kernel/subkernel names from .symtab,
+  // update m_kernel_name_to_id_map and m_kernel_to_subkernels_map, and record
+  // all member section indices in m_section_to_group_map / m_group_to_sections_map.
   void
   parse_single_group_section(const ELFIO::section* sec)
   {
@@ -459,6 +489,8 @@ public:
     m_group_to_sections_map.emplace(group_id, std::move(members));
   }
 
+  // Copy custom sections (type SHT_LOUSER+1) into m_byte_cache and record
+  // zero-copy spans in m_custom_section_map, keyed by section name.
   void
   parse_custom_sections(const std::vector<uint32_t>& ids)
   {
@@ -475,6 +507,8 @@ public:
     }
   }
 
+  // Build m_kernels from m_kernel_args_map and m_kernel_to_subkernels_map.
+  // Called after all .group sections have been parsed.
   void
   finalize_kernels()
   {
@@ -517,9 +551,13 @@ public:
   }
 
   ////////////////////////////////////////////////////////////////
-  // Shared addend decode
+  // Relocation helpers
   ////////////////////////////////////////////////////////////////
 
+  // Decode the r_addend field of a .rela.dyn entry into (schema, base_bo_offset).
+  // ABI version 1 packs both into one 32-bit word (schema in bits [0:3],
+  // base-bo offset in bits [4:31]); all other versions use r_type for schema
+  // and r_addend directly for the offset.
   std::pair<elf::patch_schema, uint32_t>
   decode_addend(uint32_t rtype, int32_t r_addend, uint16_t abi_ver) const
   {
@@ -534,9 +572,13 @@ public:
   }
 
   ////////////////////////////////////////////////////////////////
-  // Shared ctrlcode-id resolution
+  // Ctrl-code id resolution
   ////////////////////////////////////////////////////////////////
 
+  // Look up the group index (ctrl-code-id) for a kernel name.
+  // Accepts "kernel:subkernel" format or a bare kernel name when only one
+  // subkernel exists.  has_ctrlcode is a platform-supplied predicate that
+  // confirms the resolved id actually has a control code buffer.
   uint32_t
   resolve_ctrlcode_id(const std::string& name,
                       const std::function<bool(uint32_t)>& has_ctrlcode) const
@@ -581,15 +623,38 @@ public:
 class elf_reader_aie2p : public elf_reader
 {
 public:
+  // ctrl-code-id -> instruction buffer (.ctrltext.* sections)
   std::map<uint32_t, section_buf>            m_instr_buf_map;
+
+  // ctrl-code-id -> control packet buffer (.ctrldata.* sections)
   std::map<uint32_t, section_buf>            m_ctrl_packet_map;
+
+  // ctrl-code-id -> preemption save buffer (.preempt_save.* sections)
   std::map<uint32_t, section_buf>            m_save_buf_map;
+
+  // ctrl-code-id -> preemption restore buffer (.preempt_restore.* sections)
   std::map<uint32_t, section_buf>            m_restore_buf_map;
+
+  // PDI section name -> buffer (.pdi.* sections); keyed by name not ctrl-code-id
+  // because multiple ctrl codes may reference the same PDI symbol
   std::map<std::string, section_buf>         m_pdi_buf_map;
+
+  // ctrl-code-id -> set of PDI symbol names that need patching in that ctrl code
   std::map<uint32_t, std::unordered_set<std::string>> m_ctrl_pdi_map;
+
+  // preemption ctrl-pkt section name -> buffer (.ctrlpkt.pm.* sections)
   std::map<std::string, section_buf>         m_ctrlpkt_pm_bufs;
+
+  // set of .dynsym names that contain "ctrlpkt-pm"; used by the patching path
+  // to identify which symbols require preemption ctrl-pkt patching
   std::set<std::string>                      m_ctrlpkt_pm_dynsyms;
+
+  // size in bytes of the control scratch-pad memory region, derived from
+  // the "scratch-pad-ctrl" dynsym st_size field; 0 if not present
   size_t                                     m_ctrl_scratch_pad_mem_size = 0;
+
+  // true when at least one ctrl-code group has both .preempt_save and
+  // .preempt_restore sections; drives ERT opcode selection
   bool                                       m_preemption_exist = false;
 
   bool
@@ -611,6 +676,8 @@ public:
   // Buffer initialisation
   ////////////////////////////////////////////////////////////////
 
+  // Collect all sections whose name contains the pattern for buf_type into out,
+  // keyed by the group index of each section.
   void
   init_simple_buf_map(elf::buf_type type, std::map<uint32_t, section_buf>& out)
   {
@@ -623,6 +690,9 @@ public:
     }
   }
 
+  // Populate m_save_buf_map and m_restore_buf_map per ctrl-code group.
+  // Also validates that save and restore sections are always paired and sets
+  // m_preemption_exist if any group has them.
   void
   init_save_restore()
   {
@@ -675,6 +745,8 @@ public:
     }
   }
 
+  // Walk .rela.dyn relocations and build m_patch_points for each argument symbol.
+  // Also extracts m_ctrl_scratch_pad_mem_size and m_ctrlpkt_pm_dynsyms as side-effects.
   void
   init_patchers()
   {
@@ -782,10 +854,19 @@ public:
 class elf_reader_gen2plus : public elf_reader
 {
 public:
+  // AIE column page size in bytes; ctrlcode sections are padded to this boundary
   static constexpr size_t elf_page_size = 8192;
 
+  // ctrl-code-id -> vector of per-column control code buffers.
+  // Index into the vector is the column (uC) index.
+  // Each buffer contains ctrltext + ctrldata pages, padded to elf_page_size,
+  // followed by any .pad section data.
   std::map<uint32_t, std::vector<section_buf>>           m_ctrlcodes_map;
+
+  // ctrl-code-id -> (section name -> control packet buffer) for .ctrlpkt.* sections
   std::map<uint32_t, std::map<std::string, section_buf>> m_ctrlpkt_buf_map;
+
+  // ctrl-code-id -> dump buffer (.dump.* sections); used for debug/trace decoding
   std::map<uint32_t, section_buf>                        m_dump_buf_map;
 
   bool
@@ -803,6 +884,9 @@ public:
     });
   }
 
+  // ABI version 0x21 uses merged format: one .ctrltext.<col> section per column
+  // contains all pages laid out at page*PAGE_SIZE offsets, with no separate
+  // .ctrldata sections.  Earlier versions use per-page .ctrltext.<col>.<page> sections.
   bool
   is_merged_format() const
   {
@@ -813,6 +897,11 @@ public:
   // Buffer initialisation
   ////////////////////////////////////////////////////////////////
 
+  // Build m_ctrlcodes_map: for each ctrl-code group, assemble one section_buf
+  // per column from its .ctrltext (and .ctrldata for per-page format) sections,
+  // padding each page to elf_page_size, then appending any .pad sections.
+  // pad_offsets[id][col] records the byte offset where .pad data begins within
+  // that column's buffer; used by init_patchers() to compute absolute offsets.
   void
   init_column_ctrlcode(std::map<uint32_t, std::vector<size_t>>& pad_offsets)
   {
@@ -907,6 +996,13 @@ public:
     }
   }
 
+  // Walk .rela.dyn and build m_patch_points.  Absolute offsets are computed
+  // differently depending on whether the relocation targets a .pad section,
+  // a .ctrlpkt section, or a .ctrltext (ctrlcode) section:
+  //   pad:     sum of preceding column sizes + pad_offsets[grp][col] + r_offset
+  //   ctrlpkt: r_offset directly into the ctrlpkt buffer
+  //   ctrltext: sum of preceding column sizes + page*PAGE_SIZE + r_offset + 16
+  //             (the +16 skips the per-page header)
   void
   init_patchers(const std::map<uint32_t, std::vector<size_t>>& pad_offsets)
   {
@@ -996,6 +1092,9 @@ public:
   }
 
 private:
+  // Extract column and page indices from a section name of the form
+  // .ctrltext.<col>[.<page>[.<grp_id>]].  In merged format the third token
+  // is a group id, not a page index, so page is always 0.
   static std::pair<uint32_t, uint32_t>
   get_col_page(const std::string& name, bool merged)
   {
