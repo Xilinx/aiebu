@@ -19,7 +19,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -222,16 +221,18 @@ struct section_buf
     return total;
   }
 
-  std::vector<std::byte>
-  to_bytes() const
+  // Copy all views into dest in order.  dest.size() must be >= size().
+  void
+  copy_to(std::span<std::byte> dest) const
   {
-    std::vector<std::byte> out;
-    out.reserve(size());
-    for (const auto& v : views)
-      for (char c : v)
-        out.push_back(static_cast<std::byte>(c));
+    if (dest.size() < size())
+      throw std::runtime_error("destination buffer too small for section_buf::copy_to");
 
-    return out;
+    auto* p = dest.data();
+    for (const auto& v : views) {
+      std::memcpy(p, v.data(), v.size());
+      p += v.size();
+    }
   }
 };
 
@@ -266,6 +267,7 @@ public:
   std::vector<elf::kernel>                        m_kernels;
 
   // Custom sections (ELF type SHT_LOUSER+1); key = section name, value = zero-copy span
+  // into ELFIO-owned memory — valid for the lifetime of m_elfio.
   std::map<std::string, std::span<const std::byte>> m_custom_section_map;
 
   // Patch points grouped by ctrl-code-id then by key-string.
@@ -279,10 +281,6 @@ public:
   static constexpr uint32_t addend_shift = 4;
   static constexpr uint32_t addend_mask  = ~((uint32_t)0) << addend_shift;
   static constexpr uint32_t schema_mask  = ~addend_mask;
-
-  // Byte cache backing the zero-copy spans returned by get_section() and materialise().
-  // Mutable so const accessors on aiebu::elf can populate it on first use.
-  mutable std::unordered_map<std::string, std::vector<std::byte>> m_byte_cache;
 
   virtual ~elf_reader() = default;
 
@@ -364,22 +362,6 @@ public:
 
   virtual uint32_t
   get_ctrlcode_id(const std::string& name) const = 0;
-
-  ////////////////////////////////////////////////////////////////
-  // Span materialisation
-  ////////////////////////////////////////////////////////////////
-
-  // Copy buf into m_byte_cache[key] on first call and return a stable span.
-  // Subsequent calls return the cached span without copying.
-  std::span<const std::byte>
-  materialise(const std::string& key, const section_buf& buf) const
-  {
-    auto& cached = m_byte_cache[key];
-    if (cached.empty() && buf.size() > 0)
-      cached = buf.to_bytes();
-
-    return std::span<const std::byte>(cached.data(), cached.size());
-  }
 
   ////////////////////////////////////////////////////////////////
   // .symtab helpers — used during parse_sections(), shared by both platforms
@@ -489,8 +471,8 @@ public:
     m_group_to_sections_map.emplace(group_id, std::move(members));
   }
 
-  // Copy custom sections (type SHT_LOUSER+1) into m_byte_cache and record
-  // zero-copy spans in m_custom_section_map, keyed by section name.
+  // Record zero-copy spans into ELFIO-owned memory for each custom section
+  // (type SHT_LOUSER+1), keyed by section name.
   void
   parse_custom_sections(const std::vector<uint32_t>& ids)
   {
@@ -499,11 +481,10 @@ public:
       if (!sec)
         continue;
 
-      auto& cached = m_byte_cache[sec->get_name()];
-      cached.resize(sec->get_size());
-      std::memcpy(cached.data(), sec->get_data(), sec->get_size());
       m_custom_section_map[sec->get_name()] =
-        std::span<const std::byte>(cached.data(), cached.size());
+        std::span<const std::byte>(
+          reinterpret_cast<const std::byte*>(sec->get_data()),
+          sec->get_size());
     }
   }
 
@@ -1255,12 +1236,9 @@ elf::get_section(std::string_view name) const
   if (!sec)
     return {};
 
-  auto& cached = m_reader->m_byte_cache[nm];
-  if (cached.empty() && sec->get_size() > 0) {
-    cached.resize(sec->get_size());
-    std::memcpy(cached.data(), sec->get_data(), sec->get_size());
-  }
-  return std::span<const std::byte>(cached.data(), cached.size());
+  return std::span<const std::byte>(
+    reinterpret_cast<const std::byte*>(sec->get_data()),
+    sec->get_size());
 }
 
 void
@@ -1285,18 +1263,27 @@ elf::get_ctrlcode_id(const std::string& name) const
   return m_reader->get_ctrlcode_id(name);
 }
 
-std::span<const std::byte>
-elf::get_pdi(const std::string& symbol_name) const
+size_t
+elf::get_pdi_size(const std::string& symbol_name) const
 {
   auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
   if (!r)
-    return {};
+    return 0;
 
   auto it = r->m_pdi_buf_map.find(symbol_name);
-  if (it == r->m_pdi_buf_map.end())
-    return {};
+  return (it != r->m_pdi_buf_map.end()) ? it->second.size() : 0;
+}
 
-  return r->materialise("pdi:" + symbol_name, it->second);
+void
+elf::copy_pdi(const std::string& symbol_name, std::span<std::byte> dest) const
+{
+  auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
+  if (!r)
+    return;
+
+  auto it = r->m_pdi_buf_map.find(symbol_name);
+  if (it != r->m_pdi_buf_map.end())
+    it->second.copy_to(dest);
 }
 
 std::set<std::string>
@@ -1306,18 +1293,27 @@ elf::get_ctrlpkt_pm_dynsyms() const
   return r ? r->m_ctrlpkt_pm_dynsyms : std::set<std::string>{};
 }
 
-std::span<const std::byte>
-elf::get_ctrlpkt_pm_buf(const std::string& symbol_name) const
+size_t
+elf::get_ctrlpkt_pm_buf_size(const std::string& symbol_name) const
 {
   auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
   if (!r)
-    return {};
+    return 0;
 
   auto it = r->m_ctrlpkt_pm_bufs.find(symbol_name);
-  if (it == r->m_ctrlpkt_pm_bufs.end())
-    return {};
+  return (it != r->m_ctrlpkt_pm_bufs.end()) ? it->second.size() : 0;
+}
 
-  return r->materialise("ctrlpkt_pm:" + symbol_name, it->second);
+void
+elf::copy_ctrlpkt_pm_buf(const std::string& symbol_name, std::span<std::byte> dest) const
+{
+  auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
+  if (!r)
+    return;
+
+  auto it = r->m_ctrlpkt_pm_bufs.find(symbol_name);
+  if (it != r->m_ctrlpkt_pm_bufs.end())
+    it->second.copy_to(dest);
 }
 
 std::map<uint32_t, std::map<std::string, std::vector<elf::patch_point>>>

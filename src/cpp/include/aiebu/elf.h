@@ -215,18 +215,32 @@ public:
 
   ////////////////////////////////////////////////////////////////
   // PDI / preemption access (AIE gen2 only)
+  //
+  // Buffers are exposed via size + copy pairs rather than spans to
+  // avoid an intermediate heap allocation: callers allocate a BO of
+  // the reported size, then copy directly from ELFIO memory into it.
   ////////////////////////////////////////////////////////////////
 
-  // Returns empty span when symbol is not found.
-  std::span<const std::byte>
-  get_pdi(const std::string& symbol_name) const;
+  // Returns 0 when symbol is not found.
+  size_t
+  get_pdi_size(const std::string& symbol_name) const;
+
+  // Copies PDI data for symbol into dest.  dest.size() must be at least
+  // get_pdi_size(symbol_name).  No-op when symbol not found.
+  void
+  copy_pdi(const std::string& symbol_name, std::span<std::byte> dest) const;
 
   std::set<std::string>
   get_ctrlpkt_pm_dynsyms() const;
 
-  // Returns empty span when symbol is not found.
-  std::span<const std::byte>
-  get_ctrlpkt_pm_buf(const std::string& symbol_name) const;
+  // Returns 0 when symbol is not found.
+  size_t
+  get_ctrlpkt_pm_buf_size(const std::string& symbol_name) const;
+
+  // Copies ctrlpkt_pm data for symbol into dest.  dest.size() must be at least
+  // get_ctrlpkt_pm_buf_size(symbol_name).  No-op when not found.
+  void
+  copy_ctrlpkt_pm_buf(const std::string& symbol_name, std::span<std::byte> dest) const;
 
   ////////////////////////////////////////////////////////////////
   // Patch-point access (transitional — see Phase 2 of spec)
