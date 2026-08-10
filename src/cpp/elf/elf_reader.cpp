@@ -2,6 +2,7 @@
 // Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #include "aiebu/elf.h"
+#include "detail/span.h"
 #include "elf/aie_elf_constants.h"
 
 #include "elfio/elfio.hpp"
@@ -223,7 +224,7 @@ struct section_buf
 
   // Copy all views into dest in order.  dest.size() must be >= size().
   void
-  copy_to(std::span<std::byte> dest) const
+  copy_to(aiebu::detail::span<std::byte> dest) const
   {
     if (dest.size() < size())
       throw std::runtime_error("destination buffer too small for section_buf::copy_to");
@@ -268,7 +269,7 @@ public:
 
   // Custom sections (ELF type SHT_LOUSER+1); key = section name, value = zero-copy span
   // into ELFIO-owned memory — valid for the lifetime of m_elfio.
-  std::map<std::string, std::span<const std::byte>> m_custom_section_map;
+  std::map<std::string, aiebu::detail::span<const std::byte>> m_custom_section_map;
 
   // Patch points grouped by ctrl-code-id then by key-string.
   // key-string = arg_name + to_string(buf_type), matching xrt_core::elf_patcher convention.
@@ -482,7 +483,7 @@ public:
         continue;
 
       m_custom_section_map[sec->get_name()] =
-        std::span<const std::byte>(
+        aiebu::detail::span<const std::byte>(
           reinterpret_cast<const std::byte*>(sec->get_data()),
           sec->get_size());
     }
@@ -1223,7 +1224,7 @@ elf::get_partition_size() const
 std::vector<elf::kernel>
 elf::get_kernels() const { return m_reader->m_kernels; }
 
-std::span<const std::byte>
+aiebu::detail::span<const std::byte>
 elf::get_section(std::string_view name) const
 {
   auto nm = std::string(name);
@@ -1236,7 +1237,7 @@ elf::get_section(std::string_view name) const
   if (!sec)
     return {};
 
-  return std::span<const std::byte>(
+  return aiebu::detail::span<const std::byte>(
     reinterpret_cast<const std::byte*>(sec->get_data()),
     sec->get_size());
 }
@@ -1275,7 +1276,7 @@ elf::get_pdi_size(const std::string& symbol_name) const
 }
 
 void
-elf::copy_pdi(const std::string& symbol_name, std::span<std::byte> dest) const
+elf::copy_pdi(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const
 {
   auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
   if (!r)
@@ -1305,7 +1306,7 @@ elf::get_ctrlpkt_pm_buf_size(const std::string& symbol_name) const
 }
 
 void
-elf::copy_ctrlpkt_pm_buf(const std::string& symbol_name, std::span<std::byte> dest) const
+elf::copy_ctrlpkt_pm_buf(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const
 {
   auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
   if (!r)
