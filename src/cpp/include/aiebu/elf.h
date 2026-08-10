@@ -4,13 +4,14 @@
 #ifndef AIEBU_ELF_H_
 #define AIEBU_ELF_H_
 
+#include "detail/span.h"
+
 #include <array>
 #include <cstdint>
 #include <istream>
 #include <map>
 #include <memory>
 #include <set>
-#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -181,7 +182,7 @@ public:
 
   // Named access for sections AIEBU does not model explicitly.
   // Returns empty span when section is not found.
-  std::span<const std::byte>
+  aiebu::detail::span<const std::byte>
   get_section(std::string_view name) const;
 
   // Serialise the ELF back to a stream (replaces elfio.save() call sites).
@@ -228,7 +229,7 @@ public:
   // Copies PDI data for symbol into dest.  dest.size() must be at least
   // get_pdi_size(symbol_name).  No-op when symbol not found.
   void
-  copy_pdi(const std::string& symbol_name, std::span<std::byte> dest) const;
+  copy_pdi(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const;
 
   std::set<std::string>
   get_ctrlpkt_pm_dynsyms() const;
@@ -240,7 +241,7 @@ public:
   // Copies ctrlpkt_pm data for symbol into dest.  dest.size() must be at least
   // get_ctrlpkt_pm_buf_size(symbol_name).  No-op when not found.
   void
-  copy_ctrlpkt_pm_buf(const std::string& symbol_name, std::span<std::byte> dest) const;
+  copy_ctrlpkt_pm_buf(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const;
 
   ////////////////////////////////////////////////////////////////
   // Patch-point access (transitional — see Phase 2 of spec)
