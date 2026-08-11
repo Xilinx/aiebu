@@ -16,6 +16,8 @@
 #include <utility>
 #include <vector>
 
+namespace ELFIO { class elfio; }
+
 namespace aiebu {
 
 class elf_reader;
@@ -189,6 +191,12 @@ public:
   void
   save(std::ostream& stream) const;
 
+  // Temporary escape hatch — returns the underlying ELFIO object.
+  // Used by xrt_kernel.cpp (AIEDebug) and xdp elf_helper.cpp (save) until
+  // Step 1.3 replaces those call sites.  Do not add new uses.
+  const ELFIO::elfio&
+  get_elfio() const;
+
   ////////////////////////////////////////////////////////////////
   // Group / ctrl-code navigation
   //
@@ -243,6 +251,9 @@ public:
 
   // True when at least one ctrl-code group has paired preempt_save/restore sections.
   bool has_preemption() const;
+
+  // True when any relocation targets a PDI section (drives ERT opcode selection).
+  bool has_pdi() const;
 
   // ---- AIE gen2 PDI / preemption ctrl-pkt buffers ----
 

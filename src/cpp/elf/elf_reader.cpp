@@ -376,7 +376,7 @@ public:
   // instead, and the per-buffer accessors below will be removed.
   //
   // Methods that survive Phase 2 (not tied to patching):
-  //   has_preemption, get_ctrl_scratch_pad_mem_size,
+  //   has_pdi, has_preemption, get_ctrl_scratch_pad_mem_size,
   //   get_pdi_size / copy_pdi,
   //   get_ctrlpkt_pm_dynsyms / get_ctrlpkt_pm_buf_size / copy_ctrlpkt_pm_buf,
   //   get_dump_buf_size / copy_dump_buf
@@ -419,6 +419,10 @@ public:
 
   virtual bool
   has_preemption() const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual bool
+  has_pdi() const
   { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
 
   // AIE gen2 — PDI buffers (keyed by symbol name)
@@ -858,6 +862,9 @@ public:
 
   bool
   has_preemption() const override { return m_preemption_exist; }
+
+  bool
+  has_pdi() const override { return !m_ctrl_pdi_map.empty(); }
 
   size_t
   get_pdi_size(const std::string& sym) const override
@@ -1642,6 +1649,10 @@ bool
 elf::has_preemption() const
 { return m_reader->has_preemption(); }
 
+bool
+elf::has_pdi() const
+{ return m_reader->has_pdi(); }
+
 size_t
 elf::get_ctrl_scratch_pad_mem_size() const
 { return m_reader->get_ctrl_scratch_pad_mem_size(); }
@@ -1680,5 +1691,11 @@ elf::copy_dump_buf(uint32_t id, aiebu::detail::span<std::byte> d) const
 
 std::map<uint32_t, std::map<std::string, std::vector<elf::patch_point>>>
 elf::get_patch_points() const { return m_reader->m_patch_points; }
+
+const ELFIO::elfio&
+elf::get_elfio() const
+{
+  return m_reader->m_elfio;
+}
 
 } // namespace aiebu
