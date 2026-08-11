@@ -1265,6 +1265,13 @@ elf::get_group_to_sections_map() const { return m_reader->m_group_to_sections_ma
 std::map<std::string, uint32_t>
 elf::get_kernel_name_to_id_map() const { return m_reader->m_kernel_name_to_id_map; }
 
+std::string
+elf::get_section_name(uint32_t index) const
+{
+  auto* sec = m_reader->m_elfio.sections[index];
+  return sec ? sec->get_name() : std::string{};
+}
+
 uint32_t
 elf::get_ctrlcode_id(const std::string& name) const
 {
