@@ -291,8 +291,19 @@ test_patch_points(const aiebu::elf& e)
 static void
 test_pdi_and_ctrlpkt_pm(const aiebu::elf& e)
 {
-  std::cout << "\n-- PDI / ctrlpkt_pm (AIE gen2 only) --\n";
+  std::cout << "\n-- PDI / ctrlpkt_pm / scratch_pad (AIE gen2 only) --\n";
 
+  // These methods are only valid for aie2p; they throw on other platforms.
+  // The test ELFs are all gen2plus so we exercise only the throw path.
+  if (e.get_platform() != aiebu::elf::platform::aie2p) {
+    CHECK_THROWS(e.get_ctrlpkt_pm_dynsyms(),       "get_ctrlpkt_pm_dynsyms() throws on non-aie2p");
+    CHECK_THROWS(e.get_pdi_size("x"),              "get_pdi_size() throws on non-aie2p");
+    CHECK_THROWS(e.get_ctrlpkt_pm_buf_size("x"),   "get_ctrlpkt_pm_buf_size() throws on non-aie2p");
+    CHECK_THROWS(e.get_ctrl_scratch_pad_mem_size(), "get_ctrl_scratch_pad_mem_size() throws on non-aie2p");
+    return;
+  }
+
+  // aie2p path — exercise each method with real data
   auto dynsyms = e.get_ctrlpkt_pm_dynsyms();
   std::cout << "  ctrlpkt_pm dynsyms: " << dynsyms.size() << "\n";
   check(true, "get_ctrlpkt_pm_dynsyms() does not throw");
@@ -307,22 +318,16 @@ test_pdi_and_ctrlpkt_pm(const aiebu::elf& e)
       "copy_ctrlpkt_pm_buf(" + sym + ") does not throw");
   }
 
-  // Missing symbol must return 0 / be a no-op
+  // Missing symbol returns 0 within the correct platform
   check(e.get_pdi_size("__no_such_pdi__") == 0,
-        "get_pdi_size() returns 0 for missing symbol");
+        "get_pdi_size() returns 0 for unknown symbol on aie2p");
   check(e.get_ctrlpkt_pm_buf_size("__no__") == 0,
-        "get_ctrlpkt_pm_buf_size() returns 0 for missing symbol");
+        "get_ctrlpkt_pm_buf_size() returns 0 for unknown symbol on aie2p");
 
-  // copy with sufficient buffer must not throw even for missing symbol
   std::vector<std::byte> dummy(16);
   CHECK_NOTHROW(e.copy_pdi("__no_such_pdi__", {dummy.data(), dummy.size()}),
-                "copy_pdi() no-op for missing symbol");
-}
+                "copy_pdi() no-op for unknown symbol on aie2p");
 
-static void
-test_scratch_pad(const aiebu::elf& e)
-{
-  std::cout << "\n-- ctrl_scratch_pad_mem_size --\n";
   size_t sz = e.get_ctrl_scratch_pad_mem_size();
   std::cout << "  ctrl_scratch_pad_mem_size: " << sz << "\n";
   check(true, "get_ctrl_scratch_pad_mem_size() does not throw");
@@ -387,7 +392,6 @@ run(int argc, char** argv)
   test_ctrlcode_id(e);
   test_patch_points(e);
   test_pdi_and_ctrlpkt_pm(e);
-  test_scratch_pad(e);
 
   std::cout << "\n=== Result: " << g_passed << " passed, "
             << g_failed << " failed ===\n";

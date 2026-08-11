@@ -365,6 +365,125 @@ public:
   get_ctrlcode_id(const std::string& name) const = 0;
 
   ////////////////////////////////////////////////////////////////
+  // Platform-specific buffer accessors
+  //
+  // Each method is only valid for one platform subclass; the base
+  // throws if called on the wrong platform.
+  //
+  // TRANSITIONAL: most of these methods exist only while ELF patching
+  // lives in XRT (Phase 1).  When patching moves to AIEBU (Phase 2),
+  // xrt_module.cpp will call aiebu::elf::patch() / get_patched_payload()
+  // instead, and the per-buffer accessors below will be removed.
+  //
+  // Methods that survive Phase 2 (not tied to patching):
+  //   has_preemption, get_ctrl_scratch_pad_mem_size,
+  //   get_pdi_size / copy_pdi,
+  //   get_ctrlpkt_pm_dynsyms / get_ctrlpkt_pm_buf_size / copy_ctrlpkt_pm_buf,
+  //   get_dump_buf_size / copy_dump_buf
+  ////////////////////////////////////////////////////////////////
+
+  // AIE gen2 (AIE2P) — instruction buffer
+  virtual size_t
+  get_instr_buf_size(uint32_t) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual void
+  copy_instr_buf(uint32_t, aiebu::detail::span<std::byte>) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  // AIE gen2 — control packet buffer
+  virtual size_t
+  get_ctrl_packet_size(uint32_t) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual void
+  copy_ctrl_packet(uint32_t, aiebu::detail::span<std::byte>) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  // AIE gen2 — preemption save / restore buffers
+  virtual size_t
+  get_preempt_save_size(uint32_t) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual void
+  copy_preempt_save(uint32_t, aiebu::detail::span<std::byte>) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual size_t
+  get_preempt_restore_size(uint32_t) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual void
+  copy_preempt_restore(uint32_t, aiebu::detail::span<std::byte>) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual bool
+  has_preemption() const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  // AIE gen2 — PDI buffers (keyed by symbol name)
+  virtual size_t
+  get_pdi_size(const std::string&) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual void
+  copy_pdi(const std::string&, aiebu::detail::span<std::byte>) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  // AIE gen2 — ctrlpkt preemption buffers
+  virtual std::set<std::string>
+  get_ctrlpkt_pm_dynsyms() const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual size_t
+  get_ctrlpkt_pm_buf_size(const std::string&) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual void
+  copy_ctrlpkt_pm_buf(const std::string&, aiebu::detail::span<std::byte>) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  // AIE gen2 — control scratch pad memory size
+  virtual size_t
+  get_ctrl_scratch_pad_mem_size() const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  // AIE gen2plus (AIE2PS / AIE4) — column ctrl-code buffers
+  virtual size_t
+  get_column_count(uint32_t) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual size_t
+  get_ctrlcode_size(uint32_t, uint32_t) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual void
+  copy_ctrlcode(uint32_t, uint32_t, aiebu::detail::span<std::byte>) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  // AIE gen2plus — ctrl packet buffers (keyed by section name)
+  virtual std::vector<std::string>
+  get_ctrlpkt_section_names(uint32_t) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual size_t
+  get_ctrlpkt_size(uint32_t, const std::string&) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual void
+  copy_ctrlpkt(uint32_t, const std::string&, aiebu::detail::span<std::byte>) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  // AIE gen2plus — dump buffer
+  virtual size_t
+  get_dump_buf_size(uint32_t) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual void
+  copy_dump_buf(uint32_t, aiebu::detail::span<std::byte>) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  ////////////////////////////////////////////////////////////////
   // .symtab helpers — used during parse_sections(), shared by both platforms
   ////////////////////////////////////////////////////////////////
 
@@ -677,6 +796,111 @@ public:
     });
   }
 
+  size_t
+  get_instr_buf_size(uint32_t id) const override
+  {
+    auto it = m_instr_buf_map.find(id);
+    return (it != m_instr_buf_map.end()) ? it->second.size() : 0;
+  }
+
+  void
+  copy_instr_buf(uint32_t id, aiebu::detail::span<std::byte> dest) const override
+  {
+    auto it = m_instr_buf_map.find(id);
+    if (it != m_instr_buf_map.end())
+      it->second.copy_to(dest);
+  }
+
+  size_t
+  get_ctrl_packet_size(uint32_t id) const override
+  {
+    auto it = m_ctrl_packet_map.find(id);
+    return (it != m_ctrl_packet_map.end()) ? it->second.size() : 0;
+  }
+
+  void
+  copy_ctrl_packet(uint32_t id, aiebu::detail::span<std::byte> dest) const override
+  {
+    auto it = m_ctrl_packet_map.find(id);
+    if (it != m_ctrl_packet_map.end())
+      it->second.copy_to(dest);
+  }
+
+  size_t
+  get_preempt_save_size(uint32_t id) const override
+  {
+    auto it = m_save_buf_map.find(id);
+    return (it != m_save_buf_map.end()) ? it->second.size() : 0;
+  }
+
+  void
+  copy_preempt_save(uint32_t id, aiebu::detail::span<std::byte> dest) const override
+  {
+    auto it = m_save_buf_map.find(id);
+    if (it != m_save_buf_map.end())
+      it->second.copy_to(dest);
+  }
+
+  size_t
+  get_preempt_restore_size(uint32_t id) const override
+  {
+    auto it = m_restore_buf_map.find(id);
+    return (it != m_restore_buf_map.end()) ? it->second.size() : 0;
+  }
+
+  void
+  copy_preempt_restore(uint32_t id, aiebu::detail::span<std::byte> dest) const override
+  {
+    auto it = m_restore_buf_map.find(id);
+    if (it != m_restore_buf_map.end())
+      it->second.copy_to(dest);
+  }
+
+  bool
+  has_preemption() const override { return m_preemption_exist; }
+
+  size_t
+  get_pdi_size(const std::string& sym) const override
+  {
+    auto it = m_pdi_buf_map.find(sym);
+    return (it != m_pdi_buf_map.end()) ? it->second.size() : 0;
+  }
+
+  void
+  copy_pdi(const std::string& sym, aiebu::detail::span<std::byte> dest) const override
+  {
+    auto it = m_pdi_buf_map.find(sym);
+    if (it != m_pdi_buf_map.end())
+      it->second.copy_to(dest);
+  }
+
+  std::set<std::string>
+  get_ctrlpkt_pm_dynsyms() const override
+  {
+    return m_ctrlpkt_pm_dynsyms;
+  }
+
+  size_t
+  get_ctrlpkt_pm_buf_size(const std::string& sym) const override
+  {
+    auto it = m_ctrlpkt_pm_bufs.find(sym);
+    return (it != m_ctrlpkt_pm_bufs.end()) ? it->second.size() : 0;
+  }
+
+  void
+  copy_ctrlpkt_pm_buf(const std::string& sym, aiebu::detail::span<std::byte> dest) const override
+  {
+    auto it = m_ctrlpkt_pm_bufs.find(sym);
+    if (it != m_ctrlpkt_pm_bufs.end())
+      it->second.copy_to(dest);
+  }
+
+  size_t
+  get_ctrl_scratch_pad_mem_size() const override
+  {
+    return m_ctrl_scratch_pad_mem_size;
+  }
+
   ////////////////////////////////////////////////////////////////
   // Buffer initialisation
   ////////////////////////////////////////////////////////////////
@@ -887,6 +1111,86 @@ public:
     return resolve_ctrlcode_id(name, [&](uint32_t id) {
       return m_ctrlcodes_map.count(id) > 0;
     });
+  }
+
+  size_t
+  get_column_count(uint32_t id) const override
+  {
+    auto it = m_ctrlcodes_map.find(id);
+    return (it != m_ctrlcodes_map.end()) ? it->second.size() : 0;
+  }
+
+  size_t
+  get_ctrlcode_size(uint32_t id, uint32_t col) const override
+  {
+    auto it = m_ctrlcodes_map.find(id);
+    if (it == m_ctrlcodes_map.end() || col >= it->second.size())
+      return 0;
+
+    return it->second[col].size();
+  }
+
+  void
+  copy_ctrlcode(uint32_t id, uint32_t col, aiebu::detail::span<std::byte> dest) const override
+  {
+    auto it = m_ctrlcodes_map.find(id);
+    if (it == m_ctrlcodes_map.end() || col >= it->second.size())
+      return;
+
+    it->second[col].copy_to(dest);
+  }
+
+  std::vector<std::string>
+  get_ctrlpkt_section_names(uint32_t id) const override
+  {
+    auto it = m_ctrlpkt_buf_map.find(id);
+    if (it == m_ctrlpkt_buf_map.end())
+      return {};
+
+    std::vector<std::string> names;
+    names.reserve(it->second.size());
+    for (const auto& [name, buf] : it->second)
+      names.push_back(name);
+
+    return names;
+  }
+
+  size_t
+  get_ctrlpkt_size(uint32_t id, const std::string& name) const override
+  {
+    auto git = m_ctrlpkt_buf_map.find(id);
+    if (git == m_ctrlpkt_buf_map.end())
+      return 0;
+
+    auto nit = git->second.find(name);
+    return (nit != git->second.end()) ? nit->second.size() : 0;
+  }
+
+  void
+  copy_ctrlpkt(uint32_t id, const std::string& name, aiebu::detail::span<std::byte> dest) const override
+  {
+    auto git = m_ctrlpkt_buf_map.find(id);
+    if (git == m_ctrlpkt_buf_map.end())
+      return;
+
+    auto nit = git->second.find(name);
+    if (nit != git->second.end())
+      nit->second.copy_to(dest);
+  }
+
+  size_t
+  get_dump_buf_size(uint32_t id) const override
+  {
+    auto it = m_dump_buf_map.find(id);
+    return (it != m_dump_buf_map.end()) ? it->second.size() : 0;
+  }
+
+  void
+  copy_dump_buf(uint32_t id, aiebu::detail::span<std::byte> dest) const override
+  {
+    auto it = m_dump_buf_map.find(id);
+    if (it != m_dump_buf_map.end())
+      it->second.copy_to(dest);
   }
 
   // ABI version 0x21 uses merged format: one .ctrltext.<col> section per column
@@ -1278,67 +1582,103 @@ elf::get_ctrlcode_id(const std::string& name) const
   return m_reader->get_ctrlcode_id(name);
 }
 
-size_t
-elf::get_pdi_size(const std::string& symbol_name) const
-{
-  auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
-  if (!r)
-    return 0;
+// All buffer accessors delegate to the virtual interface on elf_reader.
+// Each subclass overrides the methods relevant to its platform;
+// the base returns 0 / no-op for the other platform's methods.
 
-  auto it = r->m_pdi_buf_map.find(symbol_name);
-  return (it != r->m_pdi_buf_map.end()) ? it->second.size() : 0;
-}
+size_t
+elf::get_pdi_size(const std::string& s) const
+{ return m_reader->get_pdi_size(s); }
 
 void
-elf::copy_pdi(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const
-{
-  auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
-  if (!r)
-    return;
-
-  auto it = r->m_pdi_buf_map.find(symbol_name);
-  if (it != r->m_pdi_buf_map.end())
-    it->second.copy_to(dest);
-}
+elf::copy_pdi(const std::string& s, aiebu::detail::span<std::byte> d) const
+{ m_reader->copy_pdi(s, d); }
 
 std::set<std::string>
 elf::get_ctrlpkt_pm_dynsyms() const
-{
-  auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
-  return r ? r->m_ctrlpkt_pm_dynsyms : std::set<std::string>{};
-}
+{ return m_reader->get_ctrlpkt_pm_dynsyms(); }
 
 size_t
-elf::get_ctrlpkt_pm_buf_size(const std::string& symbol_name) const
-{
-  auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
-  if (!r)
-    return 0;
-
-  auto it = r->m_ctrlpkt_pm_bufs.find(symbol_name);
-  return (it != r->m_ctrlpkt_pm_bufs.end()) ? it->second.size() : 0;
-}
+elf::get_ctrlpkt_pm_buf_size(const std::string& s) const
+{ return m_reader->get_ctrlpkt_pm_buf_size(s); }
 
 void
-elf::copy_ctrlpkt_pm_buf(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const
-{
-  auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
-  if (!r)
-    return;
+elf::copy_ctrlpkt_pm_buf(const std::string& s, aiebu::detail::span<std::byte> d) const
+{ m_reader->copy_ctrlpkt_pm_buf(s, d); }
 
-  auto it = r->m_ctrlpkt_pm_bufs.find(symbol_name);
-  if (it != r->m_ctrlpkt_pm_bufs.end())
-    it->second.copy_to(dest);
-}
+size_t
+elf::get_instr_buf_size(uint32_t id) const
+{ return m_reader->get_instr_buf_size(id); }
 
-std::map<uint32_t, std::map<std::string, std::vector<elf::patch_point>>>
-elf::get_patch_points() const { return m_reader->m_patch_points; }
+void
+elf::copy_instr_buf(uint32_t id, aiebu::detail::span<std::byte> d) const
+{ m_reader->copy_instr_buf(id, d); }
+
+size_t
+elf::get_ctrl_packet_size(uint32_t id) const
+{ return m_reader->get_ctrl_packet_size(id); }
+
+void
+elf::copy_ctrl_packet(uint32_t id, aiebu::detail::span<std::byte> d) const
+{ m_reader->copy_ctrl_packet(id, d); }
+
+size_t
+elf::get_preempt_save_size(uint32_t id) const
+{ return m_reader->get_preempt_save_size(id); }
+
+void
+elf::copy_preempt_save(uint32_t id, aiebu::detail::span<std::byte> d) const
+{ m_reader->copy_preempt_save(id, d); }
+
+size_t
+elf::get_preempt_restore_size(uint32_t id) const
+{ return m_reader->get_preempt_restore_size(id); }
+
+void
+elf::copy_preempt_restore(uint32_t id, aiebu::detail::span<std::byte> d) const
+{ m_reader->copy_preempt_restore(id, d); }
+
+bool
+elf::has_preemption() const
+{ return m_reader->has_preemption(); }
 
 size_t
 elf::get_ctrl_scratch_pad_mem_size() const
-{
-  auto* r = dynamic_cast<elf_reader_aie2p*>(m_reader.get());
-  return r ? r->m_ctrl_scratch_pad_mem_size : 0;
-}
+{ return m_reader->get_ctrl_scratch_pad_mem_size(); }
+
+size_t
+elf::get_column_count(uint32_t id) const
+{ return m_reader->get_column_count(id); }
+
+size_t
+elf::get_ctrlcode_size(uint32_t id, uint32_t col) const
+{ return m_reader->get_ctrlcode_size(id, col); }
+
+void
+elf::copy_ctrlcode(uint32_t id, uint32_t col, aiebu::detail::span<std::byte> d) const
+{ m_reader->copy_ctrlcode(id, col, d); }
+
+std::vector<std::string>
+elf::get_ctrlpkt_section_names(uint32_t id) const
+{ return m_reader->get_ctrlpkt_section_names(id); }
+
+size_t
+elf::get_ctrlpkt_size(uint32_t id, const std::string& n) const
+{ return m_reader->get_ctrlpkt_size(id, n); }
+
+void
+elf::copy_ctrlpkt(uint32_t id, const std::string& n, aiebu::detail::span<std::byte> d) const
+{ m_reader->copy_ctrlpkt(id, n, d); }
+
+size_t
+elf::get_dump_buf_size(uint32_t id) const
+{ return m_reader->get_dump_buf_size(id); }
+
+void
+elf::copy_dump_buf(uint32_t id, aiebu::detail::span<std::byte> d) const
+{ m_reader->copy_dump_buf(id, d); }
+
+std::map<uint32_t, std::map<std::string, std::vector<elf::patch_point>>>
+elf::get_patch_points() const { return m_reader->m_patch_points; }
 
 } // namespace aiebu
