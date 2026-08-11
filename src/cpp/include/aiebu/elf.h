@@ -219,33 +219,60 @@ public:
   get_ctrlcode_id(const std::string& name) const;
 
   ////////////////////////////////////////////////////////////////
-  // PDI / preemption access (AIE gen2 only)
+  // Buffer access — size + copy pairs (AIE gen2 / gen2plus)
   //
-  // Buffers are exposed via size + copy pairs rather than spans to
-  // avoid an intermediate heap allocation: callers allocate a BO of
-  // the reported size, then copy directly from ELFIO memory into it.
+  // All buffers are exposed as (size, copy) pairs so callers can
+  // allocate a destination of the correct size and copy directly
+  // from ELFIO-owned memory, with no intermediate heap allocation.
+  // Returns 0 / no-op when the ctrl_code_id or symbol is not found.
   ////////////////////////////////////////////////////////////////
 
-  // Returns 0 when symbol is not found.
-  size_t
-  get_pdi_size(const std::string& symbol_name) const;
+  // ---- AIE gen2 (AIE2P) instruction and preemption buffers ----
 
-  // Copies PDI data for symbol into dest.  dest.size() must be at least
-  // get_pdi_size(symbol_name).  No-op when symbol not found.
-  void
-  copy_pdi(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const;
+  size_t get_instr_buf_size(uint32_t ctrl_code_id) const;
+  void   copy_instr_buf(uint32_t ctrl_code_id, aiebu::detail::span<std::byte> dest) const;
 
-  std::set<std::string>
-  get_ctrlpkt_pm_dynsyms() const;
+  size_t get_ctrl_packet_size(uint32_t ctrl_code_id) const;
+  void   copy_ctrl_packet(uint32_t ctrl_code_id, aiebu::detail::span<std::byte> dest) const;
 
-  // Returns 0 when symbol is not found.
-  size_t
-  get_ctrlpkt_pm_buf_size(const std::string& symbol_name) const;
+  size_t get_preempt_save_size(uint32_t ctrl_code_id) const;
+  void   copy_preempt_save(uint32_t ctrl_code_id, aiebu::detail::span<std::byte> dest) const;
 
-  // Copies ctrlpkt_pm data for symbol into dest.  dest.size() must be at least
-  // get_ctrlpkt_pm_buf_size(symbol_name).  No-op when not found.
-  void
-  copy_ctrlpkt_pm_buf(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const;
+  size_t get_preempt_restore_size(uint32_t ctrl_code_id) const;
+  void   copy_preempt_restore(uint32_t ctrl_code_id, aiebu::detail::span<std::byte> dest) const;
+
+  // True when at least one ctrl-code group has paired preempt_save/restore sections.
+  bool has_preemption() const;
+
+  // ---- AIE gen2 PDI / preemption ctrl-pkt buffers ----
+
+  size_t get_pdi_size(const std::string& symbol_name) const;
+  void   copy_pdi(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const;
+
+  std::set<std::string> get_ctrlpkt_pm_dynsyms() const;
+
+  size_t get_ctrlpkt_pm_buf_size(const std::string& symbol_name) const;
+  void   copy_ctrlpkt_pm_buf(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const;
+
+  // Control scratch-pad memory size derived from dynsym (AIE gen2 only).
+  size_t get_ctrl_scratch_pad_mem_size() const;
+
+  // ---- AIE gen2plus (AIE2PS / AIE4) column ctrl-code buffers ----
+
+  // Number of columns (uC indices) for a given ctrl-code-id.
+  size_t get_column_count(uint32_t ctrl_code_id) const;
+
+  size_t get_ctrlcode_size(uint32_t ctrl_code_id, uint32_t col) const;
+  void   copy_ctrlcode(uint32_t ctrl_code_id, uint32_t col, aiebu::detail::span<std::byte> dest) const;
+
+  // Names of .ctrlpkt sections for a given ctrl-code-id.
+  std::vector<std::string> get_ctrlpkt_section_names(uint32_t ctrl_code_id) const;
+
+  size_t get_ctrlpkt_size(uint32_t ctrl_code_id, const std::string& name) const;
+  void   copy_ctrlpkt(uint32_t ctrl_code_id, const std::string& name, aiebu::detail::span<std::byte> dest) const;
+
+  size_t get_dump_buf_size(uint32_t ctrl_code_id) const;
+  void   copy_dump_buf(uint32_t ctrl_code_id, aiebu::detail::span<std::byte> dest) const;
 
   ////////////////////////////////////////////////////////////////
   // Patch-point access (transitional — see Phase 2 of spec)
@@ -256,10 +283,6 @@ public:
   // Transitional: will be removed when patching moves to AIEBU.
   std::map<uint32_t, std::map<std::string, std::vector<patch_point>>>
   get_patch_points() const;
-
-  // Control scratch-pad memory size derived from dynsym (AIE gen2 only).
-  size_t
-  get_ctrl_scratch_pad_mem_size() const;
 
 private:
   std::unique_ptr<elf_reader> m_reader;
