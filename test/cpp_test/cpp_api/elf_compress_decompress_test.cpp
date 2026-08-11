@@ -53,8 +53,8 @@ static ELFIO::elfio load_elf(const std::vector<char>& data)
 // Return true if the ELF has any SHF_COMPRESSED section.
 static bool has_compressed_sections(const ELFIO::elfio& elf)
 {
-  for (ELFIO::Elf_Half i = 0; i < elf.sections.size(); ++i)
-    if (elf.sections[i]->get_flags() & ELFIO::SHF_COMPRESSED)
+  for (const auto& sec : elf.sections)
+    if (sec->get_flags() & ELFIO::SHF_COMPRESSED)
       return true;
   return false;
 }
@@ -72,8 +72,7 @@ static bool compare_ctrl_sections(const ELFIO::elfio& expected,
                                   const std::string& label)
 {
   bool ok = true;
-  for (ELFIO::Elf_Half i = 0; i < expected.sections.size(); ++i) {
-    const auto* esec = expected.sections[i];
+  for (const auto& esec : expected.sections) {
     const std::string& name = esec->get_name();
 
     // Only compare .ctrltext* and .ctrldata* sections.
@@ -84,9 +83,9 @@ static bool compare_ctrl_sections(const ELFIO::elfio& expected,
 
     // Find same section in actual ELF.
     const ELFIO::section* asec = nullptr;
-    for (ELFIO::Elf_Half j = 0; j < actual.sections.size(); ++j) {
-      if (actual.sections[j]->get_name() == name) {
-        asec = actual.sections[j];
+    for (const auto& sec : actual.sections) {
+      if (sec->get_name() == name) {
+        asec = sec.get();
         break;
       }
     }
@@ -142,17 +141,16 @@ static bool compare_metadata_sections(const ELFIO::elfio& expected,
   };
 
   bool ok = true;
-  for (ELFIO::Elf_Half i = 0; i < expected.sections.size(); ++i) {
-    const auto* esec = expected.sections[i];
+  for (const auto& esec : expected.sections) {
     const std::string& name = esec->get_name();
 
     if (!is_metadata(name))
       continue;
 
     const ELFIO::section* asec = nullptr;
-    for (ELFIO::Elf_Half j = 0; j < actual.sections.size(); ++j) {
-      if (actual.sections[j]->get_name() == name) {
-        asec = actual.sections[j];
+    for (const auto& sec : actual.sections) {
+      if (sec->get_name() == name) {
+        asec = sec.get();
         break;
       }
     }
@@ -275,7 +273,7 @@ static bool test_aie4_compression_shrinks(const std::string& dir)
   }
   std::cout << "PASS [aie4_compression_shrinks]: "
             << plain.size() << " B -> " << compressed.size() << " B ("
-            << (100.0 * compressed.size() / plain.size()) << "%)\n";
+            << (100.0 * static_cast<double>(compressed.size()) / static_cast<double>(plain.size())) << "%)\n";
   return true;
 }
 

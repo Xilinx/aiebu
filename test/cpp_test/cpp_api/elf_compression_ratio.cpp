@@ -45,7 +45,7 @@ template <typename Fn>
 static double time_ms(Fn&& fn)
 {
   const auto t0 = std::chrono::steady_clock::now();
-  fn();
+  std::forward<Fn>(fn)();
   const auto t1 = std::chrono::steady_clock::now();
   return std::chrono::duration<double, std::milli>(t1 - t0).count();
 }
@@ -59,7 +59,7 @@ static std::vector<char> read_file(const std::string& path)
   std::ifstream f(path, std::ios::binary);
   if (!f)
     throw std::runtime_error("cannot open: " + path);
-  return std::vector<char>(std::istreambuf_iterator<char>(f), {});
+  return {std::istreambuf_iterator<char>(f), {}};
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +134,7 @@ static int mode_compress(const std::string& dir,
   const std::size_t plain_size = plain.size();
   const std::size_t comp_size  = compressed.size();
   const double ratio = (plain_size > 0)
-      ? (100.0 * comp_size / plain_size)
+      ? (100.0 * static_cast<double>(comp_size) / static_cast<double>(plain_size))
       : 0.0;
 
   std::cout << std::fixed << std::setprecision(2)
@@ -162,7 +162,7 @@ static int mode_decompress_file(const std::string& input_file,
     std::ofstream out(output_file, std::ios::binary);
     if (!out)
       throw std::runtime_error("cannot open output: " + output_file);
-    out.write(compressed.data(), compressed.size());
+    out.write(compressed.data(), static_cast<std::streamsize>(compressed.size()));
     return 0;
   }
 
@@ -171,7 +171,7 @@ static int mode_decompress_file(const std::string& input_file,
   std::ofstream out(output_file, std::ios::binary);
   if (!out)
     throw std::runtime_error("cannot open output: " + output_file);
-  out.write(decompressed.data(), decompressed.size());
+  out.write(decompressed.data(), static_cast<std::streamsize>(decompressed.size()));
 
   std::cout << std::fixed << std::setprecision(2)
             << "[decompress-file]\n"
@@ -180,7 +180,7 @@ static int mode_decompress_file(const std::string& input_file,
             << "  compressed size : " << comp_size             << " B\n"
             << "  decompressed    : " << decompressed.size()   << " B\n"
             << "  ratio           : "
-            << (100.0 * comp_size / decompressed.size()) << " %\n";
+            << (100.0 * static_cast<double>(comp_size) / static_cast<double>(decompressed.size())) << " %\n";
   return 0;
 }
 

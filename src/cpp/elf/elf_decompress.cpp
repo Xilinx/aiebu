@@ -4,6 +4,7 @@
 #include "aiebu/aiebu_decompress.h"
 #include "elf_compression.h"
 
+#include <cstdint>
 #include <cstring>
 #include <stdexcept>
 #include <string>

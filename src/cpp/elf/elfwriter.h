@@ -97,7 +97,7 @@ protected:  // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
   // ELFIO::sections[name] scans all sections O(n); this map is updated on add and used on hot paths.
   std::unordered_map<std::string, ELFIO::section*> m_section_by_name;
 
-  std::unique_ptr<ElfCompressor> m_compressor;
+  std::unique_ptr<ElfCompressor> m_compressor; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
 
   ELFIO::section* lookup_section(const std::string& name);
   void resync_section_name_map();

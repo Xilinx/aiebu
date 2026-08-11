@@ -753,18 +753,20 @@ std::size_t decompress_section_into_impl(
     throw std::runtime_error(
         "decompress_section_into: section too small for Elf_Chdr");
 
-  if (info.ch_type != ELFCOMPRESS_ZSTD_VAL)
+  if (info.ch_type != ELFCOMPRESS_ZSTD_VAL) {
     throw std::runtime_error(
         "decompress_section_into: unsupported ch_type "
         + std::to_string(info.ch_type)
         + " (only ELFCOMPRESS_ZSTD=2 is supported)");
+  }
 
   const auto uncompressed_size = static_cast<std::size_t>(info.ch_size);
-  if (dest_size < uncompressed_size)
+  if (dest_size < uncompressed_size) {
     throw std::runtime_error(
         "decompress_section_into: dest_size ("
         + std::to_string(dest_size) + ") < uncompressed size ("
         + std::to_string(uncompressed_size) + ")");
+  }
 
   const char* compressed_data = section_data + info.chdr_sz;
   const std::size_t compressed_size = section_size - info.chdr_sz;
@@ -793,7 +795,7 @@ bool is_elf_compressed_impl(const char* data, std::size_t size)
   constexpr unsigned char kElfMag0    = 0x7f;
   constexpr unsigned char kElfClass32 = 1;
   constexpr unsigned char kElfClass64 = 2;
-  constexpr uint32_t kShfCompressed   = 0x800u;
+  constexpr uint32_t kShfCompressed   = 0x800U;
 
   if (size < kEIIdent)
     return false;
@@ -813,32 +815,43 @@ bool is_elf_compressed_impl(const char* data, std::size_t size)
     return boost::endian::load_little_u32(reinterpret_cast<const unsigned char*>(data + off));
   };
   auto rd64 = [&](std::size_t off) -> uint64_t {
-    if (off + 8 > size) return 0;
+    constexpr std::size_t kU64Size = 8;
+    if (off + kU64Size > size) return 0;
     return boost::endian::load_little_u64(reinterpret_cast<const unsigned char*>(data + off));
   };
 
-  const unsigned char ei_class = static_cast<unsigned char>(data[4]);
+  const auto ei_class = static_cast<unsigned char>(data[4]);
 
   if (ei_class == kElfClass32) {
     // Elf32_Ehdr: e_shoff@32(4), e_shentsize@46(2), e_shnum@48(2)
-    const uint32_t shoff     = rd32(32);
-    const uint16_t shentsize = rd16(46);
-    const uint16_t shnum     = rd16(48);
-    if (shoff == 0 || shentsize < 12) return false;
+    constexpr std::size_t kEhdr32ShOff     = 32;
+    constexpr std::size_t kEhdr32ShEntSize = 46;
+    constexpr std::size_t kEhdr32ShNum     = 48;
+    // Elf32_Shdr: sh_flags field offset within entry
+    constexpr std::size_t kShdr32FlagsOff  = 8;
+    constexpr uint16_t    kShdr32MinSize   = 12;
+    const uint32_t shoff     = rd32(kEhdr32ShOff);
+    const uint16_t shentsize = rd16(kEhdr32ShEntSize);
+    const uint16_t shnum     = rd16(kEhdr32ShNum);
+    if (shoff == 0 || shentsize < kShdr32MinSize) return false;
     for (uint16_t i = 0; i < shnum; ++i) {
-      // Elf32_Shdr: sh_flags@8(4)
-      if (rd32(shoff + std::size_t(i) * shentsize + 8) & kShfCompressed)
+      if (rd32(shoff + std::size_t(i) * shentsize + kShdr32FlagsOff) & kShfCompressed)
         return true;
     }
   } else if (ei_class == kElfClass64) {
     // Elf64_Ehdr: e_shoff@40(8), e_shentsize@58(2), e_shnum@60(2)
-    const uint64_t shoff     = rd64(40);
-    const uint16_t shentsize = rd16(58);
-    const uint16_t shnum     = rd16(60);
-    if (shoff == 0 || shentsize < 16) return false;
+    constexpr std::size_t kEhdr64ShOff     = 40;
+    constexpr std::size_t kEhdr64ShEntSize = 58;
+    constexpr std::size_t kEhdr64ShNum     = 60;
+    // Elf64_Shdr: sh_flags field offset within entry
+    constexpr std::size_t kShdr64FlagsOff  = 8;
+    constexpr uint16_t    kShdr64MinSize   = 16;
+    const uint64_t shoff     = rd64(kEhdr64ShOff);
+    const uint16_t shentsize = rd16(kEhdr64ShEntSize);
+    const uint16_t shnum     = rd16(kEhdr64ShNum);
+    if (shoff == 0 || shentsize < kShdr64MinSize) return false;
     for (uint16_t i = 0; i < shnum; ++i) {
-      // Elf64_Shdr: sh_flags@8(8)
-      if (rd64(std::size_t(shoff) + std::size_t(i) * shentsize + 8) & kShfCompressed)
+      if (rd64(std::size_t(shoff) + std::size_t(i) * shentsize + kShdr64FlagsOff) & kShfCompressed)
         return true;
     }
   }

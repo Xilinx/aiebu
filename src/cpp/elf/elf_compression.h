@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
-#ifndef _AIEBU_ELF_ELF_COMPRESSION_H_
-#define _AIEBU_ELF_ELF_COMPRESSION_H_
+#ifndef AIEBU_ELF_ELF_COMPRESSION_H_
+#define AIEBU_ELF_ELF_COMPRESSION_H_
 
 #include <cstddef>
 #include <memory>
@@ -12,6 +12,7 @@
 namespace aiebu {
 
 // Abstract base: takes raw ELF bytes, returns (possibly compressed) ELF bytes.
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class ElfCompressor {
 public:
   virtual ~ElfCompressor() = default;
@@ -58,6 +59,7 @@ std::unique_ptr<ElfCompressor> make_elf_compressor(
 // Abstract base: takes (possibly compressed) ELF bytes, returns decompressed ELF bytes.
 // Takes const& because the decompressor always builds a new output buffer — it never
 // reuses or moves from the input.  The input only needs to stay alive during the call.
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class ElfDecompressor {
 public:
   virtual ~ElfDecompressor() = default;
@@ -126,4 +128,4 @@ const compress_stats& get_last_compress_stats();
 
 } // namespace aiebu
 
-#endif // _AIEBU_ELF_ELF_COMPRESSION_H_
+#endif // AIEBU_ELF_ELF_COMPRESSION_H_
