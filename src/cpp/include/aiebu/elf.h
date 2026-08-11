@@ -208,6 +208,10 @@ public:
   std::map<std::string, uint32_t>
   get_kernel_name_to_id_map() const;
 
+  // Name of section at given index; empty string if index not found.
+  std::string
+  get_section_name(uint32_t index) const;
+
   // Ctrl-code id for a named kernel/subkernel.
   // Accepts "kernel:subkernel" or bare "kernel" (single-instance only).
   // Returns UINT32_MAX for legacy ELFs with no group sections.
