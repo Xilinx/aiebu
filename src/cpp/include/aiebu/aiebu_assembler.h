@@ -2,7 +2,6 @@
 // Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 #ifndef AIEBU_ASSEMBLER_H_
 #define AIEBU_ASSEMBLER_H_
-#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <map>
@@ -316,88 +315,6 @@ class aiebu_assembler
     [[nodiscard]]
     std::vector<char>
     get_elf() const;
-
-    /*
-     * Return true if the ELF contains any SHF_COMPRESSED sections.
-     *
-     * Implemented as a direct raw scan of ELF section headers — no ELFIO, no
-     * heap allocation.  XRT callers should use this to avoid the full ELFIO
-     * parse cost of decompress_elf() for ELFs that are not compressed:
-     *
-     *   if (aiebu::aiebu_assembler::is_elf_compressed(elf))
-     *       elf = aiebu::aiebu_assembler::decompress_elf(std::move(elf));
-     *
-     * @elf_bytes: ELF bytes to inspect.
-     * @return:    true if at least one section has SHF_COMPRESSED set.
-     */
-    static bool
-    is_elf_compressed(const std::vector<char>& elf_bytes);
-
-    /*
-     * Decompress a compressed AIE ELF in-place and return the decompressed bytes.
-     *
-     * Callers such as XRT invoke this before patching to ensure the ELF sections
-     * are in their original uncompressed form.  The algorithm is auto-detected
-     * per section from ch_type in the standard ELF Elf_Chdr header — callers do
-     * not need to know which algorithm was used during assembly.
-     *
-     * Pass-by-value is intentional: callers should std::move their buffer in to
-     * avoid an extra copy of a potentially large ELF on the critical path.
-     * If the ELF contains no SHF_COMPRESSED sections, the buffer is returned
-     * unchanged via move — zero allocation, zero copy.
-     *
-     * @elf_bytes: ELF bytes, possibly containing SHF_COMPRESSED sections.
-     * @return:    Decompressed ELF bytes.  Throws std::runtime_error on corrupt
-     *             data or unsupported compression type.
-     *
-     * Example (XRT call site):
-     *   auto patching_buf = aiebu::aiebu_assembler::decompress_elf(std::move(elf));
-     */
-    static std::vector<char>
-    decompress_elf(std::vector<char> elf_bytes);
-
-    /*
-     * Read the uncompressed size from the Elf_Chdr header of a single
-     * SHF_COMPRESSED section.
-     *
-     * Use this to determine the buffer size needed for decompress_section_into().
-     * Returns 0 if the section data does not start with a valid Chdr header.
-     *
-     * @section_data: Pointer to raw section data (starts with Elf_Chdr).
-     * @section_size: Size of the raw section data in bytes.
-     * @elf_class:    ELFCLASS32 (1) or ELFCLASS64 (2) — determines Chdr layout.
-     * @return:       Uncompressed size (ch_size), or 0 if Chdr is invalid.
-     */
-    static std::size_t
-    get_uncompressed_section_size(
-        const char* section_data, std::size_t section_size,
-        unsigned char elf_class);
-
-    /*
-     * Decompress a single SHF_COMPRESSED section directly into a caller-provided
-     * buffer.  The section_data must start with an Elf_Chdr header.
-     *
-     * Writes exactly ch_size bytes to dest.  dest_size must be >= ch_size.
-     * Returns the number of bytes written (== ch_size on success).
-     *
-     * This API enables deferred per-section decompression: XRT can keep the ELF
-     * compressed inside ELFIO and decompress individual .ctrltext* / .ctrldata*
-     * sections on demand, directly into a device BO — avoiding the full ELF
-     * rebuild cost of decompress_elf().
-     *
-     * @section_data: Pointer to raw section data (starts with Elf_Chdr).
-     * @section_size: Size of the raw section data in bytes.
-     * @dest:         Output buffer to receive decompressed bytes.
-     * @dest_size:    Size of the output buffer (must be >= ch_size).
-     * @elf_class:    ELFCLASS32 (1) or ELFCLASS64 (2) — determines Chdr layout.
-     * @return:       Number of bytes written to dest.
-     * @throws:       std::runtime_error on corrupt data, unsupported ch_type,
-     *                or dest_size too small.
-     */
-    static std::size_t
-    decompress_section_into(
-        const char* section_data, std::size_t section_size,
-        void* dest, std::size_t dest_size, unsigned char elf_class);
 
     /*
      * Parse the NT_AIE_DUMP_HDR note from a coredump ELF and return its

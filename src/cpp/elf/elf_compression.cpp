@@ -328,12 +328,12 @@ compress_elf_zstd(const std::vector<char>& elf_bytes, int level)
       dst->set_address(0);
       dst->set_addr_align(1);
       dst->append_data(reinterpret_cast<const char*>(it->second.data()),
-                       it->second.size());
+                       static_cast<ELFIO::Elf_Word>(it->second.size()));
     } else if (src->get_type() != ELFIO::SHT_NOBITS) {
       const char* d = src->get_data();
       const std::size_t sz = src->get_size();
       if (d != nullptr && sz > 0)
-        dst->append_data(d, sz);
+        dst->append_data(d, static_cast<ELFIO::Elf_Word>(sz));
     }
 
     pending.push_back({src, dst});
@@ -396,7 +396,7 @@ ELFIO::Elf_Xword decompressed_section_flags(
 // Core ELF decompression pipeline — rebuild approach.
 // ---------------------------------------------------------------------------
 
-std::vector<char> decompress_elf_impl(std::vector<char> elf_bytes)
+std::vector<char> decompress_elf_impl(const std::vector<char>& elf_bytes)
 {
   boost::interprocess::ibufferstream is(elf_bytes.data(), elf_bytes.size());
   ELFIO::elfio reader;
@@ -405,7 +405,9 @@ std::vector<char> decompress_elf_impl(std::vector<char> elf_bytes)
 
   const unsigned char elf_class = reader.get_class();
 
-  // Early exit if nothing is compressed — return the owned buffer via move, no copy.
+  // Early exit if nothing is compressed.
+  // Callers should pre-check with is_elf_compressed() to avoid the ELFIO parse
+  // cost above.  This is a safety net for direct callers.
   bool has_compressed = false;
   for (const auto& sec_ptr : reader.sections) {
     if (sec_ptr->get_flags() & ELFIO::SHF_COMPRESSED) {
@@ -414,7 +416,7 @@ std::vector<char> decompress_elf_impl(std::vector<char> elf_bytes)
     }
   }
   if (!has_compressed)
-    return elf_bytes;
+    return {elf_bytes.begin(), elf_bytes.end()};
 
   // Build output ELF with a fresh writer so offsets are computed from scratch.
   ELFIO::elfio writer;
@@ -498,7 +500,7 @@ std::vector<char> decompress_elf_impl(std::vector<char> elf_bytes)
       dst->set_flags(decompressed_section_flags(flags, name));
       dst->set_addr_align(ch_addralign);  // restored from Chdr
       dst->set_address(src->get_address());
-      dst->append_data(uncompressed.data(), uncompressed.size());
+      dst->append_data(uncompressed.data(), static_cast<ELFIO::Elf_Word>(uncompressed.size()));
     } else {
       dst->set_flags(flags);
       dst->set_addr_align(src->get_addr_align());
@@ -510,7 +512,7 @@ std::vector<char> decompress_elf_impl(std::vector<char> elf_bytes)
         const char* d = src->get_data();
         const std::size_t sz = src->get_size();
         if (d != nullptr && sz > 0)
-          dst->append_data(d, sz);
+          dst->append_data(d, static_cast<ELFIO::Elf_Word>(sz));
       }
     }
 
@@ -669,9 +671,9 @@ std::unique_ptr<ElfCompressor> make_elf_compressor(const std::vector<std::string
 // AutoElfDecompressor
 // ---------------------------------------------------------------------------
 
-std::vector<char> AutoElfDecompressor::decompress(std::vector<char> elf_bytes) const
+std::vector<char> AutoElfDecompressor::decompress(const std::vector<char>& elf_bytes) const
 {
-  return decompress_elf_impl(std::move(elf_bytes));
+  return decompress_elf_impl(elf_bytes);
 }
 
 // ---------------------------------------------------------------------------

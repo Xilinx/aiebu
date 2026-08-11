@@ -23,6 +23,7 @@
 //   elf_compression_ratio <dir> --arch aie4 --mode decompress -f disabledump
 
 #include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_decompress.h"
 #include "aiebu/aiebu_error.h"
 
 #include <chrono>
@@ -154,7 +155,7 @@ static int mode_decompress_file(const std::string& input_file,
   auto compressed = read_file(input_file);
   const std::size_t comp_size = compressed.size();
 
-  if (!aiebu::aiebu_assembler::is_elf_compressed(compressed)) {
+  if (!aiebu::is_elf_compressed(compressed)) {
     std::cerr << "ELF is not compressed, nothing to do.\n"
               << "  input  : " << input_file << " (" << comp_size << " B)\n";
     // Still write the output so the user gets a usable file
@@ -165,7 +166,7 @@ static int mode_decompress_file(const std::string& input_file,
     return 0;
   }
 
-  auto decompressed = aiebu::aiebu_assembler::decompress_elf(std::move(compressed));
+  auto decompressed = aiebu::decompress_elf(compressed);
 
   std::ofstream out(output_file, std::ios::binary);
   if (!out)
@@ -200,7 +201,7 @@ static int mode_decompress(const std::string& dir,
 
   std::vector<char> decompressed;
   const double t_ms = time_ms([&]{
-    decompressed = aiebu::aiebu_assembler::decompress_elf(std::move(compressed));
+    decompressed = aiebu::decompress_elf(compressed);
   });
 
   std::cout << std::fixed << std::setprecision(2)

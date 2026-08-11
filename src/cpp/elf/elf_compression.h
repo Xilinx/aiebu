@@ -56,22 +56,23 @@ std::unique_ptr<ElfCompressor> make_elf_compressor(
 // ---------------------------------------------------------------------------
 
 // Abstract base: takes (possibly compressed) ELF bytes, returns decompressed ELF bytes.
-// Pass-by-value enables callers to std::move large ELF buffers in — zero copy on input.
+// Takes const& because the decompressor always builds a new output buffer — it never
+// reuses or moves from the input.  The input only needs to stay alive during the call.
 class ElfDecompressor {
 public:
   virtual ~ElfDecompressor() = default;
-  virtual std::vector<char> decompress(std::vector<char> elf_bytes) const = 0;
+  virtual std::vector<char> decompress(const std::vector<char>& elf_bytes) const = 0;
 };
 
 // Decompresses any SHF_COMPRESSED sections found in the ELF.
 // Algorithm is auto-detected per section from ch_type in Elf_Chdr:
 //   ch_type == 2 (ELFCOMPRESS_ZSTD) — decompressed with zstd.
 // Sections without SHF_COMPRESSED are copied unchanged.
-// If no SHF_COMPRESSED sections are found, returns the input buffer via move — no copy.
+// If no SHF_COMPRESSED sections are found, returns a copy of the input.
 // Throws std::runtime_error for corrupt data or unsupported ch_type.
 class AutoElfDecompressor : public ElfDecompressor {
 public:
-  std::vector<char> decompress(std::vector<char> elf_bytes) const override;
+  std::vector<char> decompress(const std::vector<char>& elf_bytes) const override;
 };
 
 // Returns an AutoElfDecompressor. No flags needed — the algorithm is in the ELF.
@@ -79,7 +80,7 @@ std::unique_ptr<ElfDecompressor> make_elf_decompressor();
 
 // Raw section-header scan — no ELFIO, no heap allocation.
 // Returns true if any section in the ELF has SHF_COMPRESSED set.
-// Used by aiebu_assembler::is_elf_compressed() to short-circuit the full ELFIO
+// Used by aiebu::is_elf_compressed() to short-circuit the full ELFIO
 // parse for uncompressed ELFs on the XRT hot path.
 bool is_elf_compressed_impl(const char* data, std::size_t size);
 

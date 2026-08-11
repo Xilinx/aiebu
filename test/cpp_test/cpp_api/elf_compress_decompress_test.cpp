@@ -11,6 +11,7 @@
 //   e.g. elf_compress_decompress_cpp test/cpp_test/aie4/move_ddr_to_memtile test/cpp_test/aie2ps/eff_net_coal
 
 #include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_decompress.h"
 #include "aiebu/aiebu_error.h"
 
 #include <elfio/elfio.hpp>
@@ -290,7 +291,7 @@ static bool test_aie4_roundtrip_zstd(const std::string& dir)
     return false;
   }
 
-  auto decompressed = aiebu::aiebu_assembler::decompress_elf(std::move(compressed));
+  auto decompressed = aiebu::decompress_elf(compressed);
 
   ELFIO::elfio decompressed_elf = load_elf(decompressed);
   if (has_compressed_sections(decompressed_elf)) {
@@ -314,7 +315,7 @@ static bool test_aie4_roundtrip_bare_flag(const std::string& dir)
 {
   auto plain      = assemble_aie4(dir, {});
   auto compressed = assemble_aie4(dir, {"compress"});
-  auto decompressed = aiebu::aiebu_assembler::decompress_elf(std::move(compressed));
+  auto decompressed = aiebu::decompress_elf(compressed);
 
   ELFIO::elfio plain_elf        = load_elf(plain);
   ELFIO::elfio decompressed_elf = load_elf(decompressed);
@@ -340,7 +341,7 @@ static bool test_aie4_roundtrip_levels(const std::string& dir)
 
   for (int lvl : {1, 3, 9, 19}) {
     auto compressed   = assemble_aie4(dir, {"compress=zstd:" + std::to_string(lvl)});
-    auto decompressed = aiebu::aiebu_assembler::decompress_elf(std::move(compressed));
+    auto decompressed = aiebu::decompress_elf(compressed);
 
     ELFIO::elfio decompressed_elf = load_elf(decompressed);
     if (has_compressed_sections(decompressed_elf)) {
@@ -359,13 +360,13 @@ static bool test_aie4_roundtrip_levels(const std::string& dir)
   return true;
 }
 
-// decompress_elf on an already-uncompressed ELF returns it unchanged (move, no copy).
+// decompress_elf on an already-uncompressed ELF returns it unchanged.
 static bool test_aie4_decompress_noop(const std::string& dir)
 {
   auto plain      = assemble_aie4(dir, {});
   auto plain_copy = plain;
 
-  auto result = aiebu::aiebu_assembler::decompress_elf(std::move(plain_copy));
+  auto result = aiebu::decompress_elf(plain_copy);
 
   if (result != plain) {
     std::cerr << "FAIL [aie4_decompress_noop]: result differs from input\n";
@@ -387,7 +388,7 @@ static bool test_aie2ps_roundtrip_zstd(const std::string& dir)
     return false;
   }
 
-  auto decompressed = aiebu::aiebu_assembler::decompress_elf(std::move(compressed));
+  auto decompressed = aiebu::decompress_elf(compressed);
 
   ELFIO::elfio decompressed_elf = load_elf(decompressed);
   if (has_compressed_sections(decompressed_elf)) {
@@ -412,7 +413,7 @@ static bool test_aie2ps_decompress_noop(const std::string& dir)
   auto plain      = assemble_aie2ps(dir, {});
   auto plain_copy = plain;
 
-  auto result = aiebu::aiebu_assembler::decompress_elf(std::move(plain_copy));
+  auto result = aiebu::decompress_elf(plain_copy);
 
   if (result != plain) {
     std::cerr << "FAIL [aie2ps_decompress_noop]: result differs from input\n";

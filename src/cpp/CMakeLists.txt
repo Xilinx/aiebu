@@ -21,6 +21,7 @@ add_library(aiebu_library_objects OBJECT
   common/build_info.cpp
   common/file_utils.cpp
   elf/elf_compression.cpp
+  elf/elf_decompress.cpp
   elf/elfwriter.cpp
   elf/coredump_elfwriter.cpp
   preprocessor/aie2/aie2_blob_preprocessor_input.cpp

@@ -210,42 +210,6 @@ get_elf() const
   return elf_data;
 }
 
-bool
-aiebu_assembler::
-is_elf_compressed(const std::vector<char>& elf_bytes)
-{
-  return is_elf_compressed_impl(elf_bytes.data(), elf_bytes.size());
-}
-
-std::vector<char>
-aiebu_assembler::
-decompress_elf(std::vector<char> elf_bytes)
-{
-  // Fast raw scan — no ELFIO, no allocation — before paying the full parse cost.
-  if (!is_elf_compressed(elf_bytes))
-    return elf_bytes;
-  return make_elf_decompressor()->decompress(std::move(elf_bytes));
-}
-
-std::size_t
-aiebu_assembler::
-get_uncompressed_section_size(
-    const char* section_data, std::size_t section_size,
-    unsigned char elf_class)
-{
-  return get_uncompressed_section_size_impl(section_data, section_size, elf_class);
-}
-
-std::size_t
-aiebu_assembler::
-decompress_section_into(
-    const char* section_data, std::size_t section_size,
-    void* dest, std::size_t dest_size, unsigned char elf_class)
-{
-  return decompress_section_into_impl(
-      section_data, section_size, dest, dest_size, elf_class);
-}
-
 std::optional<aie_coredump_meta>
 aiebu_assembler::
 get_coredump_meta() const

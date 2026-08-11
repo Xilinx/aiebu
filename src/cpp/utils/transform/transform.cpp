@@ -8,7 +8,7 @@
 #include <string>
 #include <iostream>
 
-#include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_decompress.h"
 #include "analyzer/passmanager.h"
 #include "common/file_utils.h"
 #include "common/utils.h"
@@ -90,9 +90,9 @@ int main(int argc, char* argv[])
     return 1;
 
   // Decompress SHF_COMPRESSED sections before loading into ELFIO.
-  // decompress_elf() is a zero-allocation no-op for uncompressed ELFs.
+  // For uncompressed ELFs, decompress_elf() returns a copy unchanged.
   const std::vector<char> elf_buf =
-      aiebu::aiebu_assembler::decompress_elf(aiebu::readfile(result["filename"].as<std::string>()));
+      aiebu::decompress_elf(aiebu::readfile(result["filename"].as<std::string>()));
   boost::interprocess::ibufferstream elf_stream(elf_buf.data(), elf_buf.size());
   ELFIO::elfio ebin;
   if (!ebin.load(elf_stream))

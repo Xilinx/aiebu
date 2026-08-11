@@ -10,7 +10,7 @@
 
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_section.hpp>
-#include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_decompress.h"
 #include "aiebu/aiebu_error.h"
 #include "specification/aie2ps/isa.h"
 #include "ops/ops.h"
@@ -67,13 +67,17 @@ load_elf(const std::vector<char>& elf_data)
   if (elf_data.empty())
     throw error(error::error_code::invalid_input, "Input buffer is empty");
 
-  // Transparently decompress SHF_COMPRESSED sections if present.
-  // decompress_elf() is a zero-allocation no-op for uncompressed ELFs.
-  auto buf = aiebu_assembler::decompress_elf(
-      std::vector<char>(elf_data.begin(), elf_data.end()));
+  // For uncompressed ELFs, load directly from elf_data — no copy needed.
+  // For compressed ELFs, decompress into a temporary buffer first.
+  // decompress_elf() takes const& so no copy of the input is made.
+  std::vector<char> decompressed;
+  const std::vector<char>* load_buf = &elf_data;
+  if (aiebu::is_elf_compressed(elf_data)) {
+    decompressed = aiebu::decompress_elf(elf_data);
+    load_buf = &decompressed;
+  }
 
-  // Create in-memory stream from (possibly decompressed) buffer
-  boost::interprocess::ibufferstream istr(buf.data(), buf.size());
+  boost::interprocess::ibufferstream istr(load_buf->data(), load_buf->size());
 
   if (!m_elfio.load(istr))
     throw error(error::error_code::invalid_input, "Failed to load ELF from buffer\n");
