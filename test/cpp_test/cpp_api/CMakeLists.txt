@@ -174,3 +174,53 @@ add_test(NAME "aiebu_error_duplicate_asm_filename"
 add_test(NAME "aie_coredump_elf_generation"
   COMMAND ${AIE_COREDUMP_TESTNAME}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+################################################################
+# aiebu::elf reader tests (step 1.1 exit criterion)
+#
+# One binary, driven with different ELF files and expected platform
+# names.  Checked-in ELFs cover aie2ps_legacy, aie2ps, and aie4.
+# Assembler-produced ELFs (from aie2ps_cpp / aie4 tests above)
+# cover aie2ps and aie4 with group-format ELFs.
+################################################################
+set(ELF_READER_TESTNAME "elf_reader_cpp")
+add_executable(${ELF_READER_TESTNAME} elf_reader_test.cpp)
+target_link_libraries(${ELF_READER_TESTNAME} PRIVATE aiebu_static)
+target_include_directories(${ELF_READER_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/include)
+if (NOT WIN32)
+  target_link_libraries(${ELF_READER_TESTNAME} PRIVATE pthread)
+endif()
+
+# Checked-in ELFs — always available, no assembler dependency
+add_test(NAME "elf_reader_aie2ps_legacy"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col/multi_uc_6.elf"
+    aie2ps_legacy
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "elf_reader_aie2ps"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/single_col/simple_int8_orig.elf"
+    aie2ps
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "elf_reader_aie4_merged"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/duplicate_filename/filename.elf"
+    aie4
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# Assembler-produced ELFs — depend on the assembler tests having run first
+add_test(NAME "elf_reader_aie2ps_group"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal.elf"
+    aie2ps_legacy
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties("elf_reader_aie2ps_group" PROPERTIES DEPENDS "aie2ps_cpp_eff_net_coal")
+
+add_test(NAME "elf_reader_aie4_group"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${CMAKE_CURRENT_BINARY_DIR}/move_ddr_to_memtile_in_mem.elf"
+    aie2ps_legacy
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties("elf_reader_aie4_group" PROPERTIES DEPENDS "aie4_move_ddr_to_memtile")
