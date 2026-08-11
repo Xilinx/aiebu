@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2019-2021 Xilinx, Inc. All rights reserved.
+# Copyright (C) 2022-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 name: Check File Encoding
 
-on:     
+on:
   pull_request:
 
 jobs:
@@ -18,15 +19,26 @@ jobs:
     - name: Binary Check
       run: |
         URL="https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files"
-        FILES=$(curl -s -X GET -G $URL | jq -r '.[] | .raw_url')
-        for f in ${FILES[*]}; do
-          echo "checking $f ..."
-          #git submodule file is coming as null here, so skip further checks for this type of files
-          if [ $f == null ]; then
-            continue;
+        RESPONSE=$(curl -s -X GET -G $URL)
+
+        echo "$RESPONSE" | jq -r '.[] | "\(.status) \(.filename) \(.raw_url)"' | while read status filename raw_url; do
+          echo "checking $filename (status: $status) ..."
+
+          # Skip null files (git submodule references)
+          if [ "$raw_url" == "null" ]; then
+            echo "  skipping submodule file"
+            continue
           fi
-          if ! $(curl -s -L -I $f | grep "content-type:" | tail -1 | grep -qiE 'text/|image/svg[+]xml'); then
-            echo "$f is not a text file"
+
+          # Skip deleted files - they already existed in the repository
+          if [ "$status" == "removed" ]; then
+            echo "  skipping deleted file (already exists in repository)"
+            continue
+          fi
+
+          # Check if file is a text file
+          if ! $(curl -s -L -I "$raw_url" | grep "content-type:" | tail -1 | grep -qiE 'text/|image/svg[+]xml'); then
+            echo "$filename is not a text file"
             exit 1
           fi
         done
