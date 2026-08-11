@@ -533,6 +533,29 @@ public:
   }
 
   ////////////////////////////////////////////////////////////////
+  // Note section helper
+  ////////////////////////////////////////////////////////////////
+
+  // Read note at note_num from sec and return its descriptor as a span.
+  // The span points into ELFIO-owned memory; valid for the lifetime of m_elfio.
+  // Throws on failure.
+  aiebu::detail::span<const std::byte>
+  get_note(const ELFIO::section* sec, ELFIO::Elf_Word note_num) const
+  {
+    // NOLINTNEXTLINE
+    ELFIO::note_section_accessor acc(m_elfio, const_cast<ELFIO::section*>(sec));
+    ELFIO::Elf_Word type = 0;
+    std::string name;
+    char* desc = nullptr;
+    ELFIO::Elf_Word desc_size = 0;
+    if (!acc.get_note(note_num, type, name, desc, desc_size))
+      throw std::runtime_error("Failed to read note from section: " +
+                               sec->get_name());
+
+    return {reinterpret_cast<const std::byte*>(desc), desc_size};
+  }
+
+  ////////////////////////////////////////////////////////////////
   // Relocation helpers
   ////////////////////////////////////////////////////////////////
 
@@ -1183,20 +1206,12 @@ elf::get_cfg_uuid() const
   if (!sec)
     throw std::runtime_error("ELF is missing .note.xrt.UID section");
 
-  // NOLINTNEXTLINE
-  ELFIO::note_section_accessor acc(m_reader->m_elfio, const_cast<ELFIO::section*>(sec));
-  ELFIO::Elf_Word type = 0;
-  std::string name;
-  char* desc = nullptr;
-  ELFIO::Elf_Word desc_size = 0;
-  if (!acc.get_note(0, type, name, desc, desc_size))
-    throw std::runtime_error("Failed to read UUID note");
-
-  if (desc_size != uuid_size)
-    throw std::runtime_error("UUID note wrong size: " + std::to_string(desc_size));
+  auto data = m_reader->get_note(sec, 0);
+  if (data.size() != uuid_size)
+    throw std::runtime_error("UUID note wrong size: " + std::to_string(data.size()));
 
   std::array<uint8_t, 16> uuid{};
-  std::memcpy(uuid.data(), desc, uuid_size);
+  std::memcpy(uuid.data(), data.data(), uuid_size);
   return uuid;
 }
 
@@ -1207,17 +1222,9 @@ elf::get_partition_size() const
   if (!sec)
     throw std::runtime_error("ELF is missing xrt configuration info");
 
-  // NOLINTNEXTLINE
-  ELFIO::note_section_accessor acc(m_reader->m_elfio, const_cast<ELFIO::section*>(sec));
-  ELFIO::Elf_Word type = 0;
-  std::string name;
-  char* desc = nullptr;
-  ELFIO::Elf_Word desc_size = 0;
-  if (!acc.get_note(0, type, name, desc, desc_size))
-    throw std::runtime_error("Failed to read configuration note");
-
+  auto data = m_reader->get_note(sec, 0);
   uint32_t value = 0;
-  std::memcpy(&value, desc, std::min(static_cast<size_t>(desc_size), sizeof(uint32_t)));
+  std::memcpy(&value, data.data(), std::min(data.size(), sizeof(uint32_t)));
   return value;
 }
 
