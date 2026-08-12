@@ -4,7 +4,7 @@
 #ifndef AIEBU_ELF_H_
 #define AIEBU_ELF_H_
 
-#include "detail/span.h"
+#include "aiebu/detail/span.h"
 
 #include <array>
 #include <cstdint>
