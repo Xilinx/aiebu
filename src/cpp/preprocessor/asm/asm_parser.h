@@ -518,6 +518,13 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::map<int, std::vector<std::string>> m_preempt_hintmaps;  // group -> vector of hintmap_labels (multiple PREEMPT opcodes per group)
   std::map<std::string, std::pair<std::string, std::string>> m_hintmap_labels;  // hintmap_label -> (save_label, restore_label)
   std::set<int> m_preempt_without_hintmap;  // groups that have PREEMPT opcodes without hintmaps
+
+  // One PREEMPT opcode, in the order it appears in a column's control code.
+  struct preempt_point {
+    std::string id;           // PREEMPT id argument as written in the asm
+    std::string hintmap_key;  // "<label_scope>:<hintmap_label>", empty when the opcode has no hintmap
+  };
+  std::map<int, std::vector<preempt_point>> m_preempt_points;  // group -> preemption points in program order
   detail::filename_table m_filename_table;
   // Tracks which filename indices have been interned per column so that duplicate
   // .include detection is scoped per-col rather than globally across the parser.
@@ -553,6 +560,10 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
 
   // Walk column col and update PREEMPT opcode args to reflect shared labels.
   void update_preempt_opcodes(int col);
+
+  // Verify that the scratchpad regions selected by the hint bitmaps of different
+  // controllers are disjoint at every preemption point.
+  void verify_hintmap_no_overlap();
 
   // Inject default (no-hintmap) save/restore asm into column col.
   void inject_default_save_restore(int col, int group_index,

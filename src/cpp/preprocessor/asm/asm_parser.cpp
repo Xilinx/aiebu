@@ -255,11 +255,12 @@ handle_preempt_opcode(std::string& arg_str, std::string& line)
   }
 
   std::pair<std::string, std::string> labels;
+  std::string qualified_key = "";
   if (!hintmap_label.empty()) {
     // Qualify the hintmap key with its label scope so that the same label
     // name in different scopes (e.g. "default" vs "default:pdi") is treated
     // as a distinct hintmap.
-    std::string qualified_key = m_current_label + ":" + hintmap_label;
+    qualified_key = m_current_label + ":" + hintmap_label;
     // Get unique save/restore labels for this hintmap BEFORE adding to vector
     // (so the index calculation is correct)
     labels = get_hintmap_save_restore_labels(hintmap_label, current_group);
@@ -271,6 +272,8 @@ handle_preempt_opcode(std::string& arg_str, std::string& line)
     m_preempt_without_hintmap.insert(current_group);
     labels = m_preempt_labels[current_group];
   }
+
+  m_preempt_points[current_group].push_back({first_arg, qualified_key});
 
   if (!hintmap_label.empty())
     arg_str = first_arg + ", @" + labels.first + ", @" + labels.second + ", @" + hintmap_label;
@@ -990,6 +993,20 @@ patch_membd_in_asm(std::string& text, const std::string& label,
 }
 
 // ---------------------------------------------------------------------------
+// split_qualified_hintmap
+//   Split "label_context:hintmap_name" into {context, name}.  The context
+//   itself can contain ':' (e.g. "default:pdi"), so the last ':' separates.
+// ---------------------------------------------------------------------------
+static std::pair<std::string, std::string>
+split_qualified_hintmap(const std::string& qualified_key)
+{
+  const auto sep = qualified_key.rfind(':');
+  if (sep == std::string::npos)
+    return {"", qualified_key};  // no context prefix (shouldn't happen)
+  return {qualified_key.substr(0, sep), qualified_key.substr(sep + 1)};
+}
+
+// ---------------------------------------------------------------------------
 // build_hintmap_groups
 //   First pass: group hintmaps by (scratchbase, size) and assign unique labels.
 // ---------------------------------------------------------------------------
@@ -1004,16 +1021,7 @@ asm_parser::build_hintmap_groups(int group,
   int unique_idx = 0;
 
   for (const auto& qualified_key : hintmap_labels) {
-    // Split "label_context:hintmap_name" on the last ':'.
-    // The context itself can contain ':' (e.g. "default:pdi"), so rfind is correct.
-    std::string ctx, label_name;
-    const auto sep = qualified_key.rfind(':');
-    if (sep != std::string::npos) {
-      ctx        = qualified_key.substr(0, sep);
-      label_name = qualified_key.substr(sep + 1);
-    } else {
-      label_name = qualified_key;  // no context prefix (shouldn't happen)
-    }
+    auto [ctx, label_name] = split_qualified_hintmap(qualified_key);
 
     auto [scratchbase, size] = parse_hintmap_and_calculate_scratchpad(group, ctx, label_name);
     auto key = std::make_pair(scratchbase, size);
@@ -1352,6 +1360,85 @@ asm_parser::process_preempt_group(int group,
 }
 
 // ---------------------------------------------------------------------------
+// verify_hintmap_no_overlap
+//   In multi-uC mode every controller saves into the same partition wide
+//   preemption scratchpad and cert synchronizes the controllers at every
+//   preemption point, so the regions two controllers write at the same
+//   preemption point must be disjoint.  All columns have the same number of
+//   preemption points (checked earlier), hence the n-th PREEMPT opcode of every
+//   column belongs to the same preemption point.  A PREEMPT opcode with no
+//   hintmap saves the entire 3MB of its own column.
+// ---------------------------------------------------------------------------
+void
+asm_parser::
+verify_hintmap_no_overlap()
+{
+  struct region {
+    uint64_t    base;
+    uint64_t    size;
+    std::string id;       // preemption point id as written in the asm
+    std::string hintmap;  // qualified hintmap name, empty when the opcode has none
+  };
+
+  // For every column: the region it writes at each of its preemption points,
+  // in program order.  m_preempt_points is ordered by column.
+  std::vector<std::pair<int, std::vector<region>>> col_regions;
+  std::size_t num_points = 0;
+  for (const auto& [col, points] : m_preempt_points) {
+    std::vector<region> regions;
+    regions.reserve(points.size());
+    for (const auto& point : points) {
+      auto [ctx, label] = split_qualified_hintmap(point.hintmap_key);
+      auto [base, size] = parse_hintmap_and_calculate_scratchpad(col, ctx, label);
+      regions.push_back({base, size, point.id, point.hintmap_key});
+    }
+    if (regions.size() > num_points)
+      num_points = regions.size();
+    col_regions.emplace_back(col, std::move(regions));
+  }
+
+  auto describe = [](const region& reg) {
+    std::ostringstream oss;
+    oss << "[0x" << std::hex << reg.base << ", 0x" << (reg.base + reg.size) << ")" << std::dec;
+    if (reg.hintmap.empty())
+      oss << " (no hintmap: whole column memtile)";
+    else
+      oss << " (hintmap '" << reg.hintmap << "')";
+    return oss.str();
+  };
+
+  for (std::size_t idx = 0; idx < num_points; ++idx) {
+    for (std::size_t a = 0; a < col_regions.size(); ++a) {
+      if (idx >= col_regions[a].second.size())
+        continue;
+      const auto& ra = col_regions[a].second[idx];
+      if (ra.size == 0)
+        continue;  // nothing is saved, so nothing can clash
+
+      for (std::size_t b = a + 1; b < col_regions.size(); ++b) {
+        if (idx >= col_regions[b].second.size())
+          continue;
+        const auto& rb = col_regions[b].second[idx];
+        if (rb.size == 0)
+          continue;
+
+        if (ra.base < rb.base + rb.size && rb.base < ra.base + ra.size) {
+          std::ostringstream oss;
+          oss << "hint bitmap overlap at preemption point " << idx
+              << ": controller " << col_regions[a].first
+              << " (id " << ra.id << ") saves " << describe(ra)
+              << " and controller " << col_regions[b].first
+              << " (id " << rb.id << ") saves " << describe(rb)
+              << "; hint bitmaps of different controllers must not overlap at the same"
+                 " preemption point\n";
+          throw error(error::error_code::invalid_asm, oss.str());
+        }
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // finalize_preempt
 // ---------------------------------------------------------------------------
 void
@@ -1362,6 +1449,9 @@ finalize_preempt()
     return;
 
   if (is_multi_column_mode()) {
+    // Reject clashing save regions before any save/restore code is injected.
+    verify_hintmap_no_overlap();
+
     for (const auto& [group, labels] : m_preempt_labels) {
       auto [save_data, restore_data] = get_preempt_save_restore(10 + group);
       auto [save_bd, restore_bd] = get_preempt_save_restore_shimbd(10 + group);
