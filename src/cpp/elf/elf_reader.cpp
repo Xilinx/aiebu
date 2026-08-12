@@ -2,7 +2,7 @@
 // Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #include "aiebu/elf.h"
-#include "detail/span.h"
+#include "aiebu/detail/span.h"
 #include "elf/aie_elf_constants.h"
 
 #include "elfio/elfio.hpp"
