@@ -12,7 +12,7 @@
 namespace aiebu {
 
 // Abstract base: takes raw ELF bytes, returns (possibly compressed) ELF bytes.
-// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions,hicpp-special-member-functions)
 class ElfCompressor {
 public:
   virtual ~ElfCompressor() = default;
@@ -59,7 +59,7 @@ std::unique_ptr<ElfCompressor> make_elf_compressor(
 // Abstract base: takes (possibly compressed) ELF bytes, returns decompressed ELF bytes.
 // Takes const& because the decompressor always builds a new output buffer — it never
 // reuses or moves from the input.  The input only needs to stay alive during the call.
-// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions,hicpp-special-member-functions)
 class ElfDecompressor {
 public:
   virtual ~ElfDecompressor() = default;
