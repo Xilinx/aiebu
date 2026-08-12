@@ -8,7 +8,7 @@ find_package(AIEBU REQUIRED)
 
 message("-- aiebu version: ${AIEBU_VERSION}")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 if (MSVC)
   add_compile_options(/WX /W2)
