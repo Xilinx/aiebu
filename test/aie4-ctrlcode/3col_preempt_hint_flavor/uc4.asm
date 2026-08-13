@@ -29,7 +29,7 @@ START_JOB 6
 	NOP
 END_JOB
 START_JOB 7
-; PREEMPT 3: cross-column — col2 bits 80-95 (last 16 of memtile 1_1; 1-based col1)
+; PREEMPT 3: cross-column — col1 bits 80-95 (last 16 of memtile 1_1; 1-based col1)
 	PREEMPT 3, @save, @restore , @hintmap_3
 END_JOB
 START_JOB 8
@@ -43,7 +43,7 @@ START_JOB 10
 	NOP
 END_JOB
 START_JOB 11
-; PREEMPT 5: cross-column — col1 bits 32-47 (last 16 of memtile 0_1; 1-based col0)
+; PREEMPT 5: cross-column — col0 bits 32-47 (last 16 of memtile 0_1; 1-based col0)
 	PREEMPT 5, @save, @restore , @hintmap_5
 END_JOB
 START_JOB 12
