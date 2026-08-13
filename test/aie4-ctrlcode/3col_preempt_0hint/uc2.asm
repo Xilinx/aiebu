@@ -32,4 +32,5 @@ EOF
 hintmap_0:
 	.long 0x00000000
 hintmap_1:
-	.long 0x0000000f
+	.long 0x00000000
+	.long 0x000f0000
