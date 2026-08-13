@@ -391,7 +391,7 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
   const std::string& section_name = sec->get_name();
 
   // If the section is compressed (SHF_COMPRESSED), decompress only this one section
-  // into a local buffer via aiebu::copy_section_data(). All other sections
+  // into a local buffer via aiebu::copy_section_uncompressed_data(). All other sections
   // (.symtab, .strtab, .dump.*) are never compressed and are read directly from ELFIO.
   std::vector<char> decompressed_section_buf;
   const char* section_data = sec->get_data();
@@ -400,10 +400,10 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
   try {
     if (sec->get_flags() & ELFIO::SHF_COMPRESSED) {
       // Section is compressed — decompress into local buffer
-      const std::size_t data_size = aiebu::get_section_data_size(sec, m_elf);
+      const std::size_t data_size = aiebu::get_section_uncompressed_size(sec, m_elf);
       decompressed_section_buf.resize(data_size);
-      aiebu::copy_section_data(sec, m_elf,
-                               decompressed_section_buf.data(), data_size);
+      aiebu::copy_section_uncompressed_data(sec, m_elf,
+                                            decompressed_section_buf.data(), data_size);
       section_data = decompressed_section_buf.data();
       sec_size     = data_size;
     }

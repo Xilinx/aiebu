@@ -58,24 +58,26 @@ decompress_elf(const std::vector<char>& elf_bytes);
 //
 // These APIs abstract away compression details.  Callers pass ELFIO objects
 // and aiebu determines internally whether decompression is needed.
+// The "uncompressed" in the names communicates that the returned size /
+// copied data may differ from the raw ELF section size.
 // ---------------------------------------------------------------------------
 
 /*
- * Returns the usable data size of a section.
+ * Returns the uncompressed data size of a section.
  *
  * If the section is SHF_COMPRESSED, returns the uncompressed size from the
  * Elf_Chdr header.  If not compressed, returns the raw section size.
  *
  * @sec:  Pointer to the ELFIO section (nullptr returns 0).
  * @elf:  ELFIO object that owns the section (used for elf_class).
- * @return: Effective data size in bytes.
+ * @return: Uncompressed data size in bytes.
  * @throws: std::runtime_error if SHF_COMPRESSED section has invalid Chdr.
  */
 std::size_t
-get_section_data_size(const ELFIO::section* sec, const ELFIO::elfio& elf);
+get_section_uncompressed_size(const ELFIO::section* sec, const ELFIO::elfio& elf);
 
 /*
- * Copies section data into a caller-provided buffer.
+ * Copies uncompressed section data into a caller-provided buffer.
  *
  * If the section is SHF_COMPRESSED, decompresses directly into dest.
  * If not compressed, memcpy's the raw section data.
@@ -83,14 +85,14 @@ get_section_data_size(const ELFIO::section* sec, const ELFIO::elfio& elf);
  * @sec:       Pointer to the ELFIO section (nullptr returns 0).
  * @elf:       ELFIO object that owns the section (used for elf_class).
  * @dest:      Output buffer to receive section data.
- * @dest_size: Size of the output buffer (must be >= get_section_data_size()).
+ * @dest_size: Size of the output buffer (must be >= get_section_uncompressed_size()).
  * @return:    Number of bytes written to dest.
  * @throws:    std::runtime_error on corrupt data, unsupported ch_type,
  *             or dest_size too small.
  */
 std::size_t
-copy_section_data(const ELFIO::section* sec, const ELFIO::elfio& elf,
-                  void* dest, std::size_t dest_size);
+copy_section_uncompressed_data(const ELFIO::section* sec, const ELFIO::elfio& elf,
+                               void* dest, std::size_t dest_size);
 
 } // namespace aiebu
 

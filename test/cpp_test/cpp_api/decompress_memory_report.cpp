@@ -8,7 +8,7 @@
 //
 // Memory baseline model mirrors the XRT runtime code path:
 //   XRT loads the compressed ELF (from xclbin) into memory, then calls
-//   get_section_data_size() + copy_section_data() to decompress each section
+//   get_section_uncompressed_size() + copy_section_uncompressed_data() to decompress each section
 //   directly into the destination BO buffer — one section at a time.
 //   It never constructs a full decompressed ELF as an intermediate buffer.
 //
@@ -20,8 +20,8 @@
 //
 // Exercises the per-section APIs from aiebu_decompress.h:
 //   is_elf_compressed()      — verify the input is actually compressed
-//   get_section_data_size()  — per-section uncompressed size via Elf_Chdr
-//   copy_section_data()      — per-section decompression into caller buffer
+//   get_section_uncompressed_size()  — per-section uncompressed size via Elf_Chdr
+//   copy_section_uncompressed_data()      — per-section decompression into caller buffer
 //
 // Usage:
 //   decompress_memory_report <compressed.elf>
@@ -116,11 +116,11 @@ int main(int argc, char** argv)
         continue;
 
       const std::size_t stored_sz = sec->get_size(); // sizeof(Chdr) + compressed payload
-      const std::size_t data_sz   = aiebu::get_section_data_size(sec.get(), elf);
+      const std::size_t data_sz   = aiebu::get_section_uncompressed_size(sec.get(), elf);
 
       std::vector<char> buf(data_sz);
       const double sec_ms = time_ms([&]{
-        static_cast<void>(aiebu::copy_section_data(sec.get(), elf, buf.data(), buf.size()));
+        static_cast<void>(aiebu::copy_section_uncompressed_data(sec.get(), elf, buf.data(), buf.size()));
       });
 
       total_stored  += stored_sz;

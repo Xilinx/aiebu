@@ -36,7 +36,7 @@ decompress_elf(const std::vector<char>& elf_bytes)
 // ---------------------------------------------------------------------------
 
 std::size_t
-get_section_data_size(const ELFIO::section* sec, const ELFIO::elfio& elf)
+get_section_uncompressed_size(const ELFIO::section* sec, const ELFIO::elfio& elf)
 {
   if (!sec)
     return 0;
@@ -55,8 +55,8 @@ get_section_data_size(const ELFIO::section* sec, const ELFIO::elfio& elf)
 }
 
 std::size_t
-copy_section_data(const ELFIO::section* sec, const ELFIO::elfio& elf,
-                  void* dest, std::size_t dest_size)
+copy_section_uncompressed_data(const ELFIO::section* sec, const ELFIO::elfio& elf,
+                               void* dest, std::size_t dest_size)
 {
   if (!sec || sec->get_size() == 0)
     return 0;
