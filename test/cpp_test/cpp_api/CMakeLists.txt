@@ -210,6 +210,29 @@ add_test(NAME "elf_reader_aie4_merged"
     aie4
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
+# aie2p fixture — exercises the aie2p-only guards in elf_reader_test.cpp:
+#   test_has_pdi_value()        (F1: has_pdi() is section-based, drives ERT opcode)
+#   test_pdi_symbols_crosscheck (F2: get_pdi_symbols() == PDI patch points)
+# The 4th argument "pdi"/"nopdi" asserts the expected has_pdi() value.
+#
+# The test/aie2-ctrlcode/* tests assemble aie2p ELFs (aiebu-asm -t aie2txn/aie2asm
+# -> elf_aie2 -> osabi_aie2p 0x45).  "basic" produces basic.elf via the
+# "aie2_basic_txn" test.  That ELF has no .pdi section, so expect "nopdi";
+# this fully exercises F2 and the false branch of F1.  To also guard the F1
+# true branch (.pdi present but no relocation), supply a PDI-bearing aie2p ELF
+# and pass "pdi".
+#
+# NOTE: aie2_basic_txn writes basic.elf into ITS OWN binary dir
+# (test/aie2-ctrlcode/basic), not this one.  Reference it by absolute build
+# path and add the DEPENDS below when enabling.  Adjust if the fixture moves.
+# add_test(NAME "elf_reader_aie2p"
+#   COMMAND ${ELF_READER_TESTNAME}
+#     "${CMAKE_BINARY_DIR}/test/aie2-ctrlcode/basic/basic.elf"
+#     aie2p
+#     nopdi
+#   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+# set_tests_properties("elf_reader_aie2p" PROPERTIES DEPENDS "aie2_basic_txn")
+
 # Assembler-produced ELFs — depend on the assembler tests having run first
 add_test(NAME "elf_reader_aie2ps_group"
   COMMAND ${ELF_READER_TESTNAME}

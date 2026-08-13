@@ -13,6 +13,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -257,6 +258,12 @@ public:
 
   // ---- AIE gen2 PDI / preemption ctrl-pkt buffers ----
 
+  // Set of PDI symbol names that need patching for a given ctrl-code-id.
+  // O(1) lookup into the pre-computed m_ctrl_pdi_map.  Returns empty set
+  // when the ctrl-code-id has no PDI relocations.
+  const std::unordered_set<std::string>&
+  get_pdi_symbols(uint32_t ctrl_code_id) const;
+
   size_t get_pdi_size(const std::string& symbol_name) const;
   void   copy_pdi(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const;
 
@@ -291,9 +298,16 @@ public:
 
   // Returns all patch points grouped by ctrl-code-id.
   // The key string encodes arg_name + buf_type (see elf_patcher::generate_key_string).
+  // Returned by const reference — no copy; valid until clear_patch_points() is called.
   // Transitional: will be removed when patching moves to AIEBU.
-  std::map<uint32_t, std::map<std::string, std::vector<patch_point>>>
+  const std::map<uint32_t, std::map<std::string, std::vector<patch_point>>>&
   get_patch_points() const;
+
+  // Release the patch-point map after the single XRT consumer (create_arg2patcher)
+  // has translated it into m_arg2patcher.  Calling get_patch_points() after this
+  // returns an empty map.
+  void
+  clear_patch_points();
 
 private:
   std::unique_ptr<elf_reader> m_reader;
