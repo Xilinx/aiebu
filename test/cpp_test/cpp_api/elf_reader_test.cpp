@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026, Advanced Micro Devices, Inc. All rights reserved.
 //
-// Test harness for aiebu::elf (step 1.1 exit criterion).
+// Test harness for aiebu::elf (step 1.1 and step 1.2 exit criteria).
 //
 // Usage:
-//   elf_reader_test <elf-file> [expected-platform]
+//   elf_reader_test <elf-file> [expected-platform] [expected-has-pdi]
 //
 // expected-platform is one of: aie2p aie2ps aie2ps_legacy aie4 aie4a aie4z
 // If omitted, platform detection is still exercised but not checked.
+//
+// expected-has-pdi is "pdi" or "nopdi" (aie2p only): asserts the value
+// returned by has_pdi().  If omitted, has_pdi() value is not checked.
 //
 // The test calls every public getter on aiebu::elf and verifies
 // internal consistency of the results.  It does not require golden
@@ -19,6 +22,8 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <map>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -269,7 +274,8 @@ test_patch_points(const aiebu::elf& e)
 {
   std::cout << "\n-- Patch points --\n";
 
-  auto pp = e.get_patch_points();
+  // Bind to const& — get_patch_points() returns a reference, not a copy.
+  const auto& pp = e.get_patch_points();
   size_t total = 0;
   for (const auto& [gid, key_map] : pp)
     for (const auto& [key, pts] : key_map)
@@ -286,6 +292,224 @@ test_patch_points(const aiebu::elf& e)
       ++bad;
 
   check(bad == 0, "patch-point group ids all appear in g2s");
+}
+
+static void
+test_clear_patch_points(const std::string& path)
+{
+  std::cout << "\n-- clear_patch_points --\n";
+
+  // Construct a fresh elf so clearing does not affect the shared instance.
+  aiebu::elf e(path);
+  const auto& pp_before = e.get_patch_points();
+  std::cout << "  patch points before clear: " << pp_before.size() << " groups\n";
+
+  e.clear_patch_points();
+  check(e.get_patch_points().empty(), "get_patch_points() empty after clear_patch_points()");
+}
+
+static void
+test_section_name(const aiebu::elf& e)
+{
+  std::cout << "\n-- get_section_name --\n";
+
+  auto g2s = e.get_group_to_sections_map();
+  size_t tested = 0;
+  for (const auto& [gid, sec_ids] : g2s) {
+    for (auto idx : sec_ids) {
+      // Index 0 is the reserved SHT_NULL section; it has an empty name by ELF
+      // spec.  Legacy ELFs place every section (including null) in the group
+      // map, so skip it here.
+      if (idx == 0)
+        continue;
+
+      auto name = e.get_section_name(idx);
+      // Every named section in the group map must have a non-empty name.
+      check(!name.empty(), "get_section_name(" + std::to_string(idx) + ") non-empty");
+      ++tested;
+      if (tested >= 3)
+        break; // spot-check a few; no need to iterate every section
+    }
+    if (tested >= 3)
+      break;
+  }
+
+  // Out-of-range index must return empty string, not throw.
+  check(e.get_section_name(UINT32_MAX).empty(),
+        "get_section_name(UINT32_MAX) returns empty for invalid index");
+}
+
+static void
+test_buffer_accessors(const aiebu::elf& e)
+{
+  std::cout << "\n-- Buffer size+copy accessors --\n";
+
+  auto g2s   = e.get_group_to_sections_map();
+  auto kernels = e.get_kernels();
+  if (g2s.empty()) {
+    std::cout << "  (no ctrl-code groups — skipping buffer accessor tests)\n";
+    return;
+  }
+
+  // Use the first ctrl-code-id available.
+  uint32_t id = g2s.begin()->first;
+  std::cout << "  testing ctrl-code-id: " << id << "\n";
+
+  auto p = e.get_platform();
+  bool is_gen2 = (p == aiebu::elf::platform::aie2p);
+
+  if (is_gen2) {
+    // AIE gen2 — instruction / preemption buffers
+    CHECK_NOTHROW(e.has_pdi(),        "has_pdi() does not throw");
+    CHECK_NOTHROW(e.has_preemption(), "has_preemption() does not throw");
+
+    auto instr_sz = e.get_instr_buf_size(id);
+    std::cout << "  get_instr_buf_size: " << instr_sz << "\n";
+    check(true, "get_instr_buf_size() does not throw");
+
+    if (instr_sz > 0) {
+      std::vector<std::byte> buf(instr_sz);
+      CHECK_NOTHROW(e.copy_instr_buf(id, {buf.data(), buf.size()}),
+                    "copy_instr_buf() does not throw");
+    }
+
+    auto ctrl_sz = e.get_ctrl_packet_size(id);
+    std::cout << "  get_ctrl_packet_size: " << ctrl_sz << "\n";
+    check(true, "get_ctrl_packet_size() does not throw");
+
+    auto save_sz    = e.get_preempt_save_size(id);
+    auto restore_sz = e.get_preempt_restore_size(id);
+    std::cout << "  get_preempt_save_size: " << save_sz << "\n";
+    std::cout << "  get_preempt_restore_size: " << restore_sz << "\n";
+    check(true, "get_preempt_save_size() does not throw");
+    check(true, "get_preempt_restore_size() does not throw");
+
+    // PDI symbol set — O(1) lookup
+    const auto& pdi_syms = e.get_pdi_symbols(id);
+    std::cout << "  get_pdi_symbols() count: " << pdi_syms.size() << "\n";
+    check(true, "get_pdi_symbols() does not throw");
+
+    // Non-existent ctrl-code-id must return empty set, not throw
+    const auto& empty_syms = e.get_pdi_symbols(UINT32_MAX - 1);
+    check(empty_syms.empty(), "get_pdi_symbols() returns empty for unknown ctrl-code-id");
+  }
+  else {
+    // AIE gen2plus — column ctrl-code buffers
+    auto ncols = e.get_column_count(id);
+    std::cout << "  get_column_count: " << ncols << "\n";
+    check(true, "get_column_count() does not throw");
+
+    for (uint32_t col = 0; col < ncols; ++col) {
+      auto sz = e.get_ctrlcode_size(id, col);
+      std::cout << "  get_ctrlcode_size(col=" << col << "): " << sz << "\n";
+      check(true, "get_ctrlcode_size() does not throw");
+
+      if (sz > 0) {
+        std::vector<std::byte> buf(sz);
+        CHECK_NOTHROW(e.copy_ctrlcode(id, col, {buf.data(), buf.size()}),
+                      "copy_ctrlcode(col=" + std::to_string(col) + ") does not throw");
+      }
+    }
+
+    // ctrlpkt sections
+    auto names = e.get_ctrlpkt_section_names(id);
+    std::cout << "  get_ctrlpkt_section_names() count: " << names.size() << "\n";
+    check(true, "get_ctrlpkt_section_names() does not throw");
+
+    for (const auto& name : names) {
+      auto sz = e.get_ctrlpkt_size(id, name);
+      check(sz > 0, "get_ctrlpkt_size(" + name + ") > 0");
+
+      std::vector<std::byte> buf(sz);
+      CHECK_NOTHROW(e.copy_ctrlpkt(id, name, {buf.data(), buf.size()}),
+                    "copy_ctrlpkt(" + name + ") does not throw");
+    }
+
+    // dump buffer
+    auto dump_sz = e.get_dump_buf_size(id);
+    std::cout << "  get_dump_buf_size: " << dump_sz << "\n";
+    check(true, "get_dump_buf_size() does not throw");
+
+    if (dump_sz > 0) {
+      std::vector<std::byte> buf(dump_sz);
+      CHECK_NOTHROW(e.copy_dump_buf(id, {buf.data(), buf.size()}),
+                    "copy_dump_buf() does not throw");
+    }
+
+    // gen2 methods must throw on gen2plus
+    CHECK_THROWS(e.has_pdi(),        "has_pdi() throws on gen2plus");
+    CHECK_THROWS(e.has_preemption(), "has_preemption() throws on gen2plus");
+    CHECK_THROWS(e.get_pdi_symbols(id), "get_pdi_symbols() throws on gen2plus");
+  }
+}
+
+// F1 regression guard: has_pdi() must be section-based, not relocation-based.
+// The value drives ERT opcode selection (ERT_START_NPU_PREEMPT_ELF), so an
+// ELF with a .pdi section but no PDI relocation must still report has_pdi()==true.
+// Only meaningful on aie2p; has_pdi() throws on gen2plus (covered elsewhere).
+static void
+test_has_pdi_value(const aiebu::elf& e, const std::string& expected)
+{
+  std::cout << "\n-- has_pdi() value --\n";
+
+  if (e.get_platform() != aiebu::elf::platform::aie2p) {
+    std::cout << "  (non-aie2p — has_pdi() value not applicable)\n";
+    return;
+  }
+
+  bool actual = e.has_pdi();
+  std::cout << "  has_pdi(): " << (actual ? "true" : "false") << "\n";
+
+  if (expected.empty()) {
+    std::cout << "  (no expected-has-pdi argument — value not asserted)\n";
+    return;
+  }
+
+  bool want = (expected == "pdi");
+  check(actual == want, "has_pdi() == " + expected);
+}
+
+// F2 correctness guard: get_pdi_symbols(id) is the O(1) accessor that replaced
+// the old scan of get_patch_points() filtered by target_buf==pdi.  Cross-check
+// that the fast accessor yields exactly the same set as the patch-point scan,
+// so the two derivations of "which symbols are PDI" cannot silently diverge.
+static void
+test_pdi_symbols_crosscheck(const aiebu::elf& e)
+{
+  std::cout << "\n-- get_pdi_symbols() cross-check vs patch points --\n";
+
+  if (e.get_platform() != aiebu::elf::platform::aie2p) {
+    std::cout << "  (non-aie2p — get_pdi_symbols() not applicable)\n";
+    return;
+  }
+
+  // Reference set: every patch_point across all groups whose target is a PDI
+  // buffer, grouped by ctrl-code-id, keyed on arg_name (the dynamic symbol).
+  const auto& pp = e.get_patch_points();
+  std::map<uint32_t, std::set<std::string>> expected;
+  for (const auto& [gid, key_map] : pp)
+    for (const auto& [key, pts] : key_map)
+      for (const auto& p : pts)
+        if (p.target_buf == aiebu::elf::buf_type::pdi)
+          expected[gid].insert(p.arg_name);
+
+  // Compare accessor output to the reference for each group that has PDI syms.
+  for (const auto& [gid, want] : expected) {
+    const auto& got_us = e.get_pdi_symbols(gid);
+    std::set<std::string> got(got_us.begin(), got_us.end());
+    check(got == want,
+          "get_pdi_symbols(" + std::to_string(gid) + ") matches PDI patch points");
+  }
+
+  // Groups with no PDI patch points must yield an empty accessor result.
+  for (const auto& [gid, key_map] : pp) {
+    (void) key_map;
+    if (expected.count(gid))
+      continue;
+
+    check(e.get_pdi_symbols(gid).empty(),
+          "get_pdi_symbols(" + std::to_string(gid) + ") empty when no PDI patch points");
+  }
 }
 
 static void
@@ -340,14 +564,16 @@ test_pdi_and_ctrlpkt_pm(const aiebu::elf& e)
 int
 run(int argc, char** argv)
 {
-    if (argc < 2 || argc > 3) {
-    std::cerr << "Usage: elf_reader_test <elf-file> [expected-platform]\n"
-              << "  expected-platform: aie2p aie2ps aie2ps_legacy aie4 aie4a aie4z\n";
+    if (argc < 2 || argc > 4) {
+    std::cerr << "Usage: elf_reader_test <elf-file> [expected-platform] [expected-has-pdi]\n"
+              << "  expected-platform: aie2p aie2ps aie2ps_legacy aie4 aie4a aie4z\n"
+              << "  expected-has-pdi:  pdi | nopdi  (aie2p only)\n";
     return 2;
   }
 
   std::string path = argv[1];
-  std::string expected_platform = (argc == 3) ? argv[2] : "";
+  std::string expected_platform = (argc >= 3) ? argv[2] : "";
+  std::string expected_has_pdi  = (argc >= 4) ? argv[3] : "";
 
   std::cout << "=== elf_reader_test: " << path << " ===\n";
 
@@ -358,6 +584,12 @@ run(int argc, char** argv)
       std::cerr << e.what() << "\n";
       return 2;
     }
+  }
+
+  // Validate expected-has-pdi spelling early
+  if (!expected_has_pdi.empty() && expected_has_pdi != "pdi" && expected_has_pdi != "nopdi") {
+    std::cerr << "expected-has-pdi must be 'pdi' or 'nopdi', got: " << expected_has_pdi << "\n";
+    return 2;
   }
 
   // Construction from filename
@@ -388,10 +620,15 @@ run(int argc, char** argv)
   test_metadata(e);
   test_kernels(e);
   test_section_access(e);
+  test_section_name(e);
   test_group_maps(e);
   test_ctrlcode_id(e);
   test_patch_points(e);
+  test_pdi_symbols_crosscheck(e);
+  test_has_pdi_value(e, expected_has_pdi);
+  test_clear_patch_points(path);
   test_pdi_and_ctrlpkt_pm(e);
+  test_buffer_accessors(e);
 
   std::cout << "\n=== Result: " << g_passed << " passed, "
             << g_failed << " failed ===\n";

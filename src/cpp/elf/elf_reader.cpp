@@ -425,6 +425,10 @@ public:
   has_pdi() const
   { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
 
+  virtual const std::unordered_set<std::string>&
+  get_pdi_symbols(uint32_t) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
   // AIE gen2 — PDI buffers (keyed by symbol name)
   virtual size_t
   get_pdi_size(const std::string&) const
@@ -864,7 +868,15 @@ public:
   has_preemption() const override { return m_preemption_exist; }
 
   bool
-  has_pdi() const override { return !m_ctrl_pdi_map.empty(); }
+  has_pdi() const override { return !m_pdi_buf_map.empty(); }
+
+  const std::unordered_set<std::string>&
+  get_pdi_symbols(uint32_t ctrl_code_id) const override
+  {
+    static const std::unordered_set<std::string> empty;
+    auto it = m_ctrl_pdi_map.find(ctrl_code_id);
+    return (it != m_ctrl_pdi_map.end()) ? it->second : empty;
+  }
 
   size_t
   get_pdi_size(const std::string& sym) const override
@@ -1653,6 +1665,10 @@ bool
 elf::has_pdi() const
 { return m_reader->has_pdi(); }
 
+const std::unordered_set<std::string>&
+elf::get_pdi_symbols(uint32_t ctrl_code_id) const
+{ return m_reader->get_pdi_symbols(ctrl_code_id); }
+
 size_t
 elf::get_ctrl_scratch_pad_mem_size() const
 { return m_reader->get_ctrl_scratch_pad_mem_size(); }
@@ -1689,8 +1705,17 @@ void
 elf::copy_dump_buf(uint32_t id, aiebu::detail::span<std::byte> d) const
 { m_reader->copy_dump_buf(id, d); }
 
-std::map<uint32_t, std::map<std::string, std::vector<elf::patch_point>>>
+const std::map<uint32_t, std::map<std::string, std::vector<elf::patch_point>>>&
 elf::get_patch_points() const { return m_reader->m_patch_points; }
+
+void
+elf::clear_patch_points()
+{
+  // Free the patch-point map once XRT has translated it into m_arg2patcher.
+  // This eliminates the steady-state memory duplication between m_patch_points
+  // and m_arg2patcher that would otherwise persist for the ELF's lifetime.
+  m_reader->m_patch_points.clear();
+}
 
 const ELFIO::elfio&
 elf::get_elfio() const
