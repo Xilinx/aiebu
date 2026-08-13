@@ -255,11 +255,12 @@ handle_preempt_opcode(std::string& arg_str, std::string& line)
   }
 
   std::pair<std::string, std::string> labels;
+  std::string qualified_key = "";
   if (!hintmap_label.empty()) {
     // Qualify the hintmap key with its label scope so that the same label
     // name in different scopes (e.g. "default" vs "default:pdi") is treated
     // as a distinct hintmap.
-    std::string qualified_key = m_current_label + ":" + hintmap_label;
+    qualified_key = m_current_label + ":" + hintmap_label;
     // Get unique save/restore labels for this hintmap BEFORE adding to vector
     // (so the index calculation is correct)
     labels = get_hintmap_save_restore_labels(hintmap_label, current_group);
@@ -271,6 +272,8 @@ handle_preempt_opcode(std::string& arg_str, std::string& line)
     m_preempt_without_hintmap.insert(current_group);
     labels = m_preempt_labels[current_group];
   }
+
+  m_preempt_points[current_group].push_back({first_arg, qualified_key});
 
   if (!hintmap_label.empty())
     arg_str = first_arg + ", @" + labels.first + ", @" + labels.second + ", @" + hintmap_label;
@@ -670,9 +673,13 @@ parse_hintmap_and_calculate_scratchpad(int group,
 {
   constexpr uint64_t DEFAULT_SIZE = 9ULL * 1024ULL * 1024ULL;
   constexpr uint64_t DEFAULT_BASE = 0x0ULL;
+  constexpr uint64_t DEFAULT_SIZE_PER_COL = 3ULL * 1024ULL * 1024ULL;
 
-  if (hintmap_label.empty())
+  if (hintmap_label.empty()) {
+    if (is_multi_column_mode())
+      return {DEFAULT_SIZE_PER_COL*group/2, DEFAULT_SIZE_PER_COL};
     return {DEFAULT_BASE, DEFAULT_SIZE};
+  }
 
   const std::string ctx     = find_hintmap_context(group, search_context, hintmap_label);
   auto& col_data            = get_col_asmdata(static_cast<uint32_t>(group));
@@ -802,60 +809,22 @@ static std::string clean_label_ref(const std::string& arg)
   return s;
 }
 
-// ---------------------------------------------------------------------------
-// BD range helpers
-//   Split [address, address+size) across three 3MB scratchpad regions and
-//   divide each region's intersection into equal sub-ranges (BD slots).
-//
-//   The 9MB scratchpad is partitioned into:
-//     Region 0 : [0 MB, 3 MB)
-//     Region 1 : [3 MB, 6 MB)
-//     Region 2 : [6 MB, 9 MB)
-//
-//   For save:    parts_per_region = 2  →  6 (base, size) pairs total
-//   For restore: parts_per_region = 4  → 12 (base, size) pairs total
-//
-//   Sub-ranges with no overlap get size = 0 (base = region start).
-//   The last sub-range in an overlapping region absorbs any remainder from
-//   integer division so that all sizes sum exactly to the intersection size.
-// ---------------------------------------------------------------------------
+// Divide [address, address+size) into equal number of slots.
+// Returns one (base, size) pair per slot; the last slot absorbs any remainder from integer division.
 static std::vector<std::pair<uint64_t, uint64_t>>
 compute_bd_ranges(uint32_t num_bd_per_column, uint64_t address, uint64_t size, uint32_t parts_per_region)
 {
-  constexpr uint64_t MB3       = 3ULL * 1024ULL * 1024ULL;  // 3 MB
-  uint32_t N_REGIONS = num_bd_per_column;
+  uint32_t total = num_bd_per_column * parts_per_region;
+  uint64_t part_size = size / static_cast<uint64_t>(total);
 
   std::vector<std::pair<uint64_t, uint64_t>> result;
-  result.reserve(static_cast<std::size_t>(N_REGIONS * parts_per_region));
+  result.reserve(total);
 
-  const uint64_t alloc_end = address + size;
-
-  for (uint32_t r = 0; r < N_REGIONS; ++r) {
-    const uint64_t reg_base = static_cast<uint64_t>(r) * MB3;
-    const uint64_t reg_end  = reg_base + MB3;
-
-    // Intersection of [address, alloc_end) with [reg_base, reg_end)
-    const uint64_t isect_base = std::max(address, reg_base);
-    const uint64_t isect_end  = std::min(alloc_end, reg_end);
-
-    if (isect_end <= isect_base) {
-      // No overlap — every slot for this region has size 0
-      for (uint32_t p = 0; p < parts_per_region; ++p)
-        result.push_back({reg_base, 0ULL});
-      continue;
-    }
-
-    const uint64_t isect_size = isect_end - isect_base;
-    const uint64_t part_size  = isect_size / static_cast<uint64_t>(parts_per_region);
-
-    for (uint32_t p = 0; p < parts_per_region; ++p) {
-      const uint64_t part_base = isect_base + static_cast<uint64_t>(p) * part_size;
-      // Last slot absorbs any remainder from integer division
-      const uint64_t this_size = (p == parts_per_region - 1)
-                                 ? (isect_end - part_base)
-                                 : part_size;
-      result.push_back({part_base, this_size});
-    }
+  for (uint32_t i = 0; i < total; ++i) {
+    uint64_t base = address + static_cast<uint64_t>(i) * part_size;
+    // last slot absorbs remainder
+    uint64_t this_size = (i == total - 1) ? (address + size - base) : part_size;
+    result.push_back({base, this_size});
   }
 
   return result;
@@ -942,17 +911,39 @@ patch_bd_in_asm(std::string& text, const std::string& label,
 
 static void
 patch_membd_in_asm(std::string& text, const std::string& label,
-                uint64_t byte_addr, uint64_t size_bytes)
+                uint64_t byte_addr, uint64_t size_bytes, int group_index)
 {
   const std::string label_def = label + ":";
   auto pos = text.find(label_def);
   if (pos == std::string::npos)
     return;
 
-  byte_addr = byte_addr % 0x300000;
-  byte_addr = (byte_addr/4) + 0x800000;
+  log_info() << "group_index: " << group_index << " byte_addr=0x" << std::hex << byte_addr  << std::dec << std::endl;
+/*
+  //6.3.4 Inter-MEM tile memory and lock access
+  Offset -> Address ranges (bytes)
+  -2     -> 0x1A0_0000 – 0x1CF_FFFF  ---> 0x68_0000 - 0x73_ffff
+  -1     -> 0x1D0_0000 – 0x1FF_FFFF  ---> 0x74_0000 - 0x7f_ffff
+  0      -> 0x200_0000 – 0x22F_FFFF  ---> 0x80_0000 - 0x8b_ffff
+  +1     -> 0x230_0000 – 0x25F_FFFF  ---> 0x8c_0000 - 0x97_ffff
+  +2     -> 0x260_0000 – 0x28F_FFFF  ---> 0x98_0000 - 0xA3_ffff
+*/
 
-
+  // Translate physical scratchpad byte_addr to the inter-MEM tile word address seen by group_index col.
+  //
+  // The inter-MEM tile byte address table (relative to the channel's home col = slot 0):
+  //   slot -2 -> 0x1A0_0000,  slot -1 -> 0x1D0_0000,  slot 0 -> 0x200_0000
+  //   slot +1 -> 0x230_0000,  slot +2 -> 0x260_0000   (step = 0x30_0000 bytes per slot)
+  //
+  // Converting to word address (/4):
+  //   word_base = 0x200_0000/4 = 0x80_0000,  word_step = 0x30_0000/4 = 0xC_0000
+  //
+  // Physical layout: col N occupies [N*0x300000, (N+1)*0x300000) of scratchpad.
+  // slot = (which col the address is in) - (home col of this channel)
+  {
+    int slot = static_cast<int>(byte_addr / 0x300000) - group_index;  // NOLINT
+    byte_addr = static_cast<uint64_t>(0x800000 + slot * 0xC0000) + (byte_addr % 0x300000) / 4;  // NOLINT
+  }
   log_info() << "patch_membd_in_asm: label=" << label
              << " byte_addr=0x" << std::hex << byte_addr
              << " size_bytes=0x" << size_bytes/4 << std::dec << std::endl;
@@ -1002,6 +993,20 @@ patch_membd_in_asm(std::string& text, const std::string& label,
 }
 
 // ---------------------------------------------------------------------------
+// split_qualified_hintmap
+//   Split "label_context:hintmap_name" into {context, name}.  The context
+//   itself can contain ':' (e.g. "default:pdi"), so the last ':' separates.
+// ---------------------------------------------------------------------------
+static std::pair<std::string, std::string>
+split_qualified_hintmap(const std::string& qualified_key)
+{
+  const auto sep = qualified_key.rfind(':');
+  if (sep == std::string::npos)
+    return {"", qualified_key};  // no context prefix (shouldn't happen)
+  return {qualified_key.substr(0, sep), qualified_key.substr(sep + 1)};
+}
+
+// ---------------------------------------------------------------------------
 // build_hintmap_groups
 //   First pass: group hintmaps by (scratchbase, size) and assign unique labels.
 // ---------------------------------------------------------------------------
@@ -1016,16 +1021,7 @@ asm_parser::build_hintmap_groups(int group,
   int unique_idx = 0;
 
   for (const auto& qualified_key : hintmap_labels) {
-    // Split "label_context:hintmap_name" on the last ':'.
-    // The context itself can contain ':' (e.g. "default:pdi"), so rfind is correct.
-    std::string ctx, label_name;
-    const auto sep = qualified_key.rfind(':');
-    if (sep != std::string::npos) {
-      ctx        = qualified_key.substr(0, sep);
-      label_name = qualified_key.substr(sep + 1);
-    } else {
-      label_name = qualified_key;  // no context prefix (shouldn't happen)
-    }
+    auto [ctx, label_name] = split_qualified_hintmap(qualified_key);
 
     auto [scratchbase, size] = parse_hintmap_and_calculate_scratchpad(group, ctx, label_name);
     auto key = std::make_pair(scratchbase, size);
@@ -1057,12 +1053,14 @@ asm_parser::build_hintmap_groups(int group,
   return result;
 }
 
+constexpr uint32_t save_channel    = 2;  // number of mm2s memtile channel per col used
+constexpr uint32_t restore_channel = 4;  // number of s2mm memtile channel per col used
 // ---------------------------------------------------------------------------
 // inject_hintmap_save_restore
 //   Register scratchpad, patch template labels, and parse save+restore asm.
 // ---------------------------------------------------------------------------
 void
-asm_parser::inject_hintmap_save_restore(int col,
+asm_parser::inject_hintmap_save_restore(int col, int group_index,
                                         const std::string& save_file,
                                         const std::string& restore_file,
                                         const std::vector<uint8_t>& save_data,
@@ -1158,18 +1156,23 @@ asm_parser::inject_hintmap_save_restore(int col,
     log_info() << "  restore_bd[" << i << "]: base=0x" << std::hex << restore_bd_ranges[i].first
                << " size=0x" << restore_bd_ranges[i].second << std::dec << std::endl;
 
-  // Patch BD address/length fields directly in the ASM text
+  // Patch BD address/length fields directly in the ASM text.
+  // bd_col = which column's memtile this BD accesses:
+  //   group_index is the base col; each pair of save BDs (2 per col) or quad of restore BDs (4 per col)
+  //   steps to the next column.
   std::string save_text(save_chars.begin(), save_chars.end());
   for (std::size_t i = 0; i < save_bd.size() && i < save_bd_ranges.size(); ++i) {
+    int bd_col = group_index + static_cast<int>(i / save_channel);
     patch_bd_in_asm(save_text, save_bd[i], save_bd_ranges[i].first, save_bd_ranges[i].second);
-    patch_membd_in_asm(save_text, save_membd[i], save_bd_ranges[i].first, save_bd_ranges[i].second);
+    patch_membd_in_asm(save_text, save_membd[i], save_bd_ranges[i].first, save_bd_ranges[i].second, bd_col);
   }
   save_chars.assign(save_text.begin(), save_text.end());
 
   std::string restore_text(restore_chars.begin(), restore_chars.end());
   for (std::size_t i = 0; i < restore_bd.size() && i < restore_bd_ranges.size(); ++i) {
+    int bd_col = group_index + static_cast<int>(i / restore_channel);
     patch_bd_in_asm(restore_text, restore_bd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second);
-    patch_membd_in_asm(restore_text, restore_membd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second);
+    patch_membd_in_asm(restore_text, restore_membd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second, bd_col);
   }
   restore_chars.assign(restore_text.begin(), restore_text.end());
 
@@ -1255,7 +1258,7 @@ asm_parser::update_preempt_opcodes(int col)
 //   Create a default scratchpad and inject unpatched save/restore asm.
 // ---------------------------------------------------------------------------
 void
-asm_parser::inject_default_save_restore(int col,
+asm_parser::inject_default_save_restore(int col, int group_index,
                                         const std::string& save_file,
                                         const std::string& restore_file,
                                         const std::vector<uint8_t>& save_data,
@@ -1287,20 +1290,22 @@ asm_parser::inject_default_save_restore(int col,
     log_info() << "  restore_bd[" << i << "]: base=0x" << std::hex << restore_bd_ranges[i].first
                << " size=0x" << restore_bd_ranges[i].second << std::dec << std::endl;
 
-  // Patch BD address/length fields directly in the ASM text
+  // Patch BD address/length fields directly in the ASM text.
   std::vector<char> save_chars(save_data.begin(), save_data.end());
   std::string save_text(save_chars.begin(), save_chars.end());
   for (std::size_t i = 0; i < save_bd.size() && i < save_bd_ranges.size(); ++i) {
+    int bd_col = group_index + static_cast<int>(i / save_channel);
     patch_bd_in_asm(save_text, save_bd[i], save_bd_ranges[i].first, save_bd_ranges[i].second);
-    patch_membd_in_asm(save_text, save_membd[i], save_bd_ranges[i].first, save_bd_ranges[i].second);
+    patch_membd_in_asm(save_text, save_membd[i], save_bd_ranges[i].first, save_bd_ranges[i].second, bd_col);
   }
   save_chars.assign(save_text.begin(), save_text.end());
 
   std::vector<char> restore_chars(restore_data.begin(), restore_data.end());
   std::string restore_text(restore_chars.begin(), restore_chars.end());
   for (std::size_t i = 0; i < restore_bd.size() && i < restore_bd_ranges.size(); ++i) {
+    int bd_col = group_index + static_cast<int>(i / restore_channel);
     patch_bd_in_asm(restore_text, restore_bd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second);
-    patch_membd_in_asm(restore_text, restore_membd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second);
+    patch_membd_in_asm(restore_text, restore_membd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second, bd_col);
   }
   restore_chars.assign(restore_text.begin(), restore_text.end());
 
@@ -1339,7 +1344,7 @@ asm_parser::process_preempt_group(int group,
     auto groups = build_hintmap_groups(group, m_preempt_hintmaps[group], group_index);
     for (const auto& grp : groups) {
       // Second pass: inject save/restore code for each hintmap group.
-      inject_hintmap_save_restore(group, save_file, restore_file,
+      inject_hintmap_save_restore(group, group_index, save_file, restore_file,
                                   save_data, restore_data, template_labels, grp,
                                   save_bd, restore_bd, save_membd, restore_membd);
     }
@@ -1349,9 +1354,88 @@ asm_parser::process_preempt_group(int group,
 
   // Handle PREEMPT opcodes with no hintmap (use group-level default labels)
   if (m_preempt_without_hintmap.count(group))
-    inject_default_save_restore(group, save_file, restore_file,
+    inject_default_save_restore(group, group_index, save_file, restore_file,
                                 save_data, restore_data,
                                 save_bd, restore_bd, save_membd, restore_membd);
+}
+
+// ---------------------------------------------------------------------------
+// verify_hintmap_no_overlap
+//   In multi-uC mode every controller saves into the same partition wide
+//   preemption scratchpad and cert synchronizes the controllers at every
+//   preemption point, so the regions two controllers write at the same
+//   preemption point must be disjoint.  All columns have the same number of
+//   preemption points (checked earlier), hence the n-th PREEMPT opcode of every
+//   column belongs to the same preemption point.  A PREEMPT opcode with no
+//   hintmap saves the entire 3MB of its own column.
+// ---------------------------------------------------------------------------
+void
+asm_parser::
+verify_hintmap_no_overlap()
+{
+  struct region {
+    uint64_t    base;
+    uint64_t    size;
+    std::string id;       // preemption point id as written in the asm
+    std::string hintmap;  // qualified hintmap name, empty when the opcode has none
+  };
+
+  // For every column: the region it writes at each of its preemption points,
+  // in program order.  m_preempt_points is ordered by column.
+  std::vector<std::pair<int, std::vector<region>>> col_regions;
+  std::size_t num_points = 0;
+  for (const auto& [col, points] : m_preempt_points) {
+    std::vector<region> regions;
+    regions.reserve(points.size());
+    for (const auto& point : points) {
+      auto [ctx, label] = split_qualified_hintmap(point.hintmap_key);
+      auto [base, size] = parse_hintmap_and_calculate_scratchpad(col, ctx, label);
+      regions.push_back({base, size, point.id, point.hintmap_key});
+    }
+    if (regions.size() > num_points)
+      num_points = regions.size();
+    col_regions.emplace_back(col, std::move(regions));
+  }
+
+  auto describe = [](const region& reg) {
+    std::ostringstream oss;
+    oss << "[0x" << std::hex << reg.base << ", 0x" << (reg.base + reg.size) << ")" << std::dec;
+    if (reg.hintmap.empty())
+      oss << " (no hintmap: whole column memtile)";
+    else
+      oss << " (hintmap '" << reg.hintmap << "')";
+    return oss.str();
+  };
+
+  for (std::size_t idx = 0; idx < num_points; ++idx) {
+    for (std::size_t a = 0; a < col_regions.size(); ++a) {
+      if (idx >= col_regions[a].second.size())
+        continue;
+      const auto& ra = col_regions[a].second[idx];
+      if (ra.size == 0)
+        continue;  // nothing is saved, so nothing can clash
+
+      for (std::size_t b = a + 1; b < col_regions.size(); ++b) {
+        if (idx >= col_regions[b].second.size())
+          continue;
+        const auto& rb = col_regions[b].second[idx];
+        if (rb.size == 0)
+          continue;
+
+        if (ra.base < rb.base + rb.size && rb.base < ra.base + ra.size) {
+          std::ostringstream oss;
+          oss << "hint bitmap overlap at preemption point " << idx
+              << ": controller " << col_regions[a].first
+              << " (id " << ra.id << ") saves " << describe(ra)
+              << " and controller " << col_regions[b].first
+              << " (id " << rb.id << ") saves " << describe(rb)
+              << "; hint bitmaps of different controllers must not overlap at the same"
+                 " preemption point\n";
+          throw error(error::error_code::invalid_asm, oss.str());
+        }
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1365,6 +1449,9 @@ finalize_preempt()
     return;
 
   if (is_multi_column_mode()) {
+    // Reject clashing save regions before any save/restore code is injected.
+    verify_hintmap_no_overlap();
+
     for (const auto& [group, labels] : m_preempt_labels) {
       auto [save_data, restore_data] = get_preempt_save_restore(10 + group);
       auto [save_bd, restore_bd] = get_preempt_save_restore_shimbd(10 + group);
@@ -1376,7 +1463,7 @@ finalize_preempt()
       std::string suffix       = multicol_suffix(group);
       std::string save_file    = "aie4_save_"    + suffix + ".asm";
       std::string restore_file = "aie4_restore_" + suffix + ".asm";
-      process_preempt_group(group, group / 2 + 1,
+      process_preempt_group(group, group / 2,
                              save_file, restore_file, save_data, restore_data, save_bd, restore_bd, save_membd, restore_membd);
     }
   } else {
@@ -1391,7 +1478,7 @@ finalize_preempt()
     std::string col_str      = std::to_string(num_cols) + "c.asm";
     std::string save_file    = "aie4_save_"    + col_str;
     std::string restore_file = "aie4_restore_" + col_str;
-    process_preempt_group(0, 1, save_file, restore_file, save_data, restore_data, save_bd, restore_bd, save_membd, restore_membd);
+    process_preempt_group(0, 0, save_file, restore_file, save_data, restore_data, save_bd, restore_bd, save_membd, restore_membd);
   }
 }
 
