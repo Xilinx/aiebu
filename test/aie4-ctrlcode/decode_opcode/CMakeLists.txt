@@ -20,7 +20,7 @@ endif()
 # each case has kernel_name, uc_idx, page_idx, offset,
 # expected_opcode_no_dump, expected_args_no_dump, optional label.
 
-cmake_path(SET AIE4_ELF_IN NORMALIZE "${CMAKE_CURRENT_BINARY_DIR}/../multi_graph/multi-graph.elf")
+cmake_path(SET AIE4_ELF_IN NORMALIZE "${CMAKE_CURRENT_BINARY_DIR}/../multi_graph/multi-graph-compressed.elf")
 
 add_test(NAME "aie4_decode_opcode"
   COMMAND ${DECODE_OPCODE_TEST}

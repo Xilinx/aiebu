@@ -75,13 +75,14 @@ std::vector<std::uint8_t> compress_buffer_zstd(
 // ELF Chdr wrapper
 // ---------------------------------------------------------------------------
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 std::vector<std::uint8_t> wrap_elf_compressed(
     unsigned char elf_class,
     ELFIO::Elf_Word ch_type,
     std::uint64_t uncompressed_size,
     ELFIO::Elf_Xword addralign,
     const std::vector<std::uint8_t>& compressed)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
   std::vector<std::uint8_t> result;
 

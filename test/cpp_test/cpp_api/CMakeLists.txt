@@ -54,13 +54,27 @@ if (NOT WIN32)
   target_link_libraries(${ELF_COMPRESS_DECOMPRESS_TESTNAME} PRIVATE pthread)
 endif()
 
+set(DECOMPRESS_MEM_REPORT_NAME "decompress_memory_report")
+add_executable(${DECOMPRESS_MEM_REPORT_NAME} decompress_memory_report.cpp)
+target_link_libraries(${DECOMPRESS_MEM_REPORT_NAME} PRIVATE aiebu_static)
+target_include_directories(${DECOMPRESS_MEM_REPORT_NAME} PRIVATE
+  ${AIEBU_SOURCE_DIR}/src/cpp/include
+  ${AIEBU_SOURCE_DIR}/src/cpp
+  ${AIEBU_ELFIO_SRC_DIR})
+if (NOT WIN32)
+  target_link_libraries(${DECOMPRESS_MEM_REPORT_NAME} PRIVATE pthread)
+endif()
+
 # ELF compression ratio reporter — not a CTest test (requires a user-supplied directory).
-# Usage: elf_compression_ratio <dir> --arch <aie4|aie2ps> [--algorithm zstd] [--level <N>] --mode [plain|compress|decompress]
+# Usage: elf_compression_ratio <dir> --arch <aie4|aie2ps> --mode <plain|compress|decompress>
+#        elf_compression_ratio --mode decompress-file --input <compressed.elf> --output <plain.elf>
+# For accurate per-section peak RSS measurement use decompress_memory_report instead.
 set(ELF_COMPRESSION_RATIO_NAME "elf_compression_ratio")
 add_executable(${ELF_COMPRESSION_RATIO_NAME} elf_compression_ratio.cpp)
 target_link_libraries(${ELF_COMPRESSION_RATIO_NAME} PRIVATE aiebu_static)
 target_include_directories(${ELF_COMPRESSION_RATIO_NAME} PRIVATE
-  ${AIEBU_SOURCE_DIR}/src/cpp/include)
+  ${AIEBU_SOURCE_DIR}/src/cpp/include
+  ${AIEBU_SOURCE_DIR}/src/cpp)
 if (NOT WIN32)
   target_link_libraries(${ELF_COMPRESSION_RATIO_NAME} PRIVATE pthread)
 endif()

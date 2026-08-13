@@ -422,6 +422,103 @@ static bool test_aie2ps_decompress_noop(const std::string& dir)
 }
 
 // ---------------------------------------------------------------------------
+// Decompress API coverage
+// ---------------------------------------------------------------------------
+
+// Correctness test for every API in aiebu_decompress.h:
+//   is_elf_compressed()     — true for compressed, false for plain
+//   decompress_elf()        — round-trip produces correct output
+//   get_section_data_size() — returns uncompressed size (> stored size)
+//   copy_section_data()     — decompresses into caller buffer; bytes match plain
+//
+// Peak RSS measurement is intentionally omitted here: assembly runs in this
+// same process before any snapshot could be taken, inflating the baseline and
+// making any delta meaningless.  Accurate memory reporting is done by the
+// standalone decompress_memory_report binary which takes a pre-compressed
+// ELF file as input and starts with a clean process baseline.
+static bool test_decompress_api_coverage(const std::string& dir)
+{
+  auto compressed = assemble_aie4(dir, {"compress=zstd"});
+  auto plain      = assemble_aie4(dir, {});
+
+  // --- is_elf_compressed() ---
+  if (!aiebu::is_elf_compressed(compressed)) {
+    std::cerr << "FAIL [decompress_api_coverage]: is_elf_compressed(compressed) returned false\n";
+    return false;
+  }
+  if (aiebu::is_elf_compressed(plain)) {
+    std::cerr << "FAIL [decompress_api_coverage]: is_elf_compressed(plain) returned true\n";
+    return false;
+  }
+
+  // --- decompress_elf() ---
+  auto decompressed = aiebu::decompress_elf(compressed);
+
+  // --- get_section_data_size() and copy_section_data() ---
+  ELFIO::elfio compressed_elfio = load_elf(compressed);
+  ELFIO::elfio plain_elfio      = load_elf(plain);
+  bool section_ok = true;
+
+  for (const auto& sec : compressed_elfio.sections) {
+    if (!(sec->get_flags() & ELFIO::SHF_COMPRESSED))
+      continue;
+
+    // get_section_data_size() returns ch_size (the original uncompressed size
+    // from the Elf_Chdr header).  For small sections zstd can expand the data,
+    // so stored size (sizeof(Chdr)+compressed_payload) may exceed ch_size —
+    // the only invariant is that ch_size is positive.
+    const std::size_t data_sz = aiebu::get_section_data_size(sec.get(), compressed_elfio);
+    if (data_sz == 0) {
+      std::cerr << "FAIL [decompress_api_coverage]: get_section_data_size('"
+                << sec->get_name() << "') returned 0\n";
+      section_ok = false;
+      continue;
+    }
+
+    // copy_section_data() must decompress into a caller buffer.
+    std::vector<char> buf(data_sz);
+    const std::size_t written =
+        aiebu::copy_section_data(sec.get(), compressed_elfio, buf.data(), buf.size());
+    if (written != data_sz) {
+      std::cerr << "FAIL [decompress_api_coverage]: copy_section_data('"
+                << sec->get_name() << "') wrote " << written
+                << " B, expected " << data_sz << " B\n";
+      section_ok = false;
+      continue;
+    }
+
+    // Verify bytes match the plain ELF section.
+    const ELFIO::section* plain_sec = nullptr;
+    for (const auto& ps : plain_elfio.sections) {
+      if (ps->get_name() == sec->get_name()) {
+        plain_sec = ps.get();
+        break;
+      }
+    }
+    if (!plain_sec) {
+      std::cerr << "FAIL [decompress_api_coverage]: section '"
+                << sec->get_name() << "' missing from plain ELF\n";
+      section_ok = false;
+    } else if (plain_sec->get_size() != data_sz) {
+      std::cerr << "FAIL [decompress_api_coverage]: copy_section_data('"
+                << sec->get_name() << "') size " << data_sz
+                << " != plain ELF section size " << plain_sec->get_size() << "\n";
+      section_ok = false;
+    } else if (std::memcmp(buf.data(), plain_sec->get_data(), data_sz) != 0) {
+      std::cerr << "FAIL [decompress_api_coverage]: copy_section_data('"
+                << sec->get_name() << "') data mismatch vs plain ELF\n";
+      section_ok = false;
+    }
+  }
+
+  if (!section_ok)
+    return false;
+
+  std::cout << "PASS [decompress_api_coverage]: all decompress APIs verified\n";
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 
@@ -438,6 +535,9 @@ int main(int argc, char** argv)
 
   try {
     bool ok = true;
+
+    // Decompress API correctness coverage.
+    ok = test_decompress_api_coverage(aie4_dir)   && ok;
 
     // AIE4 tests
     ok = test_aie4_compression_shrinks(aie4_dir) && ok;

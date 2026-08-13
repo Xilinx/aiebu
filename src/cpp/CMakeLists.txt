@@ -72,7 +72,7 @@ target_include_directories(aiebu_library_objects
 # PRIVATE link below on aiebu_static.  The SYSTEM flag suppresses warnings in
 # zstd headers when they are transitively visible to aiebu_library_objects.
 target_include_directories(aiebu_library_objects SYSTEM PRIVATE
-  "${CMAKE_SOURCE_DIR}/src/cpp/zstd/lib"
+  "${AIEBU_ZSTD_LIB_DIR}"
   )
 
 target_compile_definitions(aiebu_library_objects
