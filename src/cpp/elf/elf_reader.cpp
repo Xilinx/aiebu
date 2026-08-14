@@ -1071,7 +1071,11 @@ public:
       if (offset >= sec_size)
         throw std::runtime_error("Invalid relocation offset " + std::to_string(offset));
 
-      if (sec_name.find("pdi") != std::string::npos)
+      // PDI relocations are identified by the SYMBOL name (e.g. ".pdi.0"),
+      // not the target section name — the PDI address is patched into the
+      // .ctrltext section, so the target section is ctrltext, not a .pdi
+      // section.  Matching on sec_name here would miss every PDI symbol.
+      if (std::string(symname).find("pdi") != std::string::npos)
         m_ctrl_pdi_map[grp_idx].insert(symname);
 
       auto [schema, add_end_addr] = decode_addend(rtype, rela->r_addend, abi_ver);

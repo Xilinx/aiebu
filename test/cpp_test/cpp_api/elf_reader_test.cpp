@@ -470,9 +470,16 @@ test_has_pdi_value(const aiebu::elf& e, const std::string& expected)
 }
 
 // F2 correctness guard: get_pdi_symbols(id) is the O(1) accessor that replaced
-// the old scan of get_patch_points() filtered by target_buf==pdi.  Cross-check
-// that the fast accessor yields exactly the same set as the patch-point scan,
-// so the two derivations of "which symbols are PDI" cannot silently diverge.
+// the old per-construction scan of get_patch_points().  Cross-check that the
+// fast accessor yields exactly the same set as an independent derivation, so
+// the two cannot silently diverge.
+//
+// IMPORTANT: a PDI symbol (e.g. ".pdi.0") is identified by its SYMBOL NAME
+// containing "pdi", NOT by target_buf==pdi.  The PDI address is patched into
+// the .ctrltext section, so its patch_point.target_buf is ctrltext.  The
+// oracle below must therefore match on arg_name — matching on target_buf
+// would produce an empty set and mask a regression where get_pdi_symbols()
+// wrongly returns nothing (FW timeout: PDI never allocated/patched).
 static void
 test_pdi_symbols_crosscheck(const aiebu::elf& e)
 {
@@ -483,14 +490,14 @@ test_pdi_symbols_crosscheck(const aiebu::elf& e)
     return;
   }
 
-  // Reference set: every patch_point across all groups whose target is a PDI
-  // buffer, grouped by ctrl-code-id, keyed on arg_name (the dynamic symbol).
+  // Reference set: every patch_point whose arg_name marks it as a PDI symbol,
+  // grouped by ctrl-code-id.  Mirrors m_ctrl_pdi_map's population predicate.
   const auto& pp = e.get_patch_points();
   std::map<uint32_t, std::set<std::string>> expected;
   for (const auto& [gid, key_map] : pp)
     for (const auto& [key, pts] : key_map)
       for (const auto& p : pts)
-        if (p.target_buf == aiebu::elf::buf_type::pdi)
+        if (p.arg_name.find("pdi") != std::string::npos)
           expected[gid].insert(p.arg_name);
 
   // Compare accessor output to the reference for each group that has PDI syms.
