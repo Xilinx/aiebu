@@ -28,7 +28,9 @@ namespace aiebu {
         }
         else if (m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2_config ||
             m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config ||
-            m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie4_config) {
+            m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie4_config ||
+            m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie4a_config ||
+            m_buffer_type == aiebu::aiebu_assembler::buffer_type::elf_aie4z_config) {
                throw error(error::error_code::internal_error, "Not supported");
         }
     }

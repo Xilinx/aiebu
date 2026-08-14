@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2025-2026, Advanced Micro Devices, Inc. All rights reserved.
 #include "disassembler/disassembler.h"
+#include "elf/aie_elf_constants.h"
+#include <cstring>
 #include <fstream>
 #include <stdexcept>
 #include <iostream>
@@ -140,10 +142,24 @@ void asm_disassembler::process_data_block(const char* data, size_t size,
             ++offset;
         }
         else {
-            std::ostringstream err;
-            err << "Illegal state at offset " << offset
-                << " (opcode: 0x" << std::hex << static_cast<int>(opcode) << ")\n";
-            throw error(error::error_code::invalid_asm, err.str());
+            // Unknown byte in data region — emit as a raw 4-byte .long so the
+            // disassembly does not lose information even when labels are missing.
+            if (!align_4_written) {
+                m_asm_writer.write_directive("");
+                m_asm_writer.write_directive("  .align             " + std::to_string(align_4));
+                align_4_written = true;
+            }
+            // Consume up to 4 bytes as one .long word (pad with zero if near end).
+            uint32_t word = 0;
+            size_t avail = size - offset;
+            size_t take = (avail >= 4) ? 4 : avail;
+            std::memcpy(&word, data + offset, take);
+            std::ostringstream hex;
+            hex << "  .long              0x" << std::hex << std::setw(8)
+                << std::setfill('0') << word;
+            m_asm_writer.write_directive(hex.str());
+            state->increment_address(static_cast<uint32_t>(take));
+            offset += take;
         }
     }
 }
@@ -274,7 +290,13 @@ void elf_asm_disassembler::process_sections() {
 
         print_section_info(section);
         if (is_text_section(section_name)) {
-            add_text_sec_comment();
+            // Note: add_text_sec_comment() is called inside process_text_section()
+            // for merged-page sections (once per page).  For single-page sections
+            // we emit it here so label/OOO logic below can still interleave correctly.
+            const bool sec_is_merged =
+                (m_elf_reader.get_abi_version() >= elf_version_config);  // 0x21+ = merged-page
+            if (!sec_is_merged)
+                add_text_sec_comment();
 
             // Read the current section's in_order_page_len for later use
             uint16_t current_in_order_len = get_in_order_page_len(section);
@@ -340,10 +362,70 @@ void elf_asm_disassembler::process_text_section(const ELFIO::section* section, s
     const char* section_data = section->get_data();
     size_t section_size = section->get_size();
 
-    // NOTE: OOO labels are now handled in process_sections() based on in_order_page_len
-    // to correctly determine scope boundaries.
-    // Use common base class method for text processing
-    process_text_block(section_data, elf_section_header_padding, section_size, state);
+    // ABI version determines page layout:
+    //   0x02 (elf_version_legacy)         = separate-page: one ctrltext section per page,
+    //                                       ctrldata in a separate section.
+    //   0x03 (elf_version_legacy_config)  = separate-page
+    //   0x10 (elf_version_aie2p_config)   = separate-page
+    //   0x20 (elf_version_config_v1)      = separate-page
+    //   0x21 (elf_version_config)         = merged-page: ctrltext section is N×8KB pages,
+    //                                       each page has header + code + EOF + ctrldata.
+    const unsigned char abi_version = m_elf_reader.get_abi_version();
+    const bool is_merged_pages = (abi_version >= elf_version_config);
+
+    if (is_merged_pages) {
+        // Process each 8 KB page independently.
+        // Layout per page:
+        //   [page_start .. page_start+16)  — page header (or section header for page 0)
+        //   [page_start+16 .. eof_end)     — opcodes (text), terminated by 4-byte EOF
+        //   [eof_end .. page_start+8192)   — data (ctrldata) for this page
+        for (size_t page_start = 0; page_start < section_size; page_start += page_size) {
+            const size_t code_start = page_start + elf_section_header_padding;
+            const size_t page_end   = page_start + page_size;
+
+            // Find EOF by advancing instruction-by-instruction so that 0xFF bytes
+            // embedded inside instruction arguments (e.g. apply_offset_57 with
+            // offset=0xFFFF for an unresolved relocation) are not mistaken for EOF.
+            size_t code_end = page_end;
+            for (size_t i = code_start; i < page_end;) {
+                uint8_t op = static_cast<uint8_t>(section_data[i]);
+                if (op == eof_opcode) {
+                    code_end = i + eof_size;
+                    break;
+                }
+                if (op == align_opcode) { ++i; continue; }
+                auto it = isa_op_map->find(op);
+                if (it == isa_op_map->end()) break;  // unknown — stop scan
+                // Instruction size: 1 byte opcode + 1 byte implicit pad + sum of arg widths in bytes
+                size_t insn_size = 2;
+                for (const auto& arg : it->second.get_args())
+                    insn_size += static_cast<size_t>(arg.get_width()) / 8;
+                if (insn_size < 2) break;
+                i += insn_size;
+            }
+
+            // --- text portion ---
+            // (state carries labels from opcodes into the data block; do NOT reset between them)
+            add_text_sec_comment();
+            process_text_block(section_data, code_start, code_end, state);
+
+            // --- data portion (after EOF, rest of the page) ---
+            // Always emit the ctrldata header so the assembler sees a data section
+            // even for pages whose data region is entirely zero-padding.
+            const size_t data_start = code_end;
+            const size_t data_size  = page_end - data_start;
+            add_data_sec_comment();
+            if (data_size > 0)
+                process_data_block(section_data + data_start, data_size, state);
+
+            // Reset state between pages (not between text and data of the same page).
+            state->reset();
+        }
+    } else {
+        // Single-page (separate-page) section: the section contains exactly one
+        // page's worth of opcodes starting after the 16-byte section header.
+        process_text_block(section_data, elf_section_header_padding, section_size, state);
+    }
 }
 
 void elf_asm_disassembler::process_data_section(const ELFIO::section* section, std::shared_ptr<disassembler_state> state) {

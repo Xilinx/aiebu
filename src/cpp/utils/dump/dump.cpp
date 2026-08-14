@@ -21,6 +21,8 @@ static const std::set<std::string>
 targets = { //NOLINT
     "aie2ps",
     "aie4",
+    "aie4a",
+    "aie4z",
     "aie2asm",
     "aie2txn",
     "aie2dpu",
@@ -38,11 +40,20 @@ buffer_type_table = { // NOLINT
   {aiebu::aiebu_assembler::buffer_type::asm_aie2, "aie2-ctrlcode-asm"},
   {aiebu::aiebu_assembler::buffer_type::elf_aie2, "aie2-elf"},
   {aiebu::aiebu_assembler::buffer_type::elf_aie2ps, "aie2ps-elf"},
+  {aiebu::aiebu_assembler::buffer_type::elf_aie4, "aie4-elf"},
+  {aiebu::aiebu_assembler::buffer_type::elf_aie4a, "aie4a-elf"},
+  {aiebu::aiebu_assembler::buffer_type::elf_aie4z, "aie4z-elf"},
+  {aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config, "aie2ps-config-elf"},
+  {aiebu::aiebu_assembler::buffer_type::elf_aie4_config, "aie4-config-elf"},
+  {aiebu::aiebu_assembler::buffer_type::elf_aie4a_config, "aie4a-config-elf"},
+  {aiebu::aiebu_assembler::buffer_type::elf_aie4z_config, "aie4z-config-elf"},
   {aiebu::aiebu_assembler::buffer_type::pdi_aie2, "aie2-pdi"},
   {aiebu::aiebu_assembler::buffer_type::pdi_aie2ps, "aie2ps-pdi"},
   {aiebu::aiebu_assembler::buffer_type::unspecified, "unknown"},
   {aiebu::aiebu_assembler::buffer_type::blob_aie2ps, "aie2ps-binary"},
   {aiebu::aiebu_assembler::buffer_type::blob_aie4, "aie4-binary"},
+  {aiebu::aiebu_assembler::buffer_type::blob_aie4a, "aie4a-binary"},
+  {aiebu::aiebu_assembler::buffer_type::blob_aie4z, "aie4z-binary"},
 };
 
 
@@ -63,7 +74,7 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
       ("d,disassemble", "Display assembler contents of ctrltext sections if elf file is provided or display control packet in assembled format if control packet binary file is provided", 
         cxxopts::value<bool>()->default_value("false"))
       ("H,help", "show help message and exit", cxxopts::value<bool>()->default_value("false"))
-      ("m,architecture", "Specify the target architecture as MACHINE (aie2ps/aie4/aie2asm/aie2txn/aie2dpu). Required for binary files to select correct ISA.", 
+      ("m,architecture", "Specify the target architecture as MACHINE (aie2ps/aie4/aie4a/aie4z/aie2asm/aie2txn/aie2dpu). Required for binary files or legacy ELFs (OS/ABI=0x46) to select correct ISA.",
         cxxopts::value<std::string>()->default_value("unspecified"))
       ("D,disassemble-all", "Display assembler contents of all sections", cxxopts::value<bool>()->default_value("false"))
       ("t,syms", "Display contents of the symbols table(s)", cxxopts::value<bool>()->default_value("false"))
@@ -88,6 +99,21 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
 
     if (result.count("help")) {
       std::cout << global_options.help({"", executable}) << std::endl;
+      std::cout << "Supported platforms and ELF identification:\n";
+      std::cout << "\n";
+      std::cout << "  Platform     OS/ABI  ABI Version  Notes\n";
+      std::cout << "  -----------  ------  -----------  ------------------------------------------\n";
+      std::cout << "  aie2p        0x45    0x02         AIE2P non-config ELF\n";
+      std::cout << "  aie2p        0x45    0x21         AIE2P config ELF (.target directive)\n";
+      std::cout << "  aie2ps/aie4  0x46    0x02         Legacy group non-config (use -m to select)\n";
+      std::cout << "  aie2ps/aie4  0x46    0x03         Legacy group config (without .target)\n";
+      std::cout << "  aie2ps       0x40    0x20/0x21    AIE2PS config ELF (.target aie2ps)\n";
+      std::cout << "  aie4         0x4B    0x20/0x21    AIE4 config ELF (.target aie4)\n";
+      std::cout << "  aie4a        0x56    0x20/0x21    AIE4A config ELF (.target aie4a)\n";
+      std::cout << "  aie4z        0x69    0x20/0x21    AIE4Z config ELF (.target aie4z)\n";
+      std::cout << "\n";
+      std::cout << "  Note: Legacy non-config ELFs (OS/ABI=0x46, version=0x02) cannot be\n";
+      std::cout << "  distinguished by OSABI alone. Use -m aie4/aie4a/aie4z to override.\n";
       return {};
     }
 
@@ -127,15 +153,41 @@ int main(int argc, char* argv[])
   if (!result.arguments().size())
     return 0;
 
-  const std::vector<char> buffer = aiebu::readfile(result["filename"].as<std::string>());
-  aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);
-  std::string target_arch = result["architecture"].as<std::string>();
+  std::vector<char> buffer;
+  aiebu::aiebu_assembler::buffer_type type;
+  std::string target_arch;
+  try {
+    buffer = aiebu::readfile(result["filename"].as<std::string>());
+    type = aiebu::identify_buffer_type(buffer);
+    target_arch = result["architecture"].as<std::string>();
+  } catch (const std::exception& e) {
+    std::cerr << "Error reading file: " << e.what() << "\n";
+    return 1;
+  }
+
+  // Print detected ELF OSABI/version/platform info for ELF files
+  //if (buffer.size() >= 52 &&
+  //    static_cast<unsigned char>(buffer[0]) == 0x7f &&
+  //    buffer[1] == 'E' && buffer[2] == 'L' && buffer[3] == 'F') {
+    //auto osabi = static_cast<unsigned char>(buffer[7]);
+    //auto abiversion = static_cast<unsigned char>(buffer[8]);
+    //auto detected_it = aiebu::buffer_type_table.find(type);
+    //std::string detected_platform = (detected_it != aiebu::buffer_type_table.end())
+    //                                  ? detected_it->second : "unknown";
+    //std::cout << result["filename"].as<std::string>() << ":\n";
+    //std::cout << boost::format(";  ELF OS/ABI:    0x%02x\n") % static_cast<unsigned>(osabi);
+    //std::cout << boost::format(";  ABI Version:   0x%02x\n") % static_cast<unsigned>(abiversion);
+    //std::cout << ";  Platform:      " << detected_platform << "\n";
+    // Legacy group ELF (OSABI=0x46) is shared by aie2ps/aie4 family — version does not distinguish them
+    //if (osabi == 0x46 && target_arch == "unspecified")
+    //  std::cout << "  Note: Legacy ELF (OS/ABI=0x46) detected as aie2ps by default. Use -m aie4/aie4a/aie4z to override.\n";
+  //}
 
   // For binary files (unspecified), convert to architecture-specific buffer type
   if (type == aiebu::aiebu_assembler::buffer_type::unspecified) {
     if (target_arch == "unspecified") {
       std::cout << "Warning: Binary file detected without specified architecture.\n";
-      std::cout << "Please use -m option to specify target (aie2ps or aie4) for correct disassembly.\n";
+      std::cout << "Please use -m option to specify target (aie2ps/aie4/aie4a/aie4z) for correct disassembly.\n";
       std::cout << "Example: aiebu-dump -d -m aie2ps input.bin\n";
       std::cout << "Defaulting to aie2ps...\n\n";
       target_arch = "aie2ps";
@@ -144,25 +196,39 @@ int main(int argc, char* argv[])
     // Set buffer type based on target architecture
     if (target_arch == "aie4") {
       type = aiebu::aiebu_assembler::buffer_type::blob_aie4;
+    } else if (target_arch == "aie4a") {
+      type = aiebu::aiebu_assembler::buffer_type::blob_aie4a;
+    } else if (target_arch == "aie4z") {
+      type = aiebu::aiebu_assembler::buffer_type::blob_aie4z;
     } else {
       // Default to aie2ps for any other case
       type = aiebu::aiebu_assembler::buffer_type::blob_aie2ps;
     }
   }
 
-  // For ELF files, allow -m option to override architecture
-  // This is needed until unique OS ABI is added for AIE4.
-  if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps && target_arch == "aie4") {
-    type = aiebu::aiebu_assembler::buffer_type::elf_aie4;
+  // For legacy ELFs (osabi_aie2ps_group=0x46, version=0x02) aie2ps and aie4 share the
+  // same OSABI, so the -m option is the only way to distinguish them.
+  if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps) {
+    if (target_arch == "aie4")
+      type = aiebu::aiebu_assembler::buffer_type::elf_aie4;
+    else if (target_arch == "aie4a")
+      type = aiebu::aiebu_assembler::buffer_type::elf_aie4a;
+    else if (target_arch == "aie4z")
+      type = aiebu::aiebu_assembler::buffer_type::elf_aie4z;
   }
 
+  try {
   // Handle private/debug tool options (trace-probe, opcode-info)
   std::string private_opt = result["private"].as<std::string>();
   if (private_opt != "unspecified" && !private_opt.empty()) {
     if (type != aiebu::aiebu_assembler::buffer_type::elf_aie2ps &&
-        type != aiebu::aiebu_assembler::buffer_type::elf_aie4 && 
+        type != aiebu::aiebu_assembler::buffer_type::elf_aie4 &&
+        type != aiebu::aiebu_assembler::buffer_type::elf_aie4a &&
+        type != aiebu::aiebu_assembler::buffer_type::elf_aie4z &&
         type != aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config &&
-        type != aiebu::aiebu_assembler::buffer_type::elf_aie4_config) 
+        type != aiebu::aiebu_assembler::buffer_type::elf_aie4_config &&
+        type != aiebu::aiebu_assembler::buffer_type::elf_aie4a_config &&
+        type != aiebu::aiebu_assembler::buffer_type::elf_aie4z_config)
       throw aiebu::error(aiebu::error::error_code::invalid_buffer_type, "Invalid ELF buffer for debug tools");
 
     aiebu::debug_tools debug_tools(type, buffer);
@@ -203,26 +269,38 @@ int main(int argc, char* argv[])
       if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2 ||
           type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps ||
           type == aiebu::aiebu_assembler::buffer_type::elf_aie4 ||
+          type == aiebu::aiebu_assembler::buffer_type::elf_aie4a ||
+          type == aiebu::aiebu_assembler::buffer_type::elf_aie4z ||
           type == aiebu::aiebu_assembler::buffer_type::blob_instr_transaction ||
           type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
-          type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
+          type == aiebu::aiebu_assembler::buffer_type::blob_aie4 ||
+          type == aiebu::aiebu_assembler::buffer_type::blob_aie4a ||
+          type == aiebu::aiebu_assembler::buffer_type::blob_aie4z) {
         rep.disassemble(std::cout, false);
       }
     }
     else if (result["disassemble-all"].as<bool>()) {
       if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2 ||
           type == aiebu::aiebu_assembler::buffer_type::blob_aie2ps ||
-          type == aiebu::aiebu_assembler::buffer_type::blob_aie4) {
+          type == aiebu::aiebu_assembler::buffer_type::blob_aie4 ||
+          type == aiebu::aiebu_assembler::buffer_type::blob_aie4a ||
+          type == aiebu::aiebu_assembler::buffer_type::blob_aie4z) {
         rep.disassemble(std::cout, true);
       }
       else if (type == aiebu::aiebu_assembler::buffer_type::elf_aie2ps ||
-               type == aiebu::aiebu_assembler::buffer_type::elf_aie4) {
+               type == aiebu::aiebu_assembler::buffer_type::elf_aie4 ||
+               type == aiebu::aiebu_assembler::buffer_type::elf_aie4a ||
+               type == aiebu::aiebu_assembler::buffer_type::elf_aie4z) {
         rep.disassemble(result["filename"].as<std::string>(), true);
       }
     }
     else if (result["private-headers"].as<bool>()) {
       rep.ctrlcode_summary(std::cout);
     }
+  }
+  } catch (const std::exception& e) {
+    std::cerr << "Error: " << e.what() << "\n";
+    return 1;
   }
   return 0;
 }
