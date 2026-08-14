@@ -1,12 +1,12 @@
 ---
-description: Inspect an aie2ps or aie4* ELF and list all PDI IDs referenced by load_pdi instructions. For config ELFs groups by kernel/instance.
+description: Inspect one or more aie2ps or aie4* ELFs and list all PDI IDs referenced by load_pdi instructions. For config ELFs groups by kernel/instance.
 ---
 
-Run the Python script below using the Bash tool. The ELF file path is passed as `$ARGUMENTS` (the text after `/get_pdi_detail` on the command line).
+Run the Python script below using the Bash tool. One or more ELF file paths are passed as `$ARGUMENTS` (space-separated, the text after `/get_pdi_detail` on the command line).
 
 ## Task
 
-Parse the ELF, verify it is an AIE ELF, and report every `load_pdi` instruction found in all ctrltext sections. For config ELFs with kernel/instance info, group by kernel:instance.
+For each ELF path provided: parse the ELF, verify it is an AIE ELF, and report every `load_pdi` instruction found in all ctrltext sections. For config ELFs with kernel/instance info, group by kernel:instance. Print a separator between ELFs when more than one is given.
 
 ## ELF layout reference
 
@@ -267,9 +267,13 @@ def get_pdi_detail(elf_path):
                           f"load_pdi  pdi_id=0x{pdi_id:08x} ({pdi_id})  page_ref={page_ref}")
 
 
-elf_path = "$ARGUMENTS"
-if not elf_path.strip():
-    print("Usage: /get_pdi_detail <path-to-elf>")
+import shlex
+args = shlex.split("$ARGUMENTS")
+if not args:
+    print("Usage: /get_pdi_detail <elf> [elf2 elf3 ...]")
 else:
-    get_pdi_detail(elf_path.strip())
+    for idx, path in enumerate(args):
+        if idx > 0:
+            print("\n" + "─" * 60)
+        get_pdi_detail(path)
 ```
