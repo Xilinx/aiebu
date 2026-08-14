@@ -604,25 +604,22 @@ hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
     last_bit = hi;
   }
 
-  // Contiguity check: no gaps allowed between first and last set bit
-  if (first_bit != NO_BIT) {
-    const uint64_t span = last_bit - first_bit + 1;
-    if (span != set_bits)
-      throw error(error::error_code::invalid_asm,
-                  "hintmap '" + hintmap_label + "' has non-contiguous bits "
-                  "(first=bit " + std::to_string(first_bit)
-                  + ", last=bit "  + std::to_string(last_bit)
-                  + ", span="      + std::to_string(span)
-                  + ", set="       + std::to_string(set_bits) + ")");
-  }
+  // Holes between set bits are absorbed: size covers the full first-to-last span
+  // so that any transfer hole is included in the scratchpad region.
+  uint64_t span = (first_bit != NO_BIT) ? (last_bit - first_bit + 1) : 0;
+  if (span != set_bits)
+    log_warn() << "Hintmap '" << hintmap_label << "' has non-contiguous bits "
+               << "(first=bit " << first_bit << ", last=bit " << last_bit
+               << ", span=" << span << ", set=" << set_bits
+               << ") — hole absorbed into scratchpad" << std::endl;
 
   const uint64_t scratchbase = (first_bit != NO_BIT) ? (first_bit * CHUNK_SIZE) : DEFAULT_BASE;
-  const uint64_t size        = set_bits * CHUNK_SIZE;
+  const uint64_t size        = (span > 0) ? (span * CHUNK_SIZE) : 0;
 
   log_info() << "Hintmap parsed for group " << group << " (col " << group << "): "
              << "scratchbase=0x" << std::hex << scratchbase
              << ", size=0x"      << size << " (" << std::dec
-             << (size / (1024ULL * 1024ULL)) << "MB, " << set_bits << " chunks)" << std::endl;
+             << (size / (1024ULL * 1024ULL)) << "MB, span=" << span << " chunks, set=" << set_bits << " chunks)" << std::endl;
 
   return {scratchbase, size};
 }
