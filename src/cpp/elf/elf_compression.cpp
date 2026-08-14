@@ -804,21 +804,23 @@ bool is_elf_compressed_impl(const char* data, std::size_t size)
       data[1] != 'E' || data[2] != 'L' || data[3] != 'F')
     return false;
 
-  // Unaligned little-endian reads via boost::endian — explicit endianness contract,
+  // Unaligned little-endian reads via memcpy + boost::endian::little_to_native().
   // compiles to a single load instruction on x86_64.
-  // reinterpret_cast: boost::endian requires unsigned char const*, data is const char*.
   auto rd16 = [&](std::size_t off) -> uint16_t {
     if (off + 2 > size) return 0;
-    return boost::endian::load_little_u16(reinterpret_cast<const unsigned char*>(data + off));
+    uint16_t v; std::memcpy(&v, data + off, sizeof(v));
+    return boost::endian::little_to_native(v);
   };
   auto rd32 = [&](std::size_t off) -> uint32_t {
     if (off + 4 > size) return 0;
-    return boost::endian::load_little_u32(reinterpret_cast<const unsigned char*>(data + off));
+    uint32_t v; std::memcpy(&v, data + off, sizeof(v));
+    return boost::endian::little_to_native(v);
   };
   auto rd64 = [&](std::size_t off) -> uint64_t {
     constexpr std::size_t kU64Size = 8;
     if (off + kU64Size > size) return 0;
-    return boost::endian::load_little_u64(reinterpret_cast<const unsigned char*>(data + off));
+    uint64_t v; std::memcpy(&v, data + off, sizeof(v));
+    return boost::endian::little_to_native(v);
   };
 
   const auto ei_class = static_cast<unsigned char>(data[4]);
