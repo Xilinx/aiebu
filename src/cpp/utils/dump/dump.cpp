@@ -8,6 +8,8 @@
 #include <iostream>
 #include <map>
 
+#include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_decompress.h"
 #include "aiebu/aiebu_error.h"
 #include "analyzer/reporter.h"
 #include "analyzer/packets.h"
@@ -127,7 +129,11 @@ int main(int argc, char* argv[])
   if (!result.arguments().size())
     return 0;
 
-  const std::vector<char> buffer = aiebu::readfile(result["filename"].as<std::string>());
+  // Transparently decompress SHF_COMPRESSED sections if present.
+  // decompress_elf() returns a copy for uncompressed ELFs.
+  std::vector<char> raw_buf = aiebu::readfile(result["filename"].as<std::string>());
+  const std::vector<char> buffer =
+      aiebu::decompress_elf(raw_buf);
   aiebu::aiebu_assembler::buffer_type type = aiebu::identify_buffer_type(buffer);
   std::string target_arch = result["architecture"].as<std::string>();
 

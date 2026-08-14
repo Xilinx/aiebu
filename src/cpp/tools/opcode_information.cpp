@@ -3,6 +3,7 @@
 
 // opcode / source lookup by PC and page
 #include "tools/debug_tools.h"
+#include "aiebu/aiebu_decompress.h"
 #include "aiebu/aiebu_error.h"
 #include "elf/aie_elf_constants.h"
 #include "specification/aie2ps/isa.h"
@@ -389,7 +390,30 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
   }
   const std::string& section_name = sec->get_name();
 
-  const size_t sec_size = sec->get_size();
+  // If the section is compressed (SHF_COMPRESSED), decompress only this one section
+  // into a local buffer via aiebu::copy_section_uncompressed_data(). All other sections
+  // (.symtab, .strtab, .dump.*) are never compressed and are read directly from ELFIO.
+  std::vector<char> decompressed_section_buf;
+  const char* section_data = sec->get_data();
+  std::size_t sec_size = sec->get_size();
+
+  try {
+    if (sec->get_flags() & ELFIO::SHF_COMPRESSED) {
+      // Section is compressed — decompress into local buffer
+      const std::size_t data_size = aiebu::get_section_uncompressed_size(sec, m_elf);
+      decompressed_section_buf.resize(data_size);
+      aiebu::copy_section_uncompressed_data(sec, m_elf,
+                                            decompressed_section_buf.data(), data_size);
+      section_data = decompressed_section_buf.data();
+      sec_size     = data_size;
+    }
+  }
+  catch (const std::exception& e) {
+    result.diag_info = "failed to read section "
+                       + section_name + ": " + e.what();
+    return result;
+  }
+
   // offset counts from page-slot start; bytes [0, k_binary_page_header_size) are
   // the page header — no ctrl-code instruction can reside there.
   if (offset < static_cast<uint32_t>(k_binary_page_header_size)) {
@@ -401,7 +425,7 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
 
   // instr_start : first instruction byte (absolute offset within the section).
   // region_end  : one past the last byte of the current page's region in the section.
-  size_t instr_start =0, region_end=0;
+  size_t instr_start = 0, region_end = 0;
   if (is_merged) {
     const size_t page_base = static_cast<size_t>(page_idx) * k_page_length;
     instr_start = page_base + k_binary_page_header_size;
@@ -423,7 +447,7 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
     return result;
 
   // Walk instructions from the start of the page region to find the one spanning instr_offset
-  const char* instr_data = sec->get_data() + instr_start;
+  const char* instr_data = section_data + instr_start;
 
   isa_disassembler isa;
   const std::map<uint8_t, isa_op_disasm>* isa_map = isa.get_isa_map();
@@ -521,7 +545,7 @@ AIEDebug::get_opcode_information(const std::string& kernel_name,
   // Resolve the group index N for this kernel:instance.
   // UINT32_MAX → single-instance ELF (no group suffix applied).
   const uint32_t name_id = resolve_group_name_id(kernel_name);
-  if (name_id == 0xffffffff)
+  if (name_id == UINT32_MAX)
     return {};
 
   const std::string dump_json = get_dump_json_from_elf(name_id);

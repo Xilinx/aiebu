@@ -147,6 +147,14 @@ configure_elf_for_target(std::shared_ptr<const target_info> target)
   configure_elf_for_target(full_target);
 }
 
+void
+assembler::
+set_compressor(std::unique_ptr<ElfCompressor> c)
+{
+  if (m_elfwriter)
+    m_elfwriter->set_compressor(std::move(c));
+}
+
 assembler::
 assembler(const elf_type type) : m_elf_type(type)
 {

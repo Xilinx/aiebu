@@ -238,14 +238,30 @@ class aiebu_assembler
      * In memory api for full elfs.
      * Construct aiebu_assembler from config json buffer and in memory buffers
      *
-     * @type:               ELF buffer type (aie2_config, aie2ps_config, aie4_config)
+     * @type:               ELF buffer type (aie2_config, aie2ps_config, aie4_config,
+     *                      aie4a_config, aie4z_config)
      * @config_json_buffer: Config json content
      * @artifact:           file_artifact object contains the mapping between
      *                      virtual file (in-memory buffer) name and its binary
-     * @flags:              for passing configuration flags to the assembler
-     *                      ex: disabledump (disable debug dump),
-     *                          fulldump (enable debug dump),
-     *                          opt_level_1 (for optimization)
+     * @flags:              Configuration flags for the assembler. Recognized values:
+     *                        disabledump           — disable debug dump sections
+     *                        fulldump              — enable full debug dump
+     *                        opt_level_1           — enable optimization level 1
+     *                        compress             — compress .ctrltext* / .ctrldata*
+     *                                               sections using zstd at default
+     *                                               level 3 (SHF_COMPRESSED)
+     *                        compress=zstd         — same as "compress"
+     *                        compress=zstd:<level> — zstd at explicit level; <level>
+     *                                               is an integer in
+     *                                               [ZSTD_minCLevel(), ZSTD_maxCLevel()]
+     *                                               (typically -131072..22); higher =
+     *                                               better ratio, slower; e.g.
+     *                                               "compress=zstd:1"  fastest
+     *                                               "compress=zstd:19" best ratio
+     *                        compress=none         — no compression (default)
+     *                      Multiple flags may be combined, e.g. {"fulldump","compress=zstd:5"}.
+     *                      Only one compress flag is allowed; duplicates throw
+     *                      std::invalid_argument. Unknown values also throw.
      */
     aiebu_assembler(buffer_type type,
                     const std::vector<char>& config_json_buffer,

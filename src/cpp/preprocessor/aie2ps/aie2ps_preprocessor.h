@@ -80,6 +80,9 @@ public:
         else
           log_warn() << "Invalid log level flag: " << flag << ", ignored\n";
       }
+      else if (flag == "compress" || flag.find("compress=") == 0) {
+        // Handled by the ELF post-processing layer (make_elf_compressor) — not the assembler.
+      }
       else
         log_warn() << "Invalid flag: " << flag << ", ignored\n";
     }
