@@ -30,6 +30,7 @@ struct dtrace_command_handle {
     std::unique_ptr<dtrace::control> g_control = nullptr;
     // multiple uC dtrace
     std::unordered_map<uint32_t, dtrace::dtrace_buffer_info> g_dtrace_buffer_info_map;
+    uint32_t g_number_uC = 0;
 };
 
 dtrace_handle_t
@@ -74,8 +75,8 @@ get_dtrace_col_numbers(dtrace_handle_t dtrace_handle, uint32_t* buffers_length)
         auto* handle = static_cast<dtrace_command_handle*>(dtrace_handle);
 
         // Get the number of uC in the script file
-        auto number_uC = static_cast<uint32_t>(handle->g_control->m_control_uC_indices.size());
-        *buffers_length = number_uC;
+        handle->g_number_uC = static_cast<uint32_t>(handle->g_control->m_control_uC_indices.size());
+        *buffers_length = handle->g_number_uC;
     }
     catch (const std::exception& e)
     {
@@ -95,6 +96,10 @@ get_dtrace_buffer_size(dtrace_handle_t dtrace_handle, uint64_t* buffers)
         // Control buffer size and memory buffer size for each uC
         for (const auto& uC_index : handle->g_control->m_control_uC_indices)
         {
+            // Check if the buffer index is greater than the number of uC / buffer size
+            if (buffer_index >= handle->g_number_uC)
+                return;
+
             // Get control buffer and memory buffer size and populate the map
             // with the dtrace_buffer_info for uC_index
             dtrace::dtrace_buffer_info l_dtrace_buffer_info;
