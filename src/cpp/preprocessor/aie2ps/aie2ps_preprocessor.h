@@ -188,7 +188,6 @@ public:
     toutput->set_filename_table(
         std::make_shared<detail::filename_table>(parser->get_filename_table()));
 
-    offset_type preemption_scratchpad = 0;
     for (auto col: collist)
     {
       std::vector<page> pages;
@@ -212,7 +211,6 @@ public:
       for (auto& pad : scratchpad)
       {
         pad.second->set_offset(0);
-        preemption_scratchpad += pad.second->get_size();
       }
 
       toutput->set_coldata(col, pages, scratchpad, label_page_index, tinput->get_control_packet_index());
