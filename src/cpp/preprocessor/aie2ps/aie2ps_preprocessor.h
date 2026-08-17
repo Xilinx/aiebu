@@ -188,7 +188,7 @@ public:
     toutput->set_filename_table(
         std::make_shared<detail::filename_table>(parser->get_filename_table()));
 
-    offset_type preemption_scratchpad = 0;
+    [[maybe_unused]] offset_type preemption_scratchpad = 0;
     for (auto col: collist)
     {
       std::vector<page> pages;
