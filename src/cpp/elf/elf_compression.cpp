@@ -808,18 +808,18 @@ bool is_elf_compressed_impl(const char* data, std::size_t size)
   // compiles to a single load instruction on x86_64.
   auto rd16 = [&](std::size_t off) -> uint16_t {
     if (off + 2 > size) return 0;
-    uint16_t v; std::memcpy(&v, data + off, sizeof(v));
+    uint16_t v = 0; std::memcpy(&v, data + off, sizeof(v));
     return boost::endian::little_to_native(v);
   };
   auto rd32 = [&](std::size_t off) -> uint32_t {
     if (off + 4 > size) return 0;
-    uint32_t v; std::memcpy(&v, data + off, sizeof(v));
+    uint32_t v = 0; std::memcpy(&v, data + off, sizeof(v));
     return boost::endian::little_to_native(v);
   };
   auto rd64 = [&](std::size_t off) -> uint64_t {
     constexpr std::size_t kU64Size = 8;
     if (off + kU64Size > size) return 0;
-    uint64_t v; std::memcpy(&v, data + off, sizeof(v));
+    uint64_t v = 0; std::memcpy(&v, data + off, sizeof(v));
     return boost::endian::little_to_native(v);
   };
 
