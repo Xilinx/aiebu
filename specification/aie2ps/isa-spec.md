@@ -688,9 +688,9 @@ control to another job.
 
 save/restore context of an inference at preemption point in control code
 
-| 0x19 | - | id | save_control_code_offset | restore_control_code_offset | instruction size |
-| :-: | - | - | - | - | -: |
-| opcode (8b) | pad (8b) | const (16b) | page_id (16b) | page_id (16b) | 8B |
+| 0x19 | - | id | save_control_code_offset | restore_control_code_offset | hint_bitmap | instruction size |
+| :-: | - | - | - | - | - | -: |
+| opcode (8b) | pad (8b) | const (16b) | page_id (16b) | page_id (16b) | patch_buf (0b) | 8B |
 
 If the control code supports preemption, there will be preemption points inserted in it. `id` specifies the preemption
 point index. `id` values should be consecutive, starting with index 0. We assume all aie cores are stateless,
@@ -704,6 +704,27 @@ In multi-uC case, at each preemption point, CERT will do barrier sync regardless
 for each preemption point id, the control code of each uc should have this opcode with same `id`.
 This opcode should take one whole job but the job can share page with other jobs.
 
+The optional 4th argument `hint_bitmap` is a label (starting with @) pointing to one or more `.long` words in the
+data section that form a flat bit-array describing which 64KB chunks of the partition-wide scratchpad this controller
+needs to save/restore. Bit N (counting from the LSB of word 0) corresponds to the chunk at absolute scratchpad offset
+`N * 64KB`. The assembler uses this bitmap to automatically select the correct save/restore code variant and to
+enforce that no two controllers save the same 64KB chunk at the same preemption point (see note 4). When
+`hint_bitmap` is omitted the controller saves/restores the full default scratchpad.
+Example:
+```
+; Save chunks 0-3 (bytes 0x0 - 0x40000) of the partition scratchpad
+hintmap_0:
+  .long 0x0000000f   ; bits 0-3 set in word 0
+
+; Save chunks 96-99 (bytes 0x600000 - 0x640000); bits 96-99 are
+; bits 0-3 of word 3 (each word covers 32 consecutive chunks)
+hintmap_1:
+  .long 0x00000000   ; word 0: bits  0-31
+  .long 0x00000000   ; word 1: bits 32-63
+  .long 0x00000000   ; word 2: bits 64-95
+  .long 0x0000000f   ; word 3: bits 96-127, bits 96-99 set
+```
+
 Note:
 
 1. When this opcode runs, all prior jobs have to complete, but async tasks triggered by prior jobs don't need to complete.
@@ -712,7 +733,22 @@ Note:
 2. When this opcode runs, all following jobs in the same page don't start before this preemption job is done
 
 3. `SAVE` and `RESTORE` control code each has self-contained stream switch routing for themselves. The routing information
-will be cleared after `SAVE` and `RESTORE` are done
+   will be cleared after `SAVE` and `RESTORE` are done
+
+4. The hint bitmaps refer to absolute addresses in the partition-wide scratchpad. In a multi-controller design,
+   each controller must save/restore disjoint 64KB chunks. The assembler enforces this at assemble time by
+   examining every pair of controllers at each preemption point. There are three possible outcomes:
+
+   - **Hard error — real bit overlap**: two controllers with `hint_bitmap` share one or more identical chunk
+     bits in their bitmaps, i.e. the same physical 64KB block is claimed by both. No recovery is possible.
+
+   - **Hard error — hintmap bits inside a fixed region**: one controller omits `hint_bitmap` and therefore
+     covers its entire column as a contiguous fixed region. Another controller has a `hint_bitmap` whose set
+     bits fall inside that fixed region. No recovery is possible.
+
+   - **Auto-redistributed — span overlap due to holes**: two controllers have strictly disjoint set bits but
+     their effective regions (first set chunk → last set chunk, inclusive) overlap because unset chunks
+     (holes) in one bitmap reach across the other controller's territory. This is recoverable.
 
 
 ## LOAD_PDI (0x1a)

@@ -7,6 +7,7 @@
 
 #include <fstream>
 #include <iomanip>
+#include <numeric>
 #include <optional>
 #include "common/regex_wrapper.h"
 #include <sstream>
@@ -607,19 +608,30 @@ hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
   // Holes between set bits are absorbed: size covers the full first-to-last span
   // so that any transfer hole is included in the scratchpad region.
   uint64_t span = (first_bit != NO_BIT) ? (last_bit - first_bit + 1) : 0;
-  if (span != set_bits)
+  if (span != set_bits) {
     log_warn() << "Hintmap '" << hintmap_label << "' has non-contiguous bits "
                << "(first=bit " << first_bit << ", last=bit " << last_bit
                << ", span=" << span << ", set=" << set_bits
-               << ") — hole absorbed into scratchpad" << std::endl;
+               << ") - hole absorbed into scratchpad" << std::endl;
+  }
+
+  // Guard against overflow when there are set bits: CHUNK_SIZE is 64KB; a
+  // 160-chunk span (worst case for a 10MB memtile) gives 160*64KB = 10MB,
+  // well within uint64_t range.  Reject obviously-corrupt bitmaps where span
+  // or first_bit exceed 2^32 (no real hintmap would be that wide).
+  if (first_bit != NO_BIT && (span > UINT32_MAX || first_bit > UINT32_MAX)) {
+    throw error(error::error_code::invalid_asm,
+                "Hintmap '" + hintmap_label + "': span or first bit out of range");
+  }
 
   const uint64_t scratchbase = (first_bit != NO_BIT) ? (first_bit * CHUNK_SIZE) : DEFAULT_BASE;
   const uint64_t size        = (span > 0) ? (span * CHUNK_SIZE) : 0;
 
+  constexpr uint64_t BYTES_PER_MB = 1024ULL * 1024ULL;
   log_info() << "Hintmap parsed for group " << group << " (col " << group << "): "
              << "scratchbase=0x" << std::hex << scratchbase
              << ", size=0x"      << size << " (" << std::dec
-             << (size / (1024ULL * 1024ULL)) << "MB, span=" << span << " chunks, set=" << set_bits << " chunks)" << std::endl;
+             << (size / BYTES_PER_MB) << "MB, span=" << span << " chunks, set=" << set_bits << " chunks)" << std::endl;
 
   return {scratchbase, size};
 }
@@ -659,8 +671,11 @@ find_hintmap_context(int group,
 
 // ---------------------------------------------------------------------------
 // parse_hintmap_and_calculate_scratchpad
-//   Each bit represents a 64KB chunk; scratchbase = first set bit * 64KB,
-//   size = set_bits * 64KB.  Returns defaults when hintmap_label is empty.
+//   Each bit represents a 64KB chunk.  Returns the contiguous span that covers
+//   all set bits: scratchbase = first_set_bit * 64KB,
+//   size = (last_set_bit - first_set_bit + 1) * 64KB.
+//   Holes between set bits are absorbed into the span (not thrown as errors).
+//   Returns defaults when hintmap_label is empty.
 // ---------------------------------------------------------------------------
 std::pair<uint64_t, uint64_t>
 asm_parser::
@@ -678,7 +693,13 @@ parse_hintmap_and_calculate_scratchpad(int group,
     return {DEFAULT_BASE, DEFAULT_SIZE};
   }
 
-  const std::string ctx     = find_hintmap_context(group, search_context, hintmap_label);
+  // Build the qualified key the same way the override map is keyed.
+  const std::string ctx = find_hintmap_context(group, search_context, hintmap_label);
+  const std::string qualified = ctx + ":" + hintmap_label;
+  auto ov = m_hintmap_region_override.find({group, qualified});
+  if (ov != m_hintmap_region_override.end())
+    return ov->second;
+
   auto& col_data            = get_col_asmdata(static_cast<uint32_t>(group));
   const auto& all_entries   = col_data.get_label_asmdata_data(ctx);
   const auto words          = collect_hintmap_words(all_entries, hintmap_label);
@@ -1357,80 +1378,545 @@ asm_parser::process_preempt_group(int group,
 }
 
 // ---------------------------------------------------------------------------
-// verify_hintmap_no_overlap
-//   In multi-uC mode every controller saves into the same partition wide
-//   preemption scratchpad and cert synchronizes the controllers at every
-//   preemption point, so the regions two controllers write at the same
-//   preemption point must be disjoint.  All columns have the same number of
-//   preemption points (checked earlier), hence the n-th PREEMPT opcode of every
-//   column belongs to the same preemption point.  A PREEMPT opcode with no
-//   hintmap saves the entire 3MB of its own column.
+// collect_set_chunks
+//   Return the sorted list of chunk indices (bit positions) that are set in
+//   the hintmap words of 'hintmap_label' within column 'col'.
+// ---------------------------------------------------------------------------
+static std::vector<uint64_t>
+collect_set_chunks(asm_parser& parser,
+                   int col,
+                   const std::string& search_context,
+                   const std::string& hintmap_label)
+{
+  // Re-use the public helpers to get the raw .long words.
+  const std::string ctx   = parser.find_hintmap_context(col, search_context, hintmap_label);
+  auto& col_data          = parser.get_col_asmdata(static_cast<uint32_t>(col));
+  const auto& all_entries = col_data.get_label_asmdata_data(ctx);
+  const auto words        = collect_hintmap_words(all_entries, hintmap_label);
+
+  std::vector<uint64_t> chunks;
+  constexpr uint64_t BITS_PER_WORD = 32;
+  for (std::size_t widx = 0; widx < words.size(); ++widx) {
+    auto w = words[widx];
+    while (w) {
+      int bit = aiebu_ctz(w);
+      chunks.push_back(widx * BITS_PER_WORD + static_cast<uint64_t>(bit));
+      w &= w - 1;  // clear lowest set bit
+    }
+  }
+  return chunks;  // already in ascending order since we scan low-to-high
+}
+
+// ---------------------------------------------------------------------------
+// build_point_infos
+//   Snapshot the save-region for every active controller at preemption point
+//   index 'idx'.
+//
+//   m_preempt_points maps each column to its ordered list of PREEMPT opcodes.
+//   All columns must have the same count (checked earlier), so the n-th opcode
+//   of every column belongs to the same logical preemption point.
+//
+//   For each column that has an opcode at position 'idx':
+//     • Split the opcode's hintmap_key ("scope:label") into context and label.
+//       An empty key means this controller has no hintmap.
+//     • Call parse_hintmap_and_calculate_scratchpad to convert the hintmap bits
+//       into a [base, size) region.  With a hintmap this is
+//       [first_set_chunk * CHUNK_SIZE, (last_set_chunk+1) * CHUNK_SIZE);
+//       without a hintmap it is the controller's full 3 MB column region.
+//     • Append a col_point_info{col, id, hintmap_key, base, size} to the result.
+//
+//   The returned vector is consumed by validate_resolve_hintmap_overlap to
+//   detect and fix span overlaps across controllers.
+// ---------------------------------------------------------------------------
+std::vector<asm_parser::col_point_info>
+asm_parser::build_point_infos(std::size_t idx)
+{
+  std::vector<col_point_info> infos;
+  for (const auto& [col, pts] : m_preempt_points) {
+    if (idx >= pts.size())
+      continue;
+    const auto& point = pts[idx];
+    auto [ctx, label] = split_qualified_hintmap(point.hintmap_key);
+    auto [base, size] = parse_hintmap_and_calculate_scratchpad(col, ctx, label);
+    infos.push_back({col, point.id, point.hintmap_key, base, size});
+  }
+  return infos;
+}
+
+// ---------------------------------------------------------------------------
+// overlap_error  (file-local)
+//   Build and throw the standard overlap error message.
+// ---------------------------------------------------------------------------
+[[noreturn]] static void
+overlap_error(std::size_t pt_idx, std::string msg)
+{
+  throw error(error::error_code::invalid_asm,
+              "hint bitmap overlap at preemption point " + std::to_string(pt_idx)
+              + ": " + std::move(msg)
+              + "; hint bitmaps of different controllers must not overlap at the same"
+                " preemption point\n");
+}
+
+// ---------------------------------------------------------------------------
+// check_overlap_pair  (file-local)
+//   Examines one (a, b) pair at preemption point pt_idx.
+//   Returns false if spans don't overlap.
+//   Throws on a real bit overlap.
+//   Returns true and updates union-find on a span-only overlap (fixable).
+// ---------------------------------------------------------------------------
+static bool
+check_overlap_pair(
+    std::size_t a, std::size_t b, std::size_t pt_idx,
+    const std::vector<asm_parser::col_point_info>& infos,
+    std::vector<std::vector<uint64_t>>& chunks_cache,
+    std::vector<int>& parent)
+{
+  const auto& ra = infos[a];
+  const auto& rb = infos[b];
+
+  // No span overlap — nothing to check.
+  if (!(ra.base < rb.base + rb.size && rb.base < ra.base + ra.size))
+    return false;
+
+  // Union-find helpers (path-compressed find + union).
+  auto uf_find = [&](int x) {
+    while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+    return x;
+  };
+  auto uf_union = [&](int x, int y) {
+    auto rx = uf_find(x), ry = uf_find(y);
+    if (rx != ry) { parent[rx] = ry; }
+  };
+
+  // Case 1: both have no hintmap → fixed contiguous ranges, real overlap.
+  if (ra.hintmap_key.empty() && rb.hintmap_key.empty()) {
+    std::ostringstream oss;
+    oss << "controller " << ra.col << " (id " << ra.id
+        << ") saves [0x" << std::hex << ra.base << ", 0x" << (ra.base + ra.size) << ")"
+        << " (no hintmap) and controller " << rb.col << " (id " << rb.id
+        << ") saves [0x" << rb.base << ", 0x" << (rb.base + rb.size) << ") (no hintmap)"
+        << std::dec;
+    overlap_error(pt_idx, oss.str());
+  }
+
+  // Case 2: one fixed range, one hintmap.
+  if (ra.hintmap_key.empty() || rb.hintmap_key.empty()) {
+    const bool a_fixed         = ra.hintmap_key.empty();
+    const auto& fixed          = a_fixed ? ra : rb;
+    const std::size_t hm_idx   = a_fixed ? b  : a;
+    const auto& hm             = infos[hm_idx];
+    const auto first_chunk = fixed.base / CHUNK_SIZE;
+    const auto last_chunk  = (fixed.base + fixed.size) / CHUNK_SIZE;
+
+    for (const auto ch : chunks_cache[hm_idx]) {
+      if (ch >= first_chunk && ch < last_chunk) {
+        std::ostringstream oss;
+        oss << "controller " << hm.col << " (id " << hm.id
+            << ", hintmap '" << hm.hintmap_key << "')"
+            << " has chunks inside the fixed region of controller " << fixed.col
+            << " (id " << fixed.id << ") [0x" << std::hex
+            << fixed.base << ", 0x" << (fixed.base + fixed.size) << ")" << std::dec;
+        overlap_error(pt_idx, oss.str());
+      }
+    }
+    // Span-only overlap: union every hintmap controller into one component.
+    for (std::size_t i = 0; i < infos.size(); ++i) {
+      if (!infos[i].hintmap_key.empty() && infos[i].size > 0)
+        uf_union(static_cast<int>(i), static_cast<int>(hm_idx));
+    }
+    return true;
+  }
+
+  // Case 3: both have hintmaps — sorted merge to detect a shared chunk.
+  const auto& ca = chunks_cache[a];
+  const auto& cb = chunks_cache[b];
+  for (std::size_t ia = 0, ib = 0; ia < ca.size() && ib < cb.size(); ) {
+    if (ca[ia] == cb[ib]) {
+      std::ostringstream oss;
+      oss << "controller " << ra.col << " (id " << ra.id
+          << ", hintmap '" << ra.hintmap_key << "')"
+          << " and controller " << rb.col << " (id " << rb.id
+          << ", hintmap '" << rb.hintmap_key << "')"
+          << " share one or more 64KB chunks";
+      overlap_error(pt_idx, oss.str());
+    }
+    if (ca[ia] < cb[ib])
+      ++ia;
+    else
+      ++ib;
+  }
+  // Disjoint bits, span overlap: union just the two controllers.
+  uf_union(static_cast<int>(a), static_cast<int>(b));
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// redistribute_component
+//   Selects K-1 cut points across the combined sorted chunks of all component
+//   members, builds one contiguous segment per controller, and stores the
+//   new (base, size) in m_hintmap_region_override.
+//
+//   Cut priority (best = lexicographically largest tuple):
+//     (mandatory, gap_size, seg_len, -dist_to_mid)
+//   mandatory gaps (spanning a fixed-range controller) always win.
+//   Among equal gaps, cut the largest segment closest to its midpoint.
+// ---------------------------------------------------------------------------
+void
+asm_parser::redistribute_component(
+    std::size_t pt_idx,
+    const std::vector<col_point_info>& infos,
+    const std::vector<std::size_t>& members,
+    std::vector<std::vector<uint64_t>>& chunks_cache,
+    const std::vector<std::pair<uint64_t,uint64_t>>& fixed_rngs)
+{
+  // Step 1 — collect the union of all set chunks across every member of this component.
+  // Each member's chunk list is already sorted (produced by collect_set_chunks);
+  // concatenating and re-sorting is safe because the bits are guaranteed disjoint
+  // (check_overlap_pair verified that before unioning them).  Dedup is a safety net
+  // in case the same chunk appears in two members despite the disjoint check.
+  std::vector<uint64_t> chunks;
+  for (std::size_t i : members)
+    chunks.insert(chunks.end(), chunks_cache[i].begin(), chunks_cache[i].end());
+
+  std::sort(chunks.begin(), chunks.end());
+  chunks.erase(std::unique(chunks.begin(), chunks.end()), chunks.end());
+  if (chunks.empty()) { return; }  // nothing to save — nothing to redistribute
+
+  const std::size_t n = chunks.size();  // total set chunks across all members
+  const std::size_t K = members.size(); // number of controllers = number of segments needed
+
+  // Step 2 — pre-compute attributes for every inter-chunk gap.
+  // gap[i] describes the space between chunks[i] and chunks[i+1]:
+  //   size      = number of unset (hole) chunks in that gap.  Cutting here removes
+  //               'size' hole chunks from the total data transferred, so larger is better.
+  //   mandatory = true when a fixed-range controller's region [fs, fe) fits entirely
+  //               inside the gap [chunks[i]+1, chunks[i+1]).  Such a gap MUST be a cut
+  //               point so no redistributed segment ever spans across fixed territory.
+  struct gap_t {
+    bool        mandatory = false; // gap spans a fixed-range controller — must cut here
+    uint64_t    size      = 0;    // hole chunks between chunks[i] and chunks[i+1]
+  };
+  std::vector<gap_t> gaps(n - 1);
+  for (std::size_t i = 0; i + 1 < n; ++i) {
+    gaps[i].size = chunks[i + 1] - chunks[i] - 1;
+    const uint64_t lo = chunks[i] + 1, hi = chunks[i + 1];
+    // A fixed region [fs, fe) is "inside" the gap when fs >= lo and fe <= hi,
+    // meaning the entire fixed region lies in the hole between these two set chunks.
+    gaps[i].mandatory = std::any_of(fixed_rngs.begin(), fixed_rngs.end(),
+                                    [&](const auto& r) { return r.first >= lo && r.second <= hi; });
+  }
+
+  // Step 3 — greedy cut selection: choose K-1 cut positions one at a time.
+  //
+  // Seed the cut set with all mandatory positions — these are non-negotiable and
+  // do not count against the 'remaining' optional cuts needed.
+  // Then add optional cuts one per iteration until we have K-1 total.
+  //
+  // make_segs() rebuilds the current segment list [(start_idx, end_idx)] from
+  // the ordered cut set.  A cut at index c ends one segment at chunks[c] and
+  // starts the next at chunks[c+1].
+  std::set<std::size_t> cuts;
+  for (std::size_t i = 0; i + 1 < n; ++i) {
+    if (gaps[i].mandatory)
+      cuts.insert(i);
+  }
+
+  auto make_segs = [&]() {
+    std::vector<std::pair<std::size_t,std::size_t>> segs;
+    std::size_t s = 0;
+    for (std::size_t c : cuts) { segs.emplace_back(s, c); s = c + 1; }
+    segs.emplace_back(s, n - 1);
+    return segs;
+  };
+
+  // 'remaining' = how many more optional cuts we still need after the mandatory ones.
+  std::size_t remaining = (K > 1 + cuts.size()) ? K - 1 - cuts.size() : 0;
+  for (std::size_t r = 0; r < remaining; ++r) {
+    // Scan every gap position inside every current segment and pick the best one.
+    // best_t tracks the winning candidate found so far.
+    // beats() implements the 4-level lexicographic priority:
+    //   (a) mandatory  — correctness: mandatory gaps always take precedence.
+    //   (b) gap size   — larger gap removes more hole chunks (minimise total transfer).
+    //   (c) seg_len    — prefer cutting the longest current segment (faster convergence).
+    //   (d) dist       — among ties, cut closest to the segment midpoint (balance load).
+    struct best_t {
+      bool        valid    = false;
+      bool        mand     = false;
+      uint64_t    gap      = 0;
+      std::size_t seg_len  = 0;
+      std::size_t dist     = std::numeric_limits<std::size_t>::max(); // lower is better
+      std::size_t gap_idx  = 0;
+
+      bool beats(const best_t& o) const {
+        if (mand    != o.mand)    return mand    > o.mand;    // (a)
+        if (gap     != o.gap)     return gap     > o.gap;     // (b)
+        if (seg_len != o.seg_len) return seg_len > o.seg_len; // (c)
+        return dist < o.dist;                                  // (d)
+      }
+    } best;
+
+    for (auto [s, e] : make_segs()) {
+      if (e <= s) { continue; } // single-element segment: no internal gap to cut
+      const std::size_t len = e - s + 1;
+      // mid is the gap index that gives the most balanced split (equal set-chunk halves).
+      const std::size_t mid = s + len / 2 - 1;
+      for (std::size_t i = s; i < e; ++i) {
+        const std::size_t dist = (i <= mid) ? mid - i : i - mid;
+        best_t cand{true, gaps[i].mandatory, gaps[i].size, len, dist, i};
+        if (!best.valid || cand.beats(best))
+          best = cand;
+      }
+    }
+    if (best.valid)
+      cuts.insert(best.gap_idx); // commit the chosen cut
+  }
+
+  // Step 4 — materialise segments from the final cut set.
+  // Each segment records its first and last chunk index (both inclusive) and the
+  // number of set chunks it contains (used for logging holes = span - set_count).
+  struct seg_t { uint64_t first = 0, last = 0; std::size_t set_count = 0; };
+  std::vector<seg_t> segs;
+  {
+    std::size_t s = 0;
+    for (std::size_t c : cuts) {
+      segs.push_back({chunks[s], chunks[c], c - s + 1}); // [chunks[s], chunks[c]]
+      s = c + 1;
+    }
+    segs.push_back({chunks[s], chunks.back(), n - s});   // final segment
+  }
+
+  // Step 5 — pair segments with controllers and write the redistribution overrides.
+  // Sort controllers by their original base address so the lowest-address controller
+  // receives the lowest-address segment.  This preserves the original ordering and
+  // avoids unnecessary data movement between controllers.
+  std::vector<std::size_t> sorted = members;
+  std::sort(sorted.begin(), sorted.end(),
+            [&](std::size_t a, std::size_t b) { return infos[a].base < infos[b].base; });
+
+  const auto n_pairs = std::min(segs.size(), sorted.size());
+  log_warn() << "Preemption point " << pt_idx
+             << ": redistributing " << n_pairs << " segment(s) (min-holes).\n";
+
+  for (std::size_t k = 0; k < n_pairs; ++k) {
+    const auto& seg  = segs[k];
+    const auto& info = infos[sorted[k]];
+    // Convert chunk indices back to byte offsets: chunk C starts at C * CHUNK_SIZE.
+    const auto new_base = seg.first * CHUNK_SIZE;
+    const auto new_size = (seg.last - seg.first + 1) * CHUNK_SIZE;
+    const auto holes    = (seg.last - seg.first + 1) - seg.set_count;
+
+    log_warn() << "  controller " << info.col
+               << " (hintmap '" << info.hintmap_key << "')"
+               << ": [0x" << std::hex << new_base << ", 0x" << (new_base + new_size) << ")"
+               << std::dec << " (set=" << seg.set_count
+               << " span=" << (seg.last - seg.first + 1) << " holes=" << holes << ")\n";
+
+    // Store the override so parse_hintmap_and_calculate_scratchpad returns
+    // this redistributed region instead of the original hintmap-derived span.
+    m_hintmap_region_override[{info.col, info.hintmap_key}] = {new_base, new_size};
+  }
+}
+
+// ---------------------------------------------------------------------------
+// validate_resolve_hintmap_overlap
+//
+// BACKGROUND
+//   In multi-uC mode all controllers save state into the same partition-wide
+//   preemption scratchpad.  cert synchronises them at every preemption point,
+//   so the memory regions written by two controllers at the same preemption
+//   point must be disjoint.
+//
+//   All columns have the same number of PREEMPT opcodes (checked earlier), so
+//   the n-th PREEMPT of every column belongs to the same preemption point.
+//
+//   A controller's save region is determined by its hint bitmap:
+//     • With a hintmap  – region = [first_set_chunk, last_set_chunk] (span).
+//                         The span may be wider than the actual bits because
+//                         there can be holes (unset chunks) between set ones.
+//     • Without hintmap – region = entire 3 MB of the controller's own column.
+//
+// TERMINOLOGY
+//   chunk      – one 64 KB block (CHUNK_SIZE bytes).  Each hintmap bit = one chunk.
+//   span       – contiguous range [first_set_chunk * CHUNK_SIZE,
+//                                  (last_set_chunk + 1) * CHUNK_SIZE).
+//   hole       – an unset chunk inside a span (transfers as zero bytes but
+//                still counts against the span width).
+//   fixed region – a no-hintmap controller's region; always contiguous,
+//                  cannot be moved.
+//
+// OVERLAP CASES
+//   When two controllers' spans intersect there are three sub-cases:
+//
+//   Case 1 – both have no hintmap (both fixed):
+//     Both regions are solid contiguous ranges; any intersection is a real
+//     conflict.  → Hard error, no recovery.
+//
+//   Case 2 – one fixed, one hintmap:
+//     The hintmap controller's span may reach into the fixed region only
+//     because of trailing/leading holes.  Check the actual bits:
+//       a. If any set chunk of the hintmap lies inside [fixed_first_chunk,
+//          fixed_last_chunk) → real overlap → hard error.
+//       b. Otherwise the overlap is span-only.  The hintmap's bits are
+//          entirely outside the fixed region but its span crosses it.
+//          Redistribute all hintmap controllers as one component (see below).
+//
+//   Case 3 – both have hintmaps:
+//     Merge-intersect the two sorted chunk lists in O(n).
+//       a. If any chunk appears in both lists → real overlap → hard error.
+//       b. Otherwise the overlap is span-only.
+//          Union the two controllers for redistribution.
+//
+// REDISTRIBUTION (span-only overlap resolution)
+//   Controllers involved in a span-only overlap are grouped into connected
+//   components using union-find (controllers that transitively span-overlap
+//   each other end up in the same component).  No-hintmap controllers are
+//   never part of a component; their regions are unchanged.
+//
+//   For each component with K members:
+//     1. Collect the union of all set chunks across members, sort and dedup.
+//        Call this list C[0..n-1].
+//     2. For each gap between consecutive chunks C[i] and C[i+1]:
+//          mandatory = true if a fixed-region interval fits entirely inside
+//                      the gap (i.e. the gap spans a no-hintmap controller's
+//                      territory).  Mandatory gaps must always be cut points
+//                      so that redistributed spans never cross fixed regions.
+//     3. Select K-1 cut positions by greedy best-first search:
+//          - Seed the cut set with all mandatory gap positions.
+//          - Iteratively add one optional cut at a time, each time choosing
+//            the gap with the lexicographically best score:
+//              (a) mandatory flag  – mandatory gaps always win (correctness).
+//              (b) gap size        – larger gap removes more hole chunks,
+//                                    minimising total transferred data.
+//              (c) segment length  – prefer cutting the longest segment first.
+//              (d) distance to mid – among ties, cut closest to the segment's
+//                                    midpoint for balanced load.
+//     4. The K-1 cuts divide C into K contiguous segments.  Each segment's
+//        region is [C[seg_start] * CHUNK_SIZE,
+//                   (C[seg_end] + 1) * CHUNK_SIZE).
+//     5. Sort component members by their original base address.  Pair the
+//        lowest-address member with the lowest-address segment, and so on.
+//     6. Write the new (base, size) into m_hintmap_region_override keyed by
+//        (col, hintmap_key).  parse_hintmap_and_calculate_scratchpad checks
+//        this map first, so all subsequent uses of these hintmaps see the
+//        redistributed region automatically.
+//
+// ALGORITHM OUTLINE
+//   for each preemption point index idx:
+//     infos      = build_point_infos(idx)          // one entry per controller
+//     chunks_cache[i] = collect_set_chunks(infos[i]) // bits → chunk indices
+//     parent[i]  = i                               // union-find initialisation
+//
+//     for each pair (a, b) with non-zero size:
+//       check_overlap_pair(a, b) → no overlap / hard error / union + redist flag
+//
+//     if no redistribution needed: continue
+//
+//     components = group hintmap controllers by union-find root
+//     fixed_rngs = chunk ranges of no-hintmap controllers
+//
+//     for each component:
+//       redistribute_component(component, chunks_cache, fixed_rngs)
+//         → writes overrides into m_hintmap_region_override
 // ---------------------------------------------------------------------------
 void
 asm_parser::
-verify_hintmap_no_overlap()
+validate_resolve_hintmap_overlap()
 {
-  struct region {
-    uint64_t    base;
-    uint64_t    size;
-    std::string id;       // preemption point id as written in the asm
-    std::string hintmap;  // qualified hintmap name, empty when the opcode has none
-  };
-
-  // For every column: the region it writes at each of its preemption points,
-  // in program order.  m_preempt_points is ordered by column.
-  std::vector<std::pair<int, std::vector<region>>> col_regions;
+  // Step 1 — find the total number of preemption points.
+  // All columns must have the same count, so the maximum across all columns
+  // equals the shared count.  Columns with fewer entries simply have no opcode
+  // at the later indices and are skipped inside the per-point loop below.
   std::size_t num_points = 0;
-  for (const auto& [col, points] : m_preempt_points) {
-    std::vector<region> regions;
-    regions.reserve(points.size());
-    for (const auto& point : points) {
-      auto [ctx, label] = split_qualified_hintmap(point.hintmap_key);
-      auto [base, size] = parse_hintmap_and_calculate_scratchpad(col, ctx, label);
-      regions.push_back({base, size, point.id, point.hintmap_key});
-    }
-    if (regions.size() > num_points)
-      num_points = regions.size();
-    col_regions.emplace_back(col, std::move(regions));
+  for (const auto& [col, pts] : m_preempt_points) {
+    if (pts.size() > num_points)
+      num_points = pts.size();
   }
 
-  auto describe = [](const region& reg) {
-    std::ostringstream oss;
-    oss << "[0x" << std::hex << reg.base << ", 0x" << (reg.base + reg.size) << ")" << std::dec;
-    if (reg.hintmap.empty())
-      oss << " (no hintmap: whole column memtile)";
-    else
-      oss << " (hintmap '" << reg.hintmap << "')";
-    return oss.str();
-  };
-
+  // Step 2 — process one preemption point at a time.
+  // Each iteration is self-contained: it collects region info, checks overlaps,
+  // and redistributes if needed — all scoped to a single synchronisation barrier.
   for (std::size_t idx = 0; idx < num_points; ++idx) {
-    for (std::size_t a = 0; a < col_regions.size(); ++a) {
-      if (idx >= col_regions[a].second.size())
+
+    // Step 2a — collect the save region for every active controller.
+    // infos[i] = {col, preempt_id, hintmap_key, base, size} for each column
+    // that has a PREEMPT opcode at position 'idx'.
+    const std::vector<col_point_info> infos = build_point_infos(idx);
+
+    // Step 2b — pre-compute chunk lists for every hintmap controller.
+    // Each entry chunks_cache[i] is the sorted list of 64KB chunk indices that
+    // controller i's hintmap marks as needing save/restore.
+    // Controllers without a hintmap leave their entry as an empty vector;
+    // their save region is a solid contiguous range with no holes.
+    std::vector<std::vector<uint64_t>> chunks_cache(infos.size());
+    for (std::size_t i = 0; i < infos.size(); ++i) {
+      if (infos[i].hintmap_key.empty())
         continue;
-      const auto& ra = col_regions[a].second[idx];
-      if (ra.size == 0)
-        continue;  // nothing is saved, so nothing can clash
+      auto [ctx, lbl] = split_qualified_hintmap(infos[i].hintmap_key);
+      chunks_cache[i] = collect_set_chunks(*this, infos[i].col, ctx, lbl);
+    }
 
-      for (std::size_t b = a + 1; b < col_regions.size(); ++b) {
-        if (idx >= col_regions[b].second.size())
-          continue;
-        const auto& rb = col_regions[b].second[idx];
-        if (rb.size == 0)
-          continue;
+    // Step 2c — initialise union-find.
+    // parent[i] = i means each controller starts in its own singleton set.
+    // check_overlap_pair will merge sets when it finds a span-only overlap
+    // that can be fixed by redistribution.
+    std::vector<int> parent(infos.size());
+    std::iota(parent.begin(), parent.end(), 0);
+    bool any_redist = false;
 
-        if (ra.base < rb.base + rb.size && rb.base < ra.base + ra.size) {
-          std::ostringstream oss;
-          oss << "hint bitmap overlap at preemption point " << idx
-              << ": controller " << col_regions[a].first
-              << " (id " << ra.id << ") saves " << describe(ra)
-              << " and controller " << col_regions[b].first
-              << " (id " << rb.id << ") saves " << describe(rb)
-              << "; hint bitmaps of different controllers must not overlap at the same"
-                 " preemption point\n";
-          throw error(error::error_code::invalid_asm, oss.str());
-        }
+    // Step 2d — check every pair of controllers for overlap.
+    // check_overlap_pair either throws (hard bit overlap → no recovery),
+    // updates the union-find (span-only overlap → redistribution needed),
+    // or returns false (no overlap at all → nothing to do).
+    for (std::size_t a = 0; a < infos.size(); ++a) {
+      if (infos[a].size == 0) { continue; }  // controller saves nothing, skip
+      for (std::size_t b = a + 1; b < infos.size(); ++b) {
+        if (infos[b].size == 0) { continue; }
+        if (check_overlap_pair(a, b, idx, infos, chunks_cache, parent))
+          any_redist = true;
       }
+    }
+
+    // Step 2e — if no pair required redistribution, nothing more to do here.
+    if (!any_redist) { continue; }
+
+    // Step 2f — path-compressed find to look up the root of each controller's set.
+    // Defined here (after the pair loop) so the final component grouping sees the
+    // fully-merged parent[] array from all check_overlap_pair calls above.
+    auto uf_find = [&](int x) {
+      while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+      return x;
+    };
+
+    // Step 2g — group hintmap controllers into connected components.
+    // Controllers that transitively span-overlap each other share one root
+    // and are collected into the same component vector.
+    // No-hintmap controllers are excluded: their fixed regions are unchanged.
+    std::map<int, std::vector<std::size_t>> components;
+    for (std::size_t i = 0; i < infos.size(); ++i) {
+      if (infos[i].hintmap_key.empty() || infos[i].size == 0)
+        continue;
+      components[uf_find(static_cast<int>(i))].emplace_back(i);
+    }
+
+    // Step 2h — collect fixed-range intervals from no-hintmap controllers.
+    // These become mandatory cut boundaries inside redistribute_component:
+    // no redistributed segment is allowed to span across a fixed region.
+    std::vector<std::pair<uint64_t,uint64_t>> fixed_rngs;
+    for (const auto& info : infos) {
+      if (info.hintmap_key.empty() && info.size > 0) {
+        fixed_rngs.emplace_back(info.base / CHUNK_SIZE,
+                                (info.base + info.size) / CHUNK_SIZE);
+      }
+    }
+
+    // Step 2i — redistribute each component.
+    // A singleton component with no fixed-range involvement means the controller
+    // was pulled into the component by a fixed-vs-hintmap span overlap but its
+    // own bits don't actually conflict with anything — skip it.
+    for (auto& [root, members] : components) {
+      if (fixed_rngs.empty() && members.size() < 2)
+        continue;
+      redistribute_component(idx, infos, members, chunks_cache, fixed_rngs);
     }
   }
 }
@@ -1447,7 +1933,7 @@ finalize_preempt()
 
   if (is_multi_column_mode()) {
     // Reject clashing save regions before any save/restore code is injected.
-    verify_hintmap_no_overlap();
+    validate_resolve_hintmap_overlap();
 
     for (const auto& [group, labels] : m_preempt_labels) {
       auto [save_data, restore_data] = get_preempt_save_restore(10 + group);

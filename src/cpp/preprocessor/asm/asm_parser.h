@@ -525,6 +525,30 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
     std::string hintmap_key;  // "<label_scope>:<hintmap_label>", empty when the opcode has no hintmap
   };
   std::map<int, std::vector<preempt_point>> m_preempt_points;  // group -> preemption points in program order
+
+  // Overrides computed by validate_resolve_hintmap_overlap when span-overlap-due-to-holes is
+  // resolved by redistributing chunks.  Key: (col, hintmap_key).
+  std::map<std::pair<int,std::string>, std::pair<uint64_t,uint64_t>> m_hintmap_region_override;
+
+public:
+  // Per-controller info for one preemption point index.
+  struct col_point_info {
+    int         col;
+    std::string id;
+    std::string hintmap_key;
+    uint64_t    base;
+    uint64_t    size;
+  };
+
+  // Helpers for validate_resolve_hintmap_overlap.
+  std::vector<col_point_info> build_point_infos(std::size_t idx);
+  void redistribute_component(
+      std::size_t pt_idx,
+      const std::vector<col_point_info>& infos,
+      const std::vector<std::size_t>& members,
+      std::vector<std::vector<uint64_t>>& chunks_cache,
+      const std::vector<std::pair<uint64_t,uint64_t>>& fixed_rngs);
+
   detail::filename_table m_filename_table;
   // Tracks which filename indices have been interned per column so that duplicate
   // .include detection is scoped per-col rather than globally across the parser.
@@ -563,7 +587,7 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
 
   // Verify that the scratchpad regions selected by the hint bitmaps of different
   // controllers are disjoint at every preemption point.
-  void verify_hintmap_no_overlap();
+  void validate_resolve_hintmap_overlap();
 
   // Inject default (no-hintmap) save/restore asm into column col.
   void inject_default_save_restore(int col, int group_index,
