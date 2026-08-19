@@ -609,7 +609,7 @@ hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
   // so that any transfer hole is included in the scratchpad region.
   uint64_t span = (first_bit != NO_BIT) ? (last_bit - first_bit + 1) : 0;
   if (span != set_bits) {
-    log_warn() << "Hintmap '" << hintmap_label << "' has non-contiguous bits "
+    log_info() << "Hintmap '" << hintmap_label << "' has non-contiguous bits "
                << "(first=bit " << first_bit << ", last=bit " << last_bit
                << ", span=" << span << ", set=" << set_bits
                << ") - hole absorbed into scratchpad" << std::endl;
@@ -1694,7 +1694,7 @@ asm_parser::redistribute_component(
             [&](std::size_t a, std::size_t b) { return infos[a].base < infos[b].base; });
 
   const auto n_pairs = std::min(segs.size(), sorted.size());
-  log_warn() << "Preemption point " << pt_idx
+  log_info() << "Preemption point " << pt_idx
              << ": redistributing " << n_pairs << " segment(s) (min-holes).\n";
 
   for (std::size_t k = 0; k < n_pairs; ++k) {
@@ -1705,7 +1705,7 @@ asm_parser::redistribute_component(
     const auto new_size = (seg.last - seg.first + 1) * CHUNK_SIZE;
     const auto holes    = (seg.last - seg.first + 1) - seg.set_count;
 
-    log_warn() << "  controller " << info.col
+    log_info() << "  controller " << info.col
                << " (hintmap '" << info.hintmap_key << "')"
                << ": [0x" << std::hex << new_base << ", 0x" << (new_base + new_size) << ")"
                << std::dec << " (set=" << seg.set_count
