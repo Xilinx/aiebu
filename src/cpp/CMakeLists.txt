@@ -116,14 +116,6 @@ add_library(aiebu_static STATIC
   $<TARGET_OBJECTS:aiebu_zstd>
   )
 
-# aiebu_static merges C (zstd) and C++ objects. Without an explicit linker
-# language, GCC 16 may pick the C driver for downstream consumers (ex. xrt_coreutil.so), producing
-# a malformed -lgcc_s_asneeded flag. Forcing CXX linker language ensures that the C++ driver handles
-# all implicit runtime library flags consistently across all GCC versions.
-if (NOT MSVC)
-  set_target_properties(aiebu_static PROPERTIES LINKER_LANGUAGE CXX)
-endif()
-
 target_include_directories(aiebu_static
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
