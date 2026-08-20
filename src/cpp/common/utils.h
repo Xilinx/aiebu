@@ -259,6 +259,7 @@ enum class fragment {
 aiebu::regex get_regex(const std::vector<fragment>& pattern);
 
 constexpr unsigned hexbase = 0x10;
+constexpr uint64_t BYTES_PER_MB = 1024ULL * 1024ULL;
 
 // Convert a string representation of a sized unsigned integer to the target integral value
 template <typename UIntType>

@@ -609,7 +609,7 @@ hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
   // so that any transfer hole is included in the scratchpad region.
   uint64_t span = (first_bit != NO_BIT) ? (last_bit - first_bit + 1) : 0;
   if (span != set_bits) {
-    log_info() << "Hintmap '" << hintmap_label << "' has non-contiguous bits "
+    log_warn() << "Hintmap '" << hintmap_label << "' has non-contiguous bits "
                << "(first=bit " << first_bit << ", last=bit " << last_bit
                << ", span=" << span << ", set=" << set_bits
                << ") - hole absorbed into scratchpad" << std::endl;
@@ -627,7 +627,6 @@ hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
   const uint64_t scratchbase = (first_bit != NO_BIT) ? (first_bit * CHUNK_SIZE) : DEFAULT_BASE;
   const uint64_t size        = (span > 0) ? (span * CHUNK_SIZE) : 0;
 
-  constexpr uint64_t BYTES_PER_MB = 1024ULL * 1024ULL;
   log_info() << "Hintmap parsed for group " << group << " (col " << group << "): "
              << "scratchbase=0x" << std::hex << scratchbase
              << ", size=0x"      << size << " (" << std::dec
@@ -1458,6 +1457,22 @@ overlap_error(std::size_t pt_idx, std::string msg)
 }
 
 // ---------------------------------------------------------------------------
+// chunks_to_bitset  (file-local)
+//   Convert a sorted list of chunk indices to a std::bitset<512>.
+//   Bits 0-143 correspond to the 144 usable 64KB chunks of a 9MB memtile
+//   scratchpad; bits 144-511 are reserved and will never be set.
+// ---------------------------------------------------------------------------
+static std::bitset<512>
+chunks_to_bitset(const std::vector<uint64_t>& chunks)
+{
+  std::bitset<512> bs;
+  for (const auto ch : chunks) {
+    if (ch < 512)
+      bs.set(static_cast<std::size_t>(ch));
+  }
+  return bs;
+}
+
 // check_overlap_pair  (file-local)
 //   Examines one (a, b) pair at preemption point pt_idx.
 //   Returns false if spans don't overlap.
@@ -1500,6 +1515,8 @@ check_overlap_pair(
   }
 
   // Case 2: one fixed range, one hintmap.
+  // Use a bitset<512> over the fixed region's chunk range and AND with the
+  // hintmap bitset to detect any set chunk inside the fixed region.
   if (ra.hintmap_key.empty() || rb.hintmap_key.empty()) {
     const bool a_fixed         = ra.hintmap_key.empty();
     const auto& fixed          = a_fixed ? ra : rb;
@@ -1508,16 +1525,19 @@ check_overlap_pair(
     const auto first_chunk = fixed.base / CHUNK_SIZE;
     const auto last_chunk  = (fixed.base + fixed.size) / CHUNK_SIZE;
 
-    for (const auto ch : chunks_cache[hm_idx]) {
-      if (ch >= first_chunk && ch < last_chunk) {
-        std::ostringstream oss;
-        oss << "controller " << hm.col << " (id " << hm.id
-            << ", hintmap '" << hm.hintmap_key << "')"
-            << " has chunks inside the fixed region of controller " << fixed.col
-            << " (id " << fixed.id << ") [0x" << std::hex
-            << fixed.base << ", 0x" << (fixed.base + fixed.size) << ")" << std::dec;
-        overlap_error(pt_idx, oss.str());
-      }
+    // Build a bitset marking every chunk inside the fixed region.
+    std::bitset<512> fixed_bs;
+    for (auto ch = first_chunk; ch < last_chunk && ch < 512; ++ch)
+      fixed_bs.set(static_cast<std::size_t>(ch));
+
+    if ((chunks_to_bitset(chunks_cache[hm_idx]) & fixed_bs).any()) {
+      std::ostringstream oss;
+      oss << "controller " << hm.col << " (id " << hm.id
+          << ", hintmap '" << hm.hintmap_key << "')"
+          << " has chunks inside the fixed region of controller " << fixed.col
+          << " (id " << fixed.id << ") [0x" << std::hex
+          << fixed.base << ", 0x" << (fixed.base + fixed.size) << ")" << std::dec;
+      overlap_error(pt_idx, oss.str());
     }
     // Span-only overlap: union every hintmap controller into one component.
     for (std::size_t i = 0; i < infos.size(); ++i) {
@@ -1527,23 +1547,15 @@ check_overlap_pair(
     return true;
   }
 
-  // Case 3: both have hintmaps — sorted merge to detect a shared chunk.
-  const auto& ca = chunks_cache[a];
-  const auto& cb = chunks_cache[b];
-  for (std::size_t ia = 0, ib = 0; ia < ca.size() && ib < cb.size(); ) {
-    if (ca[ia] == cb[ib]) {
-      std::ostringstream oss;
-      oss << "controller " << ra.col << " (id " << ra.id
-          << ", hintmap '" << ra.hintmap_key << "')"
-          << " and controller " << rb.col << " (id " << rb.id
-          << ", hintmap '" << rb.hintmap_key << "')"
-          << " share one or more 64KB chunks";
-      overlap_error(pt_idx, oss.str());
-    }
-    if (ca[ia] < cb[ib])
-      ++ia;
-    else
-      ++ib;
+  // Case 3: both have hintmaps — AND their bitsets to detect a shared chunk.
+  if ((chunks_to_bitset(chunks_cache[a]) & chunks_to_bitset(chunks_cache[b])).any()) {
+    std::ostringstream oss;
+    oss << "controller " << ra.col << " (id " << ra.id
+        << ", hintmap '" << ra.hintmap_key << "')"
+        << " and controller " << rb.col << " (id " << rb.id
+        << ", hintmap '" << rb.hintmap_key << "')"
+        << " share one or more 64KB chunks";
+    overlap_error(pt_idx, oss.str());
   }
   // Disjoint bits, span overlap: union just the two controllers.
   uf_union(static_cast<int>(a), static_cast<int>(b));
@@ -1694,7 +1706,7 @@ asm_parser::redistribute_component(
             [&](std::size_t a, std::size_t b) { return infos[a].base < infos[b].base; });
 
   const auto n_pairs = std::min(segs.size(), sorted.size());
-  log_info() << "Preemption point " << pt_idx
+  log_warn() << "Preemption point " << pt_idx
              << ": redistributing " << n_pairs << " segment(s) (min-holes).\n";
 
   for (std::size_t k = 0; k < n_pairs; ++k) {
@@ -1705,7 +1717,7 @@ asm_parser::redistribute_component(
     const auto new_size = (seg.last - seg.first + 1) * CHUNK_SIZE;
     const auto holes    = (seg.last - seg.first + 1) - seg.set_count;
 
-    log_info() << "  controller " << info.col
+    log_warn() << "  controller " << info.col
                << " (hintmap '" << info.hintmap_key << "')"
                << ": [0x" << std::hex << new_base << ", 0x" << (new_base + new_size) << ")"
                << std::dec << " (set=" << seg.set_count

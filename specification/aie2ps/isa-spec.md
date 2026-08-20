@@ -709,7 +709,9 @@ data section that form a flat bit-array describing which 64KB chunks of the part
 needs to save/restore. Bit N (counting from the LSB of word 0) corresponds to the chunk at absolute scratchpad offset
 `N * 64KB`. The assembler uses this bitmap to automatically select the correct save/restore code variant and to
 enforce that no two controllers save the same 64KB chunk at the same preemption point (see note 4). When
-`hint_bitmap` is omitted the controller saves/restores the full default scratchpad.
+`hint_bitmap` is omitted the controller saves/restores the full default scratchpad. A `hint_bitmap` with all bits
+zero (e.g. a single `.long 0x00000000`) indicates that this controller requires no save/restore at this preemption
+point.
 Example:
 ```
 ; Save chunks 0-3 (bytes 0x0 - 0x40000) of the partition scratchpad
@@ -740,15 +742,18 @@ Note:
    examining every pair of controllers at each preemption point. There are three possible outcomes:
 
    - **Hard error — real bit overlap**: two controllers with `hint_bitmap` share one or more identical chunk
-     bits in their bitmaps, i.e. the same physical 64KB block is claimed by both. No recovery is possible.
+     bits in their bitmaps, i.e. the same physical 64KB block is claimed by both. The assembler will treat
+     this as an error.
 
    - **Hard error — hintmap bits inside a fixed region**: one controller omits `hint_bitmap` and therefore
      covers its entire column as a contiguous fixed region. Another controller has a `hint_bitmap` whose set
-     bits fall inside that fixed region. No recovery is possible.
+     bits fall inside that fixed region. The assembler will treat this as an error.
 
    - **Auto-redistributed — span overlap due to holes**: two controllers have strictly disjoint set bits but
      their effective regions (first set chunk → last set chunk, inclusive) overlap because unset chunks
-     (holes) in one bitmap reach across the other controller's territory. This is recoverable.
+     (holes) in one bitmap reach across the other controller's territory. This is legal; the assembler
+     creates disjoint superset bit ranges to cover all the bits and assigns the superset bit ranges to
+     specific DMA engines in all the controllers.
 
 
 ## LOAD_PDI (0x1a)
