@@ -609,7 +609,7 @@ hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
   // so that any transfer hole is included in the scratchpad region.
   uint64_t span = (first_bit != NO_BIT) ? (last_bit - first_bit + 1) : 0;
   if (span != set_bits) {
-    log_warn() << "Hintmap '" << hintmap_label << "' has non-contiguous bits "
+    log_info() << "Hintmap '" << hintmap_label << "' has non-contiguous bits "
                << "(first=bit " << first_bit << ", last=bit " << last_bit
                << ", span=" << span << ", set=" << set_bits
                << ") - hole absorbed into scratchpad" << std::endl;
@@ -1706,25 +1706,22 @@ asm_parser::redistribute_component(
             [&](std::size_t a, std::size_t b) { return infos[a].base < infos[b].base; });
 
   const auto n_pairs = std::min(segs.size(), sorted.size());
-  log_warn() << "Preemption point " << pt_idx
+  log_info() << "Preemption point " << pt_idx
              << ": redistributing " << n_pairs << " segment(s) (min-holes).\n";
 
   for (std::size_t k = 0; k < n_pairs; ++k) {
     const auto& seg  = segs[k];
     const auto& info = infos[sorted[k]];
-    // Convert chunk indices back to byte offsets: chunk C starts at C * CHUNK_SIZE.
     const auto new_base = seg.first * CHUNK_SIZE;
     const auto new_size = (seg.last - seg.first + 1) * CHUNK_SIZE;
     const auto holes    = (seg.last - seg.first + 1) - seg.set_count;
 
-    log_warn() << "  controller " << info.col
+    log_info() << "  controller " << info.col
                << " (hintmap '" << info.hintmap_key << "')"
                << ": [0x" << std::hex << new_base << ", 0x" << (new_base + new_size) << ")"
                << std::dec << " (set=" << seg.set_count
                << " span=" << (seg.last - seg.first + 1) << " holes=" << holes << ")\n";
 
-    // Store the override so parse_hintmap_and_calculate_scratchpad returns
-    // this redistributed region instead of the original hintmap-derived span.
     m_hintmap_region_override[{info.col, info.hintmap_key}] = {new_base, new_size};
   }
 }
@@ -1902,12 +1899,25 @@ validate_resolve_hintmap_overlap()
     // Step 2g — group hintmap controllers into connected components.
     // Controllers that transitively span-overlap each other share one root
     // and are collected into the same component vector.
-    // No-hintmap controllers are excluded: their fixed regions are unchanged.
+    // No-hintmap (fixed-region) controllers are excluded: their regions are unchanged.
+    // Zero-size hintmap controllers (all bits zero) are initially excluded but may
+    // be pulled into a component below if mandatory cuts produce more segments than
+    // the non-zero members — in that case the zero-size controllers absorb the extra
+    // segments so redistribution can assign them a non-zero region.
     std::map<int, std::vector<std::size_t>> components;
     for (std::size_t i = 0; i < infos.size(); ++i) {
       if (infos[i].hintmap_key.empty() || infos[i].size == 0)
         continue;
       components[uf_find(static_cast<int>(i))].emplace_back(i);
+    }
+
+    // Count zero-size hintmap controllers (all-zero bitmaps) that could absorb
+    // extra segments.  If any component would produce more segments than members,
+    // pad the component with zero-size hintmap controllers ordered by column.
+    std::vector<std::size_t> zero_hintmap_controllers;
+    for (std::size_t i = 0; i < infos.size(); ++i) {
+      if (!infos[i].hintmap_key.empty() && infos[i].size == 0)
+        zero_hintmap_controllers.push_back(i);
     }
 
     // Step 2h — collect fixed-range intervals from no-hintmap controllers.
@@ -1925,9 +1935,38 @@ validate_resolve_hintmap_overlap()
     // A singleton component with no fixed-range involvement means the controller
     // was pulled into the component by a fixed-vs-hintmap span overlap but its
     // own bits don't actually conflict with anything — skip it.
+    //
+    // When mandatory cuts would produce more segments than there are non-zero
+    // members, pull zero-size hintmap controllers into the component to absorb
+    // the extra segments.  This handles the case where a single controller's set
+    // bits straddle a fixed region: the zero-bitmap controller on the other side
+    // of the fixed region receives the extra segment and generates a save/restore
+    // region for it.
+    std::size_t zero_used = 0;
     for (auto& [root, members] : components) {
       if (fixed_rngs.empty() && members.size() < 2)
         continue;
+      // Count mandatory gaps for this component to estimate extra segments needed.
+      // Collect set chunks for this component to compute the gaps.
+      {
+        std::vector<uint64_t> all_chunks;
+        for (std::size_t i : members)
+          all_chunks.insert(all_chunks.end(), chunks_cache[i].begin(), chunks_cache[i].end());
+        std::sort(all_chunks.begin(), all_chunks.end());
+        all_chunks.erase(std::unique(all_chunks.begin(), all_chunks.end()), all_chunks.end());
+        std::size_t mandatory_cuts = 0;
+        for (std::size_t ci = 0; ci + 1 < all_chunks.size(); ++ci) {
+          const uint64_t lo = all_chunks[ci] + 1, hi = all_chunks[ci + 1];
+          if (std::any_of(fixed_rngs.begin(), fixed_rngs.end(),
+                [&](const auto& r) { return r.first >= lo && r.second <= hi; }))
+            ++mandatory_cuts;
+        }
+        // Number of segments = mandatory_cuts + 1 (plus optional cuts up to K-1).
+        // If mandatory_cuts+1 > members.size(), pull in zero-size controllers.
+        const std::size_t segments_needed = mandatory_cuts + 1;
+        while (members.size() < segments_needed && zero_used < zero_hintmap_controllers.size())
+          members.push_back(zero_hintmap_controllers[zero_used++]);
+      }
       redistribute_component(idx, infos, members, chunks_cache, fixed_rngs);
     }
   }
