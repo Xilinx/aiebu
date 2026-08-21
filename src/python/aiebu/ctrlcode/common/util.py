@@ -210,7 +210,7 @@ class ELFStringTable:
         self._data = ctypes.create_string_buffer(self._size)
         index = 0
         for item in self._syms:
-            arr = bytes(item, "utf-8")
+            arr = bytes(item, "ascii")
             index = self._pack(arr, index)
             self._data[index] = b'\0'
             index += 1
@@ -219,7 +219,7 @@ class ELFStringTable:
     def get(self, pos):
         assert(pos < self._size), f"Illegal offset into table storage"
         item = ctypes.string_at(self._data[pos:])
-        return item.decode("utf-8")
+        return item.decode("ascii")
 
     def space(self):
         return self._size
