@@ -3,6 +3,7 @@
 
 #include "aiebu/elf.h"
 #include "aiebu/detail/span.h"
+#include "aiebu/aiebu_decompress.h"
 #include "elf/aie_elf_constants.h"
 
 #include "elfio/elfio.hpp"
@@ -185,19 +186,44 @@ construct_kernel_args(const std::string& signature)
 }
 
 ////////////////////////////////////////////////////////////////
-// section_buf — zero-copy views over ELFIO section data
-// with optional padding.  Mirrors xrt::buf from elf_int.h.
+// section_buf — views over ELFIO section data with optional padding.
+//
+// Each view entry holds a pointer to the ELFIO section and its owning
+// elfio object rather than a raw string_view into section bytes.
+// This allows copy_to() to delegate to aiebu::copy_section_uncompressed_data(),
+// which transparently decompresses SHF_COMPRESSED sections directly into
+// the caller-supplied destination (typically a mapped device BO).
+// No intermediate buffer is ever allocated — decompression goes straight
+// from the compressed ELF bytes into the BO mapping.
 ////////////////////////////////////////////////////////////////
 struct section_buf
 {
-  std::vector<std::string_view> views;
-  std::vector<uint8_t>          padding;
+  // A single view into one ELFIO section, or a zero-padding range.
+  // For section-backed entries, sec and elf are non-null.
+  // For padding entries, sec is null and data_size bytes of zeros
+  // are written via memset.
+  struct view_entry {
+    const ELFIO::section* sec  = nullptr;
+    const ELFIO::elfio*   elf  = nullptr;
+    std::size_t           data_size = 0;  // uncompressed size (or padding size)
+  };
 
+  std::vector<view_entry> views;
+
+  // Append a section.  data_size reflects the uncompressed size so that
+  // size() and copy_to() are consistent for both compressed and
+  // uncompressed sections.
   void
-  append(const ELFIO::section* sec)
+  append(const ELFIO::section* sec, const ELFIO::elfio& elfio)
   {
-    if (sec && sec->get_size() > 0)
-      views.emplace_back(sec->get_data(), sec->get_size());
+    if (!sec || sec->get_size() == 0)
+      return;
+
+    view_entry e;
+    e.sec       = sec;
+    e.elf       = &elfio;
+    e.data_size = aiebu::get_section_uncompressed_size(sec, elfio);
+    views.push_back(e);
   }
 
   void
@@ -207,32 +233,40 @@ struct section_buf
     if (target <= cur)
       return;
 
-    size_t n = target - cur;
-    padding.insert(padding.end(), n, 0);
-    views.emplace_back(reinterpret_cast<const char*>(padding.data()), n);
+    view_entry e;
+    e.data_size = target - cur;  // sec == nullptr marks this as a padding entry
+    views.push_back(e);
   }
 
+  // Total uncompressed size across all views.
   size_t
   size() const
   {
     size_t total = 0;
     for (const auto& v : views)
-      total += v.size();
+      total += v.data_size;
 
     return total;
   }
 
   // Copy all views into dest in order.  dest.size() must be >= size().
+  // SHF_COMPRESSED sections are decompressed directly into dest via aiebu;
+  // uncompressed sections and padding are memcpy'd.  No intermediate
+  // buffer is allocated — decompression goes straight into the BO mapping.
   void
   copy_to(aiebu::detail::span<std::byte> dest) const
   {
     if (dest.size() < size())
       throw std::runtime_error("destination buffer too small for section_buf::copy_to");
 
-    auto* p = dest.data();
+    auto* p = reinterpret_cast<uint8_t*>(dest.data());
     for (const auto& v : views) {
-      std::memcpy(p, v.data(), v.size());
-      p += v.size();
+      if (v.sec)
+        aiebu::copy_section_uncompressed_data(v.sec, *v.elf, p, v.data_size);
+      else
+        std::memset(p, 0, v.data_size);  // padding entries are always zero
+
+      p += v.data_size;
     }
   }
 };
@@ -934,7 +968,7 @@ public:
       if (sec->get_name().find(pat) == std::string::npos)
         continue;
 
-      out[m_section_to_group_map[sec->get_index()]].append(sec.get());
+      out[m_section_to_group_map[sec->get_index()]].append(sec.get(), m_elfio);
     }
   }
 
@@ -953,11 +987,11 @@ public:
         auto* sec = m_elfio.sections[idx];
         auto nm   = sec->get_name();
         if (nm.find(save_pat) != std::string::npos) {
-          m_save_buf_map[gid].append(sec);
+          m_save_buf_map[gid].append(sec, m_elfio);
           has_save = true;
         }
         else if (nm.find(restore_pat) != std::string::npos) {
-          m_restore_buf_map[gid].append(sec);
+          m_restore_buf_map[gid].append(sec, m_elfio);
           has_restore = true;
         }
       }
@@ -977,7 +1011,7 @@ public:
       if (sec->get_name().find(pat) == std::string::npos)
         continue;
 
-      m_pdi_buf_map[sec->get_name()].append(sec.get());
+      m_pdi_buf_map[sec->get_name()].append(sec.get(), m_elfio);
     }
   }
 
@@ -989,7 +1023,7 @@ public:
       if (sec->get_name().find(pat) == std::string::npos)
         continue;
 
-      m_ctrlpkt_pm_bufs[sec->get_name()].append(sec.get());
+      m_ctrlpkt_pm_bufs[sec->get_name()].append(sec.get(), m_elfio);
     }
   }
 
@@ -1271,15 +1305,15 @@ public:
         if (merged) {
           auto& pg = pages.begin()->second;
           if (pg.ctrltext)
-            m_ctrlcodes_map[id][ucidx].append(pg.ctrltext);
+            m_ctrlcodes_map[id][ucidx].append(pg.ctrltext, m_elfio);
         }
         else {
           for (const auto& [page, pg] : pages) {
             if (pg.ctrltext)
-              m_ctrlcodes_map[id][ucidx].append(pg.ctrltext);
+              m_ctrlcodes_map[id][ucidx].append(pg.ctrltext, m_elfio);
 
             if (pg.ctrldata)
-              m_ctrlcodes_map[id][ucidx].append(pg.ctrldata);
+              m_ctrlcodes_map[id][ucidx].append(pg.ctrldata, m_elfio);
 
             auto target = (page + 1) * elf_page_size;
             if (m_ctrlcodes_map[id][ucidx].size() < target)
@@ -1298,7 +1332,7 @@ public:
           continue;
 
         auto [col, page] = get_col_page(sec->get_name(), merged);
-        m_ctrlcodes_map[id][col].append(sec);
+        m_ctrlcodes_map[id][col].append(sec, m_elfio);
       }
     }
   }
@@ -1312,7 +1346,7 @@ public:
         continue;
 
       auto grp = m_section_to_group_map[sec->get_index()];
-      m_ctrlpkt_buf_map[grp][sec->get_name()].append(sec.get());
+      m_ctrlpkt_buf_map[grp][sec->get_name()].append(sec.get(), m_elfio);
     }
   }
 
@@ -1324,7 +1358,7 @@ public:
       if (sec->get_name().find(pat) == std::string::npos)
         continue;
 
-      m_dump_buf_map[m_section_to_group_map[sec->get_index()]].append(sec.get());
+      m_dump_buf_map[m_section_to_group_map[sec->get_index()]].append(sec.get(), m_elfio);
     }
   }
 
@@ -1570,6 +1604,13 @@ elf::get_section(std::string_view name) const
   auto* sec = m_reader->m_elfio.sections[nm];
   if (!sec)
     return {};
+
+  // get_section() is only valid for uncompressed sections (note sections,
+  // custom metadata).  Compressed sections (.ctrltext*, .ctrldata*, etc.)
+  // must be accessed via the copy_* APIs which decompress into a BO mapping.
+  if (sec->get_flags() & ELFIO::SHF_COMPRESSED)
+    throw std::runtime_error(
+      "get_section(\"" + nm + "\"): section is compressed — use copy_* API instead");
 
   return aiebu::detail::span<const std::byte>(
     reinterpret_cast<const std::byte*>(sec->get_data()),

@@ -12,11 +12,18 @@
 // expected-has-pdi is "pdi" or "nopdi" (aie2p only): asserts the value
 // returned by has_pdi().  If omitted, has_pdi() value is not checked.
 //
+// Decompression mode (optional additional invocation):
+//   elf_reader_test --compressed <compressed-elf> <plain-elf>
+//
+// Verifies that aiebu::elf constructed from a compressed ELF produces
+// identical buffer output to the same ELF without compression.
+//
 // The test calls every public getter on aiebu::elf and verifies
 // internal consistency of the results.  It does not require golden
 // output files — the ELF is its own oracle.
 
 #include "aiebu/elf.h"
+#include "aiebu/aiebu_decompress.h"
 
 #include <algorithm>
 #include <cstring>
@@ -565,6 +572,100 @@ test_pdi_and_ctrlpkt_pm(const aiebu::elf& e)
 }
 
 ////////////////////////////////////////////////////////////////
+// Compression / decompression tests
+//
+// Verifies that aiebu::elf constructed from a compressed ELF produces
+// byte-identical buffer output to the same ELF without compression.
+// The compressed ELF has SHF_COMPRESSED sections; section_buf::copy_to()
+// must decompress directly into the destination — no intermediate buffer.
+////////////////////////////////////////////////////////////////
+
+// Read a file into a byte vector.
+static std::vector<char>
+read_file(const std::string& path)
+{
+  std::ifstream fs(path, std::ios::binary);
+  if (!fs)
+    throw std::runtime_error("Cannot open: " + path);
+
+  return {std::istreambuf_iterator<char>(fs), std::istreambuf_iterator<char>()};
+}
+
+// Collect all copy_ctrlcode_col output for all ctrl-code-ids into one vector.
+static std::vector<std::byte>
+collect_ctrlcode_output(aiebu::elf& e)
+{
+  std::vector<std::byte> out;
+  auto g2s = e.get_group_to_sections_map();
+  for (const auto& [id, _] : g2s) {
+    auto ncols = e.get_column_count(id);
+    for (uint32_t col = 0; col < ncols; ++col) {
+      auto sz = e.get_ctrlcode_size(id, col);
+      if (sz == 0)
+        continue;
+
+      auto off = out.size();
+      out.resize(off + sz);
+      e.copy_ctrlcode(id, col, {out.data() + off, sz});
+    }
+  }
+  return out;
+}
+
+static int
+run_compression_test(const std::string& compressed_path, const std::string& plain_path)
+{
+  std::cout << "=== elf_reader_test (compression): " << compressed_path << " ===\n";
+
+  // Verify the file is actually compressed
+  auto compressed_bytes = read_file(compressed_path);
+  check(aiebu::is_elf_compressed(
+          std::vector<char>(compressed_bytes.begin(), compressed_bytes.end())),
+        "compressed ELF is detected as compressed by is_elf_compressed()");
+
+  // Construct aiebu::elf from compressed bytes
+  aiebu::elf ec(compressed_bytes.data(), compressed_bytes.size());
+  std::cout << "  platform: " << static_cast<int>(ec.get_os_abi()) << "\n";
+  check(true, "aiebu::elf constructed from compressed ELF without throwing");
+
+  // get_section() must throw on a compressed section — .ctrltext* is always compressed
+  auto g2s = ec.get_group_to_sections_map();
+  if (!g2s.empty()) {
+    auto id  = g2s.begin()->first;
+    auto ncols = ec.get_column_count(id);
+    if (ncols > 0) {
+      // get_section() by name should throw for compressed ctrltext
+      auto sec_name = ec.get_section_name(g2s.begin()->second.front());
+      if (!sec_name.empty() && sec_name.find(".ctrltext") != std::string::npos)
+        CHECK_THROWS(ec.get_section(sec_name),
+                     "get_section() throws on compressed ctrltext section");
+    }
+  }
+
+  // Sizes reported from compressed ELF must match those from the plain ELF
+  auto plain_bytes = read_file(plain_path);
+  aiebu::elf ep(plain_bytes.data(), plain_bytes.size());
+
+  check(ec.get_column_count(g2s.begin()->first) == ep.get_column_count(g2s.begin()->first),
+        "column count matches between compressed and plain ELF");
+
+  // Copy output from compressed ELF must be byte-identical to plain ELF output
+  auto out_compressed = collect_ctrlcode_output(ec);
+  auto out_plain      = collect_ctrlcode_output(ep);
+
+  check(!out_compressed.empty(), "compressed ELF copy_ctrlcode produces non-empty output");
+  check(out_compressed.size() == out_plain.size(),
+        "compressed copy output size == plain copy output size");
+  check(out_compressed == out_plain,
+        "compressed copy output bytes == plain copy output bytes");
+
+  std::cout << "\n=== Result: " << g_passed << " passed, "
+            << g_failed << " failed ===\n";
+
+  return g_failed > 0 ? 1 : 0;
+}
+
+////////////////////////////////////////////////////////////////
 // Entry point
 ////////////////////////////////////////////////////////////////
 
@@ -647,6 +748,10 @@ int
 main(int argc, char** argv)
 {
   try {
+    // Decompression mode: elf_reader_test --compressed <compressed.elf> <plain.elf>
+    if (argc == 4 && std::string(argv[1]) == "--compressed")
+      return run_compression_test(argv[2], argv[3]);
+
     return run(argc, argv);
   }
   catch (const std::exception& ex) {
