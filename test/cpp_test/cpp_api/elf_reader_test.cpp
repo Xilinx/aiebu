@@ -432,6 +432,25 @@ test_buffer_accessors(const aiebu::elf& e)
                     "copy_ctrlpkt(" + name + ") does not throw");
     }
 
+    // Cross-check: for_each_ctrlpkt() must visit exactly the same (name, size)
+    // pairs as get_ctrlpkt_section_names() + get_ctrlpkt_size() return.
+    {
+      std::map<std::string, size_t> from_callback;
+      e.for_each_ctrlpkt(id, [&](const std::string& n, size_t sz) {
+        from_callback[n] = sz;
+      });
+
+      std::map<std::string, size_t> from_names;
+      for (const auto& n : names)
+        from_names[n] = e.get_ctrlpkt_size(id, n);
+
+      check(from_callback == from_names,
+            "for_each_ctrlpkt() visits same (name,size) pairs as get_ctrlpkt_section_names()");
+
+      // Also verify for_each_ctrlpkt() does not throw on gen2plus
+      check(true, "for_each_ctrlpkt() does not throw on gen2plus");
+    }
+
     // dump buffer
     auto dump_sz = e.get_dump_buf_size(id);
     std::cout << "  get_dump_buf_size: " << dump_sz << "\n";
@@ -447,6 +466,9 @@ test_buffer_accessors(const aiebu::elf& e)
     CHECK_THROWS(e.has_pdi(),        "has_pdi() throws on gen2plus");
     CHECK_THROWS(e.has_preemption(), "has_preemption() throws on gen2plus");
     CHECK_THROWS(e.get_pdi_symbols(id), "get_pdi_symbols() throws on gen2plus");
+    // for_each_ctrlpkt is gen2plus-only; it must not throw on gen2plus (already tested above).
+    // Verify it throws on aie2p if that platform is ever tested here:
+    // (Currently all checked-in ELFs are gen2plus so this branch is not reached.)
   }
 }
 

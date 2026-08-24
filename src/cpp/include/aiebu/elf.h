@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <istream>
 #include <map>
 #include <memory>
@@ -173,7 +174,7 @@ public:
   // Kernel metadata
   ////////////////////////////////////////////////////////////////
 
-  std::vector<kernel>
+  const std::vector<kernel>&
   get_kernels() const;
 
   ////////////////////////////////////////////////////////////////
@@ -206,15 +207,15 @@ public:
   ////////////////////////////////////////////////////////////////
 
   // section index -> group index  (UINT32_MAX = legacy / no group)
-  std::map<uint32_t, uint32_t>
+  const std::map<uint32_t, uint32_t>&
   get_section_to_group_map() const;
 
   // group index -> member section indices
-  std::map<uint32_t, std::vector<uint32_t>>
+  const std::map<uint32_t, std::vector<uint32_t>>&
   get_group_to_sections_map() const;
 
   // "kernel_name + subkernel_name" -> group index
-  std::map<std::string, uint32_t>
+  const std::map<std::string, uint32_t>&
   get_kernel_name_to_id_map() const;
 
   // Name of section at given index; empty string if index not found.
@@ -267,7 +268,8 @@ public:
   size_t get_pdi_size(const std::string& symbol_name) const;
   void   copy_pdi(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const;
 
-  std::set<std::string> get_ctrlpkt_pm_dynsyms() const;
+  // Returns a const reference into the internal dynsym set — no copy, no allocation.
+  const std::set<std::string>& get_ctrlpkt_pm_dynsyms() const;
 
   size_t get_ctrlpkt_pm_buf_size(const std::string& symbol_name) const;
   void   copy_ctrlpkt_pm_buf(const std::string& symbol_name, aiebu::detail::span<std::byte> dest) const;
@@ -284,7 +286,15 @@ public:
   void   copy_ctrlcode(uint32_t ctrl_code_id, uint32_t col, aiebu::detail::span<std::byte> dest) const;
 
   // Names of .ctrlpkt sections for a given ctrl-code-id.
+  // Prefer for_each_ctrlpkt() when iterating — it avoids heap allocation.
   std::vector<std::string> get_ctrlpkt_section_names(uint32_t ctrl_code_id) const;
+
+  // Iterate ctrlpkt sections for ctrl_code_id without allocating a name vector.
+  // Calls f(name, uncompressed_size) for each section in map order.
+  // f is invoked inline — no heap allocation for the callback itself.
+  void
+  for_each_ctrlpkt(uint32_t ctrl_code_id,
+                   const std::function<void(const std::string&, size_t)>& f) const;
 
   size_t get_ctrlpkt_size(uint32_t ctrl_code_id, const std::string& name) const;
   void   copy_ctrlpkt(uint32_t ctrl_code_id, const std::string& name, aiebu::detail::span<std::byte> dest) const;

@@ -473,7 +473,7 @@ public:
   { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
 
   // AIE gen2 — ctrlpkt preemption buffers
-  virtual std::set<std::string>
+  virtual const std::set<std::string>&
   get_ctrlpkt_pm_dynsyms() const
   { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
 
@@ -506,6 +506,10 @@ public:
   // AIE gen2plus — ctrl packet buffers (keyed by section name)
   virtual std::vector<std::string>
   get_ctrlpkt_section_names(uint32_t) const
+  { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
+
+  virtual void
+  for_each_ctrlpkt(uint32_t, const std::function<void(const std::string&, size_t)>&) const
   { throw std::runtime_error(std::string{__func__} + " not supported on this platform"); }
 
   virtual size_t
@@ -927,7 +931,7 @@ public:
       it->second.copy_to(dest);
   }
 
-  std::set<std::string>
+  const std::set<std::string>&
   get_ctrlpkt_pm_dynsyms() const override
   {
     return m_ctrlpkt_pm_dynsyms;
@@ -1210,6 +1214,20 @@ public:
       names.push_back(name);
 
     return names;
+  }
+
+  // Single outer map lookup; iterates the inner map directly.
+  // No heap allocation — avoids the vector<string> copy of get_ctrlpkt_section_names().
+  void
+  for_each_ctrlpkt(uint32_t id,
+                   const std::function<void(const std::string&, size_t)>& f) const override
+  {
+    auto it = m_ctrlpkt_buf_map.find(id);
+    if (it == m_ctrlpkt_buf_map.end())
+      return;
+
+    for (const auto& [name, buf] : it->second)
+      f(name, buf.size());
   }
 
   size_t
@@ -1589,7 +1607,7 @@ elf::get_partition_size() const
   return value;
 }
 
-std::vector<elf::kernel>
+const std::vector<elf::kernel>&
 elf::get_kernels() const { return m_reader->m_kernels; }
 
 aiebu::detail::span<const std::byte>
@@ -1624,13 +1642,13 @@ elf::save(std::ostream& stream) const
   const_cast<ELFIO::elfio&>(m_reader->m_elfio).save(stream);
 }
 
-std::map<uint32_t, uint32_t>
+const std::map<uint32_t, uint32_t>&
 elf::get_section_to_group_map() const { return m_reader->m_section_to_group_map; }
 
-std::map<uint32_t, std::vector<uint32_t>>
+const std::map<uint32_t, std::vector<uint32_t>>&
 elf::get_group_to_sections_map() const { return m_reader->m_group_to_sections_map; }
 
-std::map<std::string, uint32_t>
+const std::map<std::string, uint32_t>&
 elf::get_kernel_name_to_id_map() const { return m_reader->m_kernel_name_to_id_map; }
 
 std::string
@@ -1658,7 +1676,7 @@ void
 elf::copy_pdi(const std::string& s, aiebu::detail::span<std::byte> d) const
 { m_reader->copy_pdi(s, d); }
 
-std::set<std::string>
+const std::set<std::string>&
 elf::get_ctrlpkt_pm_dynsyms() const
 { return m_reader->get_ctrlpkt_pm_dynsyms(); }
 
@@ -1733,6 +1751,11 @@ elf::copy_ctrlcode(uint32_t id, uint32_t col, aiebu::detail::span<std::byte> d) 
 std::vector<std::string>
 elf::get_ctrlpkt_section_names(uint32_t id) const
 { return m_reader->get_ctrlpkt_section_names(id); }
+
+void
+elf::for_each_ctrlpkt(uint32_t id,
+                      const std::function<void(const std::string&, size_t)>& f) const
+{ m_reader->for_each_ctrlpkt(id, f); }
 
 size_t
 elf::get_ctrlpkt_size(uint32_t id, const std::string& n) const
