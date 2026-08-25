@@ -10,6 +10,7 @@
 
 #include <boost/interprocess/streams/bufferstream.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -72,6 +73,16 @@ strip_group_suffix(const std::string& name)
   return name;
 }
 
+// Extract a NUL-terminated symbol name starting at symname without reading
+// past the end of the .dynstr section.  Guards against a .dynstr whose final
+// entry is not NUL-terminated, where std::strlen would run off the section.
+static std::string
+symbol_name(const char* symname, const ELFIO::section* dynstr)
+{
+  const char* end = dynstr->get_data() + dynstr->get_size();
+  return std::string(symname, std::find(symname, end, '\0'));
+}
+
 ////////////////////////////////////////////////////////////////
 // Kernel signature parsing — ported from xrt_elf.cpp
 ////////////////////////////////////////////////////////////////
@@ -112,7 +123,7 @@ demangle(const std::string& mangled)
 
   size_t idx = prefix_len;
   size_t len = 0;
-  while (idx < mangled.size() && std::isdigit(mangled[idx]))
+  while (idx < mangled.size() && std::isdigit(static_cast<unsigned char>(mangled[idx])))
     len = len * 10 + (mangled[idx++] - '0');
 
   if (idx + len > mangled.size())
@@ -709,6 +720,14 @@ public:
   {
     // NOLINTNEXTLINE
     ELFIO::note_section_accessor acc(m_elfio, const_cast<ELFIO::section*>(sec));
+
+    // ELFIO's get_note() bounds-checks note_num against the section byte size,
+    // not the parsed note count, so a malformed note section could index an
+    // empty position table.  Guard against the real note count here.
+    if (note_num >= acc.get_notes_num())
+      throw std::runtime_error("Note index out of range in section: " +
+                               sec->get_name());
+
     ELFIO::Elf_Word type = 0;
     std::string name;
     char* desc = nullptr;
@@ -989,7 +1008,10 @@ public:
       bool has_save = false, has_restore = false;
       for (auto idx : sec_ids) {
         auto* sec = m_elfio.sections[idx];
-        auto nm   = sec->get_name();
+        if (!sec)
+          throw std::runtime_error("Invalid section index in group: " + std::to_string(idx));
+
+        auto nm = sec->get_name();
         if (nm.find(save_pat) != std::string::npos) {
           m_save_buf_map[gid].append(sec, m_elfio);
           has_save = true;
@@ -1046,13 +1068,20 @@ public:
       return;
 
     auto abi_ver = static_cast<uint16_t>(m_elfio.get_abi_version());
+
+    // .rela.dyn is a flat array of Elf32_Rela; iterate it as raw bytes since
+    // ELFIO has no typed accessor for it.  Each entry describes one patch point.
     auto begin   = reinterpret_cast<const ELFIO::Elf32_Rela*>(dynsec->get_data());
     auto end     = begin + dynsec->get_size() / sizeof(ELFIO::Elf32_Rela);
 
     for (auto rela = begin; rela != end; ++rela) {
+      // r_info packs the .dynsym index (which argument) and the relocation type
+      // (the patch schema); r_offset is where the patch lands in its buffer.
       auto symidx = ELFIO::get_sym_and_type<ELFIO::Elf32_Rela>::get_r_sym(rela->r_info);
       auto rtype  = ELFIO::get_sym_and_type<ELFIO::Elf32_Rela>::get_r_type(rela->r_info);
 
+      // Fetch the referenced .dynsym entry by byte offset.  st_shndx names the
+      // section (hence buffer) being patched; st_name is the argument name.
       auto dsym_off = symidx * sizeof(ELFIO::Elf32_Sym);
       if (dsym_off >= dynsym->get_size())
         throw std::runtime_error("Invalid symbol index " + std::to_string(symidx));
@@ -1062,12 +1091,17 @@ public:
         throw std::runtime_error("Invalid symbol name offset");
 
       const char* symname = dynstr->get_data() + sym->st_name;
+      auto argnm = symbol_name(symname, dynstr);
 
-      if (!m_ctrl_scratch_pad_mem_size && std::strcmp(symname, scratch_pad_sym) == 0)
+      // Side-effect: the scratch-pad-ctrl symbol is not a real patch target;
+      // its st_size carries the control scratch-pad memory size instead.
+      if (!m_ctrl_scratch_pad_mem_size && argnm == scratch_pad_sym)
         m_ctrl_scratch_pad_mem_size = static_cast<size_t>(sym->st_size);
 
-      if (std::string(symname).find(ctrlpkt_pm_sym) != std::string::npos)
-        m_ctrlpkt_pm_dynsyms.emplace(symname);
+      // Side-effect: record ctrlpkt-pm symbols so the patching path knows which
+      // dynsyms drive preemption ctrl-packet patching.
+      if (argnm.find(ctrlpkt_pm_sym) != std::string::npos)
+        m_ctrlpkt_pm_dynsyms.emplace(argnm);
 
       auto* patch_sec = m_elfio.sections[sym->st_shndx];
       if (!patch_sec)
@@ -1076,7 +1110,11 @@ public:
       auto sec_name = patch_sec->get_name();
       auto grp_idx  = m_section_to_group_map[patch_sec->get_index()];
 
-      // Resolve buf type and accumulated section size
+      // Identify which buffer the target section belongs to and fetch that
+      // buffer's assembled size for this group.  The name substring selects the
+      // buf_type; bmap.count(grp_idx) confirms the group actually assembled that
+      // buffer.  sec_size is used only to bounds-check r_offset below — the
+      // patch must land inside the buffer it targets.
       auto [sec_size, btype] = [&]() -> std::pair<size_t, elf::buf_type> {
         auto match = [&](elf::buf_type t, auto& bmap) {
           return sec_name.find(section_pattern(t)) != std::string::npos
@@ -1113,14 +1151,15 @@ public:
       // not the target section name — the PDI address is patched into the
       // .ctrltext section, so the target section is ctrltext, not a .pdi
       // section.  Matching on sec_name here would miss every PDI symbol.
-      if (std::string(symname).find("pdi") != std::string::npos)
-        m_ctrl_pdi_map[grp_idx].insert(symname);
+      if (argnm.find("pdi") != std::string::npos)
+        m_ctrl_pdi_map[grp_idx].insert(argnm);
 
+      // scalar_32bit patches write a scalar value whose byte width is carried
+      // in st_size and used as the patch mask; address patches take no mask.
       auto [schema, add_end_addr] = decode_addend(rtype, rela->r_addend, abi_ver);
       uint32_t mask = (schema == elf::patch_schema::scalar_32bit)
         ? static_cast<uint32_t>(sym->st_size) : 0;
 
-      std::string argnm{symname, symname + std::min(std::strlen(symname), dynstr->get_size())};
       elf::patch_point pp{argnm, schema, btype, offset, add_end_addr, mask};
       m_patch_points[grp_idx][make_key(argnm, btype)].push_back(std::move(pp));
     }
@@ -1303,7 +1342,10 @@ public:
     for (const auto& [id, sec_ids] : m_group_to_sections_map) {
       for (auto sidx : sec_ids) {
         auto* sec = m_elfio.sections[sidx];
-        auto  nm  = sec->get_name();
+        if (!sec)
+          throw std::runtime_error("Invalid section index in group: " + std::to_string(sidx));
+
+        auto nm = sec->get_name();
         if (nm.find(ctrltext_pat) != std::string::npos) {
           auto [col, page] = get_col_page(nm, merged);
           ctrl_map[id][col][page].ctrltext = sec;
@@ -1346,11 +1388,18 @@ public:
     for (const auto& [id, sec_ids] : m_group_to_sections_map) {
       for (auto sidx : sec_ids) {
         auto* sec = m_elfio.sections[sidx];
+        if (!sec)
+          throw std::runtime_error("Invalid section index in group: " + std::to_string(sidx));
+
         if (sec->get_name().find(pad_pat) == std::string::npos)
           continue;
 
         auto [col, page] = get_col_page(sec->get_name(), merged);
-        m_ctrlcodes_map[id][col].append(sec, m_elfio);
+        auto cit = m_ctrlcodes_map.find(id);
+        if (cit == m_ctrlcodes_map.end() || col >= cit->second.size())
+          throw std::runtime_error("Pad section column out of range: " + sec->get_name());
+
+        cit->second[col].append(sec, m_elfio);
       }
     }
   }
@@ -1417,12 +1466,14 @@ public:
         throw std::runtime_error("Invalid symbol name offset");
 
       const char* symname = dynstr->get_data() + sym->st_name;
-      std::string argnm{symname, symname + std::min(std::strlen(symname), dynstr->get_size())};
+      auto argnm = symbol_name(symname, dynstr);
 
       auto* patch_sec = m_elfio.sections[sym->st_shndx];
       if (!patch_sec)
         throw std::runtime_error("Invalid section index " + std::to_string(sym->st_shndx));
 
+      // col/page are parsed from the section name (.ctrltext.<col>[.<page>]);
+      // in merged format the page token is a group id, so page is forced to 0.
       auto patch_sec_name = patch_sec->get_name();
       auto [col, page]    = get_col_page(patch_sec_name, merged);
       auto grp_idx        = m_section_to_group_map[patch_sec->get_index()];
@@ -1434,19 +1485,35 @@ public:
       uint64_t      abs_offset = 0;
       elf::buf_type btype      = elf::buf_type::buf_type_count;
 
+      // A group's per-column ctrlcode buffers are concatenated into one
+      // contiguous device BO, so a patch offset must be made absolute: the sum
+      // of all preceding columns' sizes plus the offset within the target
+      // column.  How the in-column offset is derived differs per section kind.
       if (patch_sec_name.find(pad_pat) != std::string::npos) {
-        for (uint32_t i = 0; i < col; ++i)
-          abs_offset += ctrlcodes[i].size();
+        // .pad data was appended after the ctrlcode pages; pad_offsets records
+        // where it begins within the column, and r_offset indexes into it.
+        if (col >= ctrlcodes.size())
+          throw std::runtime_error("Invalid pad column " + std::to_string(col));
 
-        abs_offset += pad_offsets.at(grp_idx)[col] + rela->r_offset;
+        for (uint32_t i = 0; i < col; ++i)
+          abs_offset += ctrlcodes.at(i).size();
+
+        abs_offset += pad_offsets.at(grp_idx).at(col) + rela->r_offset;
         btype = elf::buf_type::pad;
       }
       else if (patch_sec_name.find(ctrlpkt_pat) != std::string::npos) {
+        // ctrlpkt buffers are separate BOs keyed per section, not part of the
+        // column concatenation — r_offset indexes straight into the buffer.
+        // Fold the section name into the arg name so patch points for different
+        // ctrlpkt sections stay distinct.
         abs_offset = rela->r_offset;
         btype      = elf::buf_type::ctrlpkt;
         argnm     += strip_group_suffix(patch_sec_name);
       }
       else {
+        // ctrltext: pages are padded to elf_page_size, so page N starts at
+        // N*elf_page_size within the column; the +16 skips the per-page header
+        // so the offset lands in the page payload.
         auto col_size = ctrlcodes.at(col).size();
         auto sec_off  = page * elf_page_size + rela->r_offset + 16; // NOLINT
         if (sec_off >= col_size)
@@ -1602,8 +1669,11 @@ elf::get_partition_size() const
     throw std::runtime_error("ELF is missing xrt configuration info");
 
   auto data = m_reader->get_note(sec, 0);
+  if (data.size() < sizeof(uint32_t))
+    throw std::runtime_error("xrt configuration note too small");
+
   uint32_t value = 0;
-  std::memcpy(&value, data.data(), std::min(data.size(), sizeof(uint32_t)));
+  std::memcpy(&value, data.data(), sizeof(uint32_t));
   return value;
 }
 
