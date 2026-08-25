@@ -14,6 +14,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -164,7 +165,7 @@ public:
   // Metadata
   ////////////////////////////////////////////////////////////////
 
-  std::array<uint8_t, 16>
+  std::array<uint8_t, 16> // NOLINT(cppcoreguidelines-avoid-magic-numbers)
   get_cfg_uuid() const;
 
   uint32_t
@@ -254,7 +255,9 @@ public:
   // True when at least one ctrl-code group has paired preempt_save/restore sections.
   bool has_preemption() const;
 
-  // True when any relocation targets a PDI section (drives ERT opcode selection).
+  // True when any .pdi.* section is present in the ELF (drives ERT opcode selection).
+  // Based on section presence, not relocation presence — an ELF with a .pdi section
+  // always selects ERT_START_NPU_PREEMPT_ELF regardless of relocation count.
   bool has_pdi() const;
 
   // ---- AIE gen2 PDI / preemption ctrl-pkt buffers ----

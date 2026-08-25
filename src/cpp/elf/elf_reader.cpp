@@ -10,7 +10,9 @@
 
 #include <boost/interprocess/streams/bufferstream.hpp>
 
+#include <algorithm>
 #include <array>
+#include <cctype>
 #include <cstdint>
 #include <cstring>
 #include <functional>
@@ -113,7 +115,7 @@ demangle(const std::string& mangled)
   size_t idx = prefix_len;
   size_t len = 0;
   while (idx < mangled.size() && std::isdigit(mangled[idx]))
-    len = len * 10 + (mangled[idx++] - '0');
+    len = len * 10 + (mangled[idx++] - '0'); // NOLINT
 
   if (idx + len > mangled.size())
     throw std::runtime_error("Invalid mangled name length");
@@ -283,7 +285,7 @@ class elf_reader
 {
 public:
   ELFIO::elfio  m_elfio;
-  elf::platform m_platform;
+  elf::platform m_platform = {};
   std::string   m_path;  // file path this ELF was loaded from; empty if loaded from stream/buffer
 
   // section index -> group index (no_ctrl_code_id for legacy ELFs with no .group sections)
@@ -647,6 +649,12 @@ public:
       if (!sec)
         continue;
 
+      // Compressed sections cannot be cached as a raw span — callers must
+      // use the copy_* API for decompression.  Skip them here; get_section()
+      // will throw an informative error if a caller requests one by name.
+      if (sec->get_flags() & ELFIO::SHF_COMPRESSED)
+        continue;
+
       m_custom_section_map[sec->get_name()] =
         aiebu::detail::span<const std::byte>(
           reinterpret_cast<const std::byte*>(sec->get_data()),
@@ -753,6 +761,22 @@ public:
   resolve_ctrlcode_id(const std::string& name,
                       const std::function<bool(uint32_t)>& has_ctrlcode) const
   {
+    // Legacy ELFs (no .group sections) store an empty-name entry mapping "" to
+    // no_ctrl_code_id.  Resolve it directly before attempting group-name lookup
+    // — m_kernel_to_subkernels_map is empty for legacy ELFs so the normal path
+    // would always throw.
+    if (name.empty()) {
+      auto it = m_kernel_name_to_id_map.find("");
+      if (it == m_kernel_name_to_id_map.end())
+        throw std::runtime_error("Cannot get ctrlcode id: no legacy mapping found");
+
+      auto id = it->second;
+      if (!has_ctrlcode(id))
+        throw std::runtime_error("Cannot get ctrlcode id: legacy ctrl-code has no buffer");
+
+      return id;
+    }
+
     if (auto pos = name.find(':'); pos != std::string::npos) {
       auto key = name.substr(0, pos) + name.substr(pos + 1);
       auto it  = m_kernel_name_to_id_map.find(key);
@@ -1577,20 +1601,21 @@ elf::is_full_elf() const
 bool
 elf::is_group_elf() const { return m_reader->is_group_elf(); }
 
-std::array<uint8_t, 16>
+static constexpr size_t cfg_uuid_size = 16;
+
+std::array<uint8_t, cfg_uuid_size>
 elf::get_cfg_uuid() const
 {
-  constexpr size_t uuid_size = 16;
   auto* sec = m_reader->m_elfio.sections[".note.xrt.UID"];
   if (!sec)
     throw std::runtime_error("ELF is missing .note.xrt.UID section");
 
   auto data = m_reader->get_note(sec, 0);
-  if (data.size() != uuid_size)
+  if (data.size() != cfg_uuid_size)
     throw std::runtime_error("UUID note wrong size: " + std::to_string(data.size()));
 
-  std::array<uint8_t, 16> uuid{};
-  std::memcpy(uuid.data(), data.data(), uuid_size);
+  std::array<uint8_t, cfg_uuid_size> uuid{};
+  std::memcpy(uuid.data(), data.data(), cfg_uuid_size);
   return uuid;
 }
 
@@ -1631,8 +1656,7 @@ elf::get_section(std::string_view name) const
       "get_section(\"" + nm + "\"): section is compressed — use copy_* API instead");
 
   return aiebu::detail::span<const std::byte>(
-    reinterpret_cast<const std::byte*>(sec->get_data()),
-    sec->get_size());
+    reinterpret_cast<const std::byte*>(sec->get_data()), sec->get_size());
 }
 
 void

@@ -122,7 +122,8 @@ test_platform(const aiebu::elf& e, const std::string& expected_name)
 
   auto [major, minor] = e.get_abi_version();
   std::cout << "  abi version: " << static_cast<int>(major) << "." << static_cast<int>(minor) << "\n";
-  check(major <= 0xF && minor <= 0xF, "get_abi_version() nibbles in range");
+  constexpr uint8_t nibble_max = 0xF; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+  check(major <= nibble_max && minor <= nibble_max, "get_abi_version() nibbles in range");
 }
 
 static void
