@@ -435,6 +435,13 @@ parse_lines(const std::vector<char>& data, const std::string& file)
       std::string op_name = sm[1].str();
       std::transform(op_name.begin(), op_name.end(), op_name.begin(), ::tolower);
 
+      // TRACE is reserved for internal CERT use only (dynamic tracing). Reject
+      // it early so user control code never accidentally serializes a TRACE
+      // opcode, which would confuse the firmware's trace machinery.
+      if (!op_name.compare("trace"))
+        throw error(error::error_code::invalid_asm,
+                    "TRACE opcode is reserved for internal use by CERT and must not appear in user control code");
+
       // Handle PREEMPT opcode - record label for current group
       if (!op_name.compare("preempt")) {
         handle_preempt_opcode(arg_str, line);
