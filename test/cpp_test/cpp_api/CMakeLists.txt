@@ -250,24 +250,29 @@ set_tests_properties("elf_reader_aie4_group" PROPERTIES DEPENDS "aie4_move_ddr_t
 
 # Decompression test: assemble eff_net_coal with compress=zstd, then verify
 # that aiebu::elf produces byte-identical output to the plain ELF.
-# Depends on aie2ps_cpp_eff_net_coal having produced eff_net_coal.elf first.
-add_custom_command(OUTPUT eff_net_coal_compressed.elf
-  COMMAND aiebu-asm -t aie2ps_config
-    -j "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_coal/config.json"
-    -f disabledump -f "compress=zstd:3"
-    -o "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal_compressed.elf"
-  DEPENDS aie2psbins
-  COMMENT "Assembling compressed eff_net_coal ELF for elf_reader decompression test"
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  VERBATIM)
-add_custom_target(elf_reader_compressed_elf ALL
-  DEPENDS eff_net_coal_compressed.elf)
+# Uses the aiebu-asm build artifact (resolved at build time via PATH, not
+# configure time) so we always get the freshly-built version.
+# Restricted to x86_64: the aie2ps assembler produces architecture-dependent
+# output and compression is not supported on ARM runners.
+if (TARGET aiebu-asm AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+  add_custom_command(OUTPUT eff_net_coal_compressed.elf
+    COMMAND aiebu-asm -t aie2ps_config
+      -j "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_coal/config.json"
+      -f disabledump -f "compress=zstd:3"
+      -o "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal_compressed.elf"
+    DEPENDS aie2psbins aiebu-asm
+    COMMENT "Assembling compressed eff_net_coal ELF for elf_reader decompression test"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    VERBATIM)
+  add_custom_target(elf_reader_compressed_elf ALL
+    DEPENDS eff_net_coal_compressed.elf)
 
-add_test(NAME "elf_reader_decompression"
-  COMMAND ${ELF_READER_TESTNAME}
-    --compressed
-    "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal_compressed.elf"
-    "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal.elf"
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-set_tests_properties("elf_reader_decompression" PROPERTIES
-  DEPENDS "aie2ps_cpp_eff_net_coal")
+  add_test(NAME "elf_reader_decompression"
+    COMMAND ${ELF_READER_TESTNAME}
+      --compressed
+      "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal_compressed.elf"
+      "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal.elf"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  set_tests_properties("elf_reader_decompression" PROPERTIES
+    DEPENDS "aie2ps_cpp_eff_net_coal")
+endif()
