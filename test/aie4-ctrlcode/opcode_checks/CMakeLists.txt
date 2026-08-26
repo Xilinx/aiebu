@@ -14,9 +14,16 @@
 # ---------------------------------------------------------------------------
 macro(add_aie4_config_neg_test TEST_NAME CONFIG_FILE)
   add_test(NAME "${TEST_NAME}"
-    COMMAND aiebu-asm -t aie4_config -j "${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_FILE}"
+    COMMAND aiebu-asm -t aie4_config -j "${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_FILE}" -o "${TEST_NAME}.elf"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   set_tests_properties("${TEST_NAME}" PROPERTIES WILL_FAIL TRUE)
+endmacro()
+
+# Helper macro: register one aie4_config positive test (expected to assemble).
+macro(add_aie4_config_pos_test TEST_NAME CONFIG_FILE)
+  add_test(NAME "${TEST_NAME}"
+    COMMAND aiebu-asm -t aie4_config -j "${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_FILE}" -o "${TEST_NAME}.elf" -f disabledump
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 endmacro()
 
 # ---------------------------------------------------------------------------
@@ -66,3 +73,17 @@ add_aie4_config_neg_test("aie4_check_start_cond_count_mismatch"
 # preempt: hint bitmaps of two controllers overlap at the same preemption point
 add_aie4_config_neg_test("aie4_check_preempt_hintmap_overlap"
   "config_preempt_hintmap_overlap.json")
+
+# ---------------------------------------------------------------------------
+# Positive tests
+# ---------------------------------------------------------------------------
+
+# preempt: non-contiguous hintmap bits (holes) are allowed; the scratchpad
+# is the first-to-last set-bit span and disjoint spans must assemble
+add_aie4_config_pos_test("aie4_check_preempt_hintmap_holes"
+  "config_preempt_hintmap_holes.json")
+
+# preempt: hole-absorbed spans may overlap even when set bits are disjoint;
+# the assembler redistributes chunk assignments instead of rejecting the asm
+add_aie4_config_pos_test("aie4_check_preempt_hintmap_hole_overlap"
+  "config_preempt_hintmap_hole_overlap.json")

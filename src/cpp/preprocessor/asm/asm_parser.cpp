@@ -126,83 +126,215 @@ chunks_to_region(uint64_t lo, uint64_t hi)
 // chunk range in 64KB units: [first, last)
 using chunk_rng = std::pair<uint64_t, uint64_t>;
 
-static std::vector<chunk_rng>
-bitset_to_runs(const hintmap_chunk_bits& pool)
-{
-  std::vector<chunk_rng> runs;
-  for (std::size_t chunk = 0; chunk < pool.size(); ++chunk) {
-    if (!pool.test(chunk))
-      continue;
-    if (!runs.empty() && runs.back().second == chunk)
-      runs.back().second = chunk + 1;
-    else
-      runs.emplace_back(chunk, chunk + 1);
-  }
-  return runs;
-}
+// Hard cut: a no-hintmap controller's fixed 3MB home window.  Pool runs must not
+// merge across a hard cut; each segment between hard cuts is handled on its own.
+using hard_cut_rng = chunk_rng;
 
-static void
-merge_runs_until(std::vector<chunk_rng>& runs,
-                 const std::vector<chunk_rng>& fixed,
-                 std::size_t want,
-                 std::size_t pt_idx)
+struct pool_segment {
+  uint64_t lo; // inclusive
+  uint64_t hi; // exclusive
+};
+
+// One controller slot in column order: hintmap_cols + fixed (no-hintmap).
+struct controller_spec {
+  int      col;
+  bool     is_fixed; // no-hintmap fixed 3MB home window (hard cut)
+  uint64_t span_lo;  // inclusive chunk index for fixed windows
+  uint64_t span_hi;  // inclusive chunk index for fixed windows
+};
+
+static pool_segment
+segment_for_hintmap_group(const std::vector<controller_spec>& ordered,
+                          std::size_t group_start,
+                          std::size_t pat_idx_after_group)
 {
-  while (runs.size() > want) {
-    std::size_t best = runs.size();
-    uint64_t best_gap = UINT64_MAX;
-    for (std::size_t i = 0; i + 1 < runs.size(); ++i) {
-      const uint64_t gap_lo = runs[i].second;
-      const uint64_t gap_hi = runs[i + 1].first;
-      if (std::any_of(fixed.cbegin(), fixed.cend(),
-                      [gap_lo, gap_hi](const chunk_rng& f) {
-                        return gap_lo < f.second && f.first < gap_hi;
-                      }))
-        continue;
-      const uint64_t gap = gap_hi - gap_lo;
-      if (gap < best_gap) {
-        best_gap = gap;
-        best     = i;
+  uint64_t seg_lo = 0;
+  uint64_t seg_hi = HINTMAP_CHUNK_BITS;
+
+  if (group_start > 0) {
+    for (std::size_t j = group_start; j-- > 0;) {
+      if (ordered[j].is_fixed) {
+        seg_lo = ordered[j].span_hi + 1;
+        break;
       }
     }
-    if (best == runs.size())
-      throw error(error::error_code::invalid_asm,
-                  "preemption point " + std::to_string(pt_idx) + " has "
-                  + std::to_string(runs.size()) + " chunk groups but only "
-                  + std::to_string(want) + " controller(s) to transfer them\n");
-    runs[best].second = runs[best + 1].second;
-    runs.erase(runs.begin() + static_cast<std::ptrdiff_t>(best) + 1);
   }
+  if (pat_idx_after_group < ordered.size() && ordered[pat_idx_after_group].is_fixed)
+    seg_hi = ordered[pat_idx_after_group].span_lo;
+
+  return {seg_lo, seg_hi};
+}
+
+static std::vector<uint64_t>
+sorted_pool_chunks(const hintmap_chunk_bits& pool)
+{
+  std::vector<uint64_t> chunks;
+  for (std::size_t c = 0; c < pool.size(); ++c) {
+    if (pool.test(c))
+      chunks.push_back(static_cast<uint64_t>(c));
+  }
+  return chunks;
+}
+
+// Split pool chunks among k hintmap controllers by cutting at the largest gaps.
+static std::vector<chunk_rng>
+partition_flexible_minimize_holes(const std::vector<uint64_t>& sub, std::size_t k_sub)
+{
+  std::vector<chunk_rng> result;
+  if (sub.empty() || k_sub == 0)
+    return result;
+
+  if (k_sub == 1) {
+    result.push_back({sub.front(), sub.back() + 1});
+    return result;
+  }
+
+  const int n = static_cast<int>(sub.size());
+  if (n <= static_cast<int>(k_sub)) {
+    for (std::size_t i = 0; i < k_sub; ++i) {
+      if (i < sub.size())
+        result.push_back({sub[i], sub[i] + 1});
+      else
+        result.push_back({0, 0});
+    }
+    return result;
+  }
+
+  std::vector<std::pair<int, int>> gaps;
+  for (std::size_t i = 0; i + 1 < sub.size(); ++i) {
+    const int gap = static_cast<int>(sub[i + 1] - sub[i] - 1);
+    if (gap > 0)
+      gaps.push_back({gap, static_cast<int>(i + 1)});
+  }
+  std::sort(gaps.rbegin(), gaps.rend());
+
+  std::vector<int> cut_indices{0};
+  const int cuts_to_make = std::min(static_cast<int>(gaps.size()), static_cast<int>(k_sub) - 1);
+  std::vector<int> chosen_split_points;
+  for (int i = 0; i < cuts_to_make; ++i)
+    chosen_split_points.push_back(gaps[static_cast<std::size_t>(i)].second);
+  std::sort(chosen_split_points.begin(), chosen_split_points.end());
+
+  for (int idx : chosen_split_points)
+    cut_indices.push_back(idx);
+  cut_indices.push_back(n);
+
+  if (static_cast<int>(cut_indices.size()) - 1 < static_cast<int>(k_sub)) {
+    cut_indices.clear();
+    for (std::size_t i = 0; i <= k_sub; ++i)
+      cut_indices.push_back((static_cast<int>(i) * n) / static_cast<int>(k_sub));
+  }
+
+  for (std::size_t i = 0; i + 1 < cut_indices.size(); ++i) {
+    const int start_idx = cut_indices[i];
+    const int end_idx   = cut_indices[i + 1] - 1;
+    if (start_idx <= end_idx && end_idx < n)
+      result.push_back({sub[static_cast<std::size_t>(start_idx)],
+                        sub[static_cast<std::size_t>(end_idx)] + 1});
+    else
+      result.push_back({0, 0});
+  }
+  return result;
+}
+
+static std::optional<std::size_t>
+find_ctrl_index(const std::vector<int>& ctrl_cols, int col)
+{
+  for (std::size_t i = 0; i < ctrl_cols.size(); ++i) {
+    if (ctrl_cols[i] == col)
+      return i;
+  }
+  return std::nullopt;
 }
 
 static std::vector<chunk_rng>
-assign_runs(const std::vector<chunk_rng>& runs,
-            const std::vector<uint64_t>& quota,
-            const std::vector<bool>& absorb)
+redistribute_with_hard_cuts(const hintmap_chunk_bits& pool,
+                            const std::vector<hard_cut_rng>& hard_cuts,
+                            const std::vector<controller_spec>& ordered,
+                            const std::vector<int>& ctrl_cols,
+                            const std::vector<hintmap_chunk_bits>& owner_bms,
+                            const std::vector<uint64_t>& quota,
+                            const std::vector<bool>& absorb,
+                            std::size_t pt_idx)
 {
-  std::vector<chunk_rng> out(quota.size(), {0, 0});
-  std::size_t ri = 0;
-  uint64_t off = 0;
+  (void)owner_bms;
+  (void)quota;
+  (void)absorb;
+  (void)pt_idx;
+  if (ctrl_cols.empty())
+    return {};
 
-  auto take_from_run = [&](std::size_t i, uint64_t n) {
-    const uint64_t left = runs[ri].second - runs[ri].first - off;
-    const uint64_t take = std::min(n, left);
-    out[i] = {runs[ri].first + off, runs[ri].first + off + take};
-    off += take;
-    if (off >= runs[ri].second - runs[ri].first) {
-      ++ri;
-      off = 0;
-    }
-  };
+  std::vector<chunk_rng> out(ctrl_cols.size(), {0, 0});
 
-  for (std::size_t i = 0; i < quota.size() && ri < runs.size(); ++i)
-    if (quota[i] > 0)
-      take_from_run(i, quota[i]);
+  if (pool.none())
+    return out;
 
-  for (std::size_t i = 0; i < quota.size() && ri < runs.size(); ++i) {
-    if (!absorb[i])
+  const std::size_t hintmap_count = static_cast<std::size_t>(
+      std::count_if(ordered.begin(), ordered.end(),
+                    [](const controller_spec& s) { return !s.is_fixed; }));
+  const std::size_t fixed_count = ordered.size() - hintmap_count;
+  log_warn() << "  controllers: " << ordered.size() << " (hintmap=" << hintmap_count
+             << ", fixed/no-hintmap=" << fixed_count << ")" << std::endl;
+
+  log_warn() << "  hard cuts (no-hintmap fixed 3MB windows):";
+  if (hard_cuts.empty()) {
+    log_warn() << "    (none)" << std::endl;
+  } else {
+    for (const auto& cut : hard_cuts)
+      log_warn() << "    [" << cut.first << ", " << cut.second << ")" << std::endl;
+  }
+
+  // Same algorithm as build/t.cpp GenericBitsetChunker::solve():
+  // walk pattern in column order; consecutive hintmap slots share one segment;
+  // fixed slots are hard cuts; split each segment's pool chunks at largest gaps.
+  const std::vector<uint64_t> nums = sorted_pool_chunks(pool);
+  std::size_t num_idx = 0;
+  std::size_t pat_idx = 0;
+
+  while (pat_idx < ordered.size()) {
+    if (ordered[pat_idx].is_fixed) {
+      const uint64_t hc_end = ordered[pat_idx].span_hi;
+      while (num_idx < nums.size() && nums[num_idx] <= hc_end)
+        ++num_idx;
+      ++pat_idx;
       continue;
-    const uint64_t left = runs[ri].second - runs[ri].first - off;
-    take_from_run(i, left);
+    }
+
+    const std::size_t group_start = pat_idx;
+    std::vector<std::size_t> group_ctrl;
+    while (pat_idx < ordered.size() && !ordered[pat_idx].is_fixed) {
+      if (auto ci = find_ctrl_index(ctrl_cols, ordered[pat_idx].col))
+        group_ctrl.push_back(*ci);
+      ++pat_idx;
+    }
+
+    if (group_ctrl.empty())
+      continue;
+
+    uint64_t upper_bound = HINTMAP_CHUNK_BITS;
+    if (pat_idx < ordered.size() && ordered[pat_idx].is_fixed)
+      upper_bound = ordered[pat_idx].span_lo;
+
+    std::vector<uint64_t> flex_nums;
+    while (num_idx < nums.size() && nums[num_idx] < upper_bound) {
+      flex_nums.push_back(nums[num_idx]);
+      ++num_idx;
+    }
+
+    const pool_segment seg = segment_for_hintmap_group(ordered, group_start, pat_idx);
+    log_warn() << "  segment [" << seg.lo << ", " << seg.hi << ") -> "
+               << group_ctrl.size() << " hintmap controller(s), "
+               << flex_nums.size() << " pool chunk(s)" << std::endl;
+
+    if (flex_nums.empty())
+      continue;
+
+    const auto parts = partition_flexible_minimize_holes(flex_nums, group_ctrl.size());
+    for (std::size_t i = 0; i < parts.size() && i < group_ctrl.size(); ++i) {
+      out[group_ctrl[i]] = parts[i];
+      log_warn() << "    controller " << ctrl_cols[group_ctrl[i]] << " (hintmap): chunks ["
+                 << parts[i].first << ", " << parts[i].second << ")" << std::endl;
+    }
   }
 
   return out;
@@ -1925,12 +2057,11 @@ assign_direct_preempt_regions(std::size_t pt, const preempt_point_state& state)
 //   2. Quota Calculation: Determine how many chunks each controller should get
 //      based on their hintmap specifications and overlap resolution
 //
-//   3. Run Merging: Consolidate fragmented chunk ranges to minimize memory
-//      fragmentation while respecting fixed region boundaries
+//   3. Hard-cut segmentation: no-hintmap fixed 3MB windows partition the pool;
+//      runs merge and assign independently within each segment
 //
-//   4. Assignment: Distribute the merged runs among controllers according to
-//      their quotas, with special handling for zero-hintmap controllers that
-//      can absorb leftover chunks
+//   4. Assignment: home-column controller owns each merged run; controllers
+//      whose set bits are not yet covered get a direct span over those bits
 //
 //   This redistribution is necessary when controllers have overlapping memory
 //   requirements that cannot be satisfied by direct allocation from their
@@ -1950,6 +2081,7 @@ redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state)
     bool     absorb;   // Whether this controller can absorb leftover chunks (zero hintmap)
   };
   std::vector<ctrl> ctrls;
+  std::vector<hintmap_chunk_bits> owner_bms;
   hintmap_chunk_bits pool;  // Accumulated pool of all available chunks
 
   // Phase 1: Collect available chunks from all hintmap controllers
@@ -1967,6 +2099,7 @@ redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state)
 
     // Record this controller's redistribution parameters
     ctrls.push_back({hc.col, pooled, hc.zero_hintmap});
+    owner_bms.push_back(hc.outside_bm);
 
     // Log the controller's contribution and special properties
     log_warn() << "  controller " << hc.col << " (hintmap '" << hc.key << "'): quota="
@@ -1983,35 +2116,39 @@ redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state)
 
   // Phase 2: Extract quota and absorb flags for the assignment algorithm
   // Prepare separate vectors for the run assignment function
+  std::vector<int>      ctrl_cols;
   std::vector<uint64_t> quota;
   std::vector<bool>     absorb;
+  ctrl_cols.reserve(ctrls.size());
   quota.reserve(ctrls.size());
   absorb.reserve(ctrls.size());
   for (const auto& c : ctrls) {
+    ctrl_cols.push_back(c.col);
     quota.push_back(c.quota);
     absorb.push_back(c.absorb);
   }
 
-  // Phase 3: Convert the chunk pool into contiguous runs
-  // Transform the bitset into a list of contiguous chunk ranges
-  auto runs = bitset_to_runs(pool);
-  log_warn() << "  pooled runs before merge:";
-  for (const auto& r : runs)
-    log_warn() << "    [" << r.first << ", " << r.second << ")" << std::endl;
+  // Phase 3–5: segment by hard cuts; split pool among hintmap controllers per segment
+  // (pattern.size() == hintmap_cols + fixed, one entry per controller in column order).
+  std::vector<controller_spec> ordered;
+  ordered.reserve(state.hintmap_cols.size());
+  {
+    auto cols = state.hintmap_cols;
+    std::sort(cols.begin(), cols.end(),
+              [](const hintmap_col& a, const hintmap_col& b) { return a.col < b.col; });
+    for (const auto& hc : cols) {
+      controller_spec spec;
+      spec.col      = hc.col;
+      spec.is_fixed = hc.key.empty();
+      spec.span_lo  = hc.span_lo;
+      spec.span_hi  = hc.span_hi;
+      ordered.push_back(spec);
+    }
+  }
 
-  // Phase 4: Merge fragmented runs to reduce memory fragmentation
-  // Consolidate adjacent or nearby runs while respecting fixed region boundaries
-  merge_runs_until(runs, state.fixed, ctrls.size(), pt);
-
-  // Log the results of run merging
-  log_warn() << "  pooled runs after merge (holes minimized where possible):";
-  for (const auto& r : runs)
-    log_warn() << "    [" << r.first << ", " << r.second << ")" << std::endl;
-
-  // Phase 5: Assign the merged runs to controllers based on their quotas
-  // Distribute the available runs among controllers according to their requirements
-  const auto assigned = assign_runs(runs, quota, absorb);
-  // Log the assignment results for debugging
+  const std::vector<hard_cut_rng> hard_cuts = state.fixed;
+  const auto assigned = redistribute_with_hard_cuts(pool, hard_cuts, ordered, ctrl_cols,
+                                                    owner_bms, quota, absorb, pt);
   log_warn() << "  assignment results:" << std::endl;
   for (std::size_t i = 0; i < assigned.size(); ++i) {
     log_warn() << "    controller " << ctrls[i].col << ": chunks ["
