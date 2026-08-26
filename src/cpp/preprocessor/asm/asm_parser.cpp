@@ -57,12 +57,17 @@ words_to_bitset(const std::vector<uint32_t>& words)
   hintmap_chunk_bits bs;
   for (std::size_t w = 0; w < words.size(); ++w) {
     const uint32_t val = words[w];
-    const std::size_t base = w * 32;
-    for (std::size_t bit = 0; bit < 32; ++bit) {
+    const std::size_t base = w * WORD_BITS;
+    for (std::size_t bit = 0; bit < WORD_BITS; ++bit) {
       if (val & (1U << bit)) {
         const std::size_t chunk = base + bit;
-        if (chunk < HINTMAP_CHUNK_BITS)
-          bs.set(chunk);
+        if (chunk >= HINTMAP_CHUNK_BITS) {
+          throw error(error::error_code::invalid_asm,
+                     "hintmap sets chunk bit " + std::to_string(chunk)
+                     + " which exceeds supported range [0, "
+                     + std::to_string(HINTMAP_CHUNK_BITS - 1) + "]");
+        }
+        bs.set(chunk);
       }
     }
   }
@@ -184,7 +189,7 @@ partition_flexible_minimize_holes(const std::vector<uint64_t>& sub, std::size_t 
     return result;
 
   if (k_sub == 1) {
-    result.push_back({sub.front(), sub.back() + 1});
+    result.emplace_back(sub.front(), sub.back() + 1);
     return result;
   }
 
@@ -192,9 +197,9 @@ partition_flexible_minimize_holes(const std::vector<uint64_t>& sub, std::size_t 
   if (n <= static_cast<int>(k_sub)) {
     for (std::size_t i = 0; i < k_sub; ++i) {
       if (i < sub.size())
-        result.push_back({sub[i], sub[i] + 1});
+        result.emplace_back(sub[i], sub[i] + 1);
       else
-        result.push_back({0, 0});
+        result.emplace_back(0, 0);
     }
     return result;
   }
@@ -203,7 +208,7 @@ partition_flexible_minimize_holes(const std::vector<uint64_t>& sub, std::size_t 
   for (std::size_t i = 0; i + 1 < sub.size(); ++i) {
     const int gap = static_cast<int>(sub[i + 1] - sub[i] - 1);
     if (gap > 0)
-      gaps.push_back({gap, static_cast<int>(i + 1)});
+      gaps.emplace_back(gap, static_cast<int>(i + 1));
   }
   std::sort(gaps.rbegin(), gaps.rend());
 
@@ -228,10 +233,10 @@ partition_flexible_minimize_holes(const std::vector<uint64_t>& sub, std::size_t 
     const int start_idx = cut_indices[i];
     const int end_idx   = cut_indices[i + 1] - 1;
     if (start_idx <= end_idx && end_idx < n)
-      result.push_back({sub[static_cast<std::size_t>(start_idx)],
-                        sub[static_cast<std::size_t>(end_idx)] + 1});
+      result.emplace_back(sub[static_cast<std::size_t>(start_idx)],
+                          sub[static_cast<std::size_t>(end_idx)] + 1);
     else
-      result.push_back({0, 0});
+      result.emplace_back(0, 0);
   }
   return result;
 }
@@ -268,7 +273,7 @@ redistribute_with_hard_cuts(const hintmap_chunk_bits& pool,
   if (pool.none())
     return out;
 
-  const std::size_t hintmap_count = static_cast<std::size_t>(
+  const auto hintmap_count = static_cast<std::size_t>(
       std::count_if(ordered.begin(), ordered.end(),
                     [](const controller_spec& s) { return !s.is_fixed; }));
   const std::size_t fixed_count = ordered.size() - hintmap_count;
@@ -358,10 +363,10 @@ describe_chunk_span(uint64_t lo, uint64_t hi)
 static std::string
 format_byte_size(uint64_t size)
 {
-  if (size >= 1024ULL * 1024ULL && size % (1024ULL * 1024ULL) == 0)
-    return std::to_string(size / (1024ULL * 1024ULL)) + "MB";
-  if (size >= 1024ULL && size % 1024ULL == 0)
-    return std::to_string(size / 1024ULL) + "KB";
+  if (size >= BYTES_PER_MB && size % BYTES_PER_MB == 0)
+    return std::to_string(size / BYTES_PER_MB) + "MB";
+  if (size >= BYTES_PER_KB && size % BYTES_PER_KB == 0)
+    return std::to_string(size / BYTES_PER_KB) + "KB";
   return std::to_string(size) + " bytes";
 }
 
@@ -944,16 +949,17 @@ hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
   const uint64_t scratchbase = (first_bit != NO_BIT) ? (first_bit * CHUNK_SIZE) : DEFAULT_BASE;
   const uint64_t size        = span_bits * CHUNK_SIZE;
 
-  if (first_bit != NO_BIT && span_bits != set_bits)
+  if (first_bit != NO_BIT && span_bits != set_bits) {
     log_info() << "hintmap '" << hintmap_label << "' has gaps between bit "
                << first_bit << " and bit " << last_bit << ": saving "
                << span_bits << " chunks to cover the " << set_bits
                << " requested ones" << std::endl;
+  }
 
   log_info() << "Hintmap parsed for group " << group << " (col " << group << "): "
              << "scratchbase=0x" << std::hex << scratchbase
              << ", size=0x"      << size << " (" << std::dec
-             << (size / (1024ULL * 1024ULL)) << "MB, " << span_bits << " chunks)" << std::endl;
+             << (size / BYTES_PER_MB) << "MB, " << span_bits << " chunks)" << std::endl;
 
   return {scratchbase, size};
 }
@@ -1384,7 +1390,7 @@ asm_parser::build_hintmap_groups(int group, int group_index)
       hintmap_group_entry entry;
       entry.scratchbase = scratchbase;
       entry.size        = size;
-      entry.hintmap_pts.push_back({pt, qualified_key});
+      entry.hintmap_pts.emplace_back(pt, qualified_key);
       entry.labels = {"save_"    + std::to_string(group_index) + "_" + std::to_string(unique_idx),
                       "restore_" + std::to_string(group_index) + "_" + std::to_string(unique_idx)};
       log_info() << "Column " << group << ": preemption point " << pt << ", hintmap '"
@@ -1836,9 +1842,11 @@ collect_preempt_point(std::size_t pt)
     // Calculate the span (range) of chunks covered by this hintmap's available bits
     // This helps with redistribution algorithms that need to know the extent of requested chunks
     if (auto lo = bitset_find_first(outside_bm)) {
-      hc.span_lo  = *lo;                      // First (lowest) chunk index in the available bitmap
-      hc.span_hi  = *bitset_find_last(outside_bm);  // Last (highest) chunk index in the available bitmap
-      hc.has_span = true;                     // Mark that we found a valid span
+      hc.span_lo = *lo;  // First (lowest) chunk index in the available bitmap
+      if (auto hi = bitset_find_last(outside_bm)) {
+        hc.span_hi  = *hi;  // Last (highest) chunk index in the available bitmap
+        hc.has_span = true;
+      }
     }
 
     // Add this hintmap column to our collection for this preemption point
@@ -2007,7 +2015,7 @@ redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state)
     std::sort(cols.begin(), cols.end(),
               [](const hintmap_col& a, const hintmap_col& b) { return a.col < b.col; });
     for (const auto& hc : cols) {
-      controller_spec spec;
+      controller_spec spec{};
       spec.col      = hc.col;
       spec.is_fixed = hc.key.empty();
       spec.span_lo  = hc.span_lo;
@@ -2035,11 +2043,12 @@ redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state)
       oss << " [includes hole chunks within span]";
     log_warn() << oss.str() << std::endl;
   }
-  for (std::size_t fi = 0; fi < state.fixed_cols.size(); ++fi)
+  for (std::size_t fi = 0; fi < state.fixed_cols.size(); ++fi) {
     log_warn() << "    controller " << state.fixed_cols[fi]
                << " (no hintmap): unchanged default 3MB "
                << describe_chunk_span(state.fixed[fi].first, state.fixed[fi].second - 1)
                << std::endl;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2077,6 +2086,9 @@ settle_preempt_regions()
   }
 }
 
+// Prebuilt save/restore map key for multi-column group 0 (1c0 template).
+constexpr uint32_t MULTICOL_PREEMPT_SAVE_RESTORE_BASE = 10;
+
 // ---------------------------------------------------------------------------
 // finalize_preempt
 // ---------------------------------------------------------------------------
@@ -2092,9 +2104,9 @@ finalize_preempt()
     settle_preempt_regions();
 
     for (const auto& [group, labels] : m_preempt_labels) {
-      auto [save_data, restore_data] = get_preempt_save_restore(10 + group);
-      auto [save_bd, restore_bd] = get_preempt_save_restore_shimbd(10 + group);
-      auto [save_membd, restore_membd] = get_preempt_save_restore_membd(10 + group);
+      auto [save_data, restore_data] = get_preempt_save_restore(MULTICOL_PREEMPT_SAVE_RESTORE_BASE + group);
+      auto [save_bd, restore_bd] = get_preempt_save_restore_shimbd(MULTICOL_PREEMPT_SAVE_RESTORE_BASE + group);
+      auto [save_membd, restore_membd] = get_preempt_save_restore_membd(MULTICOL_PREEMPT_SAVE_RESTORE_BASE + group);
       if (save_data.empty() || restore_data.empty() || save_bd.empty() || restore_bd.empty() || save_membd.empty() || restore_membd.empty())
         throw error(error::error_code::internal_error,
                     "Preempt save/restore data not found for group " + std::to_string(group));
