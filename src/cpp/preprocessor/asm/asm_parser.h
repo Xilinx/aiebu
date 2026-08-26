@@ -11,6 +11,7 @@
 #include "logger.h"
 
 #include <array>
+#include <bitset>
 #include <map>
 #include <memory>
 #include <set>
@@ -25,6 +26,10 @@
 namespace aiebu {
 
 constexpr uint64_t CHUNK_SIZE = 64ULL * 1024ULL; // 64KB
+constexpr uint64_t COL_SCRATCHPAD_SIZE = 3ULL * 1024ULL * 1024ULL; // 3MB
+constexpr uint64_t CHUNKS_PER_COL = COL_SCRATCHPAD_SIZE / CHUNK_SIZE; // 48
+constexpr std::size_t HINTMAP_CHUNK_BITS = 512;
+using hintmap_chunk_bits = std::bitset<HINTMAP_CHUNK_BITS>;
 
 inline std::string trim(const std::string& line)
 {
@@ -525,6 +530,39 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
     std::string hintmap_key;  // "<label_scope>:<hintmap_label>", empty when the opcode has no hintmap
   };
   std::map<int, std::vector<preempt_point>> m_preempt_points;  // group -> preemption points in program order
+
+  struct preempt_scratchpad {
+    uint64_t scratchbase;
+    uint64_t size;
+  };
+  // Settled scratchpad region per column and preemption-point index.
+  std::map<int, std::vector<preempt_scratchpad>> m_preempt_region;
+
+  // Per-controller hintmap state at one preemption point (Step 1 output).
+  struct hintmap_col {
+    int                col;          // controller column index (.attach_to_group)
+    std::string        key;          // qualified hintmap key: "<label_scope>:<hintmap_label>"
+    hintmap_chunk_bits full_bm;      // all set bits from the hintmap .long words
+    hintmap_chunk_bits outside_bm;   // full_bm with no-hintmap 3MB windows stripped
+    uint64_t           span_lo;      // first set chunk in outside_bm (inclusive)
+    uint64_t           span_hi;      // last set chunk in outside_bm (inclusive)
+    bool               has_span;     // true when outside_bm has at least one set bit
+    bool               zero_hintmap;   // true when the hintmap is all-zero (absorb leftover runs)
+  };
+
+  struct preempt_point_state {
+    std::vector<hintmap_col>   hintmap_cols;
+    std::vector<std::pair<uint64_t, uint64_t>> fixed;  // no-hintmap 3MB windows [lo, hi)
+    std::vector<int>           fixed_cols;
+    hintmap_chunk_bits         fixed_bs;
+  };
+
+  preempt_point_state collect_preempt_point(std::size_t pt);
+  //void verify_preempt_set_bit_overlap(std::size_t pt, const preempt_point_state& state);
+  void verify_overlap(std::size_t pt, const preempt_point_state& state);
+  bool need_distribution_or_assign_direct(std::size_t pt, const preempt_point_state& state);
+  //bool assign_direct_preempt_regions(std::size_t pt, const preempt_point_state& state);
+  void redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state);
   detail::filename_table m_filename_table;
   // Tracks which filename indices have been interned per column so that duplicate
   // .include detection is scoped per-col rather than globally across the parser.
@@ -541,9 +579,7 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   };
 
   // Group hintmap labels by (scratchbase, size) and assign unique save/restore labels.
-  std::vector<hintmap_group_entry> build_hintmap_groups(int group,
-                                                        const std::vector<std::string>& hintmap_labels,
-                                                        int group_index);
+  std::vector<hintmap_group_entry> build_hintmap_groups(int group, int group_index);
 
   // Register scratchpad and inject patched save/restore asm for one hintmap group.
   void inject_hintmap_save_restore(int col, int group_index,
@@ -561,9 +597,12 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   // Walk column col and update PREEMPT opcode args to reflect shared labels.
   void update_preempt_opcodes(int col);
 
-  // Verify that the scratchpad regions selected by the hint bitmaps of different
-  // controllers are disjoint at every preemption point.
-  void verify_hintmap_no_overlap();
+  // Settle scratchpad regions at each preemption point before save/restore injection.
+  void settle_preempt_regions();
+
+  hintmap_chunk_bits hintmap_chunks(int col,
+                                    const std::string& search_context,
+                                    const std::string& hintmap_label);
 
   // Inject default (no-hintmap) save/restore asm into column col.
   void inject_default_save_restore(int col, int group_index,
