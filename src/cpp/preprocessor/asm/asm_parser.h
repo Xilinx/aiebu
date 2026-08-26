@@ -558,10 +558,8 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   };
 
   preempt_point_state collect_preempt_point(std::size_t pt);
-  //void verify_preempt_set_bit_overlap(std::size_t pt, const preempt_point_state& state);
   void verify_overlap(std::size_t pt, const preempt_point_state& state);
   bool need_distribution_or_assign_direct(std::size_t pt, const preempt_point_state& state);
-  //bool assign_direct_preempt_regions(std::size_t pt, const preempt_point_state& state);
   void redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state);
   detail::filename_table m_filename_table;
   // Tracks which filename indices have been interned per column so that duplicate
@@ -570,9 +568,9 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::unordered_map<int, std::set<uint32_t>> m_col_seen_files;
   bool m_is_save_restore_routine = false;  // True when parsing save/restore routine files
 
-  // One unique scratchpad region: all hintmap labels that share the same scratchbase+size
+  // One unique scratchpad region: hintmaps at preemption points that share scratchbase+size
   struct hintmap_group_entry {
-    std::vector<std::string>         hintmaps;    // hintmap labels sharing this scratchpad
+    std::vector<std::pair<std::size_t, std::string>> hintmap_pts; // pt index, qualified key
     std::pair<std::string,std::string> labels;    // shared save/restore label pair
     uint64_t                         scratchbase;
     uint64_t                         size;
