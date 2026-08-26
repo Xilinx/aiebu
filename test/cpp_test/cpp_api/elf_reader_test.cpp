@@ -122,7 +122,8 @@ test_platform(const aiebu::elf& e, const std::string& expected_name)
 
   auto [major, minor] = e.get_abi_version();
   std::cout << "  abi version: " << static_cast<int>(major) << "." << static_cast<int>(minor) << "\n";
-  check(major <= 0xF && minor <= 0xF, "get_abi_version() nibbles in range");
+  constexpr uint8_t nibble_max = 0xF; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+  check(major <= nibble_max && minor <= nibble_max, "get_abi_version() nibbles in range");
 }
 
 static void
@@ -653,11 +654,12 @@ run_compression_test(const std::string& compressed_path, const std::string& plai
   // get_section() must throw on a compressed section — .ctrltext* is always compressed
   auto g2s = ec.get_group_to_sections_map();
   if (!g2s.empty()) {
-    auto id  = g2s.begin()->first;
-    auto ncols = ec.get_column_count(id);
-    if (ncols > 0) {
+    auto id     = g2s.begin()->first;
+    auto ncols  = ec.get_column_count(id);
+    const auto& members = g2s.begin()->second;
+    if (ncols > 0 && !members.empty()) {
       // get_section() by name should throw for compressed ctrltext
-      auto sec_name = ec.get_section_name(g2s.begin()->second.front());
+      auto sec_name = ec.get_section_name(members.front());
       if (!sec_name.empty() && sec_name.find(".ctrltext") != std::string::npos)
         CHECK_THROWS(ec.get_section(sec_name),
                      "get_section() throws on compressed ctrltext section");
@@ -668,8 +670,13 @@ run_compression_test(const std::string& compressed_path, const std::string& plai
   auto plain_bytes = read_file(plain_path);
   aiebu::elf ep(plain_bytes.data(), plain_bytes.size());
 
-  check(ec.get_column_count(g2s.begin()->first) == ep.get_column_count(g2s.begin()->first),
-        "column count matches between compressed and plain ELF");
+  if (g2s.empty()) {
+    std::cout << "  (no group map — skipping column count comparison)\n";
+  }
+  else {
+    check(ec.get_column_count(g2s.begin()->first) == ep.get_column_count(g2s.begin()->first),
+          "column count matches between compressed and plain ELF");
+  }
 
   // Copy output from compressed ELF must be byte-identical to plain ELF output
   auto out_compressed = collect_ctrlcode_output(ec);

@@ -165,7 +165,7 @@ public:
   // Metadata
   ////////////////////////////////////////////////////////////////
 
-  std::array<uint8_t, 16>
+  std::array<uint8_t, 16> // NOLINT(cppcoreguidelines-avoid-magic-numbers)
   get_cfg_uuid() const;
 
   uint32_t
@@ -225,7 +225,8 @@ public:
 
   // Ctrl-code id for a named kernel/subkernel.
   // Accepts "kernel:subkernel" or bare "kernel" (single-instance only).
-  // Returns UINT32_MAX for legacy ELFs with no group sections.
+  // For legacy ELFs (no .group sections) pass an empty string — the single
+  // anonymous ctrl-code is stored under "" and maps to UINT32_MAX.
   uint32_t
   get_ctrlcode_id(const std::string& name) const;
 

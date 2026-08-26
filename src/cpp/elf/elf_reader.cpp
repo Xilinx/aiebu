@@ -81,7 +81,7 @@ static std::string
 symbol_name(const char* symname, const ELFIO::section* dynstr)
 {
   const char* end = dynstr->get_data() + dynstr->get_size();
-  return std::string(symname, std::find(symname, end, '\0'));
+  return {symname, std::find(symname, end, '\0')};
 }
 
 ////////////////////////////////////////////////////////////////
@@ -125,7 +125,7 @@ demangle(const std::string& mangled)
   size_t idx = prefix_len;
   size_t len = 0;
   while (idx < mangled.size() && std::isdigit(static_cast<unsigned char>(mangled[idx])))
-    len = len * 10 + (mangled[idx++] - '0');
+    len = len * 10 + (mangled[idx++] - '0'); // NOLINT
 
   if (idx + len > mangled.size())
     throw std::runtime_error("Invalid mangled name length");
@@ -295,7 +295,7 @@ class elf_reader
 {
 public:
   ELFIO::elfio  m_elfio;
-  elf::platform m_platform;
+  elf::platform m_platform = {};
   std::string   m_path;  // file path this ELF was loaded from; empty if loaded from stream/buffer
 
   // section index -> group index (no_ctrl_code_id for legacy ELFs with no .group sections)
@@ -1014,7 +1014,13 @@ public:
       if (sec->get_name().find(pat) == std::string::npos)
         continue;
 
-      out[m_section_to_group_map[sec->get_index()]].append(sec.get(), m_elfio);
+      // m_section_to_group_map must be fully populated by parse_sections()
+      // before this is called — every section index must have a group mapping.
+      auto git = m_section_to_group_map.find(sec->get_index());
+      if (git == m_section_to_group_map.end())
+        throw std::runtime_error("Section not in group map: " + sec->get_name());
+
+      out[git->second].append(sec.get(), m_elfio);
     }
   }
 
@@ -1131,7 +1137,13 @@ public:
         throw std::runtime_error("Invalid section index " + std::to_string(sym->st_shndx));
 
       auto sec_name = patch_sec->get_name();
-      auto grp_idx  = m_section_to_group_map[patch_sec->get_index()];
+      // m_section_to_group_map must be fully populated by parse_sections()
+      // before this is called — every section index must have a group mapping.
+      auto git = m_section_to_group_map.find(patch_sec->get_index());
+      if (git == m_section_to_group_map.end())
+        throw std::runtime_error("Section not in group map: " + sec_name);
+
+      auto grp_idx = git->second;
 
       // Identify which buffer the target section belongs to and fetch that
       // buffer's assembled size for this group.  The name substring selects the
@@ -1435,8 +1447,13 @@ public:
       if (sec->get_name().find(pat) == std::string::npos)
         continue;
 
-      auto grp = m_section_to_group_map[sec->get_index()];
-      m_ctrlpkt_buf_map[grp][sec->get_name()].append(sec.get(), m_elfio);
+      // m_section_to_group_map must be fully populated by parse_sections()
+      // before this is called — every section index must have a group mapping.
+      auto git = m_section_to_group_map.find(sec->get_index());
+      if (git == m_section_to_group_map.end())
+        throw std::runtime_error("Section not in group map: " + sec->get_name());
+
+      m_ctrlpkt_buf_map[git->second][sec->get_name()].append(sec.get(), m_elfio);
     }
   }
 
@@ -1448,7 +1465,13 @@ public:
       if (sec->get_name().find(pat) == std::string::npos)
         continue;
 
-      m_dump_buf_map[m_section_to_group_map[sec->get_index()]].append(sec.get(), m_elfio);
+      // m_section_to_group_map must be fully populated by parse_sections()
+      // before this is called — every section index must have a group mapping.
+      auto git = m_section_to_group_map.find(sec->get_index());
+      if (git == m_section_to_group_map.end())
+        throw std::runtime_error("Section not in group map: " + sec->get_name());
+
+      m_dump_buf_map[git->second].append(sec.get(), m_elfio);
     }
   }
 
@@ -1498,8 +1521,14 @@ public:
       // col/page are parsed from the section name (.ctrltext.<col>[.<page>]);
       // in merged format the page token is a group id, so page is forced to 0.
       auto patch_sec_name = patch_sec->get_name();
-      auto [col, page]    = get_col_page(patch_sec_name, merged);
-      auto grp_idx        = m_section_to_group_map[patch_sec->get_index()];
+      auto [col, page] = get_col_page(patch_sec_name, merged);
+      // m_section_to_group_map must be fully populated by parse_sections()
+      // before this is called — every section index must have a group mapping.
+      auto gm_it = m_section_to_group_map.find(patch_sec->get_index());
+      if (gm_it == m_section_to_group_map.end())
+        throw std::runtime_error("Section not in group map: " + patch_sec_name);
+
+      auto grp_idx = gm_it->second;
 
       if (!m_ctrlcodes_map.count(grp_idx))
         throw std::runtime_error("No ctrlcode for symbol: " + argnm);
@@ -1667,20 +1696,21 @@ elf::is_full_elf() const
 bool
 elf::is_group_elf() const { return m_reader->is_group_elf(); }
 
-std::array<uint8_t, 16>
+static constexpr size_t cfg_uuid_size = 16;
+
+std::array<uint8_t, cfg_uuid_size>
 elf::get_cfg_uuid() const
 {
-  constexpr size_t uuid_size = 16;
   auto* sec = m_reader->m_elfio.sections[".note.xrt.UID"];
   if (!sec)
     throw std::runtime_error("ELF is missing .note.xrt.UID section");
 
   auto data = m_reader->get_note(sec, 0);
-  if (data.size() != uuid_size)
+  if (data.size() != cfg_uuid_size)
     throw std::runtime_error("UUID note wrong size: " + std::to_string(data.size()));
 
-  std::array<uint8_t, 16> uuid{};
-  std::memcpy(uuid.data(), data.data(), uuid_size);
+  std::array<uint8_t, cfg_uuid_size> uuid{};
+  std::memcpy(uuid.data(), data.data(), cfg_uuid_size);
   return uuid;
 }
 
@@ -1723,9 +1753,7 @@ elf::get_section(std::string_view name) const
     throw std::runtime_error(
       "get_section(\"" + nm + "\"): section is compressed — use copy_* API instead");
 
-  return aiebu::detail::span<const std::byte>(
-    reinterpret_cast<const std::byte*>(sec->get_data()),
-    sec->get_size());
+  return {reinterpret_cast<const std::byte*>(sec->get_data()), sec->get_size()};
 }
 
 void
