@@ -174,3 +174,100 @@ add_test(NAME "aiebu_error_duplicate_asm_filename"
 add_test(NAME "aie_coredump_elf_generation"
   COMMAND ${AIE_COREDUMP_TESTNAME}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+################################################################
+# aiebu::elf reader tests (step 1.1 exit criterion)
+#
+# One binary, driven with different ELF files and expected platform
+# names.  Checked-in ELFs cover aie2ps_legacy, aie2ps, and aie4.
+# Assembler-produced ELFs (from aie2ps_cpp / aie4 tests above)
+# cover aie2ps and aie4 with group-format ELFs.
+################################################################
+set(ELF_READER_TESTNAME "elf_reader_cpp")
+add_executable(${ELF_READER_TESTNAME} elf_reader_test.cpp)
+target_link_libraries(${ELF_READER_TESTNAME} PRIVATE aiebu_static)
+target_include_directories(${ELF_READER_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/include)
+if (NOT WIN32)
+  target_link_libraries(${ELF_READER_TESTNAME} PRIVATE pthread)
+endif()
+
+# Checked-in ELFs — always available, no assembler dependency
+add_test(NAME "elf_reader_aie2ps_legacy"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col/multi_uc_6.elf"
+    aie2ps_legacy
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "elf_reader_aie2ps"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/single_col/simple_int8_orig.elf"
+    aie2ps
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "elf_reader_aie4_merged"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/duplicate_filename/filename.elf"
+    aie4
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# aie2p fixture — exercises the aie2p-only guards in elf_reader_test.cpp:
+#   test_has_pdi_value()        (F1: has_pdi() is section-based, drives ERT opcode)
+#   test_pdi_symbols_crosscheck (F2: get_pdi_symbols() == PDI patch points)
+# The 4th argument "pdi"/"nopdi" asserts the expected has_pdi() value.
+#
+# The test/aie2-ctrlcode/* tests assemble aie2p ELFs (aiebu-asm -t aie2txn/aie2asm
+# -> elf_aie2 -> osabi_aie2p 0x45).  "basic" produces basic.elf via the
+# "aie2_basic_txn" test.  That ELF has no .pdi section, so expect "nopdi";
+# this fully exercises F2 and the false branch of F1.  To also guard the F1
+# true branch (.pdi present but no relocation), supply a PDI-bearing aie2p ELF
+# and pass "pdi".
+#
+# NOTE: aie2_basic_txn writes basic.elf into ITS OWN binary dir
+# (test/aie2-ctrlcode/basic), not this one.  Reference it by absolute build
+# path and add the DEPENDS below when enabling.  Adjust if the fixture moves.
+# add_test(NAME "elf_reader_aie2p"
+#   COMMAND ${ELF_READER_TESTNAME}
+#     "${CMAKE_BINARY_DIR}/test/aie2-ctrlcode/basic/basic.elf"
+#     aie2p
+#     nopdi
+#   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+# set_tests_properties("elf_reader_aie2p" PROPERTIES DEPENDS "aie2_basic_txn")
+
+# Assembler-produced ELFs — depend on the assembler tests having run first
+add_test(NAME "elf_reader_aie2ps_group"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal.elf"
+    aie2ps_legacy
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties("elf_reader_aie2ps_group" PROPERTIES DEPENDS "aie2ps_cpp_eff_net_coal")
+
+add_test(NAME "elf_reader_aie4_group"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${CMAKE_CURRENT_BINARY_DIR}/move_ddr_to_memtile_in_mem.elf"
+    aie2ps_legacy
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties("elf_reader_aie4_group" PROPERTIES DEPENDS "aie4_move_ddr_to_memtile")
+
+# Decompression test: assemble eff_net_coal with compress=zstd, then verify
+# that aiebu::elf produces byte-identical output to the plain ELF.
+# Depends on aie2ps_cpp_eff_net_coal having produced eff_net_coal.elf first.
+add_custom_command(OUTPUT eff_net_coal_compressed.elf
+  COMMAND aiebu-asm -t aie2ps_config
+    -j "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_coal/config.json"
+    -f disabledump -f "compress=zstd:3"
+    -o "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal_compressed.elf"
+  DEPENDS aie2psbins
+  COMMENT "Assembling compressed eff_net_coal ELF for elf_reader decompression test"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  VERBATIM)
+add_custom_target(elf_reader_compressed_elf ALL
+  DEPENDS eff_net_coal_compressed.elf)
+
+add_test(NAME "elf_reader_decompression"
+  COMMAND ${ELF_READER_TESTNAME}
+    --compressed
+    "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal_compressed.elf"
+    "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal.elf"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties("elf_reader_decompression" PROPERTIES
+  DEPENDS "aie2ps_cpp_eff_net_coal")
