@@ -4,6 +4,7 @@
 #define AIEBU_PREPROCESSOR_ASM_ASM_PARSER_H_
 
 #include "code_section.h"
+#include "hintmap_bitset.h"
 #include "utils.h"
 #include "file_utils.h"
 #include "logger.h"
@@ -11,7 +12,6 @@
 #include "logger.h"
 
 #include <array>
-#include <bitset>
 #include <map>
 #include <memory>
 #include <set>
@@ -24,12 +24,6 @@
 #include <vector>
 
 namespace aiebu {
-
-constexpr uint64_t CHUNK_SIZE = 64ULL * BYTES_PER_KB; // 64KB
-constexpr uint64_t COL_SCRATCHPAD_SIZE = 3ULL * BYTES_PER_MB; // 3MB
-constexpr uint64_t CHUNKS_PER_COL = COL_SCRATCHPAD_SIZE / CHUNK_SIZE; // 48
-constexpr std::size_t HINTMAP_CHUNK_BITS = 512;
-using hintmap_chunk_bits = std::bitset<HINTMAP_CHUNK_BITS>;
 
 inline std::string trim(const std::string& line)
 {
