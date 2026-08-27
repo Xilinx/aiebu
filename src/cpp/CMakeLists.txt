@@ -24,6 +24,7 @@ add_library(aiebu_library_objects OBJECT
   elf/elf_decompress.cpp
   elf/elfwriter.cpp
   elf/coredump_elfwriter.cpp
+  elf/elf_reader.cpp
   preprocessor/aie2/aie2_blob_preprocessor_input.cpp
   preprocessor/aie2/aie2_asm_preprocessor_input.cpp
   preprocessor/asm/asm_parser.cpp
