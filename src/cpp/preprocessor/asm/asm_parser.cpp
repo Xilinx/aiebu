@@ -1566,21 +1566,15 @@ asm_parser::update_preempt_opcodes(int col)
 
   const auto& points = points_it->second;
   const std::string col_prefix = std::to_string(col) + ":";
-  std::map<std::string, std::pair<std::string, std::string>> labels_by_preempt_id;
-  for (std::size_t pt = 0; pt < points.size(); ++pt) {
-    if (points[pt].hintmap_key.empty())
-      continue;
-    const auto it = m_hintmap_labels.find(col_prefix + points[pt].hintmap_key + ":"
-                                           + std::to_string(pt));
-    if (it != m_hintmap_labels.end())
-      labels_by_preempt_id.emplace(points[pt].id, it->second);
-  }
 
   log_info() << "Updating PREEMPT opcodes for column " << col
-             << ", " << labels_by_preempt_id.size() << " hintmap point(s)" << std::endl;
+             << ", " << points.size() << " preemption point(s)" << std::endl;
 
   try {
-    for (auto& [lname, section] : get_col_asmdata(col).get_label_data()) {
+    auto& col_data = get_col_asmdata(col);
+    std::size_t pt_index = 0;
+    for (const auto& lname : col_data.get_label_insertion_order()) {
+      auto& section = col_data.get_label_data()[lname];
       for (auto& entry : section.text) {
         if (!entry->isOpcode()) continue;
         const auto& op = entry->get_operation();
@@ -1588,41 +1582,53 @@ asm_parser::update_preempt_opcodes(int col)
         const auto& args = op.get_args();
         if (args.size() < 3) continue;
 
+        if (pt_index >= points.size())
+          throw error(error::error_code::internal_error,
+                      "PREEMPT opcode count exceeds recorded preemption points in column "
+                      + std::to_string(col));
+
+        const auto& pt_info = points[pt_index];
+        const std::string preempt_id = clean_arg(args[0]);
+
         std::string hm_label;
         if (args.size() >= 4)
           hm_label = clean_label_ref(args[3]);  // arg 3: "@hintmap_N"
-        if (hm_label.empty()) continue;
 
-        // Build the qualified key: the PREEMPT opcode lives under label scope 'lname',
-        // so its hintmap_0 resolves to the hintmap_0 defined in that same scope.
-        const std::string qualified = lname + ":" + hm_label;
-        // Only update opcodes whose qualified key was recorded for this column
-        if (m_preempt_hintmaps.count(col)) {
-          const auto& hl = m_preempt_hintmaps[col];
-          if (std::find(hl.begin(), hl.end(), qualified) == hl.end())
-            continue;
-        } else {
-          continue;
+        if (!hm_label.empty() && !pt_info.hintmap_key.empty()) {
+          const std::string qualified = lname + ":" + hm_label;
+          if (qualified != pt_info.hintmap_key)
+            throw error(error::error_code::internal_error,
+                        "PREEMPT hintmap mismatch at column " + std::to_string(col)
+                        + " preemption point " + std::to_string(pt_index)
+                        + ": expected '" + pt_info.hintmap_key + "', got '" + qualified + "'");
+
+          const auto it = m_hintmap_labels.find(col_prefix + pt_info.hintmap_key + ":"
+                                                 + std::to_string(pt_index));
+          if (it != m_hintmap_labels.end()) {
+            const auto& new_lbl = it->second;
+            const std::string new_args = preempt_id
+                                         + ", @" + new_lbl.first
+                                         + ", @" + new_lbl.second
+                                         + ", @" + hm_label;
+
+            log_info() << "Updating PREEMPT opcode id " << preempt_id
+                       << " at preemption point " << pt_index
+                       << " for hintmap '" << qualified << "' in column " << col
+                       << " to @" << new_lbl.first << "/@" << new_lbl.second << std::endl;
+
+            entry->update_operation(operation("preempt", new_args));
+          }
         }
 
-        const std::string preempt_id = clean_arg(args[0]);
-        const auto lbl_it = labels_by_preempt_id.find(preempt_id);
-        if (lbl_it == labels_by_preempt_id.end()) continue;
-
-        const auto& new_lbl  = lbl_it->second;
-        const std::string new_args = preempt_id
-                                     + ", @" + new_lbl.first
-                                     + ", @" + new_lbl.second
-                                     + ", @" + hm_label;  // keep the short label in the opcode
-
-        log_info() << "Updating PREEMPT opcode id " << preempt_id << " for hintmap '"
-                   << qualified << "' in column " << col
-                   << " to @" << new_lbl.first << "/@" << new_lbl.second << std::endl;
-
-        entry->update_operation(operation("preempt", new_args));
-        // set_line() removed: get_line() now reconstructs from the operation on demand.
+        ++pt_index;
       }
     }
+
+    if (pt_index != points.size())
+      throw error(error::error_code::internal_error,
+                  "Recorded preemption point count (" + std::to_string(points.size())
+                  + ") does not match PREEMPT opcodes found (" + std::to_string(pt_index)
+                  + ") in column " + std::to_string(col));
   } catch (...) {
     throw error(error::error_code::internal_error, "Error updating PREEMPT opcodes for column "
                                                    + std::to_string(col));

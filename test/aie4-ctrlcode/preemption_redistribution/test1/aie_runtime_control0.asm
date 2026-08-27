@@ -9,6 +9,7 @@ START_JOB 1
 PREEMPT	0x0, @save, @restore , @hintmap_00
 ;PREEMPT	0x0, @save, @restore
 END_JOB
+.eop
 START_JOB 2
 PREEMPT	0x0, @save, @restore , @hintmap_01
 END_JOB
