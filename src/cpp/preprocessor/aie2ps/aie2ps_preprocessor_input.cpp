@@ -8,15 +8,21 @@ namespace aiebu {
   //TODO: this these functions are custom copy from aie2_preprocessor_input.cpp, todo we mode both in common place
   void
   asm_preprocessor_input::
-  validate_json(uint32_t /*offset*/, uint32_t /*size*/, uint32_t /*arg_index*/, offset_type /*type*/) const {
-    // Return if the offset and arg_index are within their respective sizes.
-    // TODO enable checks
-    /*
-    if ((offset <= size) && (arg_index <= MAX_ARG_INDEX)) {
-      return;
-    }
+  validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const {
     std::string errorMessage;
-    if (offset > size ) {
+    if (type == offset_type::CONTROL_PACKET && offset < m_control_packet_offset_correction) {
+      errorMessage = std::string("INVALID JSON: Offset(")
+      + std::to_string(offset)
+      + ") is less than control packet offset correction("
+      + std::to_string(m_control_packet_offset_correction)
+      + ") for offset Type: CONTROL PACKET and arg index is "
+      + (arg_index > MAX_ARG_INDEX ? "INVALID = " : "VALID = ")
+      + std::to_string(arg_index) + ". ";
+      throw error(error::error_code::invalid_asm, errorMessage);
+    }
+    if ((offset <= size) && (arg_index <= MAX_ARG_INDEX))
+      return;
+    if (offset > size) {
       errorMessage = std::string("INVALID JSON: Offset(")
       + std::to_string(offset)
       + ") is greater than size("
@@ -35,7 +41,6 @@ namespace aiebu {
       + ". ";
     }
     throw error(error::error_code::invalid_asm, errorMessage);
-    */
   }
 
   void
