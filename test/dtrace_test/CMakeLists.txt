@@ -8,7 +8,9 @@ set(DTRACE_TESTNAME "dtrace_test")
 add_executable(${DTRACE_TESTNAME} dtrace_test.cpp)
 add_dependencies(${DTRACE_TESTNAME} cert_dtrace_static)
 target_link_libraries(${DTRACE_TESTNAME} PRIVATE cert_dtrace_static)
-target_include_directories(${DTRACE_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp)
+target_include_directories(${DTRACE_TESTNAME} PRIVATE
+  ${AIEBU_SOURCE_DIR}/src/cpp
+  ${AIEBU_ELFIO_SRC_DIR})
 
 # Test single uc script
 add_test(NAME "dtrace_single_column"

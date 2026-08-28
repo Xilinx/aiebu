@@ -12,6 +12,7 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -44,6 +45,49 @@ create_dtrace_handle(const std::string& script_file, const std::string& map_data
         {
             std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config script data";
             return nullptr;
+        }
+
+        // Create new dtrace handle
+        auto handle = std::make_unique<dtrace_command_handle>();
+
+        dtrace::set_log_level(log_level);
+        dtrace::set_output_format(output_fmt);
+
+        // Initialize the memory host address map and dtrace compiler control object
+        handle->g_control = std::make_unique<dtrace::control>(script_file, map_data);
+
+        // Returns an opaque raw handle.
+        // Transfer ownership to caller; caller must call destroy_dtrace_handle().
+        return static_cast<dtrace_handle_t>(handle.release());
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what();
+        return nullptr; // Failure
+    }
+}
+
+dtrace_handle_t
+create_dtrace_handle_elf(const std::string& script_file, const ELFIO::elfio& elf,
+    const std::string& kernel_instance, uint32_t log_level, uint32_t output_fmt)
+{
+    try
+    {
+        // Validate script file path
+        if (script_file.empty())
+        {
+            std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config script data";
+            return nullptr;
+        }
+
+        std::string map_data;
+        const dtrace::elf_dump_map dump_map(elf);
+        if (kernel_instance.empty()) {
+            // Non-config ELF: single .dump section, no group filtering needed.
+            map_data = dump_map.get_dump_section_json();
+        } else {
+            // Config ELF: one .dump section per kernel instance, filtered by group.
+            map_data = dump_map.get_dump_section_json(kernel_instance);
         }
 
         // Create new dtrace handle
