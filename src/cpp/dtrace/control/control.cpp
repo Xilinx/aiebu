@@ -135,6 +135,9 @@ control(const std::string& script_file, const std::string& map_data)
         DTRACE_INFO("DTRACE CONTROL BUFFER CREATED for uC index " << uC << " with size " 
             << m_control_buffers.at(uC).size() * sizeof(uint32_t) << " bytes");
 
+        DTRACE_INFO("DTRACE MEMORY BUFFER CREATED for uC index " << uC << " with size "
+            << m_mem_buffers.at(uC).size() * sizeof(uint32_t) << " bytes");
+
         // Memory buffer present flag
         if (m_mem_buffers.at(uC).size() > 0)
             m_mem_action_present = true;

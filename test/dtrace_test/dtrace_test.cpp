@@ -2,6 +2,7 @@
 // Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/dtrace.h"
+#include <elfio/elfio.hpp>
 
 #include <iostream>
 #include <filesystem>
@@ -17,7 +18,9 @@ static const uint32_t word_byte_shift = 32;
 int
 run_dtrace_test(const std::string& script_file,
     const std::string& map_data, const std::string& output_file,
-    const std::string& result_file, uint32_t output_fmt)
+    const std::string& result_file, uint32_t output_fmt,
+    const ELFIO::elfio* elf = nullptr,
+    const std::string& kernel_instance = {})
 {
     if (!std::filesystem::exists(script_file)) {
         std::cerr << "ERROR: test files not found: " << script_file;
@@ -28,8 +31,9 @@ run_dtrace_test(const std::string& script_file,
     uint32_t buffers_length = 0;
     uint32_t log_level = 0U;  // dtrace_error
 
-    // get dtrace handle using create_dtrace_handle api
-    void* dtrace_handle = create_dtrace_handle(script_file, map_data, log_level, output_fmt);
+    void* dtrace_handle = elf
+        ? create_dtrace_handle_elf(script_file, *elf, kernel_instance, log_level, output_fmt)
+        : create_dtrace_handle(script_file, map_data, log_level, output_fmt);
     if (!dtrace_handle) {
         std::cerr << "[ERROR]: dtrace compiler failed";
         return 1;
@@ -88,29 +92,44 @@ run_dtrace_test(const std::string& script_file,
 int main(int argc, char** argv)
 {
     try {
-        if (argc < 3 || argc > 4) {
-            std::cerr << "Usage: " << argv[0] << " <testcase_path> <output_file> [python|json]";
+        if (argc != 4 && argc != 6) {
+            std::cerr << "Usage: " << argv[0] << " <testcase_path> <output_file> <python|json>\n"
+                      << "       " << argv[0] << " <testcase_path> <output_file> <python|json> elf <kernel|none>";
             return 1;
         }
 
         std::string script_file = std::string(argv[1]) + "/script.ct";
-        std::string map_file = std::string(argv[1]) + "/map.json";
         std::string output_file = argv[2];
         std::string result_file;
         uint32_t output_fmt = 0U;  // python format (default)
 
-        if (argc == 4) {
-            std::string fmt_arg = argv[3];
-            std::filesystem::path output_path(output_file);
-            if (fmt_arg == "python") {
-                output_fmt = 0U;
-                result_file = output_path.stem().string() + ".py";
-            } else if (fmt_arg == "json") {
-                output_fmt = 1U;
-                result_file = output_path.stem().string() + ".json";
-            }
+        const std::string fmt_arg = argv[3];
+        const std::filesystem::path output_path(output_file);
+        if (fmt_arg == "python") {
+            output_fmt = 0U;
+            result_file = output_path.stem().string() + ".py";
+        } else if (fmt_arg == "json") {
+            output_fmt = 1U;
+            result_file = output_path.stem().string() + ".json";
         }
 
+        if (argc == 6) {
+            std::string kernel_instance = argv[5];
+            if (kernel_instance == "none")
+                kernel_instance.clear();
+
+            std::string elf_file = std::string(argv[1]) + "/test.elf";
+            std::ifstream elf_stream(elf_file, std::ios::binary);
+            ELFIO::elfio elf;
+            if (!elf.load(elf_stream)) {
+                std::cerr << "[ERROR]: failed to load " << elf_file;
+                return 1;
+            }
+            return run_dtrace_test(script_file, {}, output_file, result_file, output_fmt,
+                &elf, kernel_instance);
+        }
+
+        std::string map_file = std::string(argv[1]) + "/map.json";
         std::string map_data;
         if (std::filesystem::exists(map_file)) {
             std::ifstream map_file_stream(map_file, std::ios::binary);
@@ -120,8 +139,7 @@ int main(int argc, char** argv)
             map_data = std::string(map_buffer.begin(), map_buffer.end());
         }
 
-        int ret = run_dtrace_test(script_file, map_data, output_file, result_file, output_fmt);
-        return ret;
+        return run_dtrace_test(script_file, map_data, output_file, result_file, output_fmt);
     } catch (const std::exception& e) {
         std::cerr << "[ERROR]: Exception: " << e.what();
         return 1;
