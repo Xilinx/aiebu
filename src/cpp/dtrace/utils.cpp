@@ -12,7 +12,7 @@ namespace dtrace {
 /**
  * elf_dump_map() - Constructor for the elf_dump_map class.
  *
- * @param map_data
+ * @param elf
  *  ELFIO elfio object.
  *
  * Initializes the elf_dump_map object with the provided ELFIO elfio object.
@@ -78,7 +78,7 @@ get_filtered_section_indices(const std::string& kernel_instance_filter) const
 
   const ELFIO::section* symtab = m_elf.sections[".symtab"];
   const ELFIO::section* strtab = m_elf.sections[".strtab"];
-  if (!symtab || !strtab)
+  if (!symtab || !strtab || !symtab->get_data() || !strtab->get_data())
     return {};
 
   const auto symtab_size = symtab->get_size();
