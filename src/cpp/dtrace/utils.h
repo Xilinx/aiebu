@@ -106,25 +106,27 @@ public:
 };
 
 /**
- * @class elf_dump_map
+ * @class elf_debug_map
  *
- * @brief Extracts .dump section JSON from ELF binaries for dtrace.
+ * @brief Extracts debug section JSON from ELF binaries for dtrace.
  *
  * @details
- * The elf_dump_map class provides methods to extract the .dump section from ELF binaries.
- * It supports both non-config and config ELF binaries, allowing retrieval of the .dump section
- * in JSON format. The class uses the ELFIO library to parse the ELF files and extract
- * the relevant sections based on the provided kernel instance filter.
+ * The elf_debug_map class provides methods to extract the debug section from ELF binaries, 
+ * allowing retrieval of the debug section in JSON format. The class uses the ELFIO library to parse
+ * the ELF files and extract the relevant sections based on the provided kernel instance filter.
  */
-class elf_dump_map {
+class elf_debug_map {
 public:
-  explicit elf_dump_map(const ELFIO::elfio& elf);
+  explicit elf_debug_map(const ELFIO::elfio& elf);
 
-  // Non-config ELF: first ".dump" PROGBITS section.
-  std::string get_dump_section_json() const;
+ // True for full ELF; false for partial ELF.
+  static bool is_group_elf(const ELFIO::elfio& elf);
 
-  // Config ELF: ".dump" section for kernel:instance (group-filtered).
-  std::string get_dump_section_json(const std::string& kernel_instance) const;
+  // Partial ELF
+  std::string get_debug_section_json() const;
+
+  // Full ELF: ".dump" section for kernel:instance (group-filtered).
+  std::string get_debug_section_json(const std::string& kernel_instance) const;
 
 private:
   const ELFIO::elfio& m_elf; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)

@@ -92,9 +92,9 @@ run_dtrace_test(const std::string& script_file,
 int main(int argc, char** argv)
 {
     try {
-        if (argc != 4 && argc != 6) {
+        if (argc != 4 && argc != 7) {
             std::cerr << "Usage: " << argv[0] << " <testcase_path> <output_file> <python|json>\n"
-                      << "       " << argv[0] << " <testcase_path> <output_file> <python|json> elf <kernel|none>";
+                      << "       " << argv[0] << " <testcase_path> <output_file> <python|json> elf <elf_file> <kernel|none>";
             return 1;
         }
 
@@ -113,12 +113,12 @@ int main(int argc, char** argv)
             result_file = output_path.stem().string() + ".json";
         }
 
-        if (argc == 6) {
-            std::string kernel_instance = argv[5];
+        if (argc == 7) {
+            std::string kernel_instance = argv[6];
             if (kernel_instance == "none")
                 kernel_instance.clear();
 
-            std::string elf_file = std::string(argv[1]) + "/test.elf";
+            std::string elf_file = argv[5];
             std::ifstream elf_stream(elf_file, std::ios::binary);
             ELFIO::elfio elf;
             if (!elf.load(elf_stream)) {

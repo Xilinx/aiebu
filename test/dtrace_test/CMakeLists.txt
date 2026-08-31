@@ -108,13 +108,13 @@ add_test(NAME "dtrace_empty_elf_dump_md5sum"
   )
 set_tests_properties("dtrace_empty_elf_dump_md5sum" PROPERTIES DEPENDS "dtrace_empty_elf_dump")
 
-# Test elf with kernel
+# Test full elf with kernel
 add_test(NAME "dtrace_elf_with_kernel"
   COMMAND ${DTRACE_TESTNAME}
     "${AIEBU_SOURCE_DIR}/test/dtrace_test/elf_handle"
     "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_elf_with_kernel.dat"
     "python"
-    "elf" "CTRL:inst0"
+    "elf" "${AIEBU_SOURCE_DIR}/test/dtrace_test/elf_handle/test.elf" "CTRL:inst0"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
 
@@ -126,13 +126,13 @@ add_test(NAME "dtrace_elf_with_kernel_md5sum"
   )
 set_tests_properties("dtrace_elf_with_kernel_md5sum" PROPERTIES DEPENDS "dtrace_elf_with_kernel")
 
-# Test elf without kernel
+# Test partial elf without kernel
 add_test(NAME "dtrace_elf_no_kernel"
   COMMAND ${DTRACE_TESTNAME}
     "${AIEBU_SOURCE_DIR}/test/dtrace_test/elf_handle"
     "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_elf_no_kernel.dat"
     "python"
-    "elf" "none"
+    "elf" "${AIEBU_SOURCE_DIR}/test/dtrace_test/elf_handle/test_partial.elf" "none"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
 

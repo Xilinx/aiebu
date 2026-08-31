@@ -22,7 +22,7 @@ using dtrace_handle_t = void*;  // NOLINT
  * create_dtrace_handle() - Creates a handle to the dynamic tracing context.
  *
  * @script_file:    Path to script file containing probe and action details.
- * @map_data:       Optional map JSON from the ELF .dump section. Required when
+ * @map_data:       Optional debug information JSON from the ELF. Required when
  *                  the control script uses jprobe or profile; may be empty for
  *                  begin, end, and tracepoint probes.
  * @log_level:      Log level for debugging.
@@ -39,14 +39,10 @@ create_dtrace_handle(const std::string& script_file, const std::string& map_data
  * create_dtrace_handle_elf() - Creates a handle to the dynamic tracing from an ELF.
  *
  * @script_file:       Path to script file containing probe and action details.
- * @elf:               Pre-parsed ELFIO object used to extract the .dump map.
+ * @elf:               Pre-parsed ELFIO object used to extract the debug information.
  * @kernel_instance:   Kernel instance in "kernel:instance" format.
- *                     For an ELF, pass the instance that owns the control code being traced;
- *                     the map is taken from the .dump section in that instance's
- *                     .group (symtab lookup). An empty string on an ELF selects the
- *                     first .dump PROGBITS section with no group filtering and is not
- *                     validated; callers with multi-instance ELFs must pass
- *                     kernel:instance explicitly.
+ *                     Required for full ELFs; debug information is extracted
+ *                     for that kernel instance. Must be empty for partial ELFs.
  * @log_level:         Log level for debugging.
  * @output_fmt:        Output format for result file.
  *

@@ -8,21 +8,54 @@
 
 namespace dtrace {
 
-//-------------------------ELF Dump Map Constructor-------------------------//
+//-------------------------ELF Debug Map Constructor-------------------------//
 /**
- * elf_dump_map() - Constructor for the elf_dump_map class.
+ * elf_debug_map() - Constructor for the elf_debug_map class.
  *
  * @param elf
  *  ELFIO elfio object.
  *
- * Initializes the elf_dump_map object with the provided ELFIO elfio object.
+ * Initializes the elf_debug_map object with the provided ELFIO elfio object.
  */
-elf_dump_map::
-elf_dump_map(const ELFIO::elfio& elf)
+elf_debug_map::
+elf_debug_map(const ELFIO::elfio& elf)
   : m_elf(elf)
 {}
 
-//-------------------------elf_dump_map::extract_kernel_name_from_mangled-------------------------//
+
+//-------------------------elf_debug_map::is_group_elf-------------------------//
+/**
+ * is_group_elf() - Checks if the ELF file is a group ELF.
+ *
+ * @param elf
+ *  ELFIO elfio object.
+ *
+ * @return
+ *  True if the ELF file is a group ELF, false otherwise.
+ *
+ * Checks if the provided ELFIO elfio object represents a group ELF file.
+ */
+bool
+elf_debug_map::
+is_group_elf(const ELFIO::elfio& elf)
+{
+  const auto abi_version = static_cast<uint8_t>(elf.get_abi_version());
+  constexpr uint8_t major_ver_mask = 0xF0;
+  constexpr uint8_t minor_ver_mask = 0x0F;
+  constexpr uint8_t shift = 4;
+
+  const auto major = static_cast<uint8_t>((abi_version & major_ver_mask) >> shift);
+  const auto minor = static_cast<uint8_t>(abi_version & minor_ver_mask);
+
+  constexpr uint8_t group_elf_major_version = 0;
+  constexpr uint8_t group_elf_minor_version = 3;
+
+  // Version >= 0.3: major > 0 OR (major == 0 AND minor >= 3)
+  return (major > group_elf_major_version) ||
+         (major == group_elf_major_version && minor >= group_elf_minor_version);
+}
+
+//-------------------------elf_debug_map::extract_kernel_name_from_mangled-------------------------//
 /**
  * extract_kernel_name_from_mangled() - Extracts kernel name from mangled symbol name.
  *
@@ -36,7 +69,7 @@ elf_dump_map(const ELFIO::elfio& elf)
  * It returns the kernel name if the mangled symbol name is valid, otherwise it returns an empty string.
  */
 std::string
-elf_dump_map::
+elf_debug_map::
 extract_kernel_name_from_mangled(const std::string& symbol_name)
 {
   if (symbol_name.size() <= 3 || symbol_name[0] != '_' || symbol_name[1] != 'Z'
@@ -56,7 +89,7 @@ extract_kernel_name_from_mangled(const std::string& symbol_name)
   return symbol_name.substr(name_start, name_length);
 }
 
-//-------------------------elf_dump_map::get_filtered_section_indices-------------------------//
+//-------------------------elf_debug_map::get_filtered_section_indices-------------------------//
 /**
  * get_filtered_section_indices() - Gets filtered section indices.
  *
@@ -66,7 +99,7 @@ extract_kernel_name_from_mangled(const std::string& symbol_name)
  * Gets the filtered section indices from the provided kernel instance filter.
  */
 std::set<ELFIO::Elf_Half>
-elf_dump_map::
+elf_debug_map::
 get_filtered_section_indices(const std::string& kernel_instance_filter) const
 {
   const size_t delimiter_pos = kernel_instance_filter.find(':');
@@ -138,20 +171,20 @@ get_filtered_section_indices(const std::string& kernel_instance_filter) const
   return section_indices;
 }
 
-//-------------------------elf_dump_map::get_dump_section_json-------------------------//
+//-------------------------elf_debug_map::get_debug_section_json-------------------------//
 /**
- * get_dump_section_json() - Gets dump section JSON.
+ * get_debug_section_json() - Gets debug section JSON.
  *
  * @return
- *  Dump section JSON.
+ *  Debug section JSON.
  *
- * Gets the dump section JSON from the provided ELFIO elfio object.
+ * Gets the debug section JSON from the provided ELFIO elfio object.
  */
 std::string
-elf_dump_map::
-get_dump_section_json() const
+elf_debug_map::
+get_debug_section_json() const
 {
-  static constexpr std::string_view dump_prefix = ".dump";
+  static constexpr std::string_view debug_prefix = ".dump";
 
   for (const auto& section_ptr : m_elf.sections) {
     const ELFIO::section* sec = section_ptr.get();
@@ -159,8 +192,8 @@ get_dump_section_json() const
       continue;
 
     const std::string& name = sec->get_name();
-    if (name.size() < dump_prefix.size()
-        || name.compare(0, dump_prefix.size(), dump_prefix) != 0)
+    if (name.size() < debug_prefix.size()
+        || name.compare(0, debug_prefix.size(), debug_prefix) != 0)
       continue;
 
     return std::string(sec->get_data(), static_cast<size_t>(sec->get_size()));
@@ -169,24 +202,24 @@ get_dump_section_json() const
   return {};
 }
 
-//-------------------------elf_dump_map::get_dump_section_json-------------------------//
+//-------------------------elf_debug_map::get_debug_section_json-------------------------//
 /**
- * get_dump_section_json() - Gets dump section JSON with kernel instance filter.
+ * get_debug_section_json() - Gets debug section JSON with kernel instance filter.
  *
  * @param kernel_instance_filter
  *  Kernel instance filter.
  *
- * Gets the dump section JSON with kernel instance filter from the provided ELFIO elfio object.
+ * Gets the debug section JSON with kernel instance filter from the provided ELFIO elfio object.
  */
 std::string
-elf_dump_map::
-get_dump_section_json(const std::string& kernel_instance_filter) const
+elf_debug_map::
+get_debug_section_json(const std::string& kernel_instance_filter) const
 {
   const auto section_indices = get_filtered_section_indices(kernel_instance_filter);
   if (section_indices.empty())
     return {};
 
-  static constexpr std::string_view dump_prefix = ".dump";
+  static constexpr std::string_view debug_prefix = ".dump";
 
   for (const auto& section_ptr : m_elf.sections) {
     const ELFIO::section* sec = section_ptr.get();
@@ -196,8 +229,8 @@ get_dump_section_json(const std::string& kernel_instance_filter) const
       continue;
 
     const std::string& name = sec->get_name();
-    if (name.size() < dump_prefix.size()
-        || name.compare(0, dump_prefix.size(), dump_prefix) != 0)
+    if (name.size() < debug_prefix.size()
+        || name.compare(0, debug_prefix.size(), debug_prefix) != 0)
       continue;
 
     return std::string(sec->get_data(), static_cast<size_t>(sec->get_size()));
