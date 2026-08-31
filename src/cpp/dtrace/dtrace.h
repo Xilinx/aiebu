@@ -4,15 +4,13 @@
 #ifndef TRACE_H
 #define TRACE_H
 
-/**
- * This header file contains the APIs for creating dtrace control buffer, memory buffer, and result file
- * This file is for private consumption by XRT which uses aiebu as a submodule and statically links it.
- * XRT and aiebu use the same ELFIO headers during build.
- */
-#include <elfio/elfio.hpp>
-
+//The header file contains the APIs for creating dtrace control buffer, memory buffer, and result file
 #include <cstdint>
 #include <string>
+
+namespace ELFIO {
+class elfio;
+}
 
 /*!
  * handle to a dynamic tracing context.
@@ -38,12 +36,17 @@ create_dtrace_handle(const std::string& script_file, const std::string& map_data
     uint32_t output_fmt);
 
 /*!
- * create_dtrace_handle_elf() - Creates a handle using map data extracted from an ELF.
+ * create_dtrace_handle_elf() - Creates a handle to the dynamic tracing from an ELF.
  *
  * @script_file:       Path to script file containing probe and action details.
- * @elf:               Pre-parsed ELFIO object; must outlive the returned handle.
+ * @elf:               Pre-parsed ELFIO object used to extract the .dump map.
  * @kernel_instance:   Kernel instance in "kernel:instance" format.
- *                     Pass empty string for single-instance legacy ELFs.
+ *                     For an ELF, pass the instance that owns the control code being traced;
+ *                     the map is taken from the .dump section in that instance's
+ *                     .group (symtab lookup). An empty string on an ELF selects the
+ *                     first .dump PROGBITS section with no group filtering and is not
+ *                     validated; callers with multi-instance ELFs must pass
+ *                     kernel:instance explicitly.
  * @log_level:         Log level for debugging.
  * @output_fmt:        Output format for result file.
  *
