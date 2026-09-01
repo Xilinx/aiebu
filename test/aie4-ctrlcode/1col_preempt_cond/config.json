@@ -1,0 +1,25 @@
+{
+    "xrt-kernels": [
+        {
+            "name": "DPU",
+            "arguments": [
+                {
+                    "name": "arg0",
+                    "type": "char *",
+                    "offset": "0x0"
+                },
+                {
+                    "name": "arg1",
+                    "type": "char *",
+                    "offset": "0x8"
+                }
+            ],
+            "instance": [
+                {
+                    "id": "dpu",
+                    "ctrl_code_file": "./test.asm"
+                }
+            ]
+        }
+    ]
+}
