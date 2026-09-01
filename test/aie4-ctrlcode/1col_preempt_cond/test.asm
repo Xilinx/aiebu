@@ -37,9 +37,9 @@ START_JOB 3
 END_JOB
 
 START_COND_JOB_PREEMPT 4
-  uc_DMA_WRITE_DES_SYNC @uc_dma_bd2
-  uc_DMA_WRITE_DES_SYNC @uc_dma_bd2
-  uc_DMA_WRITE_DES_SYNC @uc_dma_bd2
+  uC_DMA_WRITE_DES_SYNC @uc_dma_bd2
+  uC_DMA_WRITE_DES_SYNC @uc_dma_bd2
+  uC_DMA_WRITE_DES_SYNC @uc_dma_bd2
 END_JOB
 
 START_JOB 5
