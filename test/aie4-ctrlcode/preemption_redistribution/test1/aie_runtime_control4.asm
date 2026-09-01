@@ -9,11 +9,11 @@ START_JOB 1
 PREEMPT	0x0, @save, @restore , @hintmap_40
 END_JOB
 START_JOB 2
-PREEMPT	0x0, @save, @restore , @hintmap_41
+	PREEMPT	0x0001, @save, @restore , @hintmap_41
 END_JOB
 
 START_JOB 3
-PREEMPT	0x0, @save, @restore , @hintmap_42
+	PREEMPT	0x0002, @save, @restore , @hintmap_42
 END_JOB
 EOF
 .align    4
@@ -29,7 +29,7 @@ hintmap_41:
 	.long 0x00000000
 	.long 0x00000000
 	.long 0x00000000
-	.long 0x00000000
+	.long 0x00000004
 hintmap_42:
 	.long 0x00000000
 	.long 0x00000000

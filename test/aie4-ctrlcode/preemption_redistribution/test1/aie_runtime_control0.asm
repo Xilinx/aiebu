@@ -11,11 +11,11 @@ PREEMPT	0x0, @save, @restore , @hintmap_00
 END_JOB
 .eop
 START_JOB 2
-PREEMPT	0x0, @save, @restore , @hintmap_01
+PREEMPT	0x0001, @save, @restore , @hintmap_01
 END_JOB
 
 START_JOB 3
-PREEMPT	0x0, @save, @restore , @hintmap_01
+PREEMPT	0x0002, @save, @restore , @hintmap_01
 END_JOB
 EOF
 .align    4

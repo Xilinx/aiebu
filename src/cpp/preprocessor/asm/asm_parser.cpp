@@ -51,8 +51,7 @@ namespace aiebu {
 
 namespace {
 
-// Hintmap chunk bitset helpers (words_to_bitset, partition_flexible_minimize_holes,
-// redistribute_hintmap_pool, etc.) live in hintmap_bitset.h / hintmap_bitset.cpp.
+// Hintmap chunk bitset helpers live in hintmap_bitset.h / hintmap_bitset.cpp.
 
 // Scratchpad region logging helpers used by preempt settlement diagnostics.
 static std::string
@@ -845,6 +844,44 @@ static std::string clean_label_ref(const std::string& arg)
   return s;
 }
 
+// Parse a PREEMPT id operand (decimal or hex) for validation.
+static uint32_t
+parse_preempt_id_value(const std::string& id_arg, int col, std::size_t pt)
+{
+  const std::string s = clean_arg(id_arg);
+  if (s.empty()) {
+    throw error(error::error_code::invalid_asm,
+                "PREEMPT opcode has empty id at controller " + std::to_string(col)
+                + " preemption point " + std::to_string(pt) + "\n");
+  }
+
+  try {
+    return static_cast<uint32_t>(std::stoul(s, nullptr, 0));
+  } catch (const std::exception&) {
+    throw error(error::error_code::invalid_asm,
+                "PREEMPT id '" + id_arg + "' is not a valid integer at controller "
+                + std::to_string(col) + " preemption point " + std::to_string(pt) + "\n");
+  }
+}
+
+void
+asm_parser::
+verify_preempt_ids() const
+{
+  for (const auto& [col, points] : m_preempt_points) {
+    for (std::size_t pt = 0; pt < points.size(); ++pt) {
+      const uint32_t id_val = parse_preempt_id_value(points[pt].id, col, pt);
+      if (id_val != static_cast<uint32_t>(pt)) {
+        std::ostringstream oss;
+        oss << "PREEMPT id values must be consecutive starting from 0: controller "
+            << col << " preemption point " << pt << " expects id 0x"
+            << std::hex << pt << std::dec << ", but got '" << points[pt].id << "'\n";
+        throw error(error::error_code::invalid_asm, oss.str());
+      }
+    }
+  }
+}
+
 // Divide [address, address+size) into equal number of slots.
 // Returns one (base, size) pair per slot; the last slot absorbs any remainder from integer division.
 static std::vector<std::pair<uint64_t, uint64_t>>
@@ -1454,134 +1491,77 @@ hintmap_chunks(int col,
 }
 
 // ---------------------------------------------------------------------------
-// collect_preempt_point — Step 1: fixed regions and hintmap state at one PT index
+// collect_preempt_point — per-controller bitmap and span at one PT index
 // ---------------------------------------------------------------------------
 asm_parser::preempt_point_state
 asm_parser::
 collect_preempt_point(std::size_t pt)
 {
   preempt_point_state state;
-  // Collect fixed regions (columns without hintmaps) for this preemption point.
-  // Fixed regions are columns that don't have hintmap specifications and will
-  // use the default 3MB memory allocation. Each column maps to a specific chunk
-  // range based on its column index (col/2 * CHUNKS_PER_COL).
-  for (const auto& [col, points] : m_preempt_points) {
-    if (pt >= points.size() || !points[pt].hintmap_key.empty())
-      continue;
-    const uint64_t lo = static_cast<uint64_t>(col / 2) * CHUNKS_PER_COL;
-    state.fixed.emplace_back(lo, lo + CHUNKS_PER_COL);
-    state.fixed_cols.push_back(col);
-    state.fixed_bs |= chunk_range_bitset(lo, lo + CHUNKS_PER_COL);
-  }
 
-  // log the fixed regions for debugging
-  if (!state.fixed.empty()) {
-    log_info() << "preemption point " << pt << ": fixed regions (columns without hintmap):" << std::endl;
-    for (std::size_t i = 0; i < state.fixed.size(); ++i) {
-      log_info() << "  col " << state.fixed_cols[i] << ": "
-                 << describe_chunk_span(state.fixed[i].first, state.fixed[i].second - 1)
-                 << std::endl;
-    }
-  }
-
-  // Collect hintmap regions (columns with hintmap specifications) for this preemption point.
-  // For each column that has a hintmap at this preemption point, we need to:
-  // 1. Parse the hintmap key to get context and label
-  // 2. Load the actual bitmap data from the hintmap
-  // 3. Calculate which chunks are available (outside fixed regions)
-  // 4. Determine the span of chunks this hintmap covers
   for (const auto& [col, points] : m_preempt_points) {
-    // Skip if this column doesn't have enough preemption points or if we're beyond its range
     if (pt >= points.size())
       continue;
 
-    // Get the hintmap key for this column at this preemption point
-    const auto& key = points[pt].hintmap_key;
+    preempt_col pc;
+    pc.col = col;
+    pc.key = points[pt].hintmap_key;
 
-    // Skip columns that don't have a hintmap (empty key means no hintmap specification)
-    // Handle columns without hintmap (empty key)
-    if (key.empty()) {
-      // Create a hintmap column descriptor for no-hintmap columns
-      hintmap_col hc;
-      hc.col          = col;                    // Column index
-      hc.key          = "";                     // Empty key indicates no hintmap
-      // For no-hintmap columns, full_bm contains the fixed region bits for this column
+    if (pc.key.empty()) {
       const uint64_t lo = static_cast<uint64_t>(col / 2) * CHUNKS_PER_COL;
-      hc.full_bm      = chunk_range_bitset(lo, lo + CHUNKS_PER_COL);  // Fixed region bits for this column
-      hc.outside_bm   = hintmap_chunk_bits{};   // No available chunks for redistribution
-      hc.zero_hintmap = false;                  // Not a zero hintmap - has fixed bits set
-      hc.has_span     = true;                   // Has span from fixed region
-      hc.span_lo      = lo;                     // Start of fixed region
-      hc.span_hi      = lo + CHUNKS_PER_COL - 1; // End of fixed region (inclusive)
-
-      // Add this no-hintmap column to our collection for this preemption point
-      state.hintmap_cols.push_back(hc);
-      continue;
-    }
-
-    // Parse the qualified hintmap key into context and label components
-    // Format is typically "context.label" where context identifies the scope
-    auto [ctx, label] = split_qualified_hintmap(key);
-
-    // Load the actual bitmap data for this hintmap from the assembly data
-    // This gives us a bitset where each bit represents a memory chunk
-    const hintmap_chunk_bits full_bm = hintmap_chunks(col, ctx, label);
-
-    // Calculate which chunks from the hintmap are actually available for redistribution
-    // We exclude chunks that are already reserved for fixed regions (columns without hintmaps)
-    const hintmap_chunk_bits outside_bm = full_bm & ~state.fixed_bs;
-
-    // Create a hintmap column descriptor to track all the information about this column
-    hintmap_col hc;
-    hc.col          = col;                    // Column index
-    hc.key          = key;                    // Original hintmap key for debugging/logging
-    hc.full_bm      = full_bm;                // Complete bitmap as specified in hintmap
-    hc.outside_bm   = outside_bm;             // Available chunks (excluding fixed regions)
-    hc.zero_hintmap = full_bm.none();         // True if hintmap has no bits set (empty hintmap)
-    hc.has_span     = false;                  // Will be set to true if we find a valid span
-
-    // Calculate the span (range) of chunks covered by this hintmap's available bits
-    // This helps with redistribution algorithms that need to know the extent of requested chunks
-    if (auto lo = bitset_find_first(outside_bm)) {
-      hc.span_lo = *lo;  // First (lowest) chunk index in the available bitmap
-      if (auto hi = bitset_find_last(outside_bm)) {
-        hc.span_hi  = *hi;  // Last (highest) chunk index in the available bitmap
-        hc.has_span = true;
+      pc.bm           = chunk_range_bitset(lo, lo + CHUNKS_PER_COL);
+      pc.zero_hintmap = false;
+      pc.span_lo      = lo;
+      pc.span_hi      = lo + CHUNKS_PER_COL - 1;
+      pc.has_span     = true;
+      log_info() << "preemption point " << pt << ": controller " << col
+                 << " (no hintmap): " << describe_chunk_span(pc.span_lo, pc.span_hi)
+                 << std::endl;
+    } else {
+      auto [ctx, label] = split_qualified_hintmap(pc.key);
+      pc.bm           = hintmap_chunks(col, ctx, label);
+      pc.zero_hintmap = pc.bm.none();
+      pc.has_span     = false;
+      if (auto lo = bitset_find_first(pc.bm)) {
+        pc.span_lo = *lo;
+        if (auto hi = bitset_find_last(pc.bm)) {
+          pc.span_hi  = *hi;
+          pc.has_span = true;
+        }
       }
     }
 
-    // Add this hintmap column to our collection for this preemption point
-    state.hintmap_cols.push_back(hc);
+    state.cols.push_back(std::move(pc));
   }
 
   return state;
 }
 
 // ---------------------------------------------------------------------------
-// verify_overlap — pairwise full_bm overlap among all controllers at pt.
-//   No-hintmap controllers contribute their fixed 3MB home window as full_bm.
+// verify_overlap — pairwise bm overlap among all controllers at pt.
+//   No-hintmap controllers contribute their 3MB home window as bm.
 // ---------------------------------------------------------------------------
 void
 asm_parser::
 verify_overlap(std::size_t pt, const preempt_point_state& state)
 {
-  for (std::size_t a = 0; a < state.hintmap_cols.size(); ++a) {
-    for (std::size_t b = a + 1; b < state.hintmap_cols.size(); ++b) {
-      if ((state.hintmap_cols[a].full_bm & state.hintmap_cols[b].full_bm).none())
+  for (std::size_t a = 0; a < state.cols.size(); ++a) {
+    for (std::size_t b = a + 1; b < state.cols.size(); ++b) {
+      if ((state.cols[a].bm & state.cols[b].bm).none())
         continue;
 
       std::string error_msg = "hintmap overlap at preemption point " + std::to_string(pt)
-                            + " between controller " + std::to_string(state.hintmap_cols[a].col);
-      if (state.hintmap_cols[a].key.empty())
+                            + " between controller " + std::to_string(state.cols[a].col);
+      if (state.cols[a].key.empty())
         error_msg += " (no hintmap, using default 3MB window)";
       else
-        error_msg += " (hintmap '" + state.hintmap_cols[a].key + "')";
+        error_msg += " (hintmap '" + state.cols[a].key + "')";
 
-      error_msg += " and controller " + std::to_string(state.hintmap_cols[b].col);
-      if (state.hintmap_cols[b].key.empty())
+      error_msg += " and controller " + std::to_string(state.cols[b].col);
+      if (state.cols[b].key.empty())
         error_msg += " (no hintmap, using default 3MB window)";
       else
-        error_msg += " (hintmap '" + state.hintmap_cols[b].key + "')";
+        error_msg += " (hintmap '" + state.cols[b].key + "')";
 
       error_msg += "; the same chunk must not be requested by two controllers\n";
 
@@ -1592,31 +1572,27 @@ verify_overlap(std::size_t pt, const preempt_point_state& state)
 }
 
 // ---------------------------------------------------------------------------
-// need_distribution_or_assign_direct — Step 3: direct assign or flag redistribution
-// Determines whether redistribution is needed or direct assignment is possible.
-// Algorithm:
-// 1. Check all pairs of hintmap controllers that have valid spans
-// 2. If any two spans overlap (inclusive), redistribution is required
-// 3. If all spans are disjoint, perform direct region assignment
-// Returns true when redistribution is needed, false when direct assignment was done
+// need_distribution_or_assign_direct — direct assign when spans are disjoint,
+// or flag redistribution when any two controller spans overlap.
+// Returns true when redistribution is needed; false after direct assignment.
 // ---------------------------------------------------------------------------
 bool
 asm_parser::
 need_distribution_or_assign_direct(std::size_t pt, const preempt_point_state& state)
 {
-  for (std::size_t a = 0; a < state.hintmap_cols.size(); ++a) {
-    if (!state.hintmap_cols[a].has_span)
+  for (std::size_t a = 0; a < state.cols.size(); ++a) {
+    if (!state.cols[a].has_span)
       continue;
-    for (std::size_t b = a + 1; b < state.hintmap_cols.size(); ++b) {
-      if (!state.hintmap_cols[b].has_span)
+    for (std::size_t b = a + 1; b < state.cols.size(); ++b) {
+      if (!state.cols[b].has_span)
         continue;
-      if (spans_overlap_inclusive(state.hintmap_cols[a].span_lo, state.hintmap_cols[a].span_hi,
-                                  state.hintmap_cols[b].span_lo, state.hintmap_cols[b].span_hi)) {
+      if (spans_overlap_inclusive(state.cols[a].span_lo, state.cols[a].span_hi,
+                                  state.cols[b].span_lo, state.cols[b].span_hi)) {
         log_warn() << "[need_distribution] preemption point " << pt << ": span overlap detected between controller "
-                   << state.hintmap_cols[a].col << " (hintmap '" << state.hintmap_cols[a].key << "') "
-                   << "chunks [" << state.hintmap_cols[a].span_lo << ".." << state.hintmap_cols[a].span_hi << "] "
-                   << "and controller " << state.hintmap_cols[b].col << " (hintmap '" << state.hintmap_cols[b].key << "') "
-                   << "chunks [" << state.hintmap_cols[b].span_lo << ".." << state.hintmap_cols[b].span_hi << "]"
+                   << state.cols[a].col << " (hintmap '" << state.cols[a].key << "') "
+                   << "chunks [" << state.cols[a].span_lo << ".." << state.cols[a].span_hi << "] "
+                   << "and controller " << state.cols[b].col << " (hintmap '" << state.cols[b].key << "') "
+                   << "chunks [" << state.cols[b].span_lo << ".." << state.cols[b].span_hi << "]"
                    << ", redistribution needed" << std::endl;
         return true;
       }
@@ -1625,125 +1601,74 @@ need_distribution_or_assign_direct(std::size_t pt, const preempt_point_state& st
 
   log_warn() << "[assign_direct] preemption point " << pt << ": spans disjoint, using direct regions"
              << std::endl;
-  for (const auto& hc : state.hintmap_cols) {
+  for (const auto& pc : state.cols) {
     preempt_scratchpad region = {0, 0};
-    if (!hc.zero_hintmap && hc.has_span) {
-      auto [base, size] = chunks_to_region(hc.span_lo, hc.span_hi);
+    if (!pc.zero_hintmap && pc.has_span) {
+      auto [base, size] = chunks_to_region(pc.span_lo, pc.span_hi);
       region = {base, size};
     }
-    m_preempt_region[hc.col][pt] = region;
-    log_warn() << "  controller " << hc.col << " (hintmap '" << hc.key << "'): "
+    m_preempt_region[pc.col][pt] = region;
+    log_warn() << "  controller " << pc.col << " (hintmap '" << pc.key << "'): "
                << describe_region(region.scratchbase, region.size) << std::endl;
   }
   return false;
 }
 
 // ---------------------------------------------------------------------------
-// redistribute_preempt_regions — chunk redistribution when direct assign fails.
-// Called for one preemption point after need_distribution_or_assign_direct() finds
-// overlapping spans. Mirrors the isa-spec PREEMPT @hintmap example:
-//
-//   1. Pool: OR together outside_bm from every hintmap controller at this pt.
-//   2. Sort hintmap controllers by column.
-//   3. Split: partition_flexible_minimize_holes() divides pooled chunk indices
-//      among those controllers by cutting at the k-1 largest gaps.
-//   4. Apply: write each [lo, hi) chunk range into m_preempt_region[col][pt].
-//   5. No-hintmap controllers keep their fixed 3MB home windows unchanged.
+// redistribute_preempt_regions — column-slice settlement when spans overlap.
+//   1. Pool: OR together bm from every hintmap controller at this pt.
+//   2. Each controller owns its 3MB column slice [col/2*48, col/2*48+48):
+//      - no-hintmap: home window for that slice
+//      - hintmap: span of pooled chunks in that slice (zero-hintmap may absorb
+//        chunks spliced from other controllers into this column's slice)
 // ---------------------------------------------------------------------------
 void
 asm_parser::
 redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state)
 {
-  // Log the start of redistribution process for this preemption point
-  log_info() << "preemption point " << pt << ": starting chunk redistribution" << std::endl;
+  log_info() << "preemption point " << pt << ": column-slice redistribution" << std::endl;
 
-  // Track each hintmap controller's column and quota (new chunks it adds to the pool).
-  struct ctrl {
-    int      col;   // Column index of the controller
-    uint64_t quota; // Number of chunks this controller contributes (logged for diagnostics)
-  };
-  std::vector<ctrl> ctrls;
-  hintmap_chunk_bits pool; // Accumulated pool of all available chunks
-
-  // Phase 1: Collect available chunks from all hintmap controllers.
-  // Build the redistribution pool by OR-ing each controller's outside_bm.
-  for (const auto& hc : state.hintmap_cols) {
-    // Skip no-hintmap controllers; they keep their fixed 3MB home window.
-    if (hc.key.empty())
+  hintmap_chunk_bits pool;
+  for (const auto& pc : state.cols) {
+    if (pc.key.empty())
       continue;
-    // Quota = chunks this controller adds that are not already in the pool.
-    const uint64_t pooled = (hc.outside_bm & ~pool).count();
-    // Add this controller's available chunks to the global pool.
-    pool |= hc.outside_bm;
-    // Record this controller's redistribution parameters.
-    ctrls.push_back({hc.col, pooled});
-    // Log the controller's contribution and special properties.
-    log_info() << "  controller " << hc.col << " (hintmap '" << hc.key << "'): "
-               << pooled << " new chunk(s) added to pool"
-               << (hc.zero_hintmap ? " (zero hintmap)" : "") << std::endl;
+    pool |= pc.bm;
   }
 
-  // Early exit if no chunks are available for redistribution.
-  if (pool.none()) {
-    log_info() << "  pool empty after stripping no-hintmap windows, nothing to redistribute"
-               << std::endl;
-    return;
-  }
+  log_info() << "  pooled " << pool.count() << " chunk(s) from hintmap controllers" << std::endl;
 
-  // Phase 2: Sort hintmap controllers by column (isa-spec assignment order).
-  std::sort(ctrls.begin(), ctrls.end(),
-            [](const ctrl& a, const ctrl& b) { return a.col < b.col; });
+  for (const auto& pc : state.cols) {
+    preempt_scratchpad region = {0, 0};
 
-  // Phase 3: Build column-ordered controller list for partition_flexible_minimize_holes().
-  std::vector<int> ctrl_cols;
-  ctrl_cols.reserve(ctrls.size());
-  for (const auto& c : ctrls)
-    ctrl_cols.push_back(c.col);
+    if (pc.key.empty()) {
+      auto [base, size] = chunks_to_region(pc.span_lo, pc.span_hi);
+      region = {base, size};
+      log_warn() << "  controller " << pc.col << " (no hintmap): "
+                 << describe_chunk_span(pc.span_lo, pc.span_hi) << std::endl;
+    } else {
+      const hintmap_chunk_bits slice_bm = hintmap_in_column_slice(pool, pc.col);
+      auto [base, size] = region_from_hintmap_bits(slice_bm);
+      region = {base, size};
+      std::ostringstream oss;
+      oss << "  controller " << pc.col << " (hintmap '" << pc.key << "'): "
+          << describe_region(base, size);
+      const hintmap_chunk_bits own_slice = hintmap_in_column_slice(pc.bm, pc.col);
+      if (slice_bm != own_slice) {
+        const auto [slice_lo, slice_hi] = column_slice_bounds(pc.col);
+        oss << " [spliced to column slice [" << slice_lo << ", " << slice_hi << ")]";
+      }
+      log_warn() << oss.str() << std::endl;
+    }
 
-  log_info() << "  redistributing " << sorted_pool_chunks(pool).size()
-             << " pooled chunk(s) among " << ctrl_cols.size()
-             << " hintmap controller(s) in column order" << std::endl;
-
-  // Phase 4: Split pooled chunks at the k-1 largest gaps (isa-spec PREEMPT @hintmap).
-  const auto assigned = redistribute_hintmap_pool(pool, ctrl_cols);
-
-  // Phase 5: Apply assignments and update preemption regions.
-  log_warn() << "  final redistribution at preemption point " << pt << ":" << std::endl;
-  for (std::size_t i = 0; i < ctrls.size(); ++i) {
-    auto [base, size] = chunk_rng_to_region(assigned[i]);
-    m_preempt_region[ctrls[i].col][pt] = {base, size};
-    const auto key_it = std::find_if(state.hintmap_cols.cbegin(), state.hintmap_cols.cend(),
-                                     [&](const hintmap_col& hc) { return hc.col == ctrls[i].col; });
-    const std::string& key = (key_it != state.hintmap_cols.cend()) ? key_it->key : "?";
-    std::ostringstream oss;
-    oss << "    controller " << ctrls[i].col << " (hintmap '" << key << "'): "
-        << describe_region(base, size);
-    if (assigned[i].second > assigned[i].first && ctrls[i].quota > 0
-        && static_cast<uint64_t>(assigned[i].second - assigned[i].first) > ctrls[i].quota)
-      oss << " [includes hole chunks within span]";
-    log_warn() << oss.str() << std::endl;
-  }
-
-  // No-hintmap controllers: assign fixed 3MB home windows unchanged by redistribution.
-  for (const auto& hc : state.hintmap_cols) {
-    if (!hc.key.empty())
-      continue;
-    auto [base, size] = chunks_to_region(hc.span_lo, hc.span_hi);
-    m_preempt_region[hc.col][pt] = {base, size};
-    log_warn() << "    controller " << hc.col
-               << " (no hintmap): unchanged default 3MB "
-               << describe_chunk_span(hc.span_lo, hc.span_hi)
-               << std::endl;
+    m_preempt_region[pc.col][pt] = region;
   }
 }
 
 // ---------------------------------------------------------------------------
-// settle_preempt_regions — Steps 1–4 per preemption point
-//   For each preemption point, this function:
-//   1. Collects fixed regions (columns without hintmaps) and hintmap regions
-//   2. Verifies no overlap between different hintmap sets
-//   3. Attempts direct assignment if possible (no redistribution needed)
-//   4. Falls back to redistribution algorithm if direct assignment fails
+// settle_preempt_regions — per preemption point
+//   1. Collect per-controller bitmap and span
+//   2. Verify no set-bit overlap between controllers
+//   3. Direct assign if spans disjoint; else column-slice redistribution
 // ---------------------------------------------------------------------------
 void
 asm_parser::
@@ -1760,13 +1685,8 @@ settle_preempt_regions()
 
   // Process each preemption point across all columns
   for (std::size_t pt = 0; pt < num_points; ++pt) {
-    // Step 1: Collect all fixed and hintmap regions for this preemption point
     const preempt_point_state state = collect_preempt_point(pt);
-
-    // Step 2: Verify no overlap between different hintmap sets
     verify_overlap(pt, state);
-
-    // Step 3: Try direct assignment first, fall back to redistribution if needed
     if (need_distribution_or_assign_direct(pt, state))
       redistribute_preempt_regions(pt, state);
   }

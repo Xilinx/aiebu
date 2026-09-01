@@ -105,6 +105,8 @@ public:
       }
       log_info() << "Ctrlcode has " << expected_count << " preemption points\n";
 
+      parser->verify_preempt_ids();
+
       // cert relies on load_pdi (and possible load_cores / load_cores_cp) to recover
       // the last loaded PDI and cores at each preemption point.
       if (!parser->verify_preempt_requires_load_pdi())

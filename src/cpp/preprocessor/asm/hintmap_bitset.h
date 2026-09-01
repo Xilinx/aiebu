@@ -23,9 +23,6 @@ constexpr std::size_t HINTMAP_WORD_COUNT = HINTMAP_CHUNK_BITS / HINTMAP_WORD_BIT
 
 using hintmap_chunk_bits = std::bitset<HINTMAP_CHUNK_BITS>;
 
-// chunk range in 64KB units: [first, last)
-using chunk_rng = std::pair<uint64_t, uint64_t>;
-
 hintmap_chunk_bits words_to_bitset(const std::vector<uint32_t>& words);
 
 std::optional<uint64_t> bitset_find_first(const hintmap_chunk_bits& bs);
@@ -41,20 +38,16 @@ bool spans_overlap_inclusive(uint64_t lo_a, uint64_t hi_a, uint64_t lo_b, uint64
 
 std::pair<uint64_t, uint64_t> chunks_to_region(uint64_t lo, uint64_t hi);
 
-std::vector<uint64_t> sorted_pool_chunks(const hintmap_chunk_bits& pool);
+// Inclusive/exclusive chunk bounds for one controller column's 3MB home slice.
+std::pair<uint64_t, uint64_t> column_slice_bounds(int col);
 
-// Split pool chunks among k hintmap controllers by cutting at the largest gaps.
-std::vector<chunk_rng> partition_flexible_minimize_holes(const std::vector<uint64_t>& sub,
-                                                         std::size_t k_sub);
+// Keep only hintmap bits that fall inside the controller's column slice.
+hintmap_chunk_bits hintmap_in_column_slice(const hintmap_chunk_bits& bm, int col);
 
-std::pair<uint64_t, uint64_t> chunk_rng_to_region(const chunk_rng& r);
+// Scratchpad region covering the span of set bits (NOP when empty).
+std::pair<uint64_t, uint64_t> region_from_hintmap_bits(const hintmap_chunk_bits& bm);
 
 std::string describe_chunk_span(uint64_t lo, uint64_t hi);
-
-// Spec-aligned redistribution: OR pooled hintmap chunks, split at k-1 largest gaps
-// in controller column order (isa-spec.md PREEMPT @hintmap example).
-std::vector<chunk_rng> redistribute_hintmap_pool(const hintmap_chunk_bits& pool,
-                                                 const std::vector<int>& ctrl_cols);
 
 } // namespace aiebu
 

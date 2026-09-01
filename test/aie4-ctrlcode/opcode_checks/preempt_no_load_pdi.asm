@@ -6,7 +6,7 @@
 .partition 1column
 .attach_to_group 0
 START_JOB 0
-	PREEMPT 0x0001, @save, @restore
+	PREEMPT 0x0000, @save, @restore
 END_JOB
 .eop
 EOF

@@ -74,6 +74,10 @@ add_aie4_config_neg_test("aie4_check_start_cond_count_mismatch"
 add_aie4_config_neg_test("aie4_check_preempt_hintmap_overlap"
   "config_preempt_hintmap_overlap.json")
 
+# preempt: id values must be consecutive starting from 0
+add_aie4_config_neg_test("aie4_check_preempt_id_non_consecutive"
+  "config_preempt_id_non_consecutive.json")
+
 # ---------------------------------------------------------------------------
 # Positive tests
 # ---------------------------------------------------------------------------

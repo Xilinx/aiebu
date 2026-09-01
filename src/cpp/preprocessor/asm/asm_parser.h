@@ -532,23 +532,19 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   // Settled scratchpad region per column and preemption-point index.
   std::map<int, std::vector<preempt_scratchpad>> m_preempt_region;
 
-  // Per-controller hintmap state at one preemption point (Step 1 output).
-  struct hintmap_col {
+  // Per-controller state at one preemption point (Step 1 output).
+  struct preempt_col {
     int                col;          // controller column index (.attach_to_group)
-    std::string        key;          // qualified hintmap key: "<label_scope>:<hintmap_label>"
-    hintmap_chunk_bits full_bm;      // all set bits from the hintmap .long words
-    hintmap_chunk_bits outside_bm;   // full_bm with no-hintmap 3MB windows stripped
-    uint64_t           span_lo;      // first set chunk in outside_bm (inclusive)
-    uint64_t           span_hi;      // last set chunk in outside_bm (inclusive)
-    bool               has_span;     // true when outside_bm has at least one set bit
-    bool               zero_hintmap;   // true when the hintmap is all-zero (absorb leftover runs)
+    std::string        key;          // qualified hintmap key; empty => no-hintmap 3MB home slice
+    hintmap_chunk_bits bm;           // hintmap bits, or column home slice when key is empty
+    uint64_t           span_lo;      // first set chunk in bm (inclusive)
+    uint64_t           span_hi;      // last set chunk in bm (inclusive)
+    bool               has_span;     // true when bm has at least one set bit
+    bool               zero_hintmap; // true when the hintmap is all-zero (absorb leftover runs)
   };
 
   struct preempt_point_state {
-    std::vector<hintmap_col>   hintmap_cols;
-    std::vector<std::pair<uint64_t, uint64_t>> fixed;  // no-hintmap 3MB windows [lo, hi)
-    std::vector<int>           fixed_cols;
-    hintmap_chunk_bits         fixed_bs;
+    std::vector<preempt_col> cols;
   };
 
   preempt_point_state collect_preempt_point(std::size_t pt);
@@ -658,11 +654,6 @@ public:
     return m_is_save_restore_routine;
   }
 
-  // Check if we should use scratch-pad section for save/restore APPLY_OFFSET_57
-  //bool should_use_scratchpad_section_for_save_restore() const {
-  //  return m_is_save_restore_routine;
-  //}
-
   // Record preempt label for current group (called when PREEMPT opcode is hit)
   // Label naming: save_N / restore_N where N = index (group/2 + 1)
   // group 0 -> save_1, group 2 -> save_2, group 4 -> save_3
@@ -727,6 +718,10 @@ public:
     }
     return {true, expected_count, 0, 0};  // All columns match
   }
+
+  // Verify PREEMPT id values are consecutive starting from 0 in program order
+  // within each controller, per isa-spec PREEMPT opcode.
+  void verify_preempt_ids() const;
 
   // Check if any column in the control code contains PREEMPT opcodes
   bool has_preempt() const {

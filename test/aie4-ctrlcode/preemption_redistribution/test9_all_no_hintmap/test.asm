@@ -8,7 +8,7 @@ START_JOB 0
 	LOAD_PDI 0, @pdi0
 END_JOB
 START_JOB 1
-	PREEMPT 0x0001, @save, @restore
+	PREEMPT 0x0000, @save, @restore
 END_JOB
 pdi0:
 START_JOB 0
@@ -23,7 +23,7 @@ START_JOB 0
 	LOAD_PDI 0, @pdi2
 END_JOB
 START_JOB 1
-	PREEMPT 0x0001, @save, @restore
+	PREEMPT 0x0000, @save, @restore
 END_JOB
 pdi2:
 START_JOB 0
@@ -38,7 +38,7 @@ START_JOB 0
 	LOAD_PDI 0, @pdi4
 END_JOB
 START_JOB 1
-	PREEMPT 0x0001, @save, @restore
+	PREEMPT 0x0000, @save, @restore
 END_JOB
 pdi4:
 START_JOB 0

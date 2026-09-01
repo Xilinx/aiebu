@@ -13,7 +13,7 @@ PREEMPT	0x1, @save, @restore
 END_JOB
 
 START_JOB 3
-PREEMPT	0x0, @save, @restore , @hintmap_22
+	PREEMPT 0x0002, @save, @restore , @hintmap_22
 END_JOB
 EOF
 .align    4
