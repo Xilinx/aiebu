@@ -49,9 +49,9 @@ set_target_properties(aiebu_zstd PROPERTIES
   C_VISIBILITY_PRESET hidden
 )
 if (MSVC)
-  target_compile_options(aiebu_zstd PRIVATE /wd4245 /WX-)
+  target_compile_options(aiebu_zstd PRIVATE /WX-)
 else()
-  target_compile_options(aiebu_zstd PRIVATE -w)
+  target_compile_options(aiebu_zstd PRIVATE -Wno-error)
 endif()
 # Disable the hand-written x86-64 assembly fast-path in zstd's HUF decompressor.
 # The assembly symbols (huf_decompress_amd64.S) cannot be included in the glob
