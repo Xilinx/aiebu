@@ -49,7 +49,7 @@ set_target_properties(aiebu_zstd PROPERTIES
   C_VISIBILITY_PRESET hidden
 )
 if (MSVC)
-  target_compile_options(aiebu_zstd PRIVATE /wd4267 /wd4244 /wd4146 /wd4245)
+  target_compile_options(aiebu_zstd PRIVATE /wd4245 /WX-)
 else()
   target_compile_options(aiebu_zstd PRIVATE -w)
 endif()
