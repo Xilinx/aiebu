@@ -16,6 +16,7 @@
 #include <xaiengine/xaie_txn.h>
 #include "transaction.hpp"
 #include "code_section.h"
+#include "logger.h"
 
 namespace {
 static const std::array<std::string_view, 5> preempt_code_table{"#NOOP",
@@ -269,7 +270,7 @@ private:
          * function to service the TXN buffer.
          */
         if ((Hdr->Major == MAJOR_VER) && (Hdr->Minor == MINOR_VER)) {
-            std::cout << "Optimized HEADER version detected \n";
+            aiebu::log_info() << "Optimized HEADER version detected \n";
             count_tnx_opt(ptr, size, op_count);
         } else {
             count_tnx(ptr, size, op_count);
