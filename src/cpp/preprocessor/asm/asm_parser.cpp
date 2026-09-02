@@ -8,6 +8,8 @@
 #include <fstream>
 #include <iomanip>
 #include <optional>
+#include <algorithm>
+#include <climits>
 #include "common/regex_wrapper.h"
 #include <sstream>
 
@@ -48,6 +50,36 @@ static inline int aiebu_clz(unsigned int x)      { return __builtin_clz(x);     
 namespace aiebu {
 
 namespace {
+
+// Hintmap chunk bitset helpers live in hintmap_bitset.h / hintmap_bitset.cpp.
+
+// Scratchpad region logging helpers used by preempt settlement diagnostics.
+static std::string
+format_byte_size(uint64_t size)
+{
+  if (size >= BYTES_PER_MB && size % BYTES_PER_MB == 0)
+    return std::to_string(size / BYTES_PER_MB) + "MB";
+  if (size >= BYTES_PER_KB && size % BYTES_PER_KB == 0)
+    return std::to_string(size / BYTES_PER_KB) + "KB";
+  return std::to_string(size) + " bytes";
+}
+
+static std::string
+describe_region(uint64_t base, uint64_t size)
+{
+  std::ostringstream oss;
+  if (size == 0) {
+    oss << "NOP (size 0)";
+    return oss.str();
+  }
+  const uint64_t lo = base / CHUNK_SIZE;
+  const uint64_t hi = lo + size / CHUNK_SIZE - 1;
+  const uint64_t nchunks = hi - lo + 1;
+  oss << describe_chunk_span(lo, hi)
+      << ", size=0x" << std::hex << size << std::dec
+      << " (" << format_byte_size(size) << ", " << nchunks << " chunks)";
+  return oss.str();
+}
 
 // One capture per directive token; capture 13 is optional args. Handled directives are captures 1–8
 // (same eight as asm_directive_id / directive_list). Captures 9–12 are recognized but not dispatched here.
@@ -527,7 +559,7 @@ collect_hintmap_words(const std::vector<std::shared_ptr<asm_data>>& entries,
                       const std::string& hintmap_label)
 {
   std::vector<uint32_t> words;
-  words.reserve(16);
+  words.reserve(HINTMAP_WORD_COUNT);
   bool in_target = false;
 
   for (const auto& entry : entries) {
@@ -571,8 +603,10 @@ collect_hintmap_words(const std::vector<std::shared_ptr<asm_data>>& entries,
 // ---------------------------------------------------------------------------
 // hintmap_words_to_scratchpad
 //   Interpret the .long bitmask words and return {scratchbase, size}.
-//   Each bit represents one 64KB chunk.  Throws if the set bits are not
-//   contiguous across all words.
+//   Each bit represents one 64KB chunk.  The set bits need not be contiguous:
+//   the region spans the first up to the last set bit so that every requested
+//   chunk is saved.  Chunks sitting in a gap are saved as well (a superset of
+//   the hintmap), since one preemption point transfers a single contiguous range.
 // ---------------------------------------------------------------------------
 static std::pair<uint64_t, uint64_t>
 hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
@@ -604,25 +638,22 @@ hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
     last_bit = hi;
   }
 
-  // Contiguity check: no gaps allowed between first and last set bit
-  if (first_bit != NO_BIT) {
-    const uint64_t span = last_bit - first_bit + 1;
-    if (span != set_bits)
-      throw error(error::error_code::invalid_asm,
-                  "hintmap '" + hintmap_label + "' has non-contiguous bits "
-                  "(first=bit " + std::to_string(first_bit)
-                  + ", last=bit "  + std::to_string(last_bit)
-                  + ", span="      + std::to_string(span)
-                  + ", set="       + std::to_string(set_bits) + ")");
-  }
-
+  // Full span from first to last set bit, inclusive.  Holes are absorbed.
+  const uint64_t span_bits   = (first_bit != NO_BIT) ? (last_bit - first_bit + 1) : 0;
   const uint64_t scratchbase = (first_bit != NO_BIT) ? (first_bit * CHUNK_SIZE) : DEFAULT_BASE;
-  const uint64_t size        = set_bits * CHUNK_SIZE;
+  const uint64_t size        = span_bits * CHUNK_SIZE;
+
+  if (first_bit != NO_BIT && span_bits != set_bits) {
+    log_info() << "hintmap '" << hintmap_label << "' has gaps between bit "
+               << first_bit << " and bit " << last_bit << ": saving "
+               << span_bits << " chunks to cover the " << set_bits
+               << " requested ones" << std::endl;
+  }
 
   log_info() << "Hintmap parsed for group " << group << " (col " << group << "): "
              << "scratchbase=0x" << std::hex << scratchbase
              << ", size=0x"      << size << " (" << std::dec
-             << (size / (1024ULL * 1024ULL)) << "MB, " << set_bits << " chunks)" << std::endl;
+             << (size / BYTES_PER_MB) << "MB, " << span_bits << " chunks)" << std::endl;
 
   return {scratchbase, size};
 }
@@ -663,7 +694,9 @@ find_hintmap_context(int group,
 // ---------------------------------------------------------------------------
 // parse_hintmap_and_calculate_scratchpad
 //   Each bit represents a 64KB chunk; scratchbase = first set bit * 64KB,
-//   size = set_bits * 64KB.  Returns defaults when hintmap_label is empty.
+//   size = (last set bit - first set bit + 1) * 64KB.  Holes between the
+//   first and last set bits are absorbed into the scratchpad.  Returns
+//   defaults when hintmap_label is empty.
 // ---------------------------------------------------------------------------
 std::pair<uint64_t, uint64_t>
 asm_parser::
@@ -685,6 +718,8 @@ parse_hintmap_and_calculate_scratchpad(int group,
   auto& col_data            = get_col_asmdata(static_cast<uint32_t>(group));
   const auto& all_entries   = col_data.get_label_asmdata_data(ctx);
   const auto words          = collect_hintmap_words(all_entries, hintmap_label);
+  const uint64_t max_chunks = static_cast<uint64_t>(get_partition_info()->get_numcolumn()) * CHUNKS_PER_COL;
+  verify_hintmap_chunk_limit(words_to_bitset(words), max_chunks, hintmap_label);
   return hintmap_words_to_scratchpad(words, hintmap_label, group);
 }
 
@@ -807,6 +842,44 @@ static std::string clean_label_ref(const std::string& arg)
   if (!s.empty() && s.front() == '@')
     s = s.substr(1);
   return s;
+}
+
+// Parse a PREEMPT id operand (decimal or hex) for validation.
+static uint32_t
+parse_preempt_id_value(const std::string& id_arg, int col, std::size_t pt)
+{
+  const std::string s = clean_arg(id_arg);
+  if (s.empty()) {
+    throw error(error::error_code::invalid_asm,
+                "PREEMPT opcode has empty id at controller " + std::to_string(col)
+                + " preemption point " + std::to_string(pt) + "\n");
+  }
+
+  try {
+    return static_cast<uint32_t>(std::stoul(s, nullptr, 0));
+  } catch (const std::exception&) {
+    throw error(error::error_code::invalid_asm,
+                "PREEMPT id '" + id_arg + "' is not a valid integer at controller "
+                + std::to_string(col) + " preemption point " + std::to_string(pt) + "\n");
+  }
+}
+
+void
+asm_parser::
+verify_preempt_ids() const
+{
+  for (const auto& [col, points] : m_preempt_points) {
+    for (std::size_t pt = 0; pt < points.size(); ++pt) {
+      const uint32_t id_val = parse_preempt_id_value(points[pt].id, col, pt);
+      if (id_val != static_cast<uint32_t>(pt)) {
+        std::ostringstream oss;
+        oss << "PREEMPT id values must be consecutive starting from 0: controller "
+            << col << " preemption point " << pt << " expects id 0x"
+            << std::hex << pt << std::dec << ", but got '" << points[pt].id << "'\n";
+        throw error(error::error_code::invalid_asm, oss.str());
+      }
+    }
+  }
 }
 
 // Divide [address, address+size) into equal number of slots.
@@ -1011,19 +1084,37 @@ split_qualified_hintmap(const std::string& qualified_key)
 //   First pass: group hintmaps by (scratchbase, size) and assign unique labels.
 // ---------------------------------------------------------------------------
 std::vector<asm_parser::hintmap_group_entry>
-asm_parser::build_hintmap_groups(int group,
-                                 const std::vector<std::string>& hintmap_labels,
-                                 int group_index)
+asm_parser::build_hintmap_groups(int group, int group_index)
 {
   // Map (scratchbase, size) -> index in result vector
   std::map<std::pair<uint64_t,uint64_t>, std::size_t> key_to_idx;
   std::vector<hintmap_group_entry> result;
   int unique_idx = 0;
 
-  for (const auto& qualified_key : hintmap_labels) {
-    auto [ctx, label_name] = split_qualified_hintmap(qualified_key);
+  const auto points_it = m_preempt_points.find(group);
+  if (points_it == m_preempt_points.end())
+    return result;
 
-    auto [scratchbase, size] = parse_hintmap_and_calculate_scratchpad(group, ctx, label_name);
+  const auto& points = points_it->second;
+  const auto& regions  = m_preempt_region[group];
+
+  for (std::size_t pt = 0; pt < points.size(); ++pt) {
+    const auto& qualified_key = points[pt].hintmap_key;
+    if (qualified_key.empty())
+      continue;
+
+    uint64_t scratchbase = 0;
+    uint64_t size        = 0;
+    if (pt < regions.size()) {
+      scratchbase = regions[pt].scratchbase;
+      size        = regions[pt].size;
+    } else {
+      auto [ctx, label_name] = split_qualified_hintmap(qualified_key);
+      auto region = parse_hintmap_and_calculate_scratchpad(group, ctx, label_name);
+      scratchbase = region.first;
+      size        = region.second;
+    }
+
     auto key = std::make_pair(scratchbase, size);
     auto it  = key_to_idx.find(key);
 
@@ -1031,11 +1122,11 @@ asm_parser::build_hintmap_groups(int group,
       hintmap_group_entry entry;
       entry.scratchbase = scratchbase;
       entry.size        = size;
-      entry.hintmaps.push_back(qualified_key);
+      entry.hintmap_pts.emplace_back(pt, qualified_key);
       entry.labels = {"save_"    + std::to_string(group_index) + "_" + std::to_string(unique_idx),
                       "restore_" + std::to_string(group_index) + "_" + std::to_string(unique_idx)};
-      log_info() << "Column " << group << ": hintmap '" << qualified_key
-                 << "' -> scratchbase=0x" << std::hex << scratchbase
+      log_info() << "Column " << group << ": preemption point " << pt << ", hintmap '"
+                 << qualified_key << "' -> scratchbase=0x" << std::hex << scratchbase
                  << ", size=0x" << size << std::dec
                  << " -> new labels @" << entry.labels.first
                  << " / @" << entry.labels.second << std::endl;
@@ -1044,9 +1135,12 @@ asm_parser::build_hintmap_groups(int group,
       ++unique_idx;
     } else {
       auto& entry = result[it->second];
-      entry.hintmaps.push_back(qualified_key);
-      log_info() << "Column " << group << ": hintmap '" << qualified_key
-                 << "' -> sharing labels @" << entry.labels.first
+      const auto pt_key = std::make_pair(pt, qualified_key);
+      if (std::find(entry.hintmap_pts.begin(), entry.hintmap_pts.end(), pt_key)
+          == entry.hintmap_pts.end())
+        entry.hintmap_pts.push_back(pt_key);
+      log_info() << "Column " << group << ": preemption point " << pt << ", hintmap '"
+                 << qualified_key << "' -> sharing labels @" << entry.labels.first
                  << " / @" << entry.labels.second << std::endl;
     }
   }
@@ -1076,8 +1170,8 @@ asm_parser::inject_hintmap_save_restore(int col, int group_index,
   // Key includes the column so that identical qualified names in different
   // columns never collide in the map.
   const std::string col_prefix = std::to_string(col) + ":";
-  for (const auto& hm : grp.hintmaps)
-    m_hintmap_labels[col_prefix + hm] = grp.labels;
+  for (const auto& [pt, hm] : grp.hintmap_pts)
+    m_hintmap_labels[col_prefix + hm + ":" + std::to_string(pt)] = grp.labels;
 
   // When hint_bitmap is all-zero the scratchpad size is 0: no state needs to
   // be saved or restored.  Inject minimal dummy jobs so the PREEMPT opcode
@@ -1128,7 +1222,7 @@ asm_parser::inject_hintmap_save_restore(int col, int group_index,
   std::string restore_file_mod = std::to_string(grp.scratchbase / CHUNK_SIZE) + "_" + std::to_string(grp.size / CHUNK_SIZE) + "_" + restore_file;
   log_info() << "Adding save_file: " << save_file_mod << " [size: " << save_data.size()
              << "], restore_file: " << restore_file_mod << " [size: " << restore_data.size()
-             << "] for " << grp.hintmaps.size() << " hintmap(s) with shared labels @"
+             << "] for " << grp.hintmap_pts.size() << " preemption point(s) with shared labels @"
              << grp.labels.first << " / @" << grp.labels.second << std::endl;
 
   // Patch template labels and inject
@@ -1198,11 +1292,21 @@ asm_parser::update_preempt_opcodes(int col)
   if (m_col.find(col) == m_col.end())
     return;
 
+  const auto points_it = m_preempt_points.find(col);
+  if (points_it == m_preempt_points.end())
+    return;
+
+  const auto& points = points_it->second;
+  const std::string col_prefix = std::to_string(col) + ":";
+
   log_info() << "Updating PREEMPT opcodes for column " << col
-             << ", m_hintmap_labels has " << m_hintmap_labels.size() << " entries" << std::endl;
+             << ", " << points.size() << " preemption point(s)" << std::endl;
 
   try {
-    for (auto& [lname, section] : get_col_asmdata(col).get_label_data()) {
+    auto& col_data = get_col_asmdata(col);
+    std::size_t pt_index = 0;
+    for (const auto& lname : col_data.get_label_insertion_order()) {
+      auto& section = col_data.get_label_data()[lname];
       for (auto& entry : section.text) {
         if (!entry->isOpcode()) continue;
         const auto& op = entry->get_operation();
@@ -1210,43 +1314,53 @@ asm_parser::update_preempt_opcodes(int col)
         const auto& args = op.get_args();
         if (args.size() < 3) continue;
 
-        // Extract hintmap label (arg 3: "@hintmap_N")
+        if (pt_index >= points.size())
+          throw error(error::error_code::internal_error,
+                      "PREEMPT opcode count exceeds recorded preemption points in column "
+                      + std::to_string(col));
+
+        const auto& pt_info = points[pt_index];
+        const std::string preempt_id = clean_arg(args[0]);
+
         std::string hm_label;
         if (args.size() >= 4)
-          hm_label = clean_label_ref(args[3]);
+          hm_label = clean_label_ref(args[3]);  // arg 3: "@hintmap_N"
 
-        if (hm_label.empty()) continue;
+        if (!hm_label.empty() && !pt_info.hintmap_key.empty()) {
+          const std::string qualified = lname + ":" + hm_label;
+          if (qualified != pt_info.hintmap_key)
+            throw error(error::error_code::internal_error,
+                        "PREEMPT hintmap mismatch at column " + std::to_string(col)
+                        + " preemption point " + std::to_string(pt_index)
+                        + ": expected '" + pt_info.hintmap_key + "', got '" + qualified + "'");
 
-        // Build the qualified key: the PREEMPT opcode lives under label scope 'lname',
-        // so its hintmap_0 resolves to the hintmap_0 defined in that same scope.
-        std::string qualified = lname + ":" + hm_label;
+          const auto it = m_hintmap_labels.find(col_prefix + pt_info.hintmap_key + ":"
+                                                 + std::to_string(pt_index));
+          if (it != m_hintmap_labels.end()) {
+            const auto& new_lbl = it->second;
+            const std::string new_args = preempt_id
+                                         + ", @" + new_lbl.first
+                                         + ", @" + new_lbl.second
+                                         + ", @" + hm_label;
 
-        // Only update opcodes whose qualified key was recorded for this column
-        bool in_col = false;
-        if (m_preempt_hintmaps.count(col)) {
-          const auto& hl = m_preempt_hintmaps[col];
-          in_col = std::find(hl.begin(), hl.end(), qualified) != hl.end();
+            log_info() << "Updating PREEMPT opcode id " << preempt_id
+                       << " at preemption point " << pt_index
+                       << " for hintmap '" << qualified << "' in column " << col
+                       << " to @" << new_lbl.first << "/@" << new_lbl.second << std::endl;
+
+            entry->update_operation(operation("preempt", new_args));
+          }
         }
-        if (!in_col) continue;
 
-        auto it = m_hintmap_labels.find(std::to_string(col) + ":" + qualified);
-        if (it == m_hintmap_labels.end()) continue;
-
-        const auto& new_lbl  = it->second;
-        std::string new_args = clean_arg(args[0])
-                               + ", @" + new_lbl.first
-                               + ", @" + new_lbl.second
-                               + ", @" + hm_label;  // keep the short label in the opcode
-
-        log_info() << "Updating PREEMPT opcode for hintmap '" << qualified
-                   << "' in column " << col
-                   << " from @" << args[1] << "/@" << args[2]
-                   << " to @" << new_lbl.first << "/@" << new_lbl.second << std::endl;
-
-        entry->update_operation(operation("preempt", new_args));
-        // set_line() removed: get_line() now reconstructs from the operation on demand.
+        ++pt_index;
       }
     }
+
+    if (pt_index != points.size())
+      throw error(error::error_code::internal_error,
+                  "Recorded preemption point count (" + std::to_string(points.size())
+                  + ") does not match PREEMPT opcodes found (" + std::to_string(pt_index)
+                  + ") in column " + std::to_string(col));
   } catch (...) {
     throw error(error::error_code::internal_error, "Error updating PREEMPT opcodes for column "
                                                    + std::to_string(col));
@@ -1341,7 +1455,7 @@ asm_parser::process_preempt_group(int group,
   if (m_preempt_hintmaps.count(group)) {
     const auto& template_labels = m_preempt_labels[group];
     // First pass: group hintmaps by (scratchbase, size) and assign unique labels.
-    auto groups = build_hintmap_groups(group, m_preempt_hintmaps[group], group_index);
+    auto groups = build_hintmap_groups(group, group_index);
     for (const auto& grp : groups) {
       // Second pass: inject save/restore code for each hintmap group.
       inject_hintmap_save_restore(group, group_index, save_file, restore_file,
@@ -1360,83 +1474,226 @@ asm_parser::process_preempt_group(int group,
 }
 
 // ---------------------------------------------------------------------------
-// verify_hintmap_no_overlap
-//   In multi-uC mode every controller saves into the same partition wide
-//   preemption scratchpad and cert synchronizes the controllers at every
-//   preemption point, so the regions two controllers write at the same
-//   preemption point must be disjoint.  All columns have the same number of
-//   preemption points (checked earlier), hence the n-th PREEMPT opcode of every
-//   column belongs to the same preemption point.  A PREEMPT opcode with no
-//   hintmap saves the entire 3MB of its own column.
+// hintmap_chunks — set bits of one hint bitmap
 // ---------------------------------------------------------------------------
-void
+hintmap_chunk_bits
 asm_parser::
-verify_hintmap_no_overlap()
+hintmap_chunks(int col,
+               const std::string& search_context,
+               const std::string& hintmap_label)
 {
-  struct region {
-    uint64_t    base;
-    uint64_t    size;
-    std::string id;       // preemption point id as written in the asm
-    std::string hintmap;  // qualified hintmap name, empty when the opcode has none
-  };
+  const std::string ctx   = find_hintmap_context(col, search_context, hintmap_label);
+  const auto& all_entries = get_col_asmdata(static_cast<uint32_t>(col)).get_label_asmdata_data(ctx);
+  const hintmap_chunk_bits bs = words_to_bitset(collect_hintmap_words(all_entries, hintmap_label));
+  const uint64_t max_chunks = static_cast<uint64_t>(get_partition_info()->get_numcolumn()) * CHUNKS_PER_COL;
+  verify_hintmap_chunk_limit(bs, max_chunks, hintmap_label);
+  return bs;
+}
 
-  // For every column: the region it writes at each of its preemption points,
-  // in program order.  m_preempt_points is ordered by column.
-  std::vector<std::pair<int, std::vector<region>>> col_regions;
-  std::size_t num_points = 0;
+// ---------------------------------------------------------------------------
+// collect_preempt_point — per-controller bitmap and span at one PT index
+// ---------------------------------------------------------------------------
+asm_parser::preempt_point_state
+asm_parser::
+collect_preempt_point(std::size_t pt)
+{
+  preempt_point_state state;
+
   for (const auto& [col, points] : m_preempt_points) {
-    std::vector<region> regions;
-    regions.reserve(points.size());
-    for (const auto& point : points) {
-      auto [ctx, label] = split_qualified_hintmap(point.hintmap_key);
-      auto [base, size] = parse_hintmap_and_calculate_scratchpad(col, ctx, label);
-      regions.push_back({base, size, point.id, point.hintmap_key});
-    }
-    if (regions.size() > num_points)
-      num_points = regions.size();
-    col_regions.emplace_back(col, std::move(regions));
-  }
+    if (pt >= points.size())
+      continue;
 
-  auto describe = [](const region& reg) {
-    std::ostringstream oss;
-    oss << "[0x" << std::hex << reg.base << ", 0x" << (reg.base + reg.size) << ")" << std::dec;
-    if (reg.hintmap.empty())
-      oss << " (no hintmap: whole column memtile)";
-    else
-      oss << " (hintmap '" << reg.hintmap << "')";
-    return oss.str();
-  };
+    preempt_col pc;
+    pc.col = col;
+    pc.key = points[pt].hintmap_key;
 
-  for (std::size_t idx = 0; idx < num_points; ++idx) {
-    for (std::size_t a = 0; a < col_regions.size(); ++a) {
-      if (idx >= col_regions[a].second.size())
-        continue;
-      const auto& ra = col_regions[a].second[idx];
-      if (ra.size == 0)
-        continue;  // nothing is saved, so nothing can clash
-
-      for (std::size_t b = a + 1; b < col_regions.size(); ++b) {
-        if (idx >= col_regions[b].second.size())
-          continue;
-        const auto& rb = col_regions[b].second[idx];
-        if (rb.size == 0)
-          continue;
-
-        if (ra.base < rb.base + rb.size && rb.base < ra.base + ra.size) {
-          std::ostringstream oss;
-          oss << "hint bitmap overlap at preemption point " << idx
-              << ": controller " << col_regions[a].first
-              << " (id " << ra.id << ") saves " << describe(ra)
-              << " and controller " << col_regions[b].first
-              << " (id " << rb.id << ") saves " << describe(rb)
-              << "; hint bitmaps of different controllers must not overlap at the same"
-                 " preemption point\n";
-          throw error(error::error_code::invalid_asm, oss.str());
+    if (pc.key.empty()) {
+      const uint64_t lo = static_cast<uint64_t>(col / 2) * CHUNKS_PER_COL;
+      pc.bm           = chunk_range_bitset(lo, lo + CHUNKS_PER_COL);
+      pc.zero_hintmap = false;
+      pc.span_lo      = lo;
+      pc.span_hi      = lo + CHUNKS_PER_COL - 1;
+      pc.has_span     = true;
+      log_info() << "preemption point " << pt << ": controller " << col
+                 << " (no hintmap): " << describe_chunk_span(pc.span_lo, pc.span_hi)
+                 << std::endl;
+    } else {
+      auto [ctx, label] = split_qualified_hintmap(pc.key);
+      pc.bm           = hintmap_chunks(col, ctx, label);
+      pc.zero_hintmap = pc.bm.none();
+      pc.has_span     = false;
+      if (auto lo = bitset_find_first(pc.bm)) {
+        pc.span_lo = *lo;
+        if (auto hi = bitset_find_last(pc.bm)) {
+          pc.span_hi  = *hi;
+          pc.has_span = true;
         }
       }
     }
+
+    state.cols.push_back(std::move(pc));
+  }
+
+  return state;
+}
+
+// ---------------------------------------------------------------------------
+// verify_overlap — pairwise bm overlap among all controllers at pt.
+//   No-hintmap controllers contribute their 3MB home window as bm.
+// ---------------------------------------------------------------------------
+void
+asm_parser::
+verify_overlap(std::size_t pt, const preempt_point_state& state)
+{
+  for (std::size_t a = 0; a < state.cols.size(); ++a) {
+    for (std::size_t b = a + 1; b < state.cols.size(); ++b) {
+      if ((state.cols[a].bm & state.cols[b].bm).none())
+        continue;
+
+      std::string error_msg = "hintmap overlap at preemption point " + std::to_string(pt)
+                            + " between controller " + std::to_string(state.cols[a].col);
+      if (state.cols[a].key.empty())
+        error_msg += " (no hintmap, using default 3MB window)";
+      else
+        error_msg += " (hintmap '" + state.cols[a].key + "')";
+
+      error_msg += " and controller " + std::to_string(state.cols[b].col);
+      if (state.cols[b].key.empty())
+        error_msg += " (no hintmap, using default 3MB window)";
+      else
+        error_msg += " (hintmap '" + state.cols[b].key + "')";
+
+      error_msg += "; the same chunk must not be requested by two controllers\n";
+
+      throw error(error::error_code::invalid_asm, error_msg);
+    }
+
   }
 }
+
+// ---------------------------------------------------------------------------
+// need_distribution_or_assign_direct — direct assign when spans are disjoint,
+// or flag redistribution when any two controller spans overlap.
+// Returns true when redistribution is needed; false after direct assignment.
+// ---------------------------------------------------------------------------
+bool
+asm_parser::
+need_distribution_or_assign_direct(std::size_t pt, const preempt_point_state& state)
+{
+  for (std::size_t a = 0; a < state.cols.size(); ++a) {
+    if (!state.cols[a].has_span)
+      continue;
+    for (std::size_t b = a + 1; b < state.cols.size(); ++b) {
+      if (!state.cols[b].has_span)
+        continue;
+      if (spans_overlap_inclusive(state.cols[a].span_lo, state.cols[a].span_hi,
+                                  state.cols[b].span_lo, state.cols[b].span_hi)) {
+        log_warn() << "[need_distribution] preemption point " << pt << ": span overlap detected between controller "
+                   << state.cols[a].col << " (hintmap '" << state.cols[a].key << "') "
+                   << "chunks [" << state.cols[a].span_lo << ".." << state.cols[a].span_hi << "] "
+                   << "and controller " << state.cols[b].col << " (hintmap '" << state.cols[b].key << "') "
+                   << "chunks [" << state.cols[b].span_lo << ".." << state.cols[b].span_hi << "]"
+                   << ", redistribution needed" << std::endl;
+        return true;
+      }
+    }
+  }
+
+  log_warn() << "[assign_direct] preemption point " << pt << ": spans disjoint, using direct regions"
+             << std::endl;
+  for (const auto& pc : state.cols) {
+    preempt_scratchpad region = {0, 0};
+    if (!pc.zero_hintmap && pc.has_span) {
+      auto [base, size] = chunks_to_region(pc.span_lo, pc.span_hi);
+      region = {base, size};
+    }
+    m_preempt_region[pc.col][pt] = region;
+    log_warn() << "  controller " << pc.col << " (hintmap '" << pc.key << "'): "
+               << describe_region(region.scratchbase, region.size) << std::endl;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// redistribute_preempt_regions — column-slice settlement when spans overlap.
+//   1. Pool: OR together bm from every hintmap controller at this pt.
+//   2. Each controller owns its 3MB column slice [col/2*48, col/2*48+48):
+//      - no-hintmap: home window for that slice
+//      - hintmap: span of pooled chunks in that slice (zero-hintmap may absorb
+//        chunks spliced from other controllers into this column's slice)
+// ---------------------------------------------------------------------------
+void
+asm_parser::
+redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state)
+{
+  log_info() << "preemption point " << pt << ": column-slice redistribution" << std::endl;
+
+  hintmap_chunk_bits pool;
+  for (const auto& pc : state.cols) {
+    if (pc.key.empty())
+      continue;
+    pool |= pc.bm;
+  }
+
+  log_info() << "  pooled " << pool.count() << " chunk(s) from hintmap controllers" << std::endl;
+
+  for (const auto& pc : state.cols) {
+    preempt_scratchpad region = {0, 0};
+
+    if (pc.key.empty()) {
+      auto [base, size] = chunks_to_region(pc.span_lo, pc.span_hi);
+      region = {base, size};
+      log_warn() << "  controller " << pc.col << " (no hintmap): "
+                 << describe_chunk_span(pc.span_lo, pc.span_hi) << std::endl;
+    } else {
+      const hintmap_chunk_bits slice_bm = hintmap_in_column_slice(pool, pc.col);
+      auto [base, size] = region_from_hintmap_bits(slice_bm);
+      region = {base, size};
+      std::ostringstream oss;
+      oss << "  controller " << pc.col << " (hintmap '" << pc.key << "'): "
+          << describe_region(base, size);
+      const hintmap_chunk_bits own_slice = hintmap_in_column_slice(pc.bm, pc.col);
+      if (slice_bm != own_slice) {
+        const auto [slice_lo, slice_hi] = column_slice_bounds(pc.col);
+        oss << " [spliced to column slice [" << slice_lo << ", " << slice_hi << ")]";
+      }
+      log_warn() << oss.str() << std::endl;
+    }
+
+    m_preempt_region[pc.col][pt] = region;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// settle_preempt_regions — per preemption point
+//   1. Collect per-controller bitmap and span
+//   2. Verify no set-bit overlap between controllers
+//   3. Direct assign if spans disjoint; else column-slice redistribution
+// ---------------------------------------------------------------------------
+void
+asm_parser::
+settle_preempt_regions()
+{
+  m_preempt_region.clear();
+
+  // Initialize preemption regions for each column and find the maximum number of preemption points
+  std::size_t num_points = 0;
+  for (const auto& [col, points] : m_preempt_points) {
+    m_preempt_region[col].resize(points.size());
+    num_points = std::max(num_points, points.size());
+  }
+
+  // Process each preemption point across all columns
+  for (std::size_t pt = 0; pt < num_points; ++pt) {
+    const preempt_point_state state = collect_preempt_point(pt);
+    verify_overlap(pt, state);
+    if (need_distribution_or_assign_direct(pt, state))
+      redistribute_preempt_regions(pt, state);
+  }
+}
+
+// Prebuilt save/restore map key for multi-column group 0 (1c0 template).
+constexpr uint32_t MULTICOL_PREEMPT_SAVE_RESTORE_BASE = 10;
 
 // ---------------------------------------------------------------------------
 // finalize_preempt
@@ -1449,13 +1706,13 @@ finalize_preempt()
     return;
 
   if (is_multi_column_mode()) {
-    // Reject clashing save regions before any save/restore code is injected.
-    verify_hintmap_no_overlap();
+    // Settle who transfers which chunks before any save/restore code is injected.
+    settle_preempt_regions();
 
     for (const auto& [group, labels] : m_preempt_labels) {
-      auto [save_data, restore_data] = get_preempt_save_restore(10 + group);
-      auto [save_bd, restore_bd] = get_preempt_save_restore_shimbd(10 + group);
-      auto [save_membd, restore_membd] = get_preempt_save_restore_membd(10 + group);
+      auto [save_data, restore_data] = get_preempt_save_restore(MULTICOL_PREEMPT_SAVE_RESTORE_BASE + group);
+      auto [save_bd, restore_bd] = get_preempt_save_restore_shimbd(MULTICOL_PREEMPT_SAVE_RESTORE_BASE + group);
+      auto [save_membd, restore_membd] = get_preempt_save_restore_membd(MULTICOL_PREEMPT_SAVE_RESTORE_BASE + group);
       if (save_data.empty() || restore_data.empty() || save_bd.empty() || restore_bd.empty() || save_membd.empty() || restore_membd.empty())
         throw error(error::error_code::internal_error,
                     "Preempt save/restore data not found for group " + std::to_string(group));

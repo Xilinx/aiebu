@@ -688,9 +688,9 @@ control to another job.
 
 save/restore context of an inference at preemption point in control code
 
-| 0x19 | - | id | save_control_code_offset | restore_control_code_offset | instruction size |
-| :-: | - | - | - | - | -: |
-| opcode (8b) | pad (8b) | const (16b) | page_id (16b) | page_id (16b) | 8B |
+| 0x19 | - | id | save_control_code_offset | restore_control_code_offset | hintmap | instruction size |
+| :-: | - | - | - | - | - | -: |
+| opcode (8b) | pad (8b) | const (16b) | page_id (16b) | page_id (16b) | patch_buf (0b) | 8B |
 
 If the control code supports preemption, there will be preemption points inserted in it. `id` specifies the preemption
 point index. `id` values should be consecutive, starting with index 0. We assume all aie cores are stateless,
@@ -703,6 +703,41 @@ can determine whether preemption is required, and if required, it can also disti
 In multi-uC case, at each preemption point, CERT will do barrier sync regardless of whether the preemption happens or not, so
 for each preemption point id, the control code of each uc should have this opcode with same `id`.
 This opcode should take one whole job but the job can share page with other jobs.
+
+Optional 4th assembler operand `@hintmap` (type `patch_buf`, not encoded in the binary PREEMPT opcode):
+a label in the same scope as the PREEMPT opcode, defined with `.long` words forming a hint bitmap.
+Each set bit selects one 64KB memtile chunk (bit *i* -> chunk *i*). The assembler uses the bitmap to determine
+which memtile data this controller saves/restores at this preemption point. A hintmap need not be contiguous
+(holes between set bits are allowed). Set bits must not overlap between controllers at the same preemption point;
+the assembler rejects asm when two controllers request the same chunk. When comparing controllers, the assembler
+uses each hintmap's span — from the lowest to the highest set bit, including any holes inside that range. If
+spans overlap, the assembler redistributes pooled hintmap chunks so each controller receives a non-overlapping
+scratchpad region (the source hintmap labels are not rewritten).
+
+Example (aie4, two controllers at preemption point 1). Input hintmaps overlap in span but not in set bits:
+```
+.attach_to_group 0
+START_JOB 1
+  PREEMPT 0x0001, @save, @restore, @hintmap_0
+END_JOB
+.align 4
+hintmap_0:
+  .long 0x00000f0f          ; chunks {0,1,2,3,8,9,10,11}, span [0..11]
+
+.attach_to_group 2
+START_JOB 1
+  PREEMPT 0x0001, @save, @restore, @hintmap_0
+END_JOB
+hintmap_0:
+  .long 0x0000f0f0          ; chunks {4,5,6,7,12,13,14,15}, span [4..15]
+```
+
+After settlement the hintmap `.long` values above are unchanged; each controller is assigned a disjoint
+scratchpad region covering the pooled chunks split at the largest gap:
+```
+controller 0: chunks [0..7]   (scratchpad size 512KB)
+controller 2: chunks [8..15]  (scratchpad size 512KB)
+```
 
 Note:
 
