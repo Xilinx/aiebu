@@ -1,0 +1,17 @@
+List to all preempt opcodes:
+Col    Page   Offset     Id       SavePage   RestorePage 
+------------------------------------------------------------
+0      0      0x30       0x0000   2          3           
+2      0      0x30       0x0000   2          3           
+4      0      0x30       0x0000   2          3           
+
+
+List to all shim BDs:
+Col    Page   r_off               address    len(bytes)  size
+--------------------------------------------------------------------
+0      2      0xe84        0x           0  0x     48000  288KB
+0      2      0xea8        0x       48000  0x     48000  288KB
+0      3      0x3d0        0x           0  0x     24000  144KB
+0      3      0x3f4        0x       24000  0x     24000  144KB
+0      3      0x418        0x       48000  0x     24000  144KB
+0      3      0x43c        0x       6c000  0x     24000  144KB

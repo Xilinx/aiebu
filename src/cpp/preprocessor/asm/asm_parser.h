@@ -4,6 +4,7 @@
 #define AIEBU_PREPROCESSOR_ASM_ASM_PARSER_H_
 
 #include "code_section.h"
+#include "hintmap_bitset.h"
 #include "utils.h"
 #include "file_utils.h"
 #include "logger.h"
@@ -23,8 +24,6 @@
 #include <vector>
 
 namespace aiebu {
-
-constexpr uint64_t CHUNK_SIZE = 64ULL * 1024ULL; // 64KB
 
 inline std::string trim(const std::string& line)
 {
@@ -525,6 +524,33 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
     std::string hintmap_key;  // "<label_scope>:<hintmap_label>", empty when the opcode has no hintmap
   };
   std::map<int, std::vector<preempt_point>> m_preempt_points;  // group -> preemption points in program order
+
+  struct preempt_scratchpad {
+    uint64_t scratchbase;
+    uint64_t size;
+  };
+  // Settled scratchpad region per column and preemption-point index.
+  std::map<int, std::vector<preempt_scratchpad>> m_preempt_region;
+
+  // Per-controller state at one preemption point (Step 1 output).
+  struct preempt_col {
+    int                col;          // controller column index (.attach_to_group)
+    std::string        key;          // qualified hintmap key; empty => no-hintmap 3MB home slice
+    hintmap_chunk_bits bm;           // hintmap bits, or column home slice when key is empty
+    uint64_t           span_lo;      // first set chunk in bm (inclusive)
+    uint64_t           span_hi;      // last set chunk in bm (inclusive)
+    bool               has_span;     // true when bm has at least one set bit
+    bool               zero_hintmap; // true when the hintmap is all-zero (absorb leftover runs)
+  };
+
+  struct preempt_point_state {
+    std::vector<preempt_col> cols;
+  };
+
+  preempt_point_state collect_preempt_point(std::size_t pt);
+  void verify_overlap(std::size_t pt, const preempt_point_state& state);
+  bool need_distribution_or_assign_direct(std::size_t pt, const preempt_point_state& state);
+  void redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state);
   detail::filename_table m_filename_table;
   // Tracks which filename indices have been interned per column so that duplicate
   // .include detection is scoped per-col rather than globally across the parser.
@@ -532,18 +558,16 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::unordered_map<int, std::set<uint32_t>> m_col_seen_files;
   bool m_is_save_restore_routine = false;  // True when parsing save/restore routine files
 
-  // One unique scratchpad region: all hintmap labels that share the same scratchbase+size
+  // One unique scratchpad region: hintmaps at preemption points that share scratchbase+size
   struct hintmap_group_entry {
-    std::vector<std::string>         hintmaps;    // hintmap labels sharing this scratchpad
+    std::vector<std::pair<std::size_t, std::string>> hintmap_pts; // pt index, qualified key
     std::pair<std::string,std::string> labels;    // shared save/restore label pair
     uint64_t                         scratchbase;
     uint64_t                         size;
   };
 
   // Group hintmap labels by (scratchbase, size) and assign unique save/restore labels.
-  std::vector<hintmap_group_entry> build_hintmap_groups(int group,
-                                                        const std::vector<std::string>& hintmap_labels,
-                                                        int group_index);
+  std::vector<hintmap_group_entry> build_hintmap_groups(int group, int group_index);
 
   // Register scratchpad and inject patched save/restore asm for one hintmap group.
   void inject_hintmap_save_restore(int col, int group_index,
@@ -561,9 +585,12 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   // Walk column col and update PREEMPT opcode args to reflect shared labels.
   void update_preempt_opcodes(int col);
 
-  // Verify that the scratchpad regions selected by the hint bitmaps of different
-  // controllers are disjoint at every preemption point.
-  void verify_hintmap_no_overlap();
+  // Settle scratchpad regions at each preemption point before save/restore injection.
+  void settle_preempt_regions();
+
+  hintmap_chunk_bits hintmap_chunks(int col,
+                                    const std::string& search_context,
+                                    const std::string& hintmap_label);
 
   // Inject default (no-hintmap) save/restore asm into column col.
   void inject_default_save_restore(int col, int group_index,
@@ -626,11 +653,6 @@ public:
   bool should_skip_setpad_in_save_restore() const {
     return m_is_save_restore_routine;
   }
-
-  // Check if we should use scratch-pad section for save/restore APPLY_OFFSET_57
-  //bool should_use_scratchpad_section_for_save_restore() const {
-  //  return m_is_save_restore_routine;
-  //}
 
   // Record preempt label for current group (called when PREEMPT opcode is hit)
   // Label naming: save_N / restore_N where N = index (group/2 + 1)
@@ -696,6 +718,10 @@ public:
     }
     return {true, expected_count, 0, 0};  // All columns match
   }
+
+  // Verify PREEMPT id values are consecutive starting from 0 in program order
+  // within each controller, per isa-spec PREEMPT opcode.
+  void verify_preempt_ids() const;
 
   // Check if any column in the control code contains PREEMPT opcodes
   bool has_preempt() const {
