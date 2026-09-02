@@ -179,11 +179,6 @@ calculated and filled by the assembler.
 In human-readable representations (asm file), this operand is omitted from the operand list.
 
 
-## patch_buf
-Used for host address patching. Arg with this type has name starting with @, and this type of arg
-is consumed only by assembler.
-
-
 
 # Operations
 
@@ -419,104 +414,102 @@ completely when this operation finishes.
 
 Applies an offset to one or more shim DMA BD base address fields. (Version for 57-bit base addresses.)
 
-| 0x0e | - | table_ptr | num_entries | offset | pad_buf | instruction size |
-| :-: | - | - | - | - | - | -: |
-| opcode (8b) | pad (8b) | const (16b) | const (16b) | const (16b) | patch_buf (0b) | 8B |
+| 0x0e | - | table_ptr | num_entries | offset | instruction size |
+| :-: | - | - | - | - | -: |
+| opcode (8b) | pad (8b) | const (16b) | const (16b) | const (16b) | 8B |
 
-Patches the base address of `num_entries` shim DMA buffer descriptors by adding the offset
-loaded from 'offset' and 'offset+1' in argument list.
-if the offset is 0xFFFF, the offset added is the host address of 1st page of control code
-The location of the `num_entries` buffer descriptors should be given in a table stored
-at `table_ptr`. One entry in the table is a set of shim DMA BDs. If there are multiple entries in the table,
-those set of BDS have to be contiguous.
-4th optional arg `pad_buf` with special type `patch_buf`, specifies the pad buffer to hold blob for control packet,
-or save/restore L2 as scratchpad. It is a string starting with @, and only consumed by assembler to do host address
-patch at compile time.
+Patches the address fields in shim DMA BDs by adding the value loaded global registers 'offset' and 'offset+1'.
+If the offset is 0xFFFF, the offset added is the host address of 1st page of control code.
+shim DMA BDs are saved in a table pointed by `table_ptr`. One entry in the table is a set of shim DMA BD.
+`num_entries` specifies the number of shim DMA BDs in the table.
 Example:
 ```
 # non-contiguous BDs
-  APPLY_OFFSET_57     @mem21_bd0, 1, 0xFFFF
-  APPLY_OFFSET_57     @mem31_bd0, 1, 0xFFFF
+  APPLY_OFFSET_57     @mem21_bd0, 1, 0
+  APPLY_OFFSET_57     @mem31_bd0, 1, 1
 # ...
 .align              4
 mem21_bd0:
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
+  .long              0x00000080
+  .long              0x00020000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x80000000
+  .long              0x00000000
 .align              4
 mem31_bd0:
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
+  .long              0x00000080
+  .long              0x00020000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x80000000
+  .long              0x00000000
 
 # contiguous BDs
-  APPLY_OFFSET_57     @mem41_bd0, 2, 0xFFFF
+  APPLY_OFFSET_57     @mem41_bd0, 2, 1
 # ...
 .align              4
 mem41_bd0:
   # 1st set BDs
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
+  .long              0x00000080
+  .long              0x00020000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x80000000
+  .long              0x00000000
   # 2nd set BDs
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
-# patch scratchpad to BDs
-  .setpad ctrl_pkt, ctrlpkt.bin
-  .setpad tile_pad, 0x100
-# ...
-  APPLY_OFFSET_57     @mem21_bd0, 1, 3, @ctrl_pkt
-  APPLY_OFFSET_57     @mem21_bd1, 1, 0xFFFF, @tile_pad
-# ...
-  ALIGN             4
-mem21_bd0:
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
-mem21_bd1:
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
+  .long              0x00000080
+  .long              0x00020000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x80000000
+  .long              0x00000000
 ```
 The patching using this operation needs be done _before_ programming the shim DMA buffer
 descriptors via the uC-DMA.
+
+
+## APPLY_OFFSET_SRAM (0x24)
+
+Applies an offset in SRAM to one or more shim DMA BD base address fields. (Version for 57-bit base addresses.)
+
+| 0x24 | - | table_ptr | num_entries | - | address | instruction size |
+| :-: | - | - | - | - | - | -: |
+| opcode (8b) | pad (8b) | const (16b) | const (16b) | pad (16b) | const (32b) | 12B |
+
+Patches address fields in shim DMA BDs by adding the value read from AIE SRAM `address`.
+The shim DMA BD address should be patched through APPLY_OFFSET_57 first, and this patch should happen after
+the `address` in the SRAM already has the information of the offset. When this opcode is required,
+APPLY_OFFSET_57 and APPLY_OFFSET_SRAM have same `table_ptr` and `num_entries`
+Example:
+```
+  APPLY_OFFSET_57     @wts_shim_bd, 1, 0
+  APPLY_OFFSET_SRAM   @wts_shim_bd, 1, 0x200000
+# ...
+.align              4
+wts_shim_bd:
+  .long              0x00000080
+  .long              0x00020000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x80000000
+  .long              0x00000000
+```
 
 
 ## ADD (0x0f)

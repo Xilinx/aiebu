@@ -97,7 +97,6 @@
 <li><a href="#page_id">page_id</a></li>
 <li><a href="#pad">pad</a></li>
 <li><a href="#jobsize">jobsize</a></li>
-<li><a href="#patch_buf">patch_buf</a></li>
 </ul>
 </li>
 <li><a href="#operations">Operations</a><ul>
@@ -117,6 +116,7 @@
 <li><a href="#read_32-0x0c">READ_32 (0x0c)</a></li>
 <li><a href="#read_32_d-0x0d">READ_32_D (0x0d)</a></li>
 <li><a href="#apply_offset_57-0x0e">APPLY_OFFSET_57 (0x0e)</a></li>
+<li><a href="#apply_offset_sram-0x24">APPLY_OFFSET_SRAM (0x24)</a></li>
 <li><a href="#add-0x0f">ADD (0x0f)</a></li>
 <li><a href="#mov-0x10">MOV (0x10)</a></li>
 <li><a href="#local_barrier-0x11">LOCAL_BARRIER (0x11)</a></li>
@@ -523,9 +523,6 @@ In human-readable representations (asm file), padding operands are omitted from 
 <p>16-bit unsigned integer containing the size of the job (<code>START_JOB</code> until <code>END_JOB</code>), automatically
 calculated and filled by the assembler.
 In human-readable representations (asm file), this operand is omitted from the operand list.</p>
-<h2 id="patch_buf">patch_buf</h2>
-<p>Used for host address patching. Arg with this type has name starting with @, and this type of arg
-is consumed only by assembler.</p>
 <h1 id="operations">Operations</h1>
 <h2 id="start_job-0x00">START_JOB (0x00)</h2>
 <p>Indicates the start of a new job.</p>
@@ -963,7 +960,6 @@ completely when this operation finishes.</p>
 <th>table_ptr</th>
 <th>num_entries</th>
 <th>offset</th>
-<th>pad_buf</th>
 <th style="text-align: right;">instruction size</th>
 </tr>
 </thead>
@@ -974,104 +970,116 @@ completely when this operation finishes.</p>
 <td>const (16b)</td>
 <td>const (16b)</td>
 <td>const (16b)</td>
-<td>patch_buf (0b)</td>
 <td style="text-align: right;">8B</td>
 </tr>
 </tbody>
 </table>
-<p>Patches the base address of <code>num_entries</code> shim DMA buffer descriptors by adding the offset
-loaded from 'offset' and 'offset+1' in argument list.
-if the offset is 0xFFFF, the offset added is the host address of 1st page of control code
-The location of the <code>num_entries</code> buffer descriptors should be given in a table stored
-at <code>table_ptr</code>. One entry in the table is a set of shim DMA BDs. If there are multiple entries in the table,
-those set of BDS have to be contiguous.
-4th optional arg <code>pad_buf</code> with special type <code>patch_buf</code>, specifies the pad buffer to hold blob for control packet,
-or save/restore L2 as scratchpad. It is a string starting with @, and only consumed by assembler to do host address
-patch at compile time.
+<p>Patches the address fields in shim DMA BDs by adding the value loaded global registers 'offset' and 'offset+1'.
+If the offset is 0xFFFF, the offset added is the host address of 1st page of control code.
+shim DMA BDs are saved in a table pointed by <code>table_ptr</code>. One entry in the table is a set of shim DMA BD.
+<code>num_entries</code> specifies the number of shim DMA BDs in the table.
 Example:</p>
 <pre><code># non-contiguous BDs
-  APPLY_OFFSET_57     @mem21_bd0, 1, 0xFFFF
-  APPLY_OFFSET_57     @mem31_bd0, 1, 0xFFFF
+  APPLY_OFFSET_57     @mem21_bd0, 1, 0
+  APPLY_OFFSET_57     @mem31_bd0, 1, 1
 # ...
 .align              4
 mem21_bd0:
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
+  .long              0x00000080
+  .long              0x00020000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x80000000
+  .long              0x00000000
 .align              4
 mem31_bd0:
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
+  .long              0x00000080
+  .long              0x00020000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x80000000
+  .long              0x00000000
 
 # contiguous BDs
-  APPLY_OFFSET_57     @mem41_bd0, 2, 0xFFFF
+  APPLY_OFFSET_57     @mem41_bd0, 2, 1
 # ...
 .align              4
 mem41_bd0:
   # 1st set BDs
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
+  .long              0x00000080
+  .long              0x00020000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x80000000
+  .long              0x00000000
   # 2nd set BDs
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
-# patch scratchpad to BDs
-  .setpad ctrl_pkt, ctrlpkt.bin
-  .setpad tile_pad, 0x100
-# ...
-  APPLY_OFFSET_57     @mem21_bd0, 1, 3, @ctrl_pkt
-  APPLY_OFFSET_57     @mem21_bd1, 1, 0xFFFF, @tile_pad
-# ...
-  ALIGN             4
-mem21_bd0:
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
-mem21_bd1:
-  WORD              0x00000080
-  WORD              0x00020000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x00000000
-  WORD              0x80000000
-  WORD              0x00000000
+  .long              0x00000080
+  .long              0x00020000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x80000000
+  .long              0x00000000
 </code></pre>
 <p>The patching using this operation needs be done <em>before</em> programming the shim DMA buffer
 descriptors via the uC-DMA.</p>
+<h2 id="apply_offset_sram-0x24">APPLY_OFFSET_SRAM (0x24)</h2>
+<p>Applies an offset in SRAM to one or more shim DMA BD base address fields. (Version for 57-bit base addresses.)</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">0x24</th>
+<th>-</th>
+<th>table_ptr</th>
+<th>num_entries</th>
+<th>-</th>
+<th>address</th>
+<th style="text-align: right;">instruction size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">opcode (8b)</td>
+<td>pad (8b)</td>
+<td>const (16b)</td>
+<td>const (16b)</td>
+<td>pad (16b)</td>
+<td>const (32b)</td>
+<td style="text-align: right;">12B</td>
+</tr>
+</tbody>
+</table>
+<p>Patches address fields in shim DMA BDs by adding the value read from AIE SRAM <code>address</code>.
+The shim DMA BD address should be patched through APPLY_OFFSET_57 first, and this patch should happen after
+the <code>address</code> in the SRAM already has the information of the offset. When this opcode is required,
+APPLY_OFFSET_57 and APPLY_OFFSET_SRAM have same <code>table_ptr</code> and <code>num_entries</code>
+Example:</p>
+<pre><code>  APPLY_OFFSET_57     @wts_shim_bd, 1, 0
+  APPLY_OFFSET_SRAM   @wts_shim_bd, 1, 0x200000
+# ...
+.align              4
+wts_shim_bd:
+  .long              0x00000080
+  .long              0x00020000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x00000000
+  .long              0x80000000
+  .long              0x00000000
+</code></pre>
 <h2 id="add-0x0f">ADD (0x0f)</h2>
 <p>Adds <code>value</code> to the content of register <code>dest</code>.</p>
 <table>
