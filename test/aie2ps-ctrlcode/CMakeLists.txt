@@ -88,3 +88,4 @@ add_subdirectory(decode_opcode)
 
 add_subdirectory(plip)
 add_subdirectory(ctrlcode_filename)
+add_subdirectory(opcode_checks)

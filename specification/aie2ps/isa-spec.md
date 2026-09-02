@@ -669,6 +669,7 @@ For timestamp action, there are 3 word fields in control body,
 | W1   | 00 | 00 | 00 | 00 | high 32 bit timestamp |
 | W2   | 00 | 00 | 00 | 00 | low 32 bit timestamp  |
 ```
+NOTE: Trace is only for internal purpose. It must not appear in user control code. Assembler will throw error if used.
 
 
 ## NOP (0x16)
