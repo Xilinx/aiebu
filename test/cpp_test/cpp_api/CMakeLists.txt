@@ -250,7 +250,13 @@ set_tests_properties("elf_reader_aie4_group" PROPERTIES DEPENDS "aie4_move_ddr_t
 
 # Decompression test: assemble eff_net_coal with compress=zstd, then verify
 # that aiebu::elf produces byte-identical output to the plain ELF.
-# Depends on aie2ps_cpp_eff_net_coal having produced eff_net_coal.elf first.
+# Restricted to x86_64 Linux: aiebu-asm is a build artifact resolved at build
+# time via PATH; on Windows or ARM the tool is unavailable or produces
+# architecture-dependent output incompatible with the byte comparison.
+# CMAKE_GENERATOR_PLATFORM is set to ARM64 when cross-compiling with a
+# Visual Studio generator (-A ARM64); CMAKE_SYSTEM_PROCESSOR reports the
+# host (AMD64) in both cases, so it cannot distinguish cross-compilation.
+if (TARGET aiebu-asm AND NOT CMAKE_GENERATOR_PLATFORM MATCHES "ARM64|arm64")
 add_custom_command(OUTPUT eff_net_coal_compressed.elf
   COMMAND aiebu-asm -t aie2ps_config
     -j "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_coal/config.json"
@@ -271,3 +277,4 @@ add_test(NAME "elf_reader_decompression"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set_tests_properties("elf_reader_decompression" PROPERTIES
   DEPENDS "aie2ps_cpp_eff_net_coal")
+endif()
