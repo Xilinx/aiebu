@@ -207,6 +207,24 @@ static uint16_t get_in_order_page_len(const ELFIO::section* section) {
            (static_cast<uint8_t>(data[page_header_in_order_len_high]) << byte_shift);
 }
 
+// Parse column number from section name and update current_column if changed
+// Parse column number from section name (e.g., ".ctrltext.0.1" -> 0)
+// Section names have column number between first and second dots
+// Returns the parsed column number, or -1 if parsing fails
+int elf_asm_disassembler::parse_section_column(const std::string& section_name) {
+    size_t first_dot = section_name.find('.', 1);
+    if (first_dot != std::string::npos) {
+        size_t second_dot = section_name.find('.', first_dot + 1);
+        if (second_dot != std::string::npos) {
+            std::string col_str = section_name.substr(first_dot + 1, second_dot - first_dot - 1);
+            try {
+                return std::stoi(col_str);
+            } catch (...) { /* ignore parse errors */ }
+        }
+    }
+    return -1;  // Parsing failed
+}
+
 void elf_asm_disassembler::process_sections() {
     auto state = create_disassembler_state();
 
@@ -220,17 +238,10 @@ void elf_asm_disassembler::process_sections() {
             continue;
         if (is_text_section(section_name)) {
             // Parse column from section name like ".ctrltext.0.1" -> column 0
-            size_t first_dot = section_name.find('.', 1);
-            if (first_dot != std::string::npos) {
-                size_t second_dot = section_name.find('.', first_dot + 1);
-                if (second_dot != std::string::npos) {
-                    std::string col_str = section_name.substr(first_dot + 1, second_dot - first_dot - 1);
-                    try {
-                        int col = std::stoi(col_str);
-                        if (columns.empty()) first_column = col;
-                        columns.insert(col);
-                    } catch (...) { /* ignore parse errors */ }
-                }
+            int col = parse_section_column(section_name);
+            if (col != -1) {
+                if (columns.empty()) first_column = col;
+                columns.insert(col);
             }
         }
     }
@@ -256,19 +267,10 @@ void elf_asm_disassembler::process_sections() {
 
         // Check for column change in text sections
         if (is_text_section(section_name)) {
-            size_t first_dot = section_name.find('.', 1);
-            if (first_dot != std::string::npos) {
-                size_t second_dot = section_name.find('.', first_dot + 1);
-                if (second_dot != std::string::npos) {
-                    std::string col_str = section_name.substr(first_dot + 1, second_dot - first_dot - 1);
-                    try {
-                        int section_col = std::stoi(col_str);
-                        if (section_col != current_column) {
-                            m_asm_writer.write_attach_to_group(section_col);
-                            current_column = section_col;
-                        }
-                    } catch (...) { /* ignore parse errors */ }
-                }
+            int section_col = parse_section_column(section_name);
+            if (section_col != -1 && section_col != current_column) {
+                m_asm_writer.write_attach_to_group(section_col);
+                current_column = section_col;
             }
         }
 

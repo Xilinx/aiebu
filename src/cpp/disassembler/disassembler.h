@@ -78,6 +78,7 @@ private:
     void process_pad_section(const ELFIO::section* /*section*/, std::shared_ptr<disassembler_state> /*state*/);
     bool is_text_section(const std::string& section_name) const;
     bool is_data_section(const std::string& section_name) const;
+    int parse_section_column(const std::string& section_name);
 };
 
 // Binary disassembler - handles raw binary files with architecture specification
