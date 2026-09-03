@@ -90,13 +90,16 @@ process(std::shared_ptr<preprocessed_output> input)
                     optimizatiom_level, nullptr, nullptr);
     }
 
-    for (const auto& pair : ctrlpkt_id_map) {
-      auto ctrlpktwriter = std::make_shared<section_writer>(pair.second, code_section::data);
-      fill_controlpkt(ctrlpktwriter, ctrlpkt[pair.second]);
-      fill_control_packet_symbols(ctrlpktwriter, totalsyms);
-      twriter.push_back(ctrlpktwriter);
-    }
   }
+
+  // Write control packet sections once, after all columns are processed.
+  for (const auto& pair : ctrlpkt_id_map) {
+    auto ctrlpktwriter = std::make_shared<section_writer>(pair.second, code_section::data);
+    fill_controlpkt(ctrlpktwriter, ctrlpkt[pair.second]);
+    fill_control_packet_symbols(ctrlpktwriter, totalsyms);
+    twriter.push_back(ctrlpktwriter);
+  }
+
   // Report (only if log level is info or higher)
   if (get_log_level() >= log_level::info)
     m_report.summary(std::cout);
