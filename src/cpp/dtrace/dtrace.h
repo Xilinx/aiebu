@@ -4,10 +4,13 @@
 #ifndef TRACE_H
 #define TRACE_H
 
-// This header file contains the public APIs for creating control buffer, memory buffer, and result file
-
+//The header file contains the APIs for creating dtrace control buffer, memory buffer, and result file
 #include <cstdint>
 #include <string>
+
+namespace ELFIO {
+class elfio;
+}
 
 /*!
  * handle to a dynamic tracing context.
@@ -19,7 +22,7 @@ using dtrace_handle_t = void*;  // NOLINT
  * create_dtrace_handle() - Creates a handle to the dynamic tracing context.
  *
  * @script_file:    Path to script file containing probe and action details.
- * @map_data:       Optional map JSON from the ELF .dump section. Required when
+ * @map_data:       Optional debug information JSON from the ELF. Required when
  *                  the control script uses jprobe or profile; may be empty for
  *                  begin, end, and tracepoint probes.
  * @log_level:      Log level for debugging.
@@ -31,6 +34,24 @@ using dtrace_handle_t = void*;  // NOLINT
 dtrace_handle_t
 create_dtrace_handle(const std::string& script_file, const std::string& map_data, uint32_t log_level,
     uint32_t output_fmt);
+
+/*!
+ * create_dtrace_handle_elf() - Creates a handle to the dynamic tracing from an ELF.
+ *
+ * @script_file:       Path to script file containing probe and action details.
+ * @elf:               Pre-parsed ELFIO object used to extract the debug information.
+ * @kernel_instance:   Kernel instance in "kernel:instance" format.
+ *                     Required for full ELFs; debug information is extracted
+ *                     for that kernel instance. Must be empty for partial ELFs.
+ * @log_level:         Log level for debugging.
+ * @output_fmt:        Output format for result file.
+ *
+ * @return Opaque raw handle to the dynamic tracing context owned by the caller, or NULL on failure.
+ * @note The caller must release this handle by calling destroy_dtrace_handle().
+ */
+dtrace_handle_t
+create_dtrace_handle_elf(const std::string& script_file, const ELFIO::elfio& elf,
+    const std::string& kernel_instance, uint32_t log_level, uint32_t output_fmt);
 
 /*!
  * get_dtrace_col_numbers() - Retrieves the buffer sizes required for dynamic tracing.
