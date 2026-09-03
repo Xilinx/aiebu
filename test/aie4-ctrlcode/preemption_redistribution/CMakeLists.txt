@@ -3,22 +3,28 @@
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+execute_process(
+  COMMAND ${Python3_EXECUTABLE} -c "import yaml"
+  RESULT_VARIABLE PYTHON_YAML_MISSING)
+
 macro(add_preemption_redistribution_read_bd_tests TEST_NAME ELF_NAME TEST_BIN TEST_DIR)
-  add_test(NAME "${TEST_NAME}_read_bd"
-    COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/run.cmake" -o read_bd_output.txt
-            -x ${Python3_EXECUTABLE} --
-            "${AIEBU_SOURCE_DIR}/src/python/aiebu/read_bd.py"
-            "${ELF_NAME}"
-    WORKING_DIRECTORY "${TEST_BIN}")
+  if(NOT PYTHON_YAML_MISSING)
+    add_test(NAME "${TEST_NAME}_read_bd"
+      COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/run.cmake" -o read_bd_output.txt
+              -x ${Python3_EXECUTABLE} --
+              "${AIEBU_SOURCE_DIR}/src/python/aiebu/read_bd.py"
+              "${ELF_NAME}"
+      WORKING_DIRECTORY "${TEST_BIN}")
 
-  add_test(NAME "${TEST_NAME}_read_bd_compare"
-    COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
-            "${TEST_BIN}/read_bd_output.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_DIR}/gold_read_bd.txt"
-    WORKING_DIRECTORY "${TEST_BIN}")
+    add_test(NAME "${TEST_NAME}_read_bd_compare"
+      COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
+              "${TEST_BIN}/read_bd_output.txt"
+              "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_DIR}/gold_read_bd.txt"
+      WORKING_DIRECTORY "${TEST_BIN}")
 
-  set_tests_properties("${TEST_NAME}_read_bd" PROPERTIES DEPENDS "${TEST_NAME}_asm")
-  set_tests_properties("${TEST_NAME}_read_bd_compare" PROPERTIES DEPENDS "${TEST_NAME}_read_bd")
+    set_tests_properties("${TEST_NAME}_read_bd" PROPERTIES DEPENDS "${TEST_NAME}_asm")
+    set_tests_properties("${TEST_NAME}_read_bd_compare" PROPERTIES DEPENDS "${TEST_NAME}_read_bd")
+  endif()
 endmacro()
 
 macro(add_preemption_redistribution_pos_test TEST_DIR TEST_NAME)
