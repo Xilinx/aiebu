@@ -10,8 +10,11 @@
 #include "trace_control.h"
 #endif
 
+#include <elfio/elfio.hpp>
+
 #include <cstdint>
 #include <iostream>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -100,6 +103,38 @@ public:
     static constexpr uint32_t decimal_hexadecimal_base = 0;             // Base for both decimal and hexadecimal numbers
     static constexpr uint32_t label_annotation_length = 10;             // Length of label annotation
     static constexpr uint32_t label_line_length = 4;                    // Length of label line
+};
+
+/**
+ * @class elf_debug_map
+ *
+ * @brief Extracts debug section JSON from ELF binaries for dtrace.
+ *
+ * @details
+ * The elf_debug_map class provides methods to extract the debug section from ELF binaries, 
+ * allowing retrieval of the debug section in JSON format. The class uses the ELFIO library to parse
+ * the ELF files and extract the relevant sections based on the provided kernel instance filter.
+ */
+class elf_debug_map {
+public:
+  explicit elf_debug_map(const ELFIO::elfio& elf);
+
+ // True for full ELF; false for partial ELF.
+  static bool is_group_elf(const ELFIO::elfio& elf);
+
+  // Partial ELF
+  std::string get_debug_section_json() const;
+
+  // Full ELF: ".dump" section for kernel:instance (group-filtered).
+  std::string get_debug_section_json(const std::string& kernel_instance) const;
+
+private:
+  const ELFIO::elfio& m_elf; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+
+  static std::string extract_kernel_name_from_mangled(const std::string& symbol_name);
+
+  std::set<ELFIO::Elf_Half>
+  get_filtered_section_indices(const std::string& kernel_instance_filter) const;
 };
 
 } // namespace dtrace

@@ -12,6 +12,7 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -45,6 +46,61 @@ create_dtrace_handle(const std::string& script_file, const std::string& map_data
             std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config script data";
             return nullptr;
         }
+
+        // Create new dtrace handle
+        auto handle = std::make_unique<dtrace_command_handle>();
+
+        dtrace::set_log_level(log_level);
+        dtrace::set_output_format(output_fmt);
+
+        // Initialize the memory host address map and dtrace compiler control object
+        handle->g_control = std::make_unique<dtrace::control>(script_file, map_data);
+
+        // Returns an opaque raw handle.
+        // Transfer ownership to caller; caller must call destroy_dtrace_handle().
+        return static_cast<dtrace_handle_t>(handle.release());
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what();
+        return nullptr; // Failure
+    }
+}
+
+dtrace_handle_t
+create_dtrace_handle_elf(const std::string& script_file, const ELFIO::elfio& elf,
+    const std::string& kernel_instance, uint32_t log_level, uint32_t output_fmt)
+{
+    try
+    {
+        // Validate script file path
+        if (script_file.empty())
+        {
+            std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config script data";
+            return nullptr;
+        }
+
+        std::string map_data;
+        const dtrace::elf_debug_map debug_map(elf);
+        const bool group_elf = dtrace::elf_debug_map::is_group_elf(elf);
+        if (group_elf) {
+            // Full ELF: kernel instance is required 
+            if (kernel_instance.empty()) {
+                std::cerr << "[DTRACE] [ERROR] : kernel:instance required for full ELF";
+                return nullptr;
+            }
+            map_data = debug_map.get_debug_section_json(kernel_instance);
+        } else {
+            // Partial ELF: kernel instance is not required and should be empty
+            if (!kernel_instance.empty()) {
+                std::cerr << "[DTRACE] [ERROR] : kernel:instance not required for partial ELF";
+                return nullptr;
+            }
+            map_data = debug_map.get_debug_section_json();
+        }
+
+        // Handle setup mirrors create_dtrace_handle(); it will be removed once all callers
+        // have migrated to create_dtrace_handle_elf().
 
         // Create new dtrace handle
         auto handle = std::make_unique<dtrace_command_handle>();
