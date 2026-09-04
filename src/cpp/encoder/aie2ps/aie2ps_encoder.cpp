@@ -93,10 +93,18 @@ process(std::shared_ptr<preprocessed_output> input)
   }
 
   // Write control packet sections once, after all columns are processed.
+  // Filter totalsyms per section, so each ctrlpkt section only receives its
+  // own symbols. A local copy is used to avoid the addend reset in
+  // fill_control_packet_symbols from affecting other sections' symbols.
   for (const auto& pair : ctrlpkt_id_map) {
     auto ctrlpktwriter = std::make_shared<section_writer>(pair.second, code_section::data);
     fill_controlpkt(ctrlpktwriter, ctrlpkt[pair.second]);
-    fill_control_packet_symbols(ctrlpktwriter, totalsyms);
+    std::vector<symbol> section_syms;
+    for (const auto& sym : totalsyms) {
+      if (sym.get_section_name() == pair.second)
+        section_syms.push_back(sym);
+    }
+    fill_control_packet_symbols(ctrlpktwriter, section_syms);
     twriter.push_back(ctrlpktwriter);
   }
 
