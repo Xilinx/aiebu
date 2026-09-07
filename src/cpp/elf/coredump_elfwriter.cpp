@@ -203,6 +203,12 @@ build_aie_dump_hdr_desc(const aie_coredump_meta& meta) const
   return desc;
 }
 
+// GCC 15 emits a false-positive -Wfree-nonheap-object when aggressive
+// inlining of vector::push_back confuses its alias analysis.
+#if defined(__GNUC__) && __GNUC__ >= 15
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+#endif
 std::vector<char>
 coredump_elf_writer::
 finalize() const
@@ -319,6 +325,9 @@ finalize() const
 
   return out;
 }
+#if defined(__GNUC__) && __GNUC__ >= 15
+#pragma GCC diagnostic pop
+#endif
 
 // ---------------------------------------------------------------------------
 // parse_coredump_meta — inverse of build_aie_dump_hdr_desc
