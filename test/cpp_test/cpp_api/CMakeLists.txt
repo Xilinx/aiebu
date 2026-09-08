@@ -248,33 +248,40 @@ add_test(NAME "elf_reader_aie4_group"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set_tests_properties("elf_reader_aie4_group" PROPERTIES DEPENDS "aie4_move_ddr_to_memtile")
 
-# Decompression test: assemble eff_net_coal with compress=zstd, then verify
+# Decompression test: assemble vadd with compress=zstd, then verify
 # that aiebu::elf produces byte-identical output to the plain ELF.
-# Restricted to x86_64 Linux: aiebu-asm is a build artifact resolved at build
-# time via PATH; on Windows or ARM the tool is unavailable or produces
-# architecture-dependent output incompatible with the byte comparison.
-# CMAKE_GENERATOR_PLATFORM is set to ARM64 when cross-compiling with a
-# Visual Studio generator (-A ARM64); CMAKE_SYSTEM_PROCESSOR reports the
-# host (AMD64) in both cases, so it cannot distinguish cross-compilation.
+# Uses aie4_config/vadd (merged section format) — produces zero assembler
+# warnings, unlike aie2ps_config (legacy per-page warning) or 1col_preempt
+# (apply_offset_57 arg-index warnings).  MSBuild promotes any assembler
+# warning to a build warning, so we use a clean fixture.
+# Restricted to non-ARM64 builds: CMAKE_GENERATOR_PLATFORM is set to ARM64
+# when cross-compiling with -A ARM64 and is empty on native builds.
 if (TARGET aiebu-asm AND NOT CMAKE_GENERATOR_PLATFORM MATCHES "ARM64|arm64")
-add_custom_command(OUTPUT eff_net_coal_compressed.elf
-  COMMAND aiebu-asm -t aie2ps_config
-    -j "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_coal/config.json"
+add_custom_command(OUTPUT vadd_plain.elf
+  COMMAND aiebu-asm -t aie4_config
+    -j "${AIEBU_SOURCE_DIR}/test/aie4-ctrlcode/vadd/config.json"
+    -f disabledump
+    -o "${CMAKE_CURRENT_BINARY_DIR}/vadd_plain.elf"
+  COMMENT "Assembling plain vadd ELF for elf_reader decompression test"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  VERBATIM)
+add_custom_command(OUTPUT vadd_compressed.elf
+  COMMAND aiebu-asm -t aie4_config
+    -j "${AIEBU_SOURCE_DIR}/test/aie4-ctrlcode/vadd/config.json"
     -f disabledump -f "compress=zstd:3"
-    -o "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal_compressed.elf"
-  DEPENDS aie2psbins
-  COMMENT "Assembling compressed eff_net_coal ELF for elf_reader decompression test"
+    -o "${CMAKE_CURRENT_BINARY_DIR}/vadd_compressed.elf"
+  COMMENT "Assembling compressed vadd ELF for elf_reader decompression test"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   VERBATIM)
 add_custom_target(elf_reader_compressed_elf ALL
-  DEPENDS eff_net_coal_compressed.elf)
+  DEPENDS vadd_plain.elf vadd_compressed.elf)
 
 add_test(NAME "elf_reader_decompression"
   COMMAND ${ELF_READER_TESTNAME}
     --compressed
-    "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal_compressed.elf"
-    "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal.elf"
+    "${CMAKE_CURRENT_BINARY_DIR}/vadd_compressed.elf"
+    "${CMAKE_CURRENT_BINARY_DIR}/vadd_plain.elf"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set_tests_properties("elf_reader_decompression" PROPERTIES
-  DEPENDS "aie2ps_cpp_eff_net_coal")
+  DEPENDS "elf_reader_compressed_elf")
 endif()
