@@ -3,6 +3,7 @@
 
 // opcode / source lookup by PC and page
 #include "tools/debug_tools.h"
+#include "tools/dwarf_reader.h"
 #include "aiebu/aiebu_decompress.h"
 #include "aiebu/aiebu_error.h"
 #include "elf/aie_elf_constants.h"
@@ -87,6 +88,34 @@ write_opcode_information(std::ostream& stream, const std::string& filename,
   const uint64_t page_length = page_index * k_page_length;
   if (pc > k_max_page_index * k_page_length - page_length)
     throw error(error::error_code::invalid_input, "PC and page index overflow when computing page offset");
+
+  // ── DWARF path ────────────────────────────────────────────────────────────
+  // For merged-format ELFs with DWARF v5 debug sections (no .dump present).
+  if (has_dwarf()) {
+    const dwarf_reader* dr = get_dwarf_reader();
+    const uint32_t offset32 = static_cast<uint32_t>(pc);
+    const uint32_t page32   = static_cast<uint32_t>(page_index);
+    const dwarf_debug_row row = dr->find_row(uc_index, page32, offset32);
+
+    stream << "ELF File:       " << filename << '\n';
+    stream << "PC:             " << format_hex(pc) << '\n';
+    stream << "Opcode Information:\n";
+
+    if (!row.file.empty() && row.line != 0) {
+      // DWARF provides file/line but not opcode_name/size — those come from ISA walk
+      // via the AIEDebug path.  For the debug_tools simple path, report what we have.
+      stream << "Opcode:         UNKNOWN\n";
+      stream << "Opcode Size:    0x0\n";
+      stream << "uC Index:       " << format_hex(static_cast<uint64_t>(uc_index)) << '\n';
+      stream << "Page Index:     " << format_hex(page_index) << '\n';
+      stream << "Page Offset:    " << format_hex(static_cast<uint64_t>(offset32)) << '\n';
+      stream << "Line:           " << row.line << '\n';
+      stream << "File:           " << row.file << '\n';
+    } else {
+      stream << "Not found!\n";
+    }
+    return;
+  }
 
   // Extract .dump section from ELF buffer
   const auto& debug_data = get_dump_data();
@@ -533,8 +562,11 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
 /**
  * AIEDebug::get_opcode_information() - Decode the opcode at (uc_idx, page_idx, offset).
  *
- * Prefers the .dump section (richer output: source file, line number) and falls
- * back to ISA binary walk when no dump is present.
+ * Priority:
+ *   1. .dump section (legacy): opcode name, args, source file and line all available.
+ *   2. DWARF v5 .debug_* sections: source file and line from dwarf_reader;
+ *      opcode name and args from ISA binary walk.
+ *   3. ISA binary walk only: opcode name and args; no source info.
  * Returns a structured opcode_information; the caller formats and presents it.
  */
 opcode_information
@@ -548,6 +580,7 @@ AIEDebug::get_opcode_information(const std::string& kernel_name,
   if (name_id == UINT32_MAX)
     return {};
 
+  // 1. Legacy .dump path
   const std::string dump_json = get_dump_json_from_elf(name_id);
   if (!dump_json.empty()) {
     const opcode_information result = decode_from_dump(dump_json, uc_idx, page_idx, offset);
@@ -561,7 +594,20 @@ AIEDebug::get_opcode_information(const std::string& kernel_name,
     return isa_result;
   }
 
-  return decode_opcode(uc_idx, page_idx, offset, name_id);
+  // 2. ISA binary walk for opcode name/args; supplement with DWARF for source info.
+  opcode_information result = decode_opcode(uc_idx, page_idx, offset, name_id);
+  if (result.found) {
+    const std::string suffix = (name_id != UINT32_MAX) ? "." + std::to_string(name_id) : "";
+    dwarf_reader dr(m_elf, suffix);
+    if (dr.has_dwarf()) {
+      const dwarf_debug_row row = dr.find_row(uc_idx, page_idx, offset);
+      if (!row.file.empty() && row.line != 0) {
+        result.source_file = row.file;
+        result.line        = row.line;
+      }
+    }
+  }
+  return result;
 }
 
 } // namespace aiebu

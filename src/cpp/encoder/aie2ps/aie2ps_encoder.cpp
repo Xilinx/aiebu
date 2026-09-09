@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 #include "aie2ps_encoder.h"
+#include "dwarf_writer.h"
 
 #include "aiebu/aiebu_error.h"
 #include "logger.h"
@@ -119,31 +120,58 @@ process(std::shared_ptr<preprocessed_output> input)
     file.close();
   }
 
-  // Optional binary dump if debug flag is not disabled.
-  // Stream JSON directly into the section vector via a thin streambuf shim.
+  // Debug section emission: DWARF v5 for merged-format ELFs, legacy .dump otherwise.
   if (m_dump_flag != asm_dump_flag::disable) {
-    auto dumpwriter = std::make_shared<section_writer>(".dump", code_section::data);
-    std::vector<uint8_t> dump_data;
-    {
-      struct vec_streambuf : std::streambuf {
-        std::vector<uint8_t>& buf;
-        explicit vec_streambuf(std::vector<uint8_t>& b) : buf(b) {}
-        std::streamsize xsputn(const char* s, std::streamsize n) override {
-          buf.insert(buf.end(), reinterpret_cast<const uint8_t*>(s),
-                     reinterpret_cast<const uint8_t*>(s) + n);
-          return n;
-        }
-        int overflow(int c) override {
-          if (c != EOF) buf.push_back(static_cast<uint8_t>(c));
-          return c;
-        }
-      } vsb(dump_data);
-      std::ostream os(&vsb);
-      m_debug.write_json(os);
+    if (use_merged_ctrltext_sections()) {
+      // Merged/config ELF path: emit DWARF v5 .debug_* sections instead of .dump.
+      // For config ELFs the CU name is set by asm_config_encoder via set_cu_name()
+      // before process() is called. Fall back to "aiebu" for non-config ELFs.
+      const std::string cu_name = m_cu_name.empty() ? "aiebu" : m_cu_name;
+      dwarf_writer dw;
+      dwarf_sections ds = dw.build(cu_name, m_debug);
+
+      // Helper to push a DWARF section writer (no PT_LOAD, no UID contribution).
+      auto push_dbg = [&](const std::string& name, std::vector<uint8_t>& data) {
+        if (data.empty()) return;
+        auto w = std::make_shared<section_writer>(name, code_section::debug);
+        w->set_data(data);
+        twriter.push_back(w);
+      };
+
+      push_dbg(".debug_abbrev", ds.debug_abbrev);
+      push_dbg(".debug_str",    ds.debug_str);
+      push_dbg(".debug_line",   ds.debug_line);
+      push_dbg(".debug_info",   ds.debug_info);
+
+      log_info() << "DWARF .debug_info size: "   << ds.debug_info.size()   << " bytes\n";
+      log_info() << "DWARF .debug_line size: "   << ds.debug_line.size()   << " bytes\n";
+      log_info() << "DWARF .debug_str size: "    << ds.debug_str.size()    << " bytes\n";
+      log_info() << "DWARF .debug_abbrev size: " << ds.debug_abbrev.size() << " bytes\n";
+    } else {
+      // Legacy per-page ELF path: emit JSON .dump section as before.
+      auto dumpwriter = std::make_shared<section_writer>(".dump", code_section::data);
+      std::vector<uint8_t> dump_data;
+      {
+        struct vec_streambuf : std::streambuf {
+          std::vector<uint8_t>& buf;
+          explicit vec_streambuf(std::vector<uint8_t>& b) : buf(b) {}
+          std::streamsize xsputn(const char* s, std::streamsize n) override {
+            buf.insert(buf.end(), reinterpret_cast<const uint8_t*>(s),
+                       reinterpret_cast<const uint8_t*>(s) + n);
+            return n;
+          }
+          int overflow(int c) override {
+            if (c != EOF) buf.push_back(static_cast<uint8_t>(c));
+            return c;
+          }
+        } vsb(dump_data);
+        std::ostream os(&vsb);
+        m_debug.write_json(os);
+      }
+      log_info() << ".dump JSON size: " << dump_data.size() << " bytes\n";
+      dumpwriter->set_data(dump_data);
+      twriter.push_back(dumpwriter);
     }
-    log_info() << ".dump JSON size: " << dump_data.size() << " bytes\n";
-    dumpwriter->set_data(dump_data);
-    twriter.push_back(dumpwriter);
   }
   return twriter;
 }

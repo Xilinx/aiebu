@@ -181,6 +181,24 @@ add_text_data_section(const std::vector<std::shared_ptr<writer>>& mwriter, std::
     if (buffer->get_data().size() == 0)
       continue;
 
+    // DWARF .debug_* sections: no SHF_ALLOC, no PT_LOAD, no UID contribution.
+    // The group-ELF suffix (index_string) is appended so each instance gets
+    // distinct section names, e.g. ".debug_info.0", ".debug_info.1".
+    if (buffer->get_type() == code_section::debug) {
+      elf_section dbg_sec;
+      dbg_sec.set_name(buffer->get_name() + index_string);
+      dbg_sec.set_type(ELFIO::SHT_PROGBITS);
+      dbg_sec.set_flags(0);   // no SHF_ALLOC
+      dbg_sec.set_align(1);
+      dbg_sec.set_link("");
+      dbg_sec.set_info(0);
+      dbg_sec.set_addr(0);
+      dbg_sec.set_buffer(buffer->take_data_for_emit());
+      section_index_list.push_back(add_section(dbg_sec)->get_index());
+      // No PT_LOAD segment and no UID update for DWARF sections
+      continue;
+    }
+
     // Size must be captured before take_data_for_emit() clears the writer buffer;
     // prev_seg_size drives the next section's virtual address via get_virtual_addr().
     const uint64_t emit_size = buffer->get_data().size();
