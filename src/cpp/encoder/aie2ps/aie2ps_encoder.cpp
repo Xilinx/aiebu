@@ -131,17 +131,18 @@ process(std::shared_ptr<preprocessed_output> input)
       dwarf_sections ds = dw.build(cu_name, m_debug);
 
       // Helper to push a DWARF section writer (no PT_LOAD, no UID contribution).
-      auto push_dbg = [&](const std::string& name, std::vector<uint8_t>& data) {
+      // Takes data by value so each section buffer is moved into the writer.
+      auto push_dbg = [&](const std::string& name, std::vector<uint8_t> data) {
         if (data.empty()) return;
         auto w = std::make_shared<section_writer>(name, code_section::debug);
         w->set_data(data);
         twriter.push_back(w);
       };
 
-      push_dbg(".debug_abbrev", ds.debug_abbrev);
-      push_dbg(".debug_str",    ds.debug_str);
-      push_dbg(".debug_line",   ds.debug_line);
-      push_dbg(".debug_info",   ds.debug_info);
+      push_dbg(".debug_abbrev", std::move(ds.debug_abbrev));
+      push_dbg(".debug_str",    std::move(ds.debug_str));
+      push_dbg(".debug_line",   std::move(ds.debug_line));
+      push_dbg(".debug_info",   std::move(ds.debug_info));
 
       log_info() << "DWARF .debug_info size: "   << ds.debug_info.size()   << " bytes\n";
       log_info() << "DWARF .debug_line size: "   << ds.debug_line.size()   << " bytes\n";

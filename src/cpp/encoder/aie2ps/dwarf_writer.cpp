@@ -60,6 +60,23 @@ static constexpr uint8_t ABBREV_COMPILE_UNIT = 1;
 static constexpr uint8_t ABBREV_MODULE       = 2;
 static constexpr uint8_t ABBREV_LABEL        = 3;
 
+// ─── LEB128 encoding constants ──────────────────────────────────────────────
+
+static constexpr uint8_t  LEB128_VALUE_MASK = 0x7F; // low 7 bits of each byte
+static constexpr uint8_t  LEB128_MORE_BIT   = 0x80; // continuation bit
+static constexpr uint8_t  LEB128_SIGN_BIT   = 0x40; // sign bit of last group
+static constexpr unsigned LEB128_SHIFT      = 7;    // bits per LEB128 group
+
+// ─── Byte-manipulation constants ────────────────────────────────────────────
+
+static constexpr unsigned SHIFT_BYTE1 = 8;
+static constexpr unsigned SHIFT_BYTE2 = 16;
+static constexpr unsigned SHIFT_BYTE3 = 24;
+static constexpr uint32_t LOW_BYTE    = 0xFF;
+
+// Maximum value of a special opcode byte
+static constexpr uint8_t MAX_SPECIAL_OPCODE = 255;
+
 // ─── Little-endian write helpers ────────────────────────────────────────────
 
 void dwarf_writer::append_u8(std::vector<uint8_t>& buf, uint8_t v)
@@ -69,48 +86,48 @@ void dwarf_writer::append_u8(std::vector<uint8_t>& buf, uint8_t v)
 
 void dwarf_writer::append_u16(std::vector<uint8_t>& buf, uint16_t v)
 {
-  buf.push_back(static_cast<uint8_t>(v & 0xFF));
-  buf.push_back(static_cast<uint8_t>((v >> 8) & 0xFF));
+  buf.push_back(static_cast<uint8_t>(v & LOW_BYTE));
+  buf.push_back(static_cast<uint8_t>((v >> SHIFT_BYTE1) & LOW_BYTE));
 }
 
 void dwarf_writer::append_u32(std::vector<uint8_t>& buf, uint32_t v)
 {
-  buf.push_back(static_cast<uint8_t>(v & 0xFF));
-  buf.push_back(static_cast<uint8_t>((v >>  8) & 0xFF));
-  buf.push_back(static_cast<uint8_t>((v >> 16) & 0xFF));
-  buf.push_back(static_cast<uint8_t>((v >> 24) & 0xFF));
+  buf.push_back(static_cast<uint8_t>(v & LOW_BYTE));
+  buf.push_back(static_cast<uint8_t>((v >> SHIFT_BYTE1) & LOW_BYTE));
+  buf.push_back(static_cast<uint8_t>((v >> SHIFT_BYTE2) & LOW_BYTE));
+  buf.push_back(static_cast<uint8_t>((v >> SHIFT_BYTE3) & LOW_BYTE));
 }
 
 void dwarf_writer::patch_u32(std::vector<uint8_t>& buf, size_t offset, uint32_t v)
 {
-  buf[offset + 0] = static_cast<uint8_t>(v & 0xFF);
-  buf[offset + 1] = static_cast<uint8_t>((v >>  8) & 0xFF);
-  buf[offset + 2] = static_cast<uint8_t>((v >> 16) & 0xFF);
-  buf[offset + 3] = static_cast<uint8_t>((v >> 24) & 0xFF);
+  buf[offset + 0] = static_cast<uint8_t>(v & LOW_BYTE);
+  buf[offset + 1] = static_cast<uint8_t>((v >> SHIFT_BYTE1) & LOW_BYTE);
+  buf[offset + 2] = static_cast<uint8_t>((v >> SHIFT_BYTE2) & LOW_BYTE);
+  buf[offset + 3] = static_cast<uint8_t>((v >> SHIFT_BYTE3) & LOW_BYTE);
 }
 
 void dwarf_writer::append_uleb128(std::vector<uint8_t>& buf, uint64_t v)
 {
-  do {
-    uint8_t byte = v & 0x7F;
-    v >>= 7;
-    if (v != 0) byte |= 0x80;
+  while (true) {
+    auto byte = static_cast<uint8_t>(v & LEB128_VALUE_MASK);
+    v >>= LEB128_SHIFT;
+    if (v != 0) byte |= LEB128_MORE_BIT;
     buf.push_back(byte);
-  } while (v != 0);
+    if (v == 0) break;
+  }
 }
 
 void dwarf_writer::append_sleb128(std::vector<uint8_t>& buf, int64_t v)
 {
-  bool more = true;
-  while (more) {
-    uint8_t byte = static_cast<uint8_t>(v & 0x7F);
-    v >>= 7;
+  while (true) {
+    auto byte = static_cast<uint8_t>(v & LEB128_VALUE_MASK);
+    v >>= LEB128_SHIFT;
     // For signed LEB128 we need arithmetic shift; check if sign extension is correct.
-    if ((v == 0 && (byte & 0x40) == 0) || (v == -1 && (byte & 0x40) != 0))
-      more = false;
-    else
-      byte |= 0x80;
+    const bool done = (v == 0 && (byte & LEB128_SIGN_BIT) == 0) ||
+                      (v == -1 && (byte & LEB128_SIGN_BIT) != 0);
+    if (!done) byte |= LEB128_MORE_BIT;
     buf.push_back(byte);
+    if (done) break;
   }
 }
 
@@ -253,17 +270,17 @@ dwarf_writer::build_line_table(
       reg_file = file_idx;
     }
 
-    const int32_t line_delta = line_num - reg_line;
-    const int32_t addr_delta = static_cast<int32_t>(addr) - static_cast<int32_t>(reg_address);
+    const auto line_delta = static_cast<int32_t>(line_num - reg_line);
+    const auto addr_delta = static_cast<int32_t>(addr) - static_cast<int32_t>(reg_address);
 
     // Try special opcode (encodes both address and line advance in one byte).
     // Special opcode = (line_delta - LINE_BASE) + (addr_delta * LINE_RANGE) + OPCODE_BASE
     // Valid when result fits in [OPCODE_BASE, 255].
-    int32_t line_enc = line_delta - LINE_BASE;
+    const auto line_enc = static_cast<int32_t>(line_delta - LINE_BASE);
     if (line_enc >= 0 && line_enc < static_cast<int32_t>(LINE_RANGE) && addr_delta >= 0) {
-      int32_t special = line_enc + (addr_delta * static_cast<int32_t>(LINE_RANGE))
-                        + static_cast<int32_t>(OPCODE_BASE);
-      if (special >= static_cast<int32_t>(OPCODE_BASE) && special <= 255) {
+      const auto special = static_cast<int32_t>(line_enc + (addr_delta * static_cast<int32_t>(LINE_RANGE))
+                        + static_cast<int32_t>(OPCODE_BASE));
+      if (special >= static_cast<int32_t>(OPCODE_BASE) && special <= static_cast<int32_t>(MAX_SPECIAL_OPCODE)) {
         append_u8(program, static_cast<uint8_t>(special));
         reg_address = addr;
         reg_line    = line_num;
@@ -293,9 +310,9 @@ dwarf_writer::build_line_table(
       // DWARF address = page_index * DWARF_PAGE_SIZE + byte_offset_within_page.
       // Line::get_lowpc() already stores this encoding: it is set in
       // aie2ps_encoder.cpp as pc_low = pagenum * DWARF_PAGE_SIZE + textwriter->tell().
-      const uint32_t addr = static_cast<uint32_t>(line->get_lowpc());
+      const auto addr = static_cast<uint32_t>(line->get_lowpc());
 
-      const int32_t lnum = static_cast<int32_t>(line->get_linenumber());
+      const auto lnum = static_cast<int32_t>(line->get_linenumber());
       if (lnum <= 0) continue;
 
       emit_row(addr, lnum, file_idx);
@@ -492,7 +509,7 @@ dwarf_writer::build(const std::string& cu_name, const Debug& debug)
     uint32_t max_end = 0;
     for (const auto& func : col_funcs[i]) {
       for (const auto& line : func->get_textlines()) {
-        const uint32_t end = static_cast<uint32_t>(line->get_lowpc()) +
+        const auto end = static_cast<uint32_t>(line->get_lowpc()) +
             static_cast<uint32_t>(line->get_highpc() - line->get_lowpc() + 1);
         if (end > max_end) max_end = end;
       }

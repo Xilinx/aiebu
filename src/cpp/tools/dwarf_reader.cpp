@@ -22,6 +22,13 @@ namespace aiebu {
 
 using namespace dwarf5;
 
+// ─── LEB128 encoding constants ───────────────────────────────────────────────
+
+static constexpr uint8_t  LEB128_VALUE_MASK = 0x7F;
+static constexpr uint8_t  LEB128_MORE_BIT   = 0x80;
+static constexpr uint8_t  LEB128_SIGN_BIT   = 0x40;
+static constexpr unsigned LEB128_SHIFT      = 7;
+
 // ─── Raw-read helpers ────────────────────────────────────────────────────────
 
 const uint8_t* dwarf_reader::read_u8(const uint8_t* p, uint8_t& v)
@@ -47,10 +54,10 @@ const uint8_t* dwarf_reader::read_uleb128(const uint8_t* p, const uint8_t* end, 
   v = 0;
   unsigned shift = 0;
   while (p < end) {
-    uint8_t byte = *p++;
-    v |= (static_cast<uint64_t>(byte & 0x7F) << shift);
-    shift += 7;
-    if ((byte & 0x80) == 0) break;
+    const uint8_t byte = *p++;
+    v |= (static_cast<uint64_t>(byte & LEB128_VALUE_MASK) << shift);
+    shift += LEB128_SHIFT;
+    if ((byte & LEB128_MORE_BIT) == 0) break;
   }
   return p;
 }
@@ -62,12 +69,12 @@ const uint8_t* dwarf_reader::read_sleb128(const uint8_t* p, const uint8_t* end, 
   uint8_t byte = 0;
   while (p < end) {
     byte = *p++;
-    v |= (static_cast<int64_t>(byte & 0x7F) << shift);
-    shift += 7;
-    if ((byte & 0x80) == 0) break;
+    v |= (static_cast<int64_t>(byte & LEB128_VALUE_MASK) << shift);
+    shift += LEB128_SHIFT;
+    if ((byte & LEB128_MORE_BIT) == 0) break;
   }
   // Sign extend
-  if (shift < 64 && (byte & 0x40))
+  if (shift < 64U && (byte & LEB128_SIGN_BIT) != 0)
     v |= -(static_cast<int64_t>(1) << shift);
   return p;
 }
@@ -120,11 +127,11 @@ dwarf_reader::get_section_data(const ELFIO::elfio& elf,
 static size_t form_fixed_size(uint64_t form)
 {
   switch (form) {
-    case DW_FORM_addr:       return 4;
-    case DW_FORM_strp:       return 4;
-    case DW_FORM_data2:      return 2;
-    case DW_FORM_data4:      return 4;
+    case DW_FORM_addr:
+    case DW_FORM_strp:
+    case DW_FORM_data4:
     case DW_FORM_sec_offset: return 4;
+    case DW_FORM_data2:      return 2;
     default:                 return 0; // unknown / variable
   }
 }
@@ -141,7 +148,7 @@ dwarf_reader::parse_debug_info(
   if (p + 11 > end) return; // Too small for a v5 CU header
 
   // Parse DWARF v5 CU header
-  uint32_t unit_length = 0;
+  auto unit_length = uint32_t{0};
   p = read_u32(p, unit_length);
   const uint8_t* cu_end = p + unit_length;
   if (cu_end > end) return;
@@ -274,7 +281,7 @@ dwarf_reader::parse_line_table(
   if (p + 10 > end) return;
 
   // Parse prologue
-  uint32_t total_length = 0;
+  auto total_length = uint32_t{0};
   p = read_u32(p, total_length);
   const uint8_t* stmt_end = p + total_length;
   if (stmt_end > end) return;
@@ -383,7 +390,7 @@ dwarf_reader::parse_line_table(
         const uint8_t* ext_end = p + ext_len;
         if (ext_len == 0 || ext_end > stmt_end) break;
         uint8_t ext_op = 0;
-        p = read_u8(p, ext_op);
+        read_u8(p, ext_op);
         if (ext_op == DW_LNE_end_sequence) {
           emit_row();
           end_seq = true;
@@ -411,7 +418,7 @@ dwarf_reader::parse_line_table(
           case DW_LNS_set_file: {
             uint64_t fi = 0;
             p = read_uleb128(p, stmt_end, fi);
-            reg_file = static_cast<uint32_t>(fi);
+            reg_file = static_cast<uint32_t>(fi); // NOLINT(bugprone-narrowing-conversions)
             break;
           }
           case DW_LNS_set_column: {
@@ -420,15 +427,15 @@ dwarf_reader::parse_line_table(
             (void)col;
             break;
           }
-          case DW_LNS_negate_stmt:
-            break; // is_stmt not used by this consumer
+          case DW_LNS_negate_stmt:   // is_stmt not used by this consumer
           case DW_LNS_set_basic_block:
             break;
           case DW_LNS_const_add_pc: {
-            // advance PC by: ((255 - opcode_base) / line_range) * min_inst_len
+            // advance PC by: ((MAX_SPECIAL_OPCODE - opcode_base) / line_range) * min_inst_len
+            static constexpr uint8_t MAX_SPECIAL_OPCODE = 255;
             if (line_range > 0) {
-              uint32_t advance = static_cast<uint32_t>(
-                  ((255 - opcode_base) / line_range) * min_inst_len);
+              auto advance = static_cast<uint32_t>(
+                  ((MAX_SPECIAL_OPCODE - opcode_base) / line_range) * min_inst_len);
               reg_addr += advance;
             }
             break;
@@ -461,9 +468,10 @@ dwarf_reader::parse_line_table(
         }
       } else {
         // Special opcode
-        const uint8_t adjusted = opcode - opcode_base;
-        const int32_t line_inc = line_base + static_cast<int32_t>(adjusted % line_range);
-        const uint32_t addr_inc = static_cast<uint32_t>((adjusted / line_range) * min_inst_len);
+        if (line_range == 0) break; // guard against degenerate prologue
+        const auto adjusted = static_cast<uint8_t>(opcode - opcode_base);
+        const auto line_inc = static_cast<int32_t>(line_base) + static_cast<int32_t>(adjusted % line_range);
+        const auto addr_inc = static_cast<uint32_t>((adjusted / line_range) * min_inst_len);
         reg_addr += addr_inc;
         reg_line += line_inc;
         emit_row();
