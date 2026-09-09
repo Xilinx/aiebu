@@ -27,6 +27,11 @@ public:
   Line(uint32_t linenumber, offset_type high_pc, offset_type low_pc, const std::string& opcode, int annotation_index)
       : m_linenumber(linenumber), m_highpc(high_pc), m_lowpc(low_pc), m_opcode(opcode), m_annotation_index(annotation_index) {}
 
+  uint32_t get_linenumber() const { return m_linenumber; }
+  offset_type get_lowpc() const { return m_lowpc; }
+  offset_type get_highpc() const { return m_highpc; }
+  int get_annotation_index() const { return m_annotation_index; }
+
   // Writes JSON directly to out, avoiding a per-line heap allocation.
   void write_json(std::ostream& out, int sno, uint32_t column, pageid_type page_num,
                   const std::string& filename, const std::vector<annotation_type>& annotations) const {
@@ -118,6 +123,17 @@ public:
   void add_dataline(const std::string& func, uint32_t line, offset_type hi, offset_type lo, const std::string& opcode, int ann) {
     functions.at(func)->add_dataline(std::make_shared<Line>(line, hi, lo, opcode, ann));
   }
+
+  // Returns all functions in insertion order for DWARF emission.
+  std::vector<std::shared_ptr<Function>> get_functions_in_order() const {
+    std::vector<std::shared_ptr<Function>> result;
+    result.reserve(insertion_order.size());
+    for (const auto& key : insertion_order)
+      result.push_back(functions.at(key));
+    return result;
+  }
+
+  const std::vector<annotation_type>& get_annotations() const { return m_annotation_list; }
 
   // Serialises the entire debug array directly into out,
   // never building a large in-memory JSON tree.

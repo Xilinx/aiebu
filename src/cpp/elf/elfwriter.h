@@ -118,6 +118,7 @@ protected:  // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
   void init_dynamic_sections();
   std::vector<uint32_t> process_common_helper(const std::vector<std::shared_ptr<writer>>& mwriter, const std::string& index_string);
   void process_global_custom_sections_if_any(const std::vector<std::shared_ptr<writer>>& global_sections);
+  void process_global_debug_sections_if_any(const std::vector<std::shared_ptr<writer>>& global_sections);
   std::string get_group_name(uint32_t index) {return ".group."+ std::to_string(index); }
   std::string get_section_prefix(uint32_t index) {return "."+ std::to_string(index); }
   void add_group(const std::string& name, const std::vector<uint32_t>& member, ELFIO::Elf_Word info_index);

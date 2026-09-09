@@ -155,6 +155,7 @@ class config_writer_base : public writer
 {
 protected:
   std::vector<std::shared_ptr<writer>> m_global_custom_sections;
+  std::vector<std::shared_ptr<writer>> m_global_debug_sections;
 
 public:
   void add_global_custom_section(std::shared_ptr<writer> val)
@@ -165,6 +166,16 @@ public:
   const std::vector<std::shared_ptr<writer>>& get_global_custom_sections() const
   {
     return m_global_custom_sections;
+  }
+
+  void add_global_debug_section(std::shared_ptr<writer> val)
+  {
+    m_global_debug_sections.emplace_back(std::move(val));
+  }
+
+  const std::vector<std::shared_ptr<writer>>& get_global_debug_sections() const
+  {
+    return m_global_debug_sections;
   }
 
   void add_section_writers_from_custom_section_map(

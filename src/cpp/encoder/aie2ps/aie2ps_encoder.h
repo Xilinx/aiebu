@@ -5,10 +5,12 @@
 #define _AIEBU_ENCODER_AIE2PS_ENCODER_H_
 
 #include <memory>
+#include <utility>
 
 #include "encoder.h"
 #include "writer.h"
 #include "aie2ps_preprocessed_output.h"
+#include "dwarf_writer.h"
 #include "ops.h"
 #include "specification/aie2ps/isa.h"
 #include "report.h"
@@ -86,6 +88,10 @@ public:
 
   std::vector<std::shared_ptr<writer>> get_writers() { return twriter; }
 
+  // Transfer the Debug object out of this encoder so asm_config_encoder can
+  // accumulate per-instance data for the single shared DWARF build pass.
+  Debug take_debug() { return std::move(m_debug); }
+
   virtual void check_partition_info(std::shared_ptr<const partition_info> source, std::shared_ptr<const partition_info> dest)
   {
     if(dest->get_numcolumn() != source->get_numcolumn())
@@ -144,6 +150,11 @@ public:
 
     output_writer->add_section_writers_from_custom_section_map(tinput->get_global_custom_sections());
 
+    // Collect (cu_name, Debug) pairs for the single shared DWARF build pass.
+    // We accumulate these while running the per-instance encoders and build
+    // DWARF once after all instances are processed.
+    std::vector<std::pair<std::string, Debug>> cu_debugs;
+
     for (auto& [kernel, instances] : tinput->get_kernel_map()) {
       for(auto& [iname, instance] : instances)
       {
@@ -153,8 +164,35 @@ public:
         encoder_object.check_aie_row_topology_info(instance->get_aie_row_topology_info(), rinfo_first_instance);
         auto instance_writers = encoder_object.process(instance);
         output_writer->add_kernel_map(kernel, iname, instance_writers);
+        if (m_merged_ctrltext_elf) {
+          Debug dbg = encoder_object.take_debug();
+          // Only include this CU if debug data was collected (dump flag was set).
+          if (!dbg.get_functions_in_order().empty())
+            cu_debugs.emplace_back(kernel + ":" + iname, std::move(dbg));
+        }
       }
     }
+
+    // Build the shared DWARF sections once for all CUs (standard single-section
+    // layout: one .debug_info/.debug_str/.debug_line/.debug_abbrev per ELF).
+    // These sections are written outside all COMDAT groups so that standard
+    // DWARF consumers (llvm-dwarfdump, gdb, dtrace) find them via their names.
+    if (!cu_debugs.empty()) {
+      dwarf_writer dw;
+      dwarf_sections ds = dw.build(cu_debugs);
+
+      auto push_dbg = [&](const std::string& name, std::vector<uint8_t> data) {
+        if (data.empty()) return;
+        auto w = std::make_shared<section_writer>(name, code_section::debug, std::move(data));
+        output_writer->add_global_debug_section(std::move(w));
+      };
+
+      push_dbg(".debug_abbrev", std::move(ds.debug_abbrev));
+      push_dbg(".debug_str",    std::move(ds.debug_str));
+      push_dbg(".debug_line",   std::move(ds.debug_line));
+      push_dbg(".debug_info",   std::move(ds.debug_info));
+    }
+
     return twriter;
   }
 };

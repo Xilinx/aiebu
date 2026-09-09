@@ -37,6 +37,8 @@ add_library(aiebu_library_objects OBJECT
   tools/debug_tools.cpp
   tools/trace_probe.cpp
   tools/opcode_information.cpp
+  encoder/aie2ps/dwarf_writer.cpp
+  tools/dwarf_reader.cpp
   )
 
 # Remove globle includes in case of submodule XRT as there are conflicts

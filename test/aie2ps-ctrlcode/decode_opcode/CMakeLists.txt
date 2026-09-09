@@ -29,11 +29,13 @@ set(UC_IDX               "0")
 set(PAGE_IDX             "2")
 set(OFFSET               "148")
 
-# Dump path expected values
-# "operation" in dump JSON is lowercased full text "name args"; decode_from_dump splits on first space.
+# DWARF path expected values (merged ELFs now emit DWARF v5 instead of .dump).
+# opcode name and args come from ISA binary walk (same as ISA walk path below);
+# source file and line come from dwarf_reader.find_row().
+# ISA walk formats small integer args as decimal, not hex.
 set(EXPECTED_OPCODE_DUMP "mask_poll_32")
-set(EXPECTED_ARGS_DUMP   "0x1400fdfc, 0x1, 0x1")
-# dump stores the vfile key verbatim, which includes the "../" prefix
+set(EXPECTED_ARGS_DUMP   "0x1400fdfc, 1, 1")
+# dwarf_reader returns the vfile key stored in .debug_line, which includes the "../" prefix
 set(EXPECTED_SOURCE_FILE "../ml_asm/aie_runtime_control0.asm")
 set(EXPECTED_LINE        "22")
 

@@ -56,6 +56,10 @@ public:
          index++;
        }
     }
+    // Write DWARF sections outside all COMDAT groups — standard single-section
+    // layout so that llvm-dwarfdump, gdb, and dtrace find them by name.
+    process_global_debug_sections_if_any(mconfig_writer->get_global_debug_sections());
+
     if (dstr_sec)
       add_dynamic_section();
     std::vector<char> configuration_vec(4);

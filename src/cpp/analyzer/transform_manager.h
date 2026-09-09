@@ -305,6 +305,12 @@ public:
   explicit transform_manager(const std::vector<char>& elf_data);
 
   /**
+   * @brief Expose the internal ELFIO object for DWARF section parsing.
+   * @return const reference to the loaded ELFIO::elfio object.
+   */
+  const ELFIO::elfio& get_elfio() const { return m_elfio; }
+
+  /**
    * @brief Load and validate ELF data
    * @param elf_data Vector containing ELF binary data
    *
