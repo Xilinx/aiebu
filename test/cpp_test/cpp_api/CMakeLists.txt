@@ -44,6 +44,41 @@ if (NOT WIN32)
   target_link_libraries(${AIE_COREDUMP_TESTNAME} PRIVATE pthread)
 endif()
 
+set(ELF_COMPRESS_DECOMPRESS_TESTNAME "elf_compress_decompress_cpp")
+add_executable(${ELF_COMPRESS_DECOMPRESS_TESTNAME} elf_compress_decompress_test.cpp)
+target_link_libraries(${ELF_COMPRESS_DECOMPRESS_TESTNAME} PRIVATE aiebu_static)
+target_include_directories(${ELF_COMPRESS_DECOMPRESS_TESTNAME} PRIVATE
+  ${AIEBU_SOURCE_DIR}/src/cpp/include
+  ${AIEBU_ELFIO_SRC_DIR})
+if (NOT WIN32)
+  target_link_libraries(${ELF_COMPRESS_DECOMPRESS_TESTNAME} PRIVATE pthread)
+endif()
+
+set(DECOMPRESS_MEM_REPORT_NAME "decompress_memory_report")
+add_executable(${DECOMPRESS_MEM_REPORT_NAME} decompress_memory_report.cpp)
+target_link_libraries(${DECOMPRESS_MEM_REPORT_NAME} PRIVATE aiebu_static)
+target_include_directories(${DECOMPRESS_MEM_REPORT_NAME} PRIVATE
+  ${AIEBU_SOURCE_DIR}/src/cpp/include
+  ${AIEBU_SOURCE_DIR}/src/cpp
+  ${AIEBU_ELFIO_SRC_DIR})
+if (NOT WIN32)
+  target_link_libraries(${DECOMPRESS_MEM_REPORT_NAME} PRIVATE pthread)
+endif()
+
+# ELF compression ratio reporter — not a CTest test (requires a user-supplied directory).
+# Usage: elf_compression_ratio <dir> --arch <aie4|aie2ps> --mode <plain|compress|decompress>
+#        elf_compression_ratio --mode decompress-file --input <compressed.elf> --output <plain.elf>
+# For accurate per-section peak RSS measurement use decompress_memory_report instead.
+set(ELF_COMPRESSION_RATIO_NAME "elf_compression_ratio")
+add_executable(${ELF_COMPRESSION_RATIO_NAME} elf_compression_ratio.cpp)
+target_link_libraries(${ELF_COMPRESSION_RATIO_NAME} PRIVATE aiebu_static)
+target_include_directories(${ELF_COMPRESSION_RATIO_NAME} PRIVATE
+  ${AIEBU_SOURCE_DIR}/src/cpp/include
+  ${AIEBU_SOURCE_DIR}/src/cpp)
+if (NOT WIN32)
+  target_link_libraries(${ELF_COMPRESSION_RATIO_NAME} PRIVATE pthread)
+endif()
+
 
 if (NOT WIN32)
   target_link_libraries(${AIE2_TESTNAME} PRIVATE pthread)
@@ -71,6 +106,12 @@ add_test(NAME "aie2ps_cpp_eff_net_coal"
 
 add_test(NAME "aie4_move_ddr_to_memtile"
   COMMAND ${AIE2PS_TESTNAME} "move_ddr_to_memtile" "${AIEBU_SOURCE_DIR}/test/cpp_test/aie4/move_ddr_to_memtile/"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "elf_compress_decompress"
+  COMMAND ${ELF_COMPRESS_DECOMPRESS_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/cpp_test/aie4/move_ddr_to_memtile"
+    "${AIEBU_SOURCE_DIR}/test/cpp_test/aie2ps/eff_net_coal"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 # add_test(NAME "aie2ps_cpp_eff_net_ctrlpacket"
@@ -133,3 +174,122 @@ add_test(NAME "aiebu_error_duplicate_asm_filename"
 add_test(NAME "aie_coredump_elf_generation"
   COMMAND ${AIE_COREDUMP_TESTNAME}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+################################################################
+# aiebu::elf reader tests (step 1.1 exit criterion)
+#
+# One binary, driven with different ELF files and expected platform
+# names.  Checked-in ELFs cover aie2ps_legacy, aie2ps, and aie4.
+# Assembler-produced ELFs (from aie2ps_cpp / aie4 tests above)
+# cover aie2ps and aie4 with group-format ELFs.
+################################################################
+set(ELF_READER_TESTNAME "elf_reader_cpp")
+add_executable(${ELF_READER_TESTNAME} elf_reader_test.cpp)
+target_link_libraries(${ELF_READER_TESTNAME} PRIVATE aiebu_static)
+target_include_directories(${ELF_READER_TESTNAME} PRIVATE ${AIEBU_SOURCE_DIR}/src/cpp/include)
+if (NOT WIN32)
+  target_link_libraries(${ELF_READER_TESTNAME} PRIVATE pthread)
+endif()
+
+# Checked-in ELFs — always available, no assembler dependency
+add_test(NAME "elf_reader_aie2ps_legacy"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col/multi_uc_6.elf"
+    aie2ps_legacy
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "elf_reader_aie2ps"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/single_col/simple_int8_orig.elf"
+    aie2ps
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "elf_reader_aie4_merged"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/duplicate_filename/filename.elf"
+    aie4
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# aie2p fixture — exercises the aie2p-only guards in elf_reader_test.cpp:
+#   test_has_pdi_value()        (F1: has_pdi() is section-based, drives ERT opcode)
+#   test_pdi_symbols_crosscheck (F2: get_pdi_symbols() == PDI patch points)
+# The 4th argument "pdi"/"nopdi" asserts the expected has_pdi() value.
+#
+# The test/aie2-ctrlcode/* tests assemble aie2p ELFs (aiebu-asm -t aie2txn/aie2asm
+# -> elf_aie2 -> osabi_aie2p 0x45).  "basic" produces basic.elf via the
+# "aie2_basic_txn" test.  That ELF has no .pdi section, so expect "nopdi";
+# this fully exercises F2 and the false branch of F1.  To also guard the F1
+# true branch (.pdi present but no relocation), supply a PDI-bearing aie2p ELF
+# and pass "pdi".
+#
+# NOTE: aie2_basic_txn writes basic.elf into ITS OWN binary dir
+# (test/aie2-ctrlcode/basic), not this one.  Reference it by absolute build
+# path and add the DEPENDS below when enabling.  Adjust if the fixture moves.
+# add_test(NAME "elf_reader_aie2p"
+#   COMMAND ${ELF_READER_TESTNAME}
+#     "${CMAKE_BINARY_DIR}/test/aie2-ctrlcode/basic/basic.elf"
+#     aie2p
+#     nopdi
+#   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+# set_tests_properties("elf_reader_aie2p" PROPERTIES DEPENDS "aie2_basic_txn")
+
+# Assembler-produced ELFs — depend on the assembler tests having run first
+add_test(NAME "elf_reader_aie2ps_group"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal.elf"
+    aie2ps_legacy
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties("elf_reader_aie2ps_group" PROPERTIES DEPENDS "aie2ps_cpp_eff_net_coal")
+
+add_test(NAME "elf_reader_aie4_group"
+  COMMAND ${ELF_READER_TESTNAME}
+    "${CMAKE_CURRENT_BINARY_DIR}/move_ddr_to_memtile_in_mem.elf"
+    aie2ps_legacy
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties("elf_reader_aie4_group" PROPERTIES DEPENDS "aie4_move_ddr_to_memtile")
+
+# Decompression test: assemble vadd with compress=zstd, then verify
+# that aiebu::elf produces byte-identical output to the plain ELF.
+# Uses aie4_config/vadd (merged section format) — produces zero assembler
+# warnings, unlike aie2ps_config (legacy per-page warning) or 1col_preempt
+# (apply_offset_57 arg-index warnings).  MSBuild promotes any assembler
+# warning to a build warning, so we use a clean fixture.
+# Restricted to x86_64/AMD64: CMAKE_GENERATOR_PLATFORM (ARM64 when using
+# -A ARM64 with Visual Studio) and CMAKE_SYSTEM_PROCESSOR (aarch64 on native
+# ARM64 Linux/macOS) are both checked so the guard covers all ARM64 cases.
+if (TARGET aiebu-asm
+    AND NOT CMAKE_GENERATOR_PLATFORM MATCHES "ARM64|arm64"
+    AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
+  add_custom_command(OUTPUT vadd_plain.elf
+    COMMAND aiebu-asm -t aie4_config
+      -j "${AIEBU_SOURCE_DIR}/test/aie4-ctrlcode/vadd/config.json"
+      -f disabledump
+      -o "${CMAKE_CURRENT_BINARY_DIR}/vadd_plain.elf"
+    DEPENDS aiebu-asm
+            "${AIEBU_SOURCE_DIR}/test/aie4-ctrlcode/vadd/config.json"
+    COMMENT "Assembling plain vadd ELF for elf_reader decompression test"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    VERBATIM)
+  add_custom_command(OUTPUT vadd_compressed.elf
+    COMMAND aiebu-asm -t aie4_config
+      -j "${AIEBU_SOURCE_DIR}/test/aie4-ctrlcode/vadd/config.json"
+      -f disabledump -f "compress=zstd:3"
+      -o "${CMAKE_CURRENT_BINARY_DIR}/vadd_compressed.elf"
+    DEPENDS aiebu-asm
+            "${AIEBU_SOURCE_DIR}/test/aie4-ctrlcode/vadd/config.json"
+    COMMENT "Assembling compressed vadd ELF for elf_reader decompression test"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    VERBATIM)
+  add_custom_target(elf_reader_compressed_elf ALL
+    DEPENDS vadd_plain.elf vadd_compressed.elf)
+
+  # elf_reader_compressed_elf is part of ALL so it is always built before
+  # ctest runs — no CTest DEPENDS needed (that property expects test names,
+  # not build target names).
+  add_test(NAME "elf_reader_decompression"
+    COMMAND ${ELF_READER_TESTNAME}
+      --compressed
+      "${CMAKE_CURRENT_BINARY_DIR}/vadd_compressed.elf"
+      "${CMAKE_CURRENT_BINARY_DIR}/vadd_plain.elf"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+endif()

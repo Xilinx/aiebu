@@ -4,6 +4,7 @@
 #ifndef _AIEBU_ELF_ELF_WRITER_H_
 #define _AIEBU_ELF_ELF_WRITER_H_
 
+#include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -11,6 +12,7 @@
 #include "symbol.h"
 #include "elfio/elfio.hpp"
 #include "uid_md5.h"
+#include "elf_compression.h"
 
 namespace aiebu {
 
@@ -95,6 +97,8 @@ protected:  // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
   // ELFIO::sections[name] scans all sections O(n); this map is updated on add and used on hot paths.
   std::unordered_map<std::string, ELFIO::section*> m_section_by_name;
 
+  std::unique_ptr<ElfCompressor> m_compressor; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
+
   ELFIO::section* lookup_section(const std::string& name);
   void resync_section_name_map();
 
@@ -123,6 +127,7 @@ protected:  // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
 public:
 
   elf_writer(unsigned char abi, unsigned char version)
+    : m_compressor(std::make_unique<NullElfCompressor>())
   {
     m_elfio.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2LSB);
     m_elfio.set_os_abi(abi);
@@ -150,6 +155,8 @@ public:
   void set_abi_version(unsigned char version) { m_elfio.set_abi_version(version); }
   unsigned char get_os_abi() const { return m_elfio.get_os_abi(); }
   unsigned char get_abi_version() const { return m_elfio.get_abi_version(); }
+
+  void set_compressor(std::unique_ptr<ElfCompressor> c) { m_compressor = std::move(c); }
 
   virtual std::vector<char> process(std::vector<std::shared_ptr<writer>>& mwriter);
 

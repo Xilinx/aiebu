@@ -8,6 +8,8 @@
 #include <iostream>
 #include <map>
 
+#include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_decompress.h"
 #include "aiebu/aiebu_error.h"
 #include "analyzer/reporter.h"
 #include "analyzer/packets.h"
@@ -157,31 +159,16 @@ int main(int argc, char* argv[])
   aiebu::aiebu_assembler::buffer_type type;
   std::string target_arch;
   try {
-    buffer = aiebu::readfile(result["filename"].as<std::string>());
+    // Transparently decompress SHF_COMPRESSED sections if present.
+    // decompress_elf() returns a copy for uncompressed ELFs.
+    std::vector<char> raw_buf = aiebu::readfile(result["filename"].as<std::string>());
+    buffer = aiebu::decompress_elf(raw_buf);
     type = aiebu::identify_buffer_type(buffer);
     target_arch = result["architecture"].as<std::string>();
   } catch (const std::exception& e) {
     std::cerr << "Error reading file: " << e.what() << "\n";
     return 1;
   }
-
-  // Print detected ELF OSABI/version/platform info for ELF files
-  //if (buffer.size() >= 52 &&
-  //    static_cast<unsigned char>(buffer[0]) == 0x7f &&
-  //    buffer[1] == 'E' && buffer[2] == 'L' && buffer[3] == 'F') {
-    //auto osabi = static_cast<unsigned char>(buffer[7]);
-    //auto abiversion = static_cast<unsigned char>(buffer[8]);
-    //auto detected_it = aiebu::buffer_type_table.find(type);
-    //std::string detected_platform = (detected_it != aiebu::buffer_type_table.end())
-    //                                  ? detected_it->second : "unknown";
-    //std::cout << result["filename"].as<std::string>() << ":\n";
-    //std::cout << boost::format(";  ELF OS/ABI:    0x%02x\n") % static_cast<unsigned>(osabi);
-    //std::cout << boost::format(";  ABI Version:   0x%02x\n") % static_cast<unsigned>(abiversion);
-    //std::cout << ";  Platform:      " << detected_platform << "\n";
-    // Legacy group ELF (OSABI=0x46) is shared by aie2ps/aie4 family — version does not distinguish them
-    //if (osabi == 0x46 && target_arch == "unspecified")
-    //  std::cout << "  Note: Legacy ELF (OS/ABI=0x46) detected as aie2ps by default. Use -m aie4/aie4a/aie4z to override.\n";
-  //}
 
   // For binary files (unspecified), convert to architecture-specific buffer type
   if (type == aiebu::aiebu_assembler::buffer_type::unspecified) {

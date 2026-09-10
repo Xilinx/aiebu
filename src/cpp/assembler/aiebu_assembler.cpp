@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 #include "assembler.h"
+#include "elf/elf_compression.h"
 #include "elfwriter.h"
 #include "encoder.h"
 #include "preprocessor.h"
@@ -28,6 +29,21 @@
 
 namespace aiebu {
 
+// Check if any compress flag is present in a flags/libs vector.
+// Throws std::invalid_argument for non-config targets that don't support compression.
+static void reject_compress_flags(const std::vector<std::string>& flags,
+                                  const char* target_name)
+{
+  for (const auto& flag : flags) {
+    if (flag == "compress" || flag.find("compress=") == 0) {
+      throw std::invalid_argument(
+          std::string("compression is not supported for ") + target_name
+          + " targets; remove the '" + flag + "' flag"
+          + " (only *_config targets support compression)");
+    }
+  }
+}
+
 aiebu_assembler::
 aiebu_assembler(buffer_type type,
                 const std::vector<char>& buffer,
@@ -48,24 +64,28 @@ aiebu_assembler(buffer_type type,
 {
   if (m_type == buffer_type::blob_instr_dpu)
   {
+    reject_compress_flags(libs, "blob_instr_dpu");
     aiebu::assembler a(assembler::elf_type::aie2_dpu_blob);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
   else if (m_type == buffer_type::blob_instr_transaction)
   {
+    reject_compress_flags(libs, "blob_instr_transaction");
     aiebu::assembler a(assembler::elf_type::aie2_transaction_blob);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
   else if (m_type == buffer_type::asm_aie2)
   {
+    reject_compress_flags(libs, "asm_aie2");
     aiebu::assembler a(assembler::elf_type::aie2_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, ctrlpkt);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2;
   }
   else if (m_type == buffer_type::asm_aie2ps)
   {
+    reject_compress_flags(libs, "asm_aie2ps");
     aiebu::assembler a(assembler::elf_type::aie2ps_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, {}, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps;
@@ -73,6 +93,7 @@ aiebu_assembler(buffer_type type,
   else if (m_type == buffer_type::aie2_config)
   {
     aiebu::assembler a(assembler::elf_type::aie2_config);
+    a.set_compressor(aiebu::make_elf_compressor(libs));
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2_config;
   }
@@ -80,6 +101,7 @@ aiebu_assembler(buffer_type type,
            m_type == buffer_type::asm_aie4a ||
            m_type == buffer_type::asm_aie4z)
   {
+    reject_compress_flags(libs, "asm_aie4");
     // All aie4 family uses same elf_type - specific OSABI determined from .target directive
     aiebu::assembler a(assembler::elf_type::aie4_asm);
     elf_data = a.process(buffer1, libs, libpaths, patch_json, {}, {}, &artifacts);
@@ -88,6 +110,7 @@ aiebu_assembler(buffer_type type,
   else if (m_type == buffer_type::aie2ps_config)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_config);
+    a.set_compressor(aiebu::make_elf_compressor(libs));
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config;
   }
@@ -97,6 +120,7 @@ aiebu_assembler(buffer_type type,
   {
     // All aie4 family config uses same elf_type - specific OSABI determined from .target directive
     aiebu::assembler a(assembler::elf_type::aie4_config);
+    a.set_compressor(aiebu::make_elf_compressor(libs));
     elf_data = a.process(buffer1, libs, libpaths, patch_json, buffer2, {}, &artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie4_config;
   }
@@ -111,15 +135,19 @@ aiebu_assembler(buffer_type type,
                 const file_artifact& artifacts,
                 const std::vector<std::string>& flags)
 {
+  auto compressor = aiebu::make_elf_compressor(flags);
+
   if (type == buffer_type::aie2_config)
   {
     aiebu::assembler a(assembler::elf_type::aie2_config);
+    a.set_compressor(std::move(compressor));
     elf_data = a.process({}, flags, {}, config_json_buffer, {}, {},&artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2_config;
   }
   else if (type == buffer_type::aie2ps_config)
   {
     aiebu::assembler a(assembler::elf_type::aie2ps_config);
+    a.set_compressor(std::move(compressor));
     elf_data = a.process({}, flags, {}, config_json_buffer, {}, {},&artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie2ps_config;
   }
@@ -128,6 +156,7 @@ aiebu_assembler(buffer_type type,
            type == buffer_type::aie4z_config)
   {
     aiebu::assembler a(assembler::elf_type::aie4_config);
+    a.set_compressor(std::move(compressor));
     elf_data = a.process({}, flags, {}, config_json_buffer, {}, {},&artifacts);
     m_output_type = aiebu::aiebu_assembler::buffer_type::elf_aie4_config;
   }
@@ -477,12 +506,12 @@ aiebu_assembler(ELFIO::elfio* elf)
   if (!elf)
     throw error(error::error_code::invalid_input, "elf pointer is null");
 
-  std::stringstream stream;
-  stream << std::noskipws;
+  std::ostringstream stream;
   elf->save(stream);
-  std::copy(std::istream_iterator<char>(stream),
-            std::istream_iterator<char>(),
-            std::back_inserter(elf_data));
+  std::string bytes = stream.str();
+  elf_data.assign(
+      std::make_move_iterator(bytes.begin()),
+      std::make_move_iterator(bytes.end()));
 }
 
 aiebu_assembler::

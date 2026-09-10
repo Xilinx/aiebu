@@ -175,12 +175,22 @@ add_preemption_code(uint32_t col)
   void
   aie2_blob_preprocessor_input::
   validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const {
-    // Return if the offset and arg_index are within their respective sizes.
-    if ((offset <= size) && (arg_index <= MAX_ARG_INDEX)) {
-      return;
+    // Control packet offsets must be >= 8 (the header correction) to prevent underflow on subtraction.
+    constexpr uint32_t ctrl_pkt_correction = 8;
+    if (type == offset_type::CONTROL_PACKET && offset < ctrl_pkt_correction) {
+      auto errorMessage = std::string("INVALID JSON: Offset(")
+        + std::to_string(offset)
+        + ") is less than control packet offset correction("
+        + std::to_string(ctrl_pkt_correction)
+        + ") for offset Type: CONTROL PACKET and arg index is "
+        + (arg_index > MAX_ARG_INDEX ? "INVALID = " : "VALID = ")
+        + std::to_string(arg_index) + ". ";
+      throw error(error::error_code::invalid_asm, errorMessage);
     }
+    if ((offset <= size) && (arg_index <= MAX_ARG_INDEX))
+      return;
     std::string errorMessage;
-    if (offset > size ) {
+    if (offset > size) {
       errorMessage = std::string("INVALID JSON: Offset(")
       + std::to_string(offset)
       + ") is greater than size("

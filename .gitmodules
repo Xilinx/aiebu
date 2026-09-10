@@ -6,3 +6,6 @@
 [submodule "src/cpp/cxxopts"]
 	path = src/cpp/cxxopts
 	url = https://github.com/jarro2783/cxxopts
+[submodule "src/cpp/zstd"]
+	path = src/cpp/zstd
+	url = https://github.com/facebook/zstd.git

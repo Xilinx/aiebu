@@ -12,7 +12,7 @@ START_JOB 0
 	LOAD_PDI 0, @pdi0
 END_JOB
 START_JOB 1
-	PREEMPT 0x0001, @save, @restore
+	PREEMPT 0x0000, @save, @restore
 END_JOB
 START_COND_JOB_PREEMPT 2
 END_JOB
@@ -23,7 +23,7 @@ START_JOB 0
 	LOAD_PDI 1, @pdi2
 END_JOB
 START_JOB 1
-	PREEMPT 0x0001, @save, @restore
+	PREEMPT 0x0000, @save, @restore
 END_JOB
 .eop
 EOF

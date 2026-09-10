@@ -39,8 +39,10 @@ parser(const std::string& map_data)
     , m_uC_index(0)
     , m_position(0)
 {
-    if (map_data.empty())
+    if (map_data.empty()) {
+        DTRACE_INFO("DTRACE_PARSER_ELF_DUMP_MAP_DATA_EMPTY");
         return;
+    }
 
     std::istringstream data(map_data);
     boost::property_tree::ptree pt;

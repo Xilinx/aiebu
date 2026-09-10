@@ -1,0 +1,13 @@
+begin
+{
+    print("\ntracing started\n")
+}
+jprobe:aie_runtime_control0.asm:uc0:line22
+{
+    ts1 = timestamp32()
+    print("opcode: {} ts: {:d}".format(operation, ts1))
+}
+end
+{
+    print("\ntracing ended\n")
+}

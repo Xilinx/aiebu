@@ -4,7 +4,25 @@
 # Assemble a ctrlcode to ELF
 add_test(NAME "aie2ps_eff_net_coal_asm"
   COMMAND aiebu-asm -t aie2ps_config -j "${CMAKE_CURRENT_SOURCE_DIR}/config.json" -o eff_net_coal.elf -f disabledump)
-  set_tests_properties("aie2ps_eff_net_coal_asm" PROPERTIES LABELS "benchmark")
+set_tests_properties("aie2ps_eff_net_coal_asm" PROPERTIES LABELS "benchmark")
+
+# Compressed variant — used by the decompress_memory_report test so that
+# test process starts clean (no assembly in-process before the RSS snapshot).
+add_test(NAME "aie2ps_eff_net_coal_asm_compressed"
+  COMMAND aiebu-asm -t aie2ps_config -j "${CMAKE_CURRENT_SOURCE_DIR}/config.json"
+          -o eff_net_coal_compressed.elf -f disabledump -f "compress=zstd:3")
+set_tests_properties("aie2ps_eff_net_coal_asm_compressed" PROPERTIES
+  DEPENDS "aie2ps_eff_net_coal_asm"
+  LABELS  "benchmark")
+
+# Memory consumption and timing report for ELF decompression APIs.
+add_test(NAME "aie2ps_decompress_memory_report"
+  COMMAND decompress_memory_report
+          "${CMAKE_CURRENT_BINARY_DIR}/eff_net_coal_compressed.elf"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties("aie2ps_decompress_memory_report" PROPERTIES
+  DEPENDS "aie2ps_eff_net_coal_asm_compressed"
+  LABELS  "benchmark")
 
 if ((${CMAKE_SYSTEM_NAME} STREQUAL "Linux"))
   add_test(NAME "aie2ps_eff_net_coal_readelf"

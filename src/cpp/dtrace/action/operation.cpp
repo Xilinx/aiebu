@@ -60,6 +60,7 @@ serialize(uint32_t*, uint32_t*,
 {
     // serialize string format
     script_output << "  " << m_token << "\n";
+    m_result_type = action_result_type::print_action_fired;
 }
 
 //-------------------------operation_action::serialize-------------------------//
@@ -76,6 +77,7 @@ operation_action::
 serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
+    m_result_type = action_result_type::print_action_fired;
 }
 
 } // namespace dtrace::action

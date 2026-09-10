@@ -57,7 +57,13 @@ static_assert(sizeof(elf_prpsinfo32) == prpsinfo_struct_sz,
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
+#if defined(__has_warning)
+#if __has_warning("-Wstringop-overflow")
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+#else
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 #endif
 template <typename T>
 static void append_le(std::vector<char>& v, T value)

@@ -34,12 +34,18 @@ add_library(dtrace_library_objects OBJECT
   pager/pager.cpp
   control/control.cpp
   dtrace.cpp
+  utils.cpp
   )
 
 target_include_directories(dtrace_library_objects 
   PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp
   ${Boost_INCLUDE_DIRS}
+  )
+
+target_include_directories(dtrace_library_objects
+  SYSTEM PRIVATE
+  ${AIEBU_ELFIO_SRC_DIR}
   )
 
 set_target_properties(dtrace_library_objects PROPERTIES

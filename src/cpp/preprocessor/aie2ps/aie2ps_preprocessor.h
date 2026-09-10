@@ -80,6 +80,9 @@ public:
         else
           log_warn() << "Invalid log level flag: " << flag << ", ignored\n";
       }
+      else if (flag == "compress" || flag.find("compress=") == 0) {
+        // Handled by the ELF post-processing layer (make_elf_compressor) — not the assembler.
+      }
       else
         log_warn() << "Invalid flag: " << flag << ", ignored\n";
     }
@@ -101,6 +104,8 @@ public:
           " has " + std::to_string(mismatch_count) + " preempt opcodes\n");
       }
       log_info() << "Ctrlcode has " << expected_count << " preemption points\n";
+
+      parser->verify_preempt_ids();
 
       // cert relies on load_pdi (and possible load_cores / load_cores_cp) to recover
       // the last loaded PDI and cores at each preemption point.
@@ -185,7 +190,6 @@ public:
     toutput->set_filename_table(
         std::make_shared<detail::filename_table>(parser->get_filename_table()));
 
-    offset_type preemption_scratchpad = 0;
     for (auto col: collist)
     {
       std::vector<page> pages;
@@ -209,7 +213,6 @@ public:
       for (auto& pad : scratchpad)
       {
         pad.second->set_offset(0);
-        preemption_scratchpad += pad.second->get_size();
       }
 
       toutput->set_coldata(col, pages, scratchpad, label_page_index, tinput->get_control_packet_index());

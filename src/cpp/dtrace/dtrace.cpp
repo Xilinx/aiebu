@@ -12,6 +12,7 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -30,6 +31,7 @@ struct dtrace_command_handle {
     std::unique_ptr<dtrace::control> g_control = nullptr;
     // multiple uC dtrace
     std::unordered_map<uint32_t, dtrace::dtrace_buffer_info> g_dtrace_buffer_info_map;
+    uint32_t g_number_uC = 0;
 };
 
 dtrace_handle_t
@@ -65,6 +67,61 @@ create_dtrace_handle(const std::string& script_file, const std::string& map_data
     }
 }
 
+dtrace_handle_t
+create_dtrace_handle_elf(const std::string& script_file, const ELFIO::elfio& elf,
+    const std::string& kernel_instance, uint32_t log_level, uint32_t output_fmt)
+{
+    try
+    {
+        // Validate script file path
+        if (script_file.empty())
+        {
+            std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config script data";
+            return nullptr;
+        }
+
+        std::string map_data;
+        const dtrace::elf_debug_map debug_map(elf);
+        const bool group_elf = dtrace::elf_debug_map::is_group_elf(elf);
+        if (group_elf) {
+            // Full ELF: kernel instance is required 
+            if (kernel_instance.empty()) {
+                std::cerr << "[DTRACE] [ERROR] : kernel:instance required for full ELF";
+                return nullptr;
+            }
+            map_data = debug_map.get_debug_section_json(kernel_instance);
+        } else {
+            // Partial ELF: kernel instance is not required and should be empty
+            if (!kernel_instance.empty()) {
+                std::cerr << "[DTRACE] [ERROR] : kernel:instance not required for partial ELF";
+                return nullptr;
+            }
+            map_data = debug_map.get_debug_section_json();
+        }
+
+        // Handle setup mirrors create_dtrace_handle(); it will be removed once all callers
+        // have migrated to create_dtrace_handle_elf().
+
+        // Create new dtrace handle
+        auto handle = std::make_unique<dtrace_command_handle>();
+
+        dtrace::set_log_level(log_level);
+        dtrace::set_output_format(output_fmt);
+
+        // Initialize the memory host address map and dtrace compiler control object
+        handle->g_control = std::make_unique<dtrace::control>(script_file, map_data);
+
+        // Returns an opaque raw handle.
+        // Transfer ownership to caller; caller must call destroy_dtrace_handle().
+        return static_cast<dtrace_handle_t>(handle.release());
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what();
+        return nullptr; // Failure
+    }
+}
+
 void
 get_dtrace_col_numbers(dtrace_handle_t dtrace_handle, uint32_t* buffers_length)
 {
@@ -74,8 +131,8 @@ get_dtrace_col_numbers(dtrace_handle_t dtrace_handle, uint32_t* buffers_length)
         auto* handle = static_cast<dtrace_command_handle*>(dtrace_handle);
 
         // Get the number of uC in the script file
-        auto number_uC = static_cast<uint32_t>(handle->g_control->m_control_uC_indices.size());
-        *buffers_length = number_uC;
+        handle->g_number_uC = static_cast<uint32_t>(handle->g_control->m_control_uC_indices.size());
+        *buffers_length = handle->g_number_uC;
     }
     catch (const std::exception& e)
     {
@@ -95,6 +152,10 @@ get_dtrace_buffer_size(dtrace_handle_t dtrace_handle, uint64_t* buffers)
         // Control buffer size and memory buffer size for each uC
         for (const auto& uC_index : handle->g_control->m_control_uC_indices)
         {
+            // Check if the buffer index is greater than the number of uC / buffer size
+            if (buffer_index >= handle->g_number_uC)
+                return;
+
             // Get control buffer and memory buffer size and populate the map
             // with the dtrace_buffer_info for uC_index
             dtrace::dtrace_buffer_info l_dtrace_buffer_info;

@@ -20,11 +20,15 @@ add_library(aiebu_library_objects OBJECT
   common/utils.cpp
   common/build_info.cpp
   common/file_utils.cpp
+  elf/elf_compression.cpp
+  elf/elf_decompress.cpp
   elf/elfwriter.cpp
   elf/coredump_elfwriter.cpp
+  elf/elf_reader.cpp
   preprocessor/aie2/aie2_blob_preprocessor_input.cpp
   preprocessor/aie2/aie2_asm_preprocessor_input.cpp
   preprocessor/asm/asm_parser.cpp
+  preprocessor/asm/hintmap_bitset.cpp
   ops/ops.cpp
   disassembler/disassembler.cpp
   analyzer/transform_manager.cpp
@@ -65,6 +69,14 @@ target_include_directories(aiebu_library_objects
   ${AIEBU_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/gen
   )
 
+# zstd headers for elf_compression.cpp — provided by the aiebu_zstd target's
+# PUBLIC include directories, which propagate to aiebu_library_objects via the
+# PRIVATE link below on aiebu_static.  The SYSTEM flag suppresses warnings in
+# zstd headers when they are transitively visible to aiebu_library_objects.
+target_include_directories(aiebu_library_objects SYSTEM PRIVATE
+  "${AIEBU_ZSTD_LIB_DIR}"
+  )
+
 target_compile_definitions(aiebu_library_objects
   PRIVATE
   -DAIEBU_EXPORTS
@@ -103,6 +115,7 @@ target_include_directories(aiebu_library_objects
 
 add_library(aiebu_static STATIC
   $<TARGET_OBJECTS:aiebu_library_objects>
+  $<TARGET_OBJECTS:aiebu_zstd>
   )
 
 target_include_directories(aiebu_static
