@@ -79,6 +79,8 @@ protected:
                                     const boost::property_tree::ptree& _pt);
   void extract_coalesed_buffers(const std::string& name, const boost::property_tree::ptree& _pt);
   void clear_shimBD_address_bits(std::vector<char>& mc_code, uint32_t offset) const;
+  void patch_shim48_addend(std::vector<char>& mc_code, uint32_t offset, uint64_t addend) const;
+  void patch_ctrl48_addend(std::vector<char>& buf, uint32_t offset, uint64_t addend) const;
   void validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const;
   uint32_t get_32_bit_property(const boost::property_tree::ptree& pt, const std::string& property, bool defaultvalue = false) const;
   void add_preemption_code(uint32_t col);
