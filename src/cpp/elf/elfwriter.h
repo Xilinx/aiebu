@@ -13,6 +13,7 @@
 #include "elfio/elfio.hpp"
 #include "uid_md5.h"
 #include "elf_compression.h"
+#include "aie_elf_constants.h"
 
 namespace aiebu {
 
@@ -133,7 +134,7 @@ public:
     m_elfio.set_os_abi(abi);
     m_elfio.set_abi_version(version);
     m_elfio.set_type( ELFIO::ET_EXEC );
-    m_elfio.set_machine( ELFIO::EM_M32 );
+    m_elfio.set_machine( em_aiectrlcode );
     m_elfio.set_flags(0x0);
 
 
