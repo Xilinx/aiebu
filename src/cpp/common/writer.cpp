@@ -123,6 +123,11 @@ void asm_writer::write_attach_to_group(int col)
   for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".attach_to_group " << col << '\n'; });
 }
 
+void asm_writer::write_target(const std::string& target)
+{
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".target\t " << target << '\n'; });
+}
+
 void asm_writer::write_partition(const std::string& partition_str)
 {
   for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".partition\t " << partition_str << '\n'; });

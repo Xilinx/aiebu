@@ -31,6 +31,7 @@ add_library(aiebu_library_objects OBJECT
   preprocessor/asm/hintmap_bitset.cpp
   ops/ops.cpp
   disassembler/disassembler.cpp
+  disassembler/disassembler_merged.cpp
   analyzer/transform_manager.cpp
   common/${AIEBU_OS_SOURCE_DIR}/metrics.cpp
   tools/debug_tools.cpp
@@ -103,6 +104,7 @@ target_sources(aiebu_library_objects
   preprocessor/aie2ps/aie2ps_preprocessor_input.cpp
   preprocessor/asm/pager.cpp
   disassembler/disassembler.cpp
+  disassembler/disassembler_merged.cpp
   )
 target_include_directories(aiebu_library_objects
   PRIVATE
