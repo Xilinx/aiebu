@@ -26,6 +26,7 @@ constexpr int OPCODE_WRITE_32_D = 11;
 constexpr int OPCODE_READ_32 = 12;
 constexpr int OPCODE_READ_32_D = 13;
 constexpr int OPCODE_APPLY_OFFSET_57 = 14;
+constexpr int OPCODE_APPLY_OFFSET_SRAM = 36;
 constexpr int OPCODE_ADD = 15;
 constexpr int OPCODE_MOV = 16;
 constexpr int OPCODE_LOCAL_BARRIER = 17;
@@ -124,6 +125,10 @@ public:
 
     (*m_isa)["apply_offset_57"] = std::make_shared<isa_op>("apply_offset_57", OPCODE_APPLY_OFFSET_57, std::vector<opArg>{
      opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("num_entries", opArg::optype::CONST, BIT_WIDTH_16), opArg("offset", opArg::optype::CONST, BIT_WIDTH_16),
+    });
+
+    (*m_isa)["apply_offset_sram"] = std::make_shared<isa_op>("apply_offset_sram", OPCODE_APPLY_OFFSET_SRAM, std::vector<opArg>{
+     opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("num_entries", opArg::optype::CONST, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("address", opArg::optype::CONST, BIT_WIDTH_32),
     });
 
     (*m_isa)["add"] = std::make_shared<isa_op>("add", OPCODE_ADD, std::vector<opArg>{
@@ -365,6 +370,10 @@ public:
 
     m_isa_disasm.emplace(OPCODE_APPLY_OFFSET_PL, isa_op_disasm("apply_offset_pl", OPCODE_APPLY_OFFSET_PL, std::vector<opArg>{
       opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("buffer_id", opArg::optype::CONST, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16),
+    }));
+
+    m_isa_disasm.emplace(OPCODE_APPLY_OFFSET_SRAM, isa_op_disasm("apply_offset_sram", OPCODE_APPLY_OFFSET_SRAM, std::vector<opArg>{
+      opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("num_entries", opArg::optype::CONST, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("address", opArg::optype::CONST, BIT_WIDTH_32),
     }));
 
     m_isa_disasm.emplace(OPCODE_EOF, isa_op_disasm("eof", OPCODE_EOF, std::vector<opArg>{

@@ -1,0 +1,51 @@
+{
+    "xrt-kernels": [
+        {
+            "name": "DPU",
+            "arguments": [
+                {
+                    "name": "arg0",
+                    "type": "char *",
+                    "offset": "0X0"
+                },
+                {
+                    "name": "arg1",
+                    "type": "char *",
+                    "offset": "0X8"
+                },
+                {
+                    "name": "arg2",
+                    "type": "char *",
+                    "offset": "0X10"
+                },
+                {
+                    "name": "arg3",
+                    "type": "char *",
+                    "offset": "0X18"
+                },
+                {
+                    "name": "arg4",
+                    "type": "char *",
+                    "offset": "0X20"
+                },
+                {
+                    "name": "arg5",
+                    "type": "char *",
+                    "offset": "0X28"
+                },
+                {
+                    "name": "arg6",
+                    "type": "char *",
+                    "offset": "0X30"
+                }
+            ],
+            "instance": [
+                {
+                    "id": "test",
+                    "ctrl_code_file": "./merged_control.asm",
+                    "patch_info_file": "./external_buffer_id.json"
+                }
+            ]
+        }
+    ]
+}
