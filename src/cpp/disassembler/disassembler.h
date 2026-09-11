@@ -51,7 +51,8 @@ protected:
     void process_text_block(const char* data, size_t start_offset, size_t end_offset,
                            std::shared_ptr<disassembler_state> state);
     void process_data_block(const char* data, size_t size,
-                           std::shared_ptr<disassembler_state> state);
+                           std::shared_ptr<disassembler_state> state,
+                           bool section_align_emitted = false);
 
     // Create architecture-specific disassembler state
     [[nodiscard]] std::shared_ptr<disassembler_state> create_disassembler_state() const;

@@ -5,11 +5,12 @@
 #define AIEBU_SRC_CPP_COMMON_DISASSEMBLER_STATE_H
 
 #include <cstdint>
+#include <map>
+#include <memory>
+#include <optional>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <map>
-#include <sstream>
-#include <optional>
 
 #include "aiebu/aiebu_error.h"
 

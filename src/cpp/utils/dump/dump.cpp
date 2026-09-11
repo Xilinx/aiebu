@@ -156,7 +156,8 @@ int main(int argc, char* argv[])
     return 0;
 
   std::vector<char> buffer;
-  aiebu::aiebu_assembler::buffer_type type;
+  aiebu::aiebu_assembler::buffer_type type =
+      aiebu::aiebu_assembler::buffer_type::unspecified;
   std::string target_arch;
   try {
     // Transparently decompress SHF_COMPRESSED sections if present.

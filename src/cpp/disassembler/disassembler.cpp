@@ -197,9 +197,11 @@ void asm_disassembler::process_text_block(const char* data, size_t start_offset,
 
 // Common data block processing (used by both ELF and binary disassemblers)
 void asm_disassembler::process_data_block(const char* data, size_t size,
-                                         std::shared_ptr<disassembler_state> state) {
+                                         std::shared_ptr<disassembler_state> state,
+                                         bool section_align_emitted) {
     isa_op_disasm dummy_isa_op("dummy", 0, std::vector<opArg>{});
     bool align_4_written = false;
+    bool skip_bd_align = section_align_emitted;
 
     for (size_t offset = 0; offset < size;) {
         uint8_t opcode = *reinterpret_cast<const uint8_t*>(data + offset);
@@ -208,6 +210,12 @@ void asm_disassembler::process_data_block(const char* data, size_t size,
 
         // Check for UC_DMA_BD at label positions
         if (label_map.find(state->get_address()) != label_map.end()) {
+            if (!skip_bd_align) {
+                m_asm_writer.write_directive("");
+                m_asm_writer.write_directive("  .align             " + std::to_string(align_16));
+            }
+            skip_bd_align = false;
+            align_4_written = false;
             ucDmaBd_op_deserializer deserializer(&dummy_isa_op);
             size_t consumed = deserializer.deserialize(m_asm_writer, state, data + offset);
             offset += consumed;
@@ -229,24 +237,56 @@ void asm_disassembler::process_data_block(const char* data, size_t size,
             ++offset;
         }
         else {
-            // Unknown byte in data region — emit as a raw 4-byte .long so the
-            // disassembly does not lose information even when labels are missing.
-            if (!align_4_written) {
-                m_asm_writer.write_directive("");
-                m_asm_writer.write_directive("  .align             " + std::to_string(align_4));
-                align_4_written = true;
+            // Unknown byte(s) in data region.  Emit .long only for a full 4-byte
+            // run or the final partial word at section end; always advance the
+            // tracked address by 4 when a .long is emitted so it matches the
+            // reassembled output size.
+            auto is_special_at = [&](uint32_t addr) {
+                return label_map.find(addr) != label_map.end() ||
+                       local_ptr_map.find(addr) != local_ptr_map.end();
+            };
+
+            size_t run = 0;
+            while (run < align_4 && offset + run < size) {
+                const uint32_t addr = state->get_address() + static_cast<uint32_t>(run);
+                if (is_special_at(addr))
+                    break;
+                const auto byte = static_cast<uint8_t>(data[offset + run]);
+                if (byte == align_opcode || byte == zero_padding)
+                    break;
+                ++run;
             }
-            // Consume up to 4 bytes as one .long word (pad with zero if near end).
-            uint32_t word = 0;
-            size_t avail = size - offset;
-            size_t take = (avail >= 4) ? 4 : avail;
-            std::memcpy(&word, data + offset, take);
-            std::ostringstream hex;
-            hex << "  .long              0x" << std::hex << std::setw(hex_word_width)
-                << std::setfill('0') << word;
-            m_asm_writer.write_directive(hex.str());
-            state->increment_address(static_cast<uint32_t>(take));
-            offset += take;
+
+            if (run == 0) {
+                state->increment_address(1);
+                ++offset;
+                continue;
+            }
+
+            const size_t avail = size - offset;
+            const bool section_tail = (offset + align_4 > size);
+            const bool emit_long = (run == align_4) || (section_tail && run == avail);
+
+            if (emit_long) {
+                if (!align_4_written) {
+                    m_asm_writer.write_directive("");
+                    m_asm_writer.write_directive("  .align             " + std::to_string(align_4));
+                    align_4_written = true;
+                }
+                uint32_t word = 0;
+                std::memcpy(&word, data + offset, run);
+                std::ostringstream hex;
+                hex << "  .long              0x" << std::hex << std::setw(hex_word_width)
+                    << std::setfill('0') << word;
+                m_asm_writer.write_directive(hex.str());
+                state->increment_address(align_4);
+                offset += run;
+            } else {
+                // Short run before the next label/structure — skip without .long
+                // so subsequent label addresses stay aligned.
+                state->increment_address(static_cast<uint32_t>(run));
+                offset += run;
+            }
         }
     }
 }
@@ -558,7 +598,7 @@ void elf_asm_disassembler::process_merged_text_section(const ELFIO::section* sec
         const size_t data_size = page_end - data_start;
         add_data_sec_comment();
         if (data_size > 0)
-            process_data_block(section_data + data_start, data_size, state);
+            process_data_block(section_data + data_start, data_size, state, false);
 
         // Emit hintmaps for PREEMPT opcodes on this page into the data section.
         for (size_t pos = code_start; pos < code_end;) {
@@ -601,7 +641,7 @@ void elf_asm_disassembler::process_data_section(const ELFIO::section* section, s
     const char* section_data = section->get_data();
     size_t section_size = section->get_size();
     // Use common base class method for data processing
-    process_data_block(section_data, section_size, state);
+    process_data_block(section_data, section_size, state, true);
 }
 
 void elf_asm_disassembler::process_pad_section(const ELFIO::section* /*section*/, std::shared_ptr<disassembler_state> /*state*/) {
@@ -750,6 +790,6 @@ void bin_asm_disassembler::process_binary_data(const char* data, size_t size, st
 
 void bin_asm_disassembler::process_data_section_binary(const char* data, size_t size, std::shared_ptr<disassembler_state> state) {
     // Use common base class method for data processing
-    process_data_block(data, size, state);
+    process_data_block(data, size, state, true);
 }
 } // namespace aiebu
