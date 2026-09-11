@@ -25,9 +25,13 @@ make_transform(aiebu_assembler::buffer_type type, const std::vector<char>& buffe
 
   if (type != aiebu_assembler::buffer_type::elf_aie2ps &&
       type != aiebu_assembler::buffer_type::elf_aie4 &&
+      type != aiebu_assembler::buffer_type::elf_aie4a &&
+      type != aiebu_assembler::buffer_type::elf_aie4z &&
       type != aiebu_assembler::buffer_type::elf_aie2ps_config &&
-      type != aiebu_assembler::buffer_type::elf_aie4_config)
-    throw error(error::error_code::invalid_buffer_type, "Invalid ELF buffer for debug tools"); 
+      type != aiebu_assembler::buffer_type::elf_aie4_config &&
+      type != aiebu_assembler::buffer_type::elf_aie4a_config &&
+      type != aiebu_assembler::buffer_type::elf_aie4z_config)
+    throw error(error::error_code::invalid_buffer_type, "Invalid ELF buffer for debug tools");
 
   return transform_manager(buffer);
 }

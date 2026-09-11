@@ -9,6 +9,7 @@
 #include <cstdint>
 #include "elfio/elfio.hpp"
 #include "common/disassembler_state.h"
+#include "disassembler/disassembler_merged.h"
 #include "specification/aie2ps/isa.h"
 #include "ops/ops.h"
 #include "writer.h"
@@ -50,7 +51,8 @@ protected:
     void process_text_block(const char* data, size_t start_offset, size_t end_offset,
                            std::shared_ptr<disassembler_state> state);
     void process_data_block(const char* data, size_t size,
-                           std::shared_ptr<disassembler_state> state);
+                           std::shared_ptr<disassembler_state> state,
+                           bool section_align_emitted = false);
 
     // Create architecture-specific disassembler state
     [[nodiscard]] std::shared_ptr<disassembler_state> create_disassembler_state() const;
@@ -69,16 +71,23 @@ public:
 
 private:
     ELFIO::elfio m_elf_reader;
+    merged_disasm_context m_merged_ctx;
 
     // ELF-specific processing methods
     void process_sections();
     void print_section_info(const ELFIO::section* section);
     void process_text_section(const ELFIO::section* section, std::shared_ptr<disassembler_state> state);
+    void process_merged_text_section(const ELFIO::section* section, std::shared_ptr<disassembler_state> state,
+                                     int col, int& page_counter, std::string& current_page_label,
+                                     uint16_t& prev_in_order_page_len);
     void process_data_section(const ELFIO::section* section, std::shared_ptr<disassembler_state> state);
+    void emit_hintmap_data(const merged_disasm_context::preempt_point& pt);
     void process_pad_section(const ELFIO::section* /*section*/, std::shared_ptr<disassembler_state> /*state*/);
     bool is_text_section(const std::string& section_name) const;
     bool is_data_section(const std::string& section_name) const;
     int parse_section_column(const std::string& section_name);
+    static uint16_t read_page_in_order_len(const char* page_data);
+    static uint16_t read_page_index_from_header(const char* page_data);
 };
 
 // Binary disassembler - handles raw binary files with architecture specification

@@ -245,6 +245,7 @@ public:
   void write_directive(const std::string& directive);
   void write_label(const std::string& label);
   void write_attach_to_group(int colnum);
+  void write_target(const std::string& target);
   void write_partition(const std::string& partition_str);
   void write_operation(const std::string& name, const std::vector<std::string>& args, const std::string& label);
   void write_endl(const std::string& label);

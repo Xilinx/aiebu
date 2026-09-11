@@ -7,6 +7,23 @@ execute_process(
   COMMAND ${Python3_EXECUTABLE} -c "import yaml"
   RESULT_VARIABLE PYTHON_YAML_MISSING)
 
+set(ADUMP $<TARGET_FILE:aiebu-dump>)
+
+macro(add_preemption_redistribution_disassemble_test TEST_NAME ELF_NAME TEST_BIN TEST_DIR)
+  add_test(NAME "${TEST_NAME}_disassemble"
+    COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/run.cmake" -o disassembled_ctrlcode.asm -x ${ADUMP} -- -m aie4 -d "${ELF_NAME}"
+    WORKING_DIRECTORY "${TEST_BIN}")
+
+  add_test(NAME "${TEST_NAME}_disassemble_compare"
+    COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
+            "${TEST_BIN}/disassembled_ctrlcode.asm"
+            "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_DIR}/gold_disassemble.asm"
+    WORKING_DIRECTORY "${TEST_BIN}")
+
+  set_tests_properties("${TEST_NAME}_disassemble" PROPERTIES DEPENDS "${TEST_NAME}_asm" LABELS memcheck)
+  set_tests_properties("${TEST_NAME}_disassemble_compare" PROPERTIES DEPENDS "${TEST_NAME}_disassemble" LABELS memcheck)
+endmacro()
+
 macro(add_preemption_redistribution_read_bd_tests TEST_NAME ELF_NAME TEST_BIN TEST_DIR)
   if(NOT PYTHON_YAML_MISSING)
     add_test(NAME "${TEST_NAME}_read_bd"
@@ -86,6 +103,10 @@ endmacro()
 
 add_preemption_redistribution_config_pos_test(
   test1 aie4_preemption_redistribution_test1 preemption-redistribution-test1.elf config.json)
+
+add_preemption_redistribution_disassemble_test(
+  aie4_preemption_redistribution_test1 preemption-redistribution-test1.elf
+  "${CMAKE_CURRENT_BINARY_DIR}/test1" test1)
 
 add_preemption_redistribution_pos_test(test3_disjoint_direct aie4_preempt_redist_test3_disjoint_direct)
 add_preemption_redistribution_neg_test(test4_set_bit_overlap aie4_preempt_redist_test4_set_bit_overlap)

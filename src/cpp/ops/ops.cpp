@@ -2,6 +2,7 @@
 // Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #include "ops.h"
+#include "disassembler/disassembler_merged.h"
 #include "aiebu/aiebu_error.h"
 #include "logger.h"
 
@@ -412,12 +413,22 @@ handle_barrier_arg(uint32_t val)
 
 std::string
 isa_op_deserializer::
-handle_page_id_arg(uint32_t /*val*/,
+handle_page_id_arg(uint32_t val,
                     std::shared_ptr<disassembler_state> state)
 {
-  // PAGE_ID arguments reference text sections that come later
-  // Add to OOO label queue to be written at the start of the target section
+  const auto& merged_ctx = state->get_merged_context();
+  if (merged_ctx && merged_ctx->is_active()) {
+    const int col = state->get_current_col();
+    const std::string mapped = merged_ctx->page_label(col, static_cast<uint16_t>(val));
+    if (!mapped.empty()) {
+      state->register_external_page_label(static_cast<uint16_t>(val), mapped);
+      return "@" + mapped;
+    }
+  }
+
+  // Legacy fallback: synthetic sequential labels.
   std::string sym_label = get_label();
+  state->register_external_page_label(static_cast<uint16_t>(val), sym_label.substr(1));
   state->add_ooo_label(sym_label);
   return sym_label;
 }
@@ -476,6 +487,19 @@ deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const
 
             default:
                 throw std::runtime_error("Invalid argument type!");
+        }
+    }
+
+    // PREEMPT: append hintmap operand recovered from save-page BDs.
+    if (m_opcode->get_code_name() == "preempt") {
+        const auto& merged_ctx = state->get_merged_context();
+        if (merged_ctx && merged_ctx->is_active()) {
+            if (const auto* pt = merged_ctx->preempt_at(state->get_current_col(),
+                                                        state->get_current_page_idx(),
+                                                        state->get_current_text_offset())) {
+                if (pt->has_hintmap && !pt->hintmap_label.empty())
+                    result.push_back("@" + pt->hintmap_label);
+            }
         }
     }
 
