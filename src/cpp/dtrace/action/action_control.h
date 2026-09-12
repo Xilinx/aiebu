@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #ifndef ACTION_CONTROL_H
 #define ACTION_CONTROL_H
@@ -55,6 +55,7 @@ using json = nlohmann::ordered_json;
  * - timestamps:     Multiple Timestamp action.
  * - timestamps32:   Multiple Timestamps32 action.
  * - reg_mask_write: Register mask write action.
+ * - mask_poll32:    Register mask poll action 32-bit.
  * - handshake_read: Handshake region read action.
  * - handshake_write:Handshake region write action.
  * - host_timestamp: Host timestamp action.
@@ -85,6 +86,7 @@ public:
     static constexpr uint32_t sleep = ACTION_SLEEP;
     static constexpr uint32_t count = ACTION_COUNT;
     static constexpr uint32_t host_timestamps = ACTION_HOST_TIMESTAMPS;
+    static constexpr uint32_t mask_poll32 = ACTION_MASK_POLL32;
 #else
     static constexpr uint32_t reg_read = 0;
     static constexpr uint32_t reg_write = 1;
@@ -105,6 +107,7 @@ public:
     static constexpr uint32_t sleep = 16;
     static constexpr uint32_t count = 17;
     static constexpr uint32_t host_timestamps = 18;
+    static constexpr uint32_t mask_poll32 = 19;
 #endif
 };
 
@@ -145,6 +148,7 @@ public:
     static inline const aiebu::regex sleep_regex = aiebu::regex(R"(sleep\()");                      // NOLINT
     static inline const aiebu::regex count_regex = aiebu::regex(R"(count\()");                      // NOLINT
     static inline const aiebu::regex host_timestamps_regex = aiebu::regex(R"(host_timestamps\()");  // NOLINT
+    static inline const aiebu::regex mask_poll32_regex = aiebu::regex(R"(mask_poll32\()");            // NOLINT
     static inline const aiebu::regex operation_regex = aiebu::regex(R"(^(\w+)\s*=\s*(.+)$)");       // NOLINT
     static inline const aiebu::regex action_regex = aiebu::regex(R"((\w+)\((.*)\))");               // NOLINT
 };
@@ -167,8 +171,17 @@ public:
     static constexpr uint32_t timestamps_action_size = 2;       // Size of a multiple timestamp action
     static constexpr uint32_t timestamps_value_size = 2;        // Size of value (Low and high) for timestamp
     static constexpr uint32_t reg_rw_action_size = 3;           // Size of a register read/write action
-    static constexpr uint32_t reg_mask_w_action_size = 4;       // Size of a register read/write action
+    static constexpr uint32_t reg_mask_action_size = 4;         // Size of a register mask write/poll action
     static constexpr uint32_t mem_rw_action_size = 5;           // Size of a memory read/write action
+    static constexpr uint32_t host_timestamps_action_size = 4;  // Size of a host timestamps action
+};
+
+// -------------------------Action Result Type-------------------------//
+enum class action_result_type {
+    print_action_fired,
+    write_action_fired,
+    read_action_fired,
+    read_action_not_fired
 };
 
 //-------------------------Action class-------------------------//
@@ -195,6 +208,7 @@ protected:
     uint32_t m_control_location;
     uint32_t m_mem_location;
     std::string m_result;
+    mutable action_result_type m_result_type = action_result_type::write_action_fired;
     void set_location(const std::vector<uint32_t>& buffer, bool is_mem_buffer);
 
 public:
@@ -205,14 +219,15 @@ public:
     ) = 0;
     // Python output format
     virtual void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const = 0;
     // JSON output format
     virtual void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const = 0;
+    action_result_type get_result_type() const { return m_result_type; }
     virtual uint64_t get_mem_host_addr() const { return 0; }
     uint32_t get_location(bool is_mem_buffer) const;
     std::string create_string() const;
@@ -238,15 +253,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint32_t serialize_helper(
-        std::vector<uint32_t>& result_buffer,
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -270,11 +285,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -305,16 +320,44 @@ public:
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
-    void serialize_helper(std::vector<uint32_t>& mem_buffer) const;
+    void serialize_helper(uint32_t* mem_buffer) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
     uint32_t get_mode() const { return m_mode; }
+};
+
+//-------------------------Mask poll register-------------------------//
+/**
+ * @class mask_poll32_action
+ *
+ * @brief
+ * dtrace::action::mask_poll32_action represents an action to mask poll a register.
+ *
+ * @details
+ * This class inherits from the base class `action` and provides functionality
+ * for mask poll register action in the control block and serialize the result.
+ */
+class mask_poll32_action : public action
+{
+public:
+    mask_poll32_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    void actionize(
+        uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
+    ) override;
+    void serialize(
+        uint32_t* result_buffer, uint32_t* mem_buffer,
+        const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
+    ) const override;
+    void serialize(
+        uint32_t* result_buffer, uint32_t* mem_buffer,
+        const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
+    ) const override;
 };
 
 //-------------------------Timestamp-------------------------//
@@ -336,15 +379,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint64_t serialize_helper(
-        std::vector<uint32_t>& result_buffer,
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -368,15 +411,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint64_t serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -400,15 +443,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint32_t serialize_helper(
-        std::vector<uint32_t>& result_buffer,
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -432,11 +475,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -460,15 +503,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint32_t serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -499,11 +542,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -533,13 +576,13 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::pair<std::string, uint32_t> get_opcode(const uint32_t& value)  const;
-    std::string serialize_helper(const std::vector<uint32_t>& result_buffer) const;
+    std::string serialize_helper(const uint32_t* result_buffer) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -566,11 +609,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -602,16 +645,13 @@ public:
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
-    std::vector<uint32_t> serialize_helper(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
-        const std::unordered_map<uint32_t, uint32_t>& mapping
-    ) const;
+    std::vector<uint32_t> serialize_helper(uint32_t* mem_buffer) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
     uint64_t get_mem_host_addr() const override;
@@ -644,11 +684,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -675,11 +715,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -706,15 +746,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::vector<uint64_t> serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -741,15 +781,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::vector<uint32_t> serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -769,22 +809,27 @@ class host_timestamps_action : public action
 {
 private:
     uint32_t m_length;
-    
+    uint64_t m_mem_host_addr;
+    std::vector<uint32_t> m_mem_buffer_addr;
+
 public:
-    host_timestamps_action(std::string token, uint32_t probe_type, const std::string& probe_name);
+    host_timestamps_action(
+        std::string token, uint32_t probe_type, const std::string& probe_name, uint64_t mem_host_addr
+    );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     std::vector<uint64_t> serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
+    uint64_t get_mem_host_addr() const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -811,11 +856,11 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -839,15 +884,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     uint32_t serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer, 
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };
@@ -871,15 +916,15 @@ public:
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
     ) override;
     void serialize_helper(
-        std::vector<uint32_t>& result_buffer, 
+        uint32_t* result_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping
     ) const;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer, 
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output
     ) const override;
     void serialize(
-        std::vector<uint32_t>& result_buffer, std::vector<uint32_t>& mem_buffer,
+        uint32_t* result_buffer, uint32_t* mem_buffer,
         const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output
     ) const override;
 };

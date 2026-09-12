@@ -10,7 +10,7 @@
 
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_section.hpp>
-#include "aiebu/aiebu_assembler.h"
+#include "aiebu/aiebu_decompress.h"
 #include "aiebu/aiebu_error.h"
 #include "specification/aie2ps/isa.h"
 #include "ops/ops.h"
@@ -36,6 +36,14 @@ struct apply_offset_57 {
   uint16_t offset;       // Offset value to be modified
 };
 
+struct apply_offset_pl {
+  uint8_t opcode;        // Opcode identifier
+  uint8_t pad;           // Padding byte
+  uint16_t table_ptr;    // Pointer to wts_params block
+  uint16_t buffer_id;    // XRT buffer id (patched to xrt_idx at update time)
+  uint16_t pad2;         // Trailing padding to reach 8-byte instruction size
+};
+
 /**
  * @brief Constructor - loads ELF data and initializes ISA map
  * @param elf_data Raw ELF binary data
@@ -59,8 +67,17 @@ load_elf(const std::vector<char>& elf_data)
   if (elf_data.empty())
     throw error(error::error_code::invalid_input, "Input buffer is empty");
 
-  // Create in-memory stream from buffer
-  boost::interprocess::ibufferstream istr(elf_data.data(), elf_data.size());
+  // For uncompressed ELFs, load directly from elf_data — no copy needed.
+  // For compressed ELFs, decompress into a temporary buffer first.
+  // decompress_elf() takes const& so no copy of the input is made.
+  std::vector<char> decompressed;
+  const std::vector<char>* load_buf = &elf_data;
+  if (aiebu::is_elf_compressed(elf_data)) {
+    decompressed = aiebu::decompress_elf(elf_data);
+    load_buf = &decompressed;
+  }
+
+  boost::interprocess::ibufferstream istr(load_buf->data(), load_buf->size());
 
   if (!m_elfio.load(istr))
     throw error(error::error_code::invalid_input, "Failed to load ELF from buffer\n");
@@ -156,6 +173,15 @@ modify_apply_offset_57(char* text_section_data, size_t text_section_size, uint32
         code->offset = static_cast<uint16_t>(lookup_it->second * num_32bit_register); // Convert xrt_id to register offset
     }
 
+    // Process apply_offset_pl opcode
+    if (opcode == OPCODE_APPLY_OFFSET_PL) {
+      auto code = reinterpret_cast<apply_offset_pl*>(text_section_data + offset);
+      auto key = get_key(code->table_ptr, section_idx);
+      auto lookup_it = xrt_idx_lookup.find(key);
+      if (lookup_it != xrt_idx_lookup.end())
+        code->buffer_id = static_cast<uint16_t>(lookup_it->second);
+    }
+
     // Move to next instruction
     offset += size(op_it->second);
   }
@@ -219,6 +245,17 @@ modify_apply_offset_57_merged(char* section_data, size_t section_size, uint32_t 
         auto lookup_it = xrt_idx_lookup.find(key);
         if (lookup_it != xrt_idx_lookup.end())
           code->offset = static_cast<uint16_t>(lookup_it->second * num_32bit_register);
+      }
+
+      if (opcode == OPCODE_APPLY_OFFSET_PL) {
+        auto* code = reinterpret_cast<apply_offset_pl*>(section_data + offset);
+        uint32_t adjusted_ptr = static_cast<uint32_t>(code->table_ptr) +
+                                static_cast<uint32_t>(page_start) +
+                                static_cast<uint32_t>(elf_section_header_size);
+        auto key = get_key(adjusted_ptr, section_idx);
+        auto lookup_it = xrt_idx_lookup.find(key);
+        if (lookup_it != xrt_idx_lookup.end())
+          code->buffer_id = static_cast<uint16_t>(lookup_it->second);
       }
 
       const uint32_t inst_sz = size(op_it->second);
@@ -455,6 +492,31 @@ write57_aie4(uint32_t* bd_data_ptr, uint64_t bd_offset)
 }
 
 /**
+ * @brief Read 64-bit DDR address from wts_params block (words 8+9)
+ * @param bd_data_ptr Pointer to wts_params data (32-bit words)
+ * @return 64-bit physical address: word[8] = [31:0], word[9] = [63:32]
+ */
+uint64_t
+transform_manager::
+read_pl_ddr64(const uint32_t* bd_data_ptr) const
+{
+  return (static_cast<uint64_t>(bd_data_ptr[9]) << 32) | bd_data_ptr[8]; // NOLINT
+}
+
+/**
+ * @brief Write 64-bit DDR address into wts_params block (words 8+9)
+ * @param bd_data_ptr Pointer to wts_params data (32-bit words)
+ * @param bd_offset 64-bit physical DDR address to write
+ */
+void
+transform_manager::
+write_pl_ddr64(uint32_t* bd_data_ptr, uint64_t bd_offset)
+{
+  bd_data_ptr[8] = static_cast<uint32_t>(bd_offset & 0xFFFFFFFF);         // NOLINT
+  bd_data_ptr[9] = static_cast<uint32_t>((bd_offset >> 32) & 0xFFFFFFFF); // NOLINT
+}
+
+/**
  * @brief Read buffer descriptor offset from control packet for AIE2PS
  * @param bd_data_ptr Pointer to control packet header (32-bit words)
  * @return Buffer descriptor offset
@@ -567,6 +629,8 @@ get_controlcode_bd_offset(const std::string& section_name, uint32_t offset, symb
     return read57(bd_data_ptr);
   case symbol::patch_schema::shim_dma_57_aie4:
     return read57_aie4(bd_data_ptr);
+  case symbol::patch_schema::pl_ddr_64:
+    return read_pl_ddr64(bd_data_ptr);
   default:
     throw error(error::error_code::internal_error, "Invalid schema found\n");
   }
@@ -612,8 +676,14 @@ set_controlcode_bd_offset(const std::string& section_name, uint32_t offset, uint
       throw error(error::error_code::internal_error, "ctrldata size lesser than offset:"
                   + std::to_string(offset) + "\n");
     uint32_t data_offset = offset - static_cast<uint32_t>(ctrltext->get_size()) + elf_section_header_size;
-    if (data_offset > ctrldata->get_size())
-      throw error(error::error_code::internal_error, "ctrldata offset out of range:"
+    // write57() accesses indices [1], [2], [8]
+    // write57_aie4() accesses indices [0], [1]
+    // write_pl_ddr64() accesses indices [8], [9]
+    constexpr size_t kBDWords = 10; // helps catch bogus offset
+
+    if (data_offset >= ctrldata->get_size() ||
+        ctrldata->get_size() - data_offset < kBDWords * sizeof(uint32_t))
+      throw error(error::error_code::internal_error, "ctrldata BD offset out of range:"
                   + std::to_string(offset) + "\n");
     bd_data_ptr = reinterpret_cast<uint32_t*>(const_cast<char*>(ctrldata->get_data()) + data_offset);
   }
@@ -624,6 +694,9 @@ set_controlcode_bd_offset(const std::string& section_name, uint32_t offset, uint
     break;
   case symbol::patch_schema::shim_dma_57_aie4:
     write57_aie4(bd_data_ptr, bd_offset);
+    break;
+  case symbol::patch_schema::pl_ddr_64:
+    write_pl_ddr64(bd_data_ptr, bd_offset);
     break;
   default:
     throw error(error::error_code::internal_error, "Invalid schema found\n");
@@ -645,8 +718,10 @@ get_ctrlpkt_bd_offset(const std::string& section_name, uint32_t offset, symbol::
   auto ctrlpkt = m_elfio.sections[section_name];
   if (!ctrlpkt)
     throw error(error::error_code::internal_error, "ctrlpkt " + section_name + " not found\n");
-  if (offset > ctrlpkt->get_size())
-    throw error(error::error_code::internal_error, "ctrlpkt size lesser than offset:"
+  constexpr size_t kBDWords = 4; // ctrlpkt_write57() accesses indices [2], [3]
+  if (offset >= ctrlpkt->get_size() ||
+      ctrlpkt->get_size() - offset < kBDWords * sizeof(uint32_t))
+    throw error(error::error_code::internal_error, "ctrlpkt BD offset out of range:"
                 + std::to_string(offset) + "\n");
 
 
@@ -678,8 +753,10 @@ set_ctrlpkt_bd_offset(const std::string& section_name, uint32_t offset, uint64_t
   auto ctrlpkt = m_elfio.sections[section_name];
   if (!ctrlpkt)
     throw error(error::error_code::internal_error, "ctrlpkt " + section_name + " not found\n");
-  if (offset > ctrlpkt->get_size())
-    throw error(error::error_code::internal_error, "ctrlpkt size lesser than offset:"
+  constexpr size_t kBDWords = 4; // ctrlpkt_write57() accesses indices [2], [3]
+  if (offset >= ctrlpkt->get_size() ||
+      ctrlpkt->get_size() - offset < kBDWords * sizeof(uint32_t))
+    throw error(error::error_code::internal_error, "ctrlpkt BD offset out of range:"
                 + std::to_string(offset) + "\n");
 
   auto* bd_data_ptr = reinterpret_cast<uint32_t*>(const_cast<char*>(ctrlpkt->get_data()) + offset);
@@ -702,35 +779,6 @@ set_ctrlpkt_bd_offset(const std::string& section_name, uint32_t offset, uint64_t
  * @param symbol_name: Mangled symbol name (e.g., "_Z3DPUPcPc")
  * @return Kernel name if found, empty string otherwise
  */
-std::string
-transform_manager::
-extract_kernel_name_from_mangled(const std::string& symbol_name) const
-{
-  // Check for C++ mangled name: _Z<length><name>...
-  if (symbol_name.size() <= 3 || symbol_name[0] != '_' || symbol_name[1] != 'Z' || !std::isdigit(symbol_name[2]))
-    return "";
-
-  // Parse the length prefix
-  size_t length_start = 2;
-  size_t length_end = length_start;
-  while (length_end < symbol_name.size() && std::isdigit(symbol_name[length_end])) {
-    length_end++;
-  }
-
-  if (length_end == length_start)
-    return "";
-
-  // Extract and validate the identifier
-  size_t name_length = std::stoul(symbol_name.substr(length_start, length_end - length_start));
-  size_t name_start = length_end;
-  size_t name_end = name_start + name_length;
-
-  if (name_end > symbol_name.size())
-    return "";
-
-  return symbol_name.substr(name_start, name_length);
-}
-
 /**
  * @brief Get filtered section indices for a kernel:instance filter
  * @param kernel_instance_filter: Filter in format "kernel:instance" (e.g., "DPU:dpu")
@@ -1026,7 +1074,7 @@ update_rela_sections(const std::vector<arginfo>& entries, const std::string& ker
     // Special patches (control-code-idx, .ctrlpkt-idx) keep their original names
     const bool is_special_patch = is_ctrlpkt_patch_name(symname) || is_controlcode_patch_name(symname);
     std::string name = is_special_patch ? symname : should_patch ? std::to_string(entries[num].xrt_idx) : symname;
-    
+
     // Verify consistency: all instances of a symbol should map to the same new name
     auto name_it = name_map.find(symname);
     if (should_patch == true) {

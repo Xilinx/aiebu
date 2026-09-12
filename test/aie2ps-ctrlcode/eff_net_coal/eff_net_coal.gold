@@ -6,7 +6,7 @@ ELF Header:
   OS/ABI:                            <unknown>: 70
   ABI Version:                       3
   Type:                              EXEC (Executable file)
-  Machine:                           WE32100
+  Machine:                           <unknown>: 0x10d
   Version:                           1 (current)
   Entry point address:               0
   Start of program headers:          52 (bytes into file)

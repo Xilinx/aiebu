@@ -1,5 +1,5 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 #
 message("-- Preparing aiebu CMake find_package() support files")
 

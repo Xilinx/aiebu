@@ -80,13 +80,16 @@ public:
         else
           log_warn() << "Invalid log level flag: " << flag << ", ignored\n";
       }
+      else if (flag == "compress" || flag.find("compress=") == 0) {
+        // Handled by the ELF post-processing layer (make_elf_compressor) — not the assembler.
+      }
       else
         log_warn() << "Invalid flag: " << flag << ", ignored\n";
     }
     
     std::shared_ptr<asm_parser> parser(new asm_parser(tinput->get_ctrlcode_data(), tinput->get_include_paths(), get_target_name(), tinput->get_artifacts()));
 
-    parser->parse_lines();
+    parser->parse_lines(tinput->get_source_filename());
 
     // Verify PREEMPT opcode count is equal across all columns in the control code.
     // All controllers must have the same number of preemption points to ensure consistent
@@ -101,6 +104,8 @@ public:
           " has " + std::to_string(mismatch_count) + " preempt opcodes\n");
       }
       log_info() << "Ctrlcode has " << expected_count << " preemption points\n";
+
+      parser->verify_preempt_ids();
 
       // cert relies on load_pdi (and possible load_cores / load_cores_cp) to recover
       // the last loaded PDI and cores at each preemption point.
@@ -189,7 +194,6 @@ public:
     {
       std::vector<page> pages;
       uint32_t relative_page_index = 0;
-      int pad_size = 0;
       auto& label_page_index = parser->getcollabelpageindex(col);
       auto& scratchpad = parser->getcolscratchpad(col);
       auto& coldata = parser->get_col_asmdata(col);
@@ -200,7 +204,7 @@ public:
         std::vector<std::shared_ptr<asm_data>> data = coldata.get_label_asmdata(label);
         std::shared_ptr<assembler_state> state = create_assembler_state(m_isa, data, scratchpad, label_page_index, ctrlpkt_id_map, optimize, true);
       // create pages
-        pager(PAGE_SIZE, parser->default_source_file_idx()).pagify(*state, col, pages, relative_page_index);
+        pager(PAGE_SIZE, parser->get_filename_table().find_filename(tinput->get_source_filename())).pagify(*state, col, pages, relative_page_index);
         label_page_index[get_pagelabel(label)] = relative_page_index;
         log_debug() << "num pages: " << pages.size() - relative_page_index << std::endl;
         relative_page_index = static_cast<uint32_t>(pages.size());
@@ -208,10 +212,7 @@ public:
 
       for (auto& pad : scratchpad)
       {
-        pad_size = (((pad_size + 3) >> 2) << 2); // round off to next multiple of 4
-        pad.second->set_offset(pad_size);
-        pad.second->set_base(PAGE_SIZE * relative_page_index);
-        pad_size += pad.second->get_size();
+        pad.second->set_offset(0);
       }
 
       toutput->set_coldata(col, pages, scratchpad, label_page_index, tinput->get_control_packet_index());

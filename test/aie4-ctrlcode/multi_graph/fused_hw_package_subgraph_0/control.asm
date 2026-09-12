@@ -1,4 +1,5 @@
 .partition	 3column
+.target aie4
 ;
 ;text
 START_JOB 0

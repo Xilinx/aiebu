@@ -2,6 +2,7 @@
 // Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 
 #include "ops.h"
+#include "disassembler/disassembler_merged.h"
 #include "aiebu/aiebu_error.h"
 #include "logger.h"
 
@@ -129,6 +130,8 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
         {
           if (state->m_ctrlpkt_id_map.find(val) != state->m_ctrlpkt_id_map.end())
             sval = state->m_ctrlpkt_id_map[val];
+          else if (val == offset_type_marker && state->get_is_save_restore_op())
+            sval = "scratch-pad-mem";  // For save/restore routine, use "scratch-pad-mem" as arg name
           else if (val == offset_type_marker)
             sval = "control-code-" + std::to_string(colnum);
 
@@ -172,6 +175,22 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
               }
             }
           }
+        }
+
+        // For apply_offset_pl, arg 'buffer_id' emits a pl_ddr_64 ELF relocation
+        // for the single wts_params block so XRT can patch words 8+9 at BO bind time.
+        if (!m_opcode->get_code_name().compare("apply_offset_pl") && !arg.get_name().compare("buffer_id"))
+        {
+          sval = std::to_string(val); // buffer_id is the XRT arg index
+          size_t index = state->find_label_entry(m_args[0].substr(1));
+          const std::string ctrltext_patch_sec_name =
+              state->merged_ctrltext_elf()
+                  ? (".ctrltext." + std::to_string(colnum))
+                  : (".ctrltext." + std::to_string(colnum) + "." + std::to_string(pagenum));
+          auto label = state->get_label_at(index);
+          symbols.emplace_back(sval, state->parse_num_arg(label),
+                               colnum, pagenum, 0, 0, ctrltext_patch_sec_name,
+                               symbol::patch_schema::pl_ddr_64);
         }
         if (!state->is_optimization_enabled_for_op(m_opcode->get_code_name())){
           ret.push_back(val & BYTE_MASK);
@@ -394,12 +413,22 @@ handle_barrier_arg(uint32_t val)
 
 std::string
 isa_op_deserializer::
-handle_page_id_arg(uint32_t /*val*/,
+handle_page_id_arg(uint32_t val,
                     std::shared_ptr<disassembler_state> state)
 {
-  // PAGE_ID arguments reference text sections that come later
-  // Add to OOO label queue to be written at the start of the target section
+  const auto& merged_ctx = state->get_merged_context();
+  if (merged_ctx && merged_ctx->is_active()) {
+    const int col = state->get_current_col();
+    const std::string mapped = merged_ctx->page_label(col, static_cast<uint16_t>(val));
+    if (!mapped.empty()) {
+      state->register_external_page_label(static_cast<uint16_t>(val), mapped);
+      return "@" + mapped;
+    }
+  }
+
+  // Legacy fallback: synthetic sequential labels.
   std::string sym_label = get_label();
+  state->register_external_page_label(static_cast<uint16_t>(val), sym_label.substr(1));
   state->add_ooo_label(sym_label);
   return sym_label;
 }
@@ -458,6 +487,19 @@ deserialize(asm_writer& writer, std::shared_ptr<disassembler_state> state, const
 
             default:
                 throw std::runtime_error("Invalid argument type!");
+        }
+    }
+
+    // PREEMPT: append hintmap operand recovered from save-page BDs.
+    if (m_opcode->get_code_name() == "preempt") {
+        const auto& merged_ctx = state->get_merged_context();
+        if (merged_ctx && merged_ctx->is_active()) {
+            if (const auto* pt = merged_ctx->preempt_at(state->get_current_col(),
+                                                        state->get_current_page_idx(),
+                                                        state->get_current_text_offset())) {
+                if (pt->has_hintmap && !pt->hintmap_label.empty())
+                    result.push_back("@" + pt->hintmap_label);
+            }
         }
     }
 

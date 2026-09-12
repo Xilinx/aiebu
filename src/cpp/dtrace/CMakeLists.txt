@@ -23,6 +23,7 @@ add_library(dtrace_library_objects OBJECT
   action/host_timestamps.cpp
   action/sleep.cpp
   action/count.cpp
+  action/mask_poll32.cpp
   probe/begin.cpp
   probe/end.cpp
   probe/jprobe.cpp
@@ -33,12 +34,18 @@ add_library(dtrace_library_objects OBJECT
   pager/pager.cpp
   control/control.cpp
   dtrace.cpp
+  utils.cpp
   )
 
 target_include_directories(dtrace_library_objects 
   PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp
   ${Boost_INCLUDE_DIRS}
+  )
+
+target_include_directories(dtrace_library_objects
+  SYSTEM PRIVATE
+  ${AIEBU_ELFIO_SRC_DIR}
   )
 
 set_target_properties(dtrace_library_objects PROPERTIES
@@ -58,7 +65,8 @@ endif()
 
 # As long as we support static linking of targets that depend on static cert dtrace,
 # the cert dtrace static library must be released.
-install(TARGETS cert_dtrace_static
-  EXPORT aiebu-targets
-  ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT}
-  )
+if(AIEBU_INSTALL_STATIC_LIBRARY)
+  install(TARGETS cert_dtrace_static
+    EXPORT aiebu-targets
+    ARCHIVE DESTINATION ${AIEBU_INSTALL_LIB_DIR} COMPONENT ${AIEBU_DEV_COMPONENT})
+endif()

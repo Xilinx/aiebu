@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
 #include <filesystem>
@@ -24,6 +24,8 @@ operation_action(std::string token, uint32_t probe_type, const std::string& prob
     : action(probe_type, probe_name)
     , m_token(std::move(token))
 {
+    // Set action name for creating action control print
+    m_action_name = "operation";
 }
 
 //-------------------------operation_action::actionize-------------------------//
@@ -53,11 +55,12 @@ actionize(uint32_t, std::vector<uint32_t>&, std::vector<uint32_t>&)
  */
 void
 operation_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, std::ostream& script_output) const
 {
     // serialize string format
     script_output << "  " << m_token << "\n";
+    m_result_type = action_result_type::print_action_fired;
 }
 
 //-------------------------operation_action::serialize-------------------------//
@@ -71,9 +74,10 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
  */
 void
 operation_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
+    m_result_type = action_result_type::print_action_fired;
 }
 
 } // namespace dtrace::action

@@ -8,6 +8,8 @@
 #include <fstream>
 #include <iomanip>
 #include <optional>
+#include <algorithm>
+#include <climits>
 #include "common/regex_wrapper.h"
 #include <sstream>
 
@@ -48,6 +50,36 @@ static inline int aiebu_clz(unsigned int x)      { return __builtin_clz(x);     
 namespace aiebu {
 
 namespace {
+
+// Hintmap chunk bitset helpers live in hintmap_bitset.h / hintmap_bitset.cpp.
+
+// Scratchpad region logging helpers used by preempt settlement diagnostics.
+static std::string
+format_byte_size(uint64_t size)
+{
+  if (size >= BYTES_PER_MB && size % BYTES_PER_MB == 0)
+    return std::to_string(size / BYTES_PER_MB) + "MB";
+  if (size >= BYTES_PER_KB && size % BYTES_PER_KB == 0)
+    return std::to_string(size / BYTES_PER_KB) + "KB";
+  return std::to_string(size) + " bytes";
+}
+
+static std::string
+describe_region(uint64_t base, uint64_t size)
+{
+  std::ostringstream oss;
+  if (size == 0) {
+    oss << "NOP (size 0)";
+    return oss.str();
+  }
+  const uint64_t lo = base / CHUNK_SIZE;
+  const uint64_t hi = lo + size / CHUNK_SIZE - 1;
+  const uint64_t nchunks = hi - lo + 1;
+  oss << describe_chunk_span(lo, hi)
+      << ", size=0x" << std::hex << size << std::dec
+      << " (" << format_byte_size(size) << ", " << nchunks << " chunks)";
+  return oss.str();
+}
 
 // One capture per directive token; capture 13 is optional args. Handled directives are captures 1–8
 // (same eight as asm_directive_id / directive_list). Captures 9–12 are recognized but not dispatched here.
@@ -174,7 +206,7 @@ std::vector<uint32_t>
 asm_parser::
 get_col_list()
 {
-  // get col list
+  // get col list (sorted order since unordered_map doesn't preserve insertion order)
   std::vector<uint32_t> keys;
 
   std::transform(
@@ -182,6 +214,7 @@ get_col_list()
     m_col.end(),
     std::back_inserter(keys),
     [](const std::unordered_map<uint32_t, col_data>::value_type &pair){return pair.first;});
+  std::sort(keys.begin(), keys.end());
   return keys;
 }
 
@@ -199,7 +232,7 @@ get_col_asmdata(uint32_t colnum)
 
 void
 asm_parser::
-parse_lines()
+parse_lines(const std::string& source_filename)
 {
   directive_list[static_cast<std::size_t>(asm_directive_id::attach_to_group)] =
       std::make_shared<attach_to_group_directive>();
@@ -211,8 +244,7 @@ parse_lines()
   directive_list[static_cast<std::size_t>(asm_directive_id::section)] = std::make_shared<section_directive>();
   directive_list[static_cast<std::size_t>(asm_directive_id::partition)] = std::make_shared<partition_directive>();
   directive_list[static_cast<std::size_t>(asm_directive_id::target)] = std::make_shared<target_directive>();
-  std::string file = "default";
-  parse_lines(m_data, file);
+  parse_lines(m_data, source_filename);
 
   // After all parsing is done, inject actual save/restore code
   finalize_preempt();
@@ -255,11 +287,12 @@ handle_preempt_opcode(std::string& arg_str, std::string& line)
   }
 
   std::pair<std::string, std::string> labels;
+  std::string qualified_key = "";
   if (!hintmap_label.empty()) {
     // Qualify the hintmap key with its label scope so that the same label
     // name in different scopes (e.g. "default" vs "default:pdi") is treated
     // as a distinct hintmap.
-    std::string qualified_key = m_current_label + ":" + hintmap_label;
+    qualified_key = m_current_label + ":" + hintmap_label;
     // Get unique save/restore labels for this hintmap BEFORE adding to vector
     // (so the index calculation is correct)
     labels = get_hintmap_save_restore_labels(hintmap_label, current_group);
@@ -271,6 +304,8 @@ handle_preempt_opcode(std::string& arg_str, std::string& line)
     m_preempt_without_hintmap.insert(current_group);
     labels = m_preempt_labels[current_group];
   }
+
+  m_preempt_points[current_group].push_back({first_arg, qualified_key});
 
   if (!hintmap_label.empty())
     arg_str = first_arg + ", @" + labels.first + ", @" + labels.second + ", @" + hintmap_label;
@@ -334,7 +369,7 @@ handle_load_or_preempt_cond(const std::string& op_name, const std::string& arg_s
 
 void
 asm_parser::
-parse_lines(const std::vector<char>& data, std::string& file)
+parse_lines(const std::vector<char>& data, const std::string& file)
 {
   //parse asm code
   const static regex COMMENT_REGEX("^;(.*)$");
@@ -355,6 +390,7 @@ parse_lines(const std::vector<char>& data, std::string& file)
     }
   }
   const uint32_t parse_file_idx = intern_filename(file);
+  m_current_parse_file_idx = parse_file_idx;
   // Scan str for newlines directly instead of copying it into an istringstream
   size_t pos = 0;
   const size_t str_len = str.size();
@@ -420,7 +456,8 @@ parse_lines(const std::vector<char>& data, std::string& file)
       } else
         insert_col_asmdata(std::make_shared<asm_data>(operation(sm[1].str(), ""), operation_type::label,
                                                       code_section::unknown, 0, (uint32_t)-1, linenumber,
-                                                      parse_file_idx));
+                                                      parse_file_idx, is_save_restore_routine()));
+
       continue;
     }
     // check for operation
@@ -440,9 +477,10 @@ parse_lines(const std::vector<char>& data, std::string& file)
       else if (regex_match(op_name, sm, LOAD_OR_PREEMPT_COND_RE)) {
         handle_load_or_preempt_cond(op_name, arg_str, sm);
       }
+
       insert_col_asmdata(std::make_shared<asm_data>(operation(op_name, arg_str), operation_type::op,
                                                     code_section::unknown, 0, (uint32_t)-1, linenumber,
-                                                    parse_file_idx));
+                                                    parse_file_idx, is_save_restore_routine()));
       if (!op_name.compare("eof"))
         set_data_state(true);
     }
@@ -500,11 +538,14 @@ get_preempt_save_restore(uint32_t num_cols) const
   // 10 (1c0)    save_1:     restore_1:
   // 12 (1c1)    save_2:     restore_2:
   // 14 (1c2)    save_3:     restore_3:
-  auto& save_restore_map = get_aie4_save_restore();
-  auto it = save_restore_map.find(num_cols);
-  if (it != save_restore_map.end())
-    return it->second;
-  return {{}, {}};
+  const auto* save_restore = get_aie4_save_restore(num_cols);
+  if (!save_restore)
+    return {{}, {}};
+
+  return {
+    {save_restore->save.data, save_restore->save.data + save_restore->save.size},
+    {save_restore->restore.data, save_restore->restore.data + save_restore->restore.size}
+  };
 }
 
 
@@ -518,7 +559,7 @@ collect_hintmap_words(const std::vector<std::shared_ptr<asm_data>>& entries,
                       const std::string& hintmap_label)
 {
   std::vector<uint32_t> words;
-  words.reserve(16);
+  words.reserve(HINTMAP_WORD_COUNT);
   bool in_target = false;
 
   for (const auto& entry : entries) {
@@ -562,8 +603,10 @@ collect_hintmap_words(const std::vector<std::shared_ptr<asm_data>>& entries,
 // ---------------------------------------------------------------------------
 // hintmap_words_to_scratchpad
 //   Interpret the .long bitmask words and return {scratchbase, size}.
-//   Each bit represents one 64KB chunk.  Throws if the set bits are not
-//   contiguous across all words.
+//   Each bit represents one 64KB chunk.  The set bits need not be contiguous:
+//   the region spans the first up to the last set bit so that every requested
+//   chunk is saved.  Chunks sitting in a gap are saved as well (a superset of
+//   the hintmap), since one preemption point transfers a single contiguous range.
 // ---------------------------------------------------------------------------
 static std::pair<uint64_t, uint64_t>
 hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
@@ -595,25 +638,22 @@ hintmap_words_to_scratchpad(const std::vector<uint32_t>& words,
     last_bit = hi;
   }
 
-  // Contiguity check: no gaps allowed between first and last set bit
-  if (first_bit != NO_BIT) {
-    const uint64_t span = last_bit - first_bit + 1;
-    if (span != set_bits)
-      throw error(error::error_code::invalid_asm,
-                  "hintmap '" + hintmap_label + "' has non-contiguous bits "
-                  "(first=bit " + std::to_string(first_bit)
-                  + ", last=bit "  + std::to_string(last_bit)
-                  + ", span="      + std::to_string(span)
-                  + ", set="       + std::to_string(set_bits) + ")");
-  }
-
+  // Full span from first to last set bit, inclusive.  Holes are absorbed.
+  const uint64_t span_bits   = (first_bit != NO_BIT) ? (last_bit - first_bit + 1) : 0;
   const uint64_t scratchbase = (first_bit != NO_BIT) ? (first_bit * CHUNK_SIZE) : DEFAULT_BASE;
-  const uint64_t size        = set_bits * CHUNK_SIZE;
+  const uint64_t size        = span_bits * CHUNK_SIZE;
+
+  if (first_bit != NO_BIT && span_bits != set_bits) {
+    log_info() << "hintmap '" << hintmap_label << "' has gaps between bit "
+               << first_bit << " and bit " << last_bit << ": saving "
+               << span_bits << " chunks to cover the " << set_bits
+               << " requested ones" << std::endl;
+  }
 
   log_info() << "Hintmap parsed for group " << group << " (col " << group << "): "
              << "scratchbase=0x" << std::hex << scratchbase
              << ", size=0x"      << size << " (" << std::dec
-             << (size / (1024ULL * 1024ULL)) << "MB, " << set_bits << " chunks)" << std::endl;
+             << (size / BYTES_PER_MB) << "MB, " << span_bits << " chunks)" << std::endl;
 
   return {scratchbase, size};
 }
@@ -654,7 +694,9 @@ find_hintmap_context(int group,
 // ---------------------------------------------------------------------------
 // parse_hintmap_and_calculate_scratchpad
 //   Each bit represents a 64KB chunk; scratchbase = first set bit * 64KB,
-//   size = set_bits * 64KB.  Returns defaults when hintmap_label is empty.
+//   size = (last set bit - first set bit + 1) * 64KB.  Holes between the
+//   first and last set bits are absorbed into the scratchpad.  Returns
+//   defaults when hintmap_label is empty.
 // ---------------------------------------------------------------------------
 std::pair<uint64_t, uint64_t>
 asm_parser::
@@ -664,14 +706,20 @@ parse_hintmap_and_calculate_scratchpad(int group,
 {
   constexpr uint64_t DEFAULT_SIZE = 9ULL * 1024ULL * 1024ULL;
   constexpr uint64_t DEFAULT_BASE = 0x0ULL;
+  constexpr uint64_t DEFAULT_SIZE_PER_COL = 3ULL * 1024ULL * 1024ULL;
 
-  if (hintmap_label.empty())
+  if (hintmap_label.empty()) {
+    if (is_multi_column_mode())
+      return {DEFAULT_SIZE_PER_COL*group/2, DEFAULT_SIZE_PER_COL};
     return {DEFAULT_BASE, DEFAULT_SIZE};
+  }
 
   const std::string ctx     = find_hintmap_context(group, search_context, hintmap_label);
   auto& col_data            = get_col_asmdata(static_cast<uint32_t>(group));
   const auto& all_entries   = col_data.get_label_asmdata_data(ctx);
   const auto words          = collect_hintmap_words(all_entries, hintmap_label);
+  const uint64_t max_chunks = static_cast<uint64_t>(get_partition_info()->get_numcolumn()) * CHUNKS_PER_COL;
+  verify_hintmap_chunk_limit(words_to_bitset(words), max_chunks, hintmap_label);
   return hintmap_words_to_scratchpad(words, hintmap_label, group);
 }
 
@@ -796,60 +844,60 @@ static std::string clean_label_ref(const std::string& arg)
   return s;
 }
 
-// ---------------------------------------------------------------------------
-// BD range helpers
-//   Split [address, address+size) across three 3MB scratchpad regions and
-//   divide each region's intersection into equal sub-ranges (BD slots).
-//
-//   The 9MB scratchpad is partitioned into:
-//     Region 0 : [0 MB, 3 MB)
-//     Region 1 : [3 MB, 6 MB)
-//     Region 2 : [6 MB, 9 MB)
-//
-//   For save:    parts_per_region = 2  →  6 (base, size) pairs total
-//   For restore: parts_per_region = 4  → 12 (base, size) pairs total
-//
-//   Sub-ranges with no overlap get size = 0 (base = region start).
-//   The last sub-range in an overlapping region absorbs any remainder from
-//   integer division so that all sizes sum exactly to the intersection size.
-// ---------------------------------------------------------------------------
+// Parse a PREEMPT id operand (decimal or hex) for validation.
+static uint32_t
+parse_preempt_id_value(const std::string& id_arg, int col, std::size_t pt)
+{
+  const std::string s = clean_arg(id_arg);
+  if (s.empty()) {
+    throw error(error::error_code::invalid_asm,
+                "PREEMPT opcode has empty id at controller " + std::to_string(col)
+                + " preemption point " + std::to_string(pt) + "\n");
+  }
+
+  try {
+    return static_cast<uint32_t>(std::stoul(s, nullptr, 0));
+  } catch (const std::exception&) {
+    throw error(error::error_code::invalid_asm,
+                "PREEMPT id '" + id_arg + "' is not a valid integer at controller "
+                + std::to_string(col) + " preemption point " + std::to_string(pt) + "\n");
+  }
+}
+
+void
+asm_parser::
+verify_preempt_ids() const
+{
+  for (const auto& [col, points] : m_preempt_points) {
+    for (std::size_t pt = 0; pt < points.size(); ++pt) {
+      const uint32_t id_val = parse_preempt_id_value(points[pt].id, col, pt);
+      if (id_val != static_cast<uint32_t>(pt)) {
+        std::ostringstream oss;
+        oss << "PREEMPT id values must be consecutive starting from 0: controller "
+            << col << " preemption point " << pt << " expects id 0x"
+            << std::hex << pt << std::dec << ", but got '" << points[pt].id << "'\n";
+        throw error(error::error_code::invalid_asm, oss.str());
+      }
+    }
+  }
+}
+
+// Divide [address, address+size) into equal number of slots.
+// Returns one (base, size) pair per slot; the last slot absorbs any remainder from integer division.
 static std::vector<std::pair<uint64_t, uint64_t>>
 compute_bd_ranges(uint32_t num_bd_per_column, uint64_t address, uint64_t size, uint32_t parts_per_region)
 {
-  constexpr uint64_t MB3       = 3ULL * 1024ULL * 1024ULL;  // 3 MB
-  uint32_t N_REGIONS = num_bd_per_column;
+  uint32_t total = num_bd_per_column * parts_per_region;
+  uint64_t part_size = size / static_cast<uint64_t>(total);
 
   std::vector<std::pair<uint64_t, uint64_t>> result;
-  result.reserve(static_cast<std::size_t>(N_REGIONS * parts_per_region));
+  result.reserve(total);
 
-  const uint64_t alloc_end = address + size;
-
-  for (uint32_t r = 0; r < N_REGIONS; ++r) {
-    const uint64_t reg_base = static_cast<uint64_t>(r) * MB3;
-    const uint64_t reg_end  = reg_base + MB3;
-
-    // Intersection of [address, alloc_end) with [reg_base, reg_end)
-    const uint64_t isect_base = std::max(address, reg_base);
-    const uint64_t isect_end  = std::min(alloc_end, reg_end);
-
-    if (isect_end <= isect_base) {
-      // No overlap — every slot for this region has size 0
-      for (uint32_t p = 0; p < parts_per_region; ++p)
-        result.push_back({reg_base, 0ULL});
-      continue;
-    }
-
-    const uint64_t isect_size = isect_end - isect_base;
-    const uint64_t part_size  = isect_size / static_cast<uint64_t>(parts_per_region);
-
-    for (uint32_t p = 0; p < parts_per_region; ++p) {
-      const uint64_t part_base = isect_base + static_cast<uint64_t>(p) * part_size;
-      // Last slot absorbs any remainder from integer division
-      const uint64_t this_size = (p == parts_per_region - 1)
-                                 ? (isect_end - part_base)
-                                 : part_size;
-      result.push_back({part_base, this_size});
-    }
+  for (uint32_t i = 0; i < total; ++i) {
+    uint64_t base = address + static_cast<uint64_t>(i) * part_size;
+    // last slot absorbs remainder
+    uint64_t this_size = (i == total - 1) ? (address + size - base) : part_size;
+    result.push_back({base, this_size});
   }
 
   return result;
@@ -936,17 +984,39 @@ patch_bd_in_asm(std::string& text, const std::string& label,
 
 static void
 patch_membd_in_asm(std::string& text, const std::string& label,
-                uint64_t byte_addr, uint64_t size_bytes)
+                uint64_t byte_addr, uint64_t size_bytes, int group_index)
 {
   const std::string label_def = label + ":";
   auto pos = text.find(label_def);
   if (pos == std::string::npos)
     return;
 
-  byte_addr = byte_addr % 0x300000;
-  byte_addr = (byte_addr/4) + 0x800000;
+  log_info() << "group_index: " << group_index << " byte_addr=0x" << std::hex << byte_addr  << std::dec << std::endl;
+/*
+  //6.3.4 Inter-MEM tile memory and lock access
+  Offset -> Address ranges (bytes)
+  -2     -> 0x1A0_0000 – 0x1CF_FFFF  ---> 0x68_0000 - 0x73_ffff
+  -1     -> 0x1D0_0000 – 0x1FF_FFFF  ---> 0x74_0000 - 0x7f_ffff
+  0      -> 0x200_0000 – 0x22F_FFFF  ---> 0x80_0000 - 0x8b_ffff
+  +1     -> 0x230_0000 – 0x25F_FFFF  ---> 0x8c_0000 - 0x97_ffff
+  +2     -> 0x260_0000 – 0x28F_FFFF  ---> 0x98_0000 - 0xA3_ffff
+*/
 
-
+  // Translate physical scratchpad byte_addr to the inter-MEM tile word address seen by group_index col.
+  //
+  // The inter-MEM tile byte address table (relative to the channel's home col = slot 0):
+  //   slot -2 -> 0x1A0_0000,  slot -1 -> 0x1D0_0000,  slot 0 -> 0x200_0000
+  //   slot +1 -> 0x230_0000,  slot +2 -> 0x260_0000   (step = 0x30_0000 bytes per slot)
+  //
+  // Converting to word address (/4):
+  //   word_base = 0x200_0000/4 = 0x80_0000,  word_step = 0x30_0000/4 = 0xC_0000
+  //
+  // Physical layout: col N occupies [N*0x300000, (N+1)*0x300000) of scratchpad.
+  // slot = (which col the address is in) - (home col of this channel)
+  {
+    int slot = static_cast<int>(byte_addr / 0x300000) - group_index;  // NOLINT
+    byte_addr = static_cast<uint64_t>(0x800000 + slot * 0xC0000) + (byte_addr % 0x300000) / 4;  // NOLINT
+  }
   log_info() << "patch_membd_in_asm: label=" << label
              << " byte_addr=0x" << std::hex << byte_addr
              << " size_bytes=0x" << size_bytes/4 << std::dec << std::endl;
@@ -996,32 +1066,55 @@ patch_membd_in_asm(std::string& text, const std::string& label,
 }
 
 // ---------------------------------------------------------------------------
+// split_qualified_hintmap
+//   Split "label_context:hintmap_name" into {context, name}.  The context
+//   itself can contain ':' (e.g. "default:pdi"), so the last ':' separates.
+// ---------------------------------------------------------------------------
+static std::pair<std::string, std::string>
+split_qualified_hintmap(const std::string& qualified_key)
+{
+  const auto sep = qualified_key.rfind(':');
+  if (sep == std::string::npos)
+    return {"", qualified_key};  // no context prefix (shouldn't happen)
+  return {qualified_key.substr(0, sep), qualified_key.substr(sep + 1)};
+}
+
+// ---------------------------------------------------------------------------
 // build_hintmap_groups
 //   First pass: group hintmaps by (scratchbase, size) and assign unique labels.
 // ---------------------------------------------------------------------------
 std::vector<asm_parser::hintmap_group_entry>
-asm_parser::build_hintmap_groups(int group,
-                                 const std::vector<std::string>& hintmap_labels,
-                                 int group_index)
+asm_parser::build_hintmap_groups(int group, int group_index)
 {
   // Map (scratchbase, size) -> index in result vector
   std::map<std::pair<uint64_t,uint64_t>, std::size_t> key_to_idx;
   std::vector<hintmap_group_entry> result;
   int unique_idx = 0;
 
-  for (const auto& qualified_key : hintmap_labels) {
-    // Split "label_context:hintmap_name" on the last ':'.
-    // The context itself can contain ':' (e.g. "default:pdi"), so rfind is correct.
-    std::string ctx, label_name;
-    const auto sep = qualified_key.rfind(':');
-    if (sep != std::string::npos) {
-      ctx        = qualified_key.substr(0, sep);
-      label_name = qualified_key.substr(sep + 1);
+  const auto points_it = m_preempt_points.find(group);
+  if (points_it == m_preempt_points.end())
+    return result;
+
+  const auto& points = points_it->second;
+  const auto& regions  = m_preempt_region[group];
+
+  for (std::size_t pt = 0; pt < points.size(); ++pt) {
+    const auto& qualified_key = points[pt].hintmap_key;
+    if (qualified_key.empty())
+      continue;
+
+    uint64_t scratchbase = 0;
+    uint64_t size        = 0;
+    if (pt < regions.size()) {
+      scratchbase = regions[pt].scratchbase;
+      size        = regions[pt].size;
     } else {
-      label_name = qualified_key;  // no context prefix (shouldn't happen)
+      auto [ctx, label_name] = split_qualified_hintmap(qualified_key);
+      auto region = parse_hintmap_and_calculate_scratchpad(group, ctx, label_name);
+      scratchbase = region.first;
+      size        = region.second;
     }
 
-    auto [scratchbase, size] = parse_hintmap_and_calculate_scratchpad(group, ctx, label_name);
     auto key = std::make_pair(scratchbase, size);
     auto it  = key_to_idx.find(key);
 
@@ -1029,11 +1122,11 @@ asm_parser::build_hintmap_groups(int group,
       hintmap_group_entry entry;
       entry.scratchbase = scratchbase;
       entry.size        = size;
-      entry.hintmaps.push_back(qualified_key);
+      entry.hintmap_pts.emplace_back(pt, qualified_key);
       entry.labels = {"save_"    + std::to_string(group_index) + "_" + std::to_string(unique_idx),
                       "restore_" + std::to_string(group_index) + "_" + std::to_string(unique_idx)};
-      log_info() << "Column " << group << ": hintmap '" << qualified_key
-                 << "' -> scratchbase=0x" << std::hex << scratchbase
+      log_info() << "Column " << group << ": preemption point " << pt << ", hintmap '"
+                 << qualified_key << "' -> scratchbase=0x" << std::hex << scratchbase
                  << ", size=0x" << size << std::dec
                  << " -> new labels @" << entry.labels.first
                  << " / @" << entry.labels.second << std::endl;
@@ -1042,21 +1135,26 @@ asm_parser::build_hintmap_groups(int group,
       ++unique_idx;
     } else {
       auto& entry = result[it->second];
-      entry.hintmaps.push_back(qualified_key);
-      log_info() << "Column " << group << ": hintmap '" << qualified_key
-                 << "' -> sharing labels @" << entry.labels.first
+      const auto pt_key = std::make_pair(pt, qualified_key);
+      if (std::find(entry.hintmap_pts.begin(), entry.hintmap_pts.end(), pt_key)
+          == entry.hintmap_pts.end())
+        entry.hintmap_pts.push_back(pt_key);
+      log_info() << "Column " << group << ": preemption point " << pt << ", hintmap '"
+                 << qualified_key << "' -> sharing labels @" << entry.labels.first
                  << " / @" << entry.labels.second << std::endl;
     }
   }
   return result;
 }
 
+constexpr uint32_t save_channel    = 2;  // number of mm2s memtile channel per col used
+constexpr uint32_t restore_channel = 4;  // number of s2mm memtile channel per col used
 // ---------------------------------------------------------------------------
 // inject_hintmap_save_restore
 //   Register scratchpad, patch template labels, and parse save+restore asm.
 // ---------------------------------------------------------------------------
 void
-asm_parser::inject_hintmap_save_restore(int col,
+asm_parser::inject_hintmap_save_restore(int col, int group_index,
                                         const std::string& save_file,
                                         const std::string& restore_file,
                                         const std::vector<uint8_t>& save_data,
@@ -1072,8 +1170,8 @@ asm_parser::inject_hintmap_save_restore(int col,
   // Key includes the column so that identical qualified names in different
   // columns never collide in the map.
   const std::string col_prefix = std::to_string(col) + ":";
-  for (const auto& hm : grp.hintmaps)
-    m_hintmap_labels[col_prefix + hm] = grp.labels;
+  for (const auto& [pt, hm] : grp.hintmap_pts)
+    m_hintmap_labels[col_prefix + hm + ":" + std::to_string(pt)] = grp.labels;
 
   // When hint_bitmap is all-zero the scratchpad size is 0: no state needs to
   // be saved or restored.  Inject minimal dummy jobs so the PREEMPT opcode
@@ -1124,7 +1222,7 @@ asm_parser::inject_hintmap_save_restore(int col,
   std::string restore_file_mod = std::to_string(grp.scratchbase / CHUNK_SIZE) + "_" + std::to_string(grp.size / CHUNK_SIZE) + "_" + restore_file;
   log_info() << "Adding save_file: " << save_file_mod << " [size: " << save_data.size()
              << "], restore_file: " << restore_file_mod << " [size: " << restore_data.size()
-             << "] for " << grp.hintmaps.size() << " hintmap(s) with shared labels @"
+             << "] for " << grp.hintmap_pts.size() << " preemption point(s) with shared labels @"
              << grp.labels.first << " / @" << grp.labels.second << std::endl;
 
   // Patch template labels and inject
@@ -1152,29 +1250,36 @@ asm_parser::inject_hintmap_save_restore(int col,
     log_info() << "  restore_bd[" << i << "]: base=0x" << std::hex << restore_bd_ranges[i].first
                << " size=0x" << restore_bd_ranges[i].second << std::dec << std::endl;
 
-  // Patch BD address/length fields directly in the ASM text
+  // Patch BD address/length fields directly in the ASM text.
+  // bd_col = which column's memtile this BD accesses:
+  //   group_index is the base col; each pair of save BDs (2 per col) or quad of restore BDs (4 per col)
+  //   steps to the next column.
   std::string save_text(save_chars.begin(), save_chars.end());
   for (std::size_t i = 0; i < save_bd.size() && i < save_bd_ranges.size(); ++i) {
+    int bd_col = group_index + static_cast<int>(i / save_channel);
     patch_bd_in_asm(save_text, save_bd[i], save_bd_ranges[i].first, save_bd_ranges[i].second);
-    patch_membd_in_asm(save_text, save_membd[i], save_bd_ranges[i].first, save_bd_ranges[i].second);
+    patch_membd_in_asm(save_text, save_membd[i], save_bd_ranges[i].first, save_bd_ranges[i].second, bd_col);
   }
   save_chars.assign(save_text.begin(), save_text.end());
 
   std::string restore_text(restore_chars.begin(), restore_chars.end());
   for (std::size_t i = 0; i < restore_bd.size() && i < restore_bd_ranges.size(); ++i) {
+    int bd_col = group_index + static_cast<int>(i / restore_channel);
     patch_bd_in_asm(restore_text, restore_bd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second);
-    patch_membd_in_asm(restore_text, restore_membd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second);
+    patch_membd_in_asm(restore_text, restore_membd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second, bd_col);
   }
   restore_chars.assign(restore_text.begin(), restore_text.end());
 
   m_current_col = col;
   set_data_state(false);
+  set_save_restore_routine(true);  // Mark as save/restore routine
   parse_lines(save_chars, save_file_mod);
   pop_data_state();
 
   set_data_state(false);
   parse_lines(restore_chars, restore_file_mod);
   pop_data_state();
+  set_save_restore_routine(false);  // Clear save/restore routine flag
 }
 
 // ---------------------------------------------------------------------------
@@ -1187,11 +1292,21 @@ asm_parser::update_preempt_opcodes(int col)
   if (m_col.find(col) == m_col.end())
     return;
 
+  const auto points_it = m_preempt_points.find(col);
+  if (points_it == m_preempt_points.end())
+    return;
+
+  const auto& points = points_it->second;
+  const std::string col_prefix = std::to_string(col) + ":";
+
   log_info() << "Updating PREEMPT opcodes for column " << col
-             << ", m_hintmap_labels has " << m_hintmap_labels.size() << " entries" << std::endl;
+             << ", " << points.size() << " preemption point(s)" << std::endl;
 
   try {
-    for (auto& [lname, section] : get_col_asmdata(col).get_label_data()) {
+    auto& col_data = get_col_asmdata(col);
+    std::size_t pt_index = 0;
+    for (const auto& lname : col_data.get_label_insertion_order()) {
+      auto& section = col_data.get_label_data()[lname];
       for (auto& entry : section.text) {
         if (!entry->isOpcode()) continue;
         const auto& op = entry->get_operation();
@@ -1199,43 +1314,53 @@ asm_parser::update_preempt_opcodes(int col)
         const auto& args = op.get_args();
         if (args.size() < 3) continue;
 
-        // Extract hintmap label (arg 3: "@hintmap_N")
+        if (pt_index >= points.size())
+          throw error(error::error_code::internal_error,
+                      "PREEMPT opcode count exceeds recorded preemption points in column "
+                      + std::to_string(col));
+
+        const auto& pt_info = points[pt_index];
+        const std::string preempt_id = clean_arg(args[0]);
+
         std::string hm_label;
         if (args.size() >= 4)
-          hm_label = clean_label_ref(args[3]);
+          hm_label = clean_label_ref(args[3]);  // arg 3: "@hintmap_N"
 
-        if (hm_label.empty()) continue;
+        if (!hm_label.empty() && !pt_info.hintmap_key.empty()) {
+          const std::string qualified = lname + ":" + hm_label;
+          if (qualified != pt_info.hintmap_key)
+            throw error(error::error_code::internal_error,
+                        "PREEMPT hintmap mismatch at column " + std::to_string(col)
+                        + " preemption point " + std::to_string(pt_index)
+                        + ": expected '" + pt_info.hintmap_key + "', got '" + qualified + "'");
 
-        // Build the qualified key: the PREEMPT opcode lives under label scope 'lname',
-        // so its hintmap_0 resolves to the hintmap_0 defined in that same scope.
-        std::string qualified = lname + ":" + hm_label;
+          const auto it = m_hintmap_labels.find(col_prefix + pt_info.hintmap_key + ":"
+                                                 + std::to_string(pt_index));
+          if (it != m_hintmap_labels.end()) {
+            const auto& new_lbl = it->second;
+            const std::string new_args = preempt_id
+                                         + ", @" + new_lbl.first
+                                         + ", @" + new_lbl.second
+                                         + ", @" + hm_label;
 
-        // Only update opcodes whose qualified key was recorded for this column
-        bool in_col = false;
-        if (m_preempt_hintmaps.count(col)) {
-          const auto& hl = m_preempt_hintmaps[col];
-          in_col = std::find(hl.begin(), hl.end(), qualified) != hl.end();
+            log_info() << "Updating PREEMPT opcode id " << preempt_id
+                       << " at preemption point " << pt_index
+                       << " for hintmap '" << qualified << "' in column " << col
+                       << " to @" << new_lbl.first << "/@" << new_lbl.second << std::endl;
+
+            entry->update_operation(operation("preempt", new_args));
+          }
         }
-        if (!in_col) continue;
 
-        auto it = m_hintmap_labels.find(std::to_string(col) + ":" + qualified);
-        if (it == m_hintmap_labels.end()) continue;
-
-        const auto& new_lbl  = it->second;
-        std::string new_args = clean_arg(args[0])
-                               + ", @" + new_lbl.first
-                               + ", @" + new_lbl.second
-                               + ", @" + hm_label;  // keep the short label in the opcode
-
-        log_info() << "Updating PREEMPT opcode for hintmap '" << qualified
-                   << "' in column " << col
-                   << " from @" << args[1] << "/@" << args[2]
-                   << " to @" << new_lbl.first << "/@" << new_lbl.second << std::endl;
-
-        entry->update_operation(operation("preempt", new_args));
-        // set_line() removed: get_line() now reconstructs from the operation on demand.
+        ++pt_index;
       }
     }
+
+    if (pt_index != points.size())
+      throw error(error::error_code::internal_error,
+                  "Recorded preemption point count (" + std::to_string(points.size())
+                  + ") does not match PREEMPT opcodes found (" + std::to_string(pt_index)
+                  + ") in column " + std::to_string(col));
   } catch (...) {
     throw error(error::error_code::internal_error, "Error updating PREEMPT opcodes for column "
                                                    + std::to_string(col));
@@ -1247,7 +1372,7 @@ asm_parser::update_preempt_opcodes(int col)
 //   Create a default scratchpad and inject unpatched save/restore asm.
 // ---------------------------------------------------------------------------
 void
-asm_parser::inject_default_save_restore(int col,
+asm_parser::inject_default_save_restore(int col, int group_index,
                                         const std::string& save_file,
                                         const std::string& restore_file,
                                         const std::vector<uint8_t>& save_data,
@@ -1279,31 +1404,35 @@ asm_parser::inject_default_save_restore(int col,
     log_info() << "  restore_bd[" << i << "]: base=0x" << std::hex << restore_bd_ranges[i].first
                << " size=0x" << restore_bd_ranges[i].second << std::dec << std::endl;
 
-  // Patch BD address/length fields directly in the ASM text
+  // Patch BD address/length fields directly in the ASM text.
   std::vector<char> save_chars(save_data.begin(), save_data.end());
   std::string save_text(save_chars.begin(), save_chars.end());
   for (std::size_t i = 0; i < save_bd.size() && i < save_bd_ranges.size(); ++i) {
+    int bd_col = group_index + static_cast<int>(i / save_channel);
     patch_bd_in_asm(save_text, save_bd[i], save_bd_ranges[i].first, save_bd_ranges[i].second);
-    patch_membd_in_asm(save_text, save_membd[i], save_bd_ranges[i].first, save_bd_ranges[i].second);
+    patch_membd_in_asm(save_text, save_membd[i], save_bd_ranges[i].first, save_bd_ranges[i].second, bd_col);
   }
   save_chars.assign(save_text.begin(), save_text.end());
 
   std::vector<char> restore_chars(restore_data.begin(), restore_data.end());
   std::string restore_text(restore_chars.begin(), restore_chars.end());
   for (std::size_t i = 0; i < restore_bd.size() && i < restore_bd_ranges.size(); ++i) {
+    int bd_col = group_index + static_cast<int>(i / restore_channel);
     patch_bd_in_asm(restore_text, restore_bd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second);
-    patch_membd_in_asm(restore_text, restore_membd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second);
+    patch_membd_in_asm(restore_text, restore_membd[i], restore_bd_ranges[i].first, restore_bd_ranges[i].second, bd_col);
   }
   restore_chars.assign(restore_text.begin(), restore_text.end());
 
   m_current_col = col;
   set_data_state(false);
+  set_save_restore_routine(true);  // Mark as save/restore routine
   parse_lines(save_chars, save_file_mod);
   pop_data_state();
 
   set_data_state(false);
   parse_lines(restore_chars, restore_file_mod);
   pop_data_state();
+  set_save_restore_routine(false);  // Clear save/restore routine flag
 }
 
 // ---------------------------------------------------------------------------
@@ -1326,10 +1455,10 @@ asm_parser::process_preempt_group(int group,
   if (m_preempt_hintmaps.count(group)) {
     const auto& template_labels = m_preempt_labels[group];
     // First pass: group hintmaps by (scratchbase, size) and assign unique labels.
-    auto groups = build_hintmap_groups(group, m_preempt_hintmaps[group], group_index);
+    auto groups = build_hintmap_groups(group, group_index);
     for (const auto& grp : groups) {
       // Second pass: inject save/restore code for each hintmap group.
-      inject_hintmap_save_restore(group, save_file, restore_file,
+      inject_hintmap_save_restore(group, group_index, save_file, restore_file,
                                   save_data, restore_data, template_labels, grp,
                                   save_bd, restore_bd, save_membd, restore_membd);
     }
@@ -1339,10 +1468,232 @@ asm_parser::process_preempt_group(int group,
 
   // Handle PREEMPT opcodes with no hintmap (use group-level default labels)
   if (m_preempt_without_hintmap.count(group))
-    inject_default_save_restore(group, save_file, restore_file,
+    inject_default_save_restore(group, group_index, save_file, restore_file,
                                 save_data, restore_data,
                                 save_bd, restore_bd, save_membd, restore_membd);
 }
+
+// ---------------------------------------------------------------------------
+// hintmap_chunks — set bits of one hint bitmap
+// ---------------------------------------------------------------------------
+hintmap_chunk_bits
+asm_parser::
+hintmap_chunks(int col,
+               const std::string& search_context,
+               const std::string& hintmap_label)
+{
+  const std::string ctx   = find_hintmap_context(col, search_context, hintmap_label);
+  const auto& all_entries = get_col_asmdata(static_cast<uint32_t>(col)).get_label_asmdata_data(ctx);
+  const hintmap_chunk_bits bs = words_to_bitset(collect_hintmap_words(all_entries, hintmap_label));
+  const uint64_t max_chunks = static_cast<uint64_t>(get_partition_info()->get_numcolumn()) * CHUNKS_PER_COL;
+  verify_hintmap_chunk_limit(bs, max_chunks, hintmap_label);
+  return bs;
+}
+
+// ---------------------------------------------------------------------------
+// collect_preempt_point — per-controller bitmap and span at one PT index
+// ---------------------------------------------------------------------------
+asm_parser::preempt_point_state
+asm_parser::
+collect_preempt_point(std::size_t pt)
+{
+  preempt_point_state state;
+
+  for (const auto& [col, points] : m_preempt_points) {
+    if (pt >= points.size())
+      continue;
+
+    preempt_col pc;
+    pc.col = col;
+    pc.key = points[pt].hintmap_key;
+
+    if (pc.key.empty()) {
+      const uint64_t lo = static_cast<uint64_t>(col / 2) * CHUNKS_PER_COL;
+      pc.bm           = chunk_range_bitset(lo, lo + CHUNKS_PER_COL);
+      pc.zero_hintmap = false;
+      pc.span_lo      = lo;
+      pc.span_hi      = lo + CHUNKS_PER_COL - 1;
+      pc.has_span     = true;
+      log_info() << "preemption point " << pt << ": controller " << col
+                 << " (no hintmap): " << describe_chunk_span(pc.span_lo, pc.span_hi)
+                 << std::endl;
+    } else {
+      auto [ctx, label] = split_qualified_hintmap(pc.key);
+      pc.bm           = hintmap_chunks(col, ctx, label);
+      pc.zero_hintmap = pc.bm.none();
+      pc.has_span     = false;
+      if (auto lo = bitset_find_first(pc.bm)) {
+        pc.span_lo = *lo;
+        if (auto hi = bitset_find_last(pc.bm)) {
+          pc.span_hi  = *hi;
+          pc.has_span = true;
+        }
+      }
+    }
+
+    state.cols.push_back(std::move(pc));
+  }
+
+  return state;
+}
+
+// ---------------------------------------------------------------------------
+// verify_overlap — pairwise bm overlap among all controllers at pt.
+//   No-hintmap controllers contribute their 3MB home window as bm.
+// ---------------------------------------------------------------------------
+void
+asm_parser::
+verify_overlap(std::size_t pt, const preempt_point_state& state)
+{
+  for (std::size_t a = 0; a < state.cols.size(); ++a) {
+    for (std::size_t b = a + 1; b < state.cols.size(); ++b) {
+      if ((state.cols[a].bm & state.cols[b].bm).none())
+        continue;
+
+      std::string error_msg = "hintmap overlap at preemption point " + std::to_string(pt)
+                            + " between controller " + std::to_string(state.cols[a].col);
+      if (state.cols[a].key.empty())
+        error_msg += " (no hintmap, using default 3MB window)";
+      else
+        error_msg += " (hintmap '" + state.cols[a].key + "')";
+
+      error_msg += " and controller " + std::to_string(state.cols[b].col);
+      if (state.cols[b].key.empty())
+        error_msg += " (no hintmap, using default 3MB window)";
+      else
+        error_msg += " (hintmap '" + state.cols[b].key + "')";
+
+      error_msg += "; the same chunk must not be requested by two controllers\n";
+
+      throw error(error::error_code::invalid_asm, error_msg);
+    }
+
+  }
+}
+
+// ---------------------------------------------------------------------------
+// need_distribution_or_assign_direct — direct assign when spans are disjoint,
+// or flag redistribution when any two controller spans overlap.
+// Returns true when redistribution is needed; false after direct assignment.
+// ---------------------------------------------------------------------------
+bool
+asm_parser::
+need_distribution_or_assign_direct(std::size_t pt, const preempt_point_state& state)
+{
+  for (std::size_t a = 0; a < state.cols.size(); ++a) {
+    if (!state.cols[a].has_span)
+      continue;
+    for (std::size_t b = a + 1; b < state.cols.size(); ++b) {
+      if (!state.cols[b].has_span)
+        continue;
+      if (spans_overlap_inclusive(state.cols[a].span_lo, state.cols[a].span_hi,
+                                  state.cols[b].span_lo, state.cols[b].span_hi)) {
+        log_warn() << "[need_distribution] preemption point " << pt << ": span overlap detected between controller "
+                   << state.cols[a].col << " (hintmap '" << state.cols[a].key << "') "
+                   << "chunks [" << state.cols[a].span_lo << ".." << state.cols[a].span_hi << "] "
+                   << "and controller " << state.cols[b].col << " (hintmap '" << state.cols[b].key << "') "
+                   << "chunks [" << state.cols[b].span_lo << ".." << state.cols[b].span_hi << "]"
+                   << ", redistribution needed" << std::endl;
+        return true;
+      }
+    }
+  }
+
+  log_warn() << "[assign_direct] preemption point " << pt << ": spans disjoint, using direct regions"
+             << std::endl;
+  for (const auto& pc : state.cols) {
+    preempt_scratchpad region = {0, 0};
+    if (!pc.zero_hintmap && pc.has_span) {
+      auto [base, size] = chunks_to_region(pc.span_lo, pc.span_hi);
+      region = {base, size};
+    }
+    m_preempt_region[pc.col][pt] = region;
+    log_warn() << "  controller " << pc.col << " (hintmap '" << pc.key << "'): "
+               << describe_region(region.scratchbase, region.size) << std::endl;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// redistribute_preempt_regions — column-slice settlement when spans overlap.
+//   1. Pool: OR together bm from every hintmap controller at this pt.
+//   2. Each controller owns its 3MB column slice [col/2*48, col/2*48+48):
+//      - no-hintmap: home window for that slice
+//      - hintmap: span of pooled chunks in that slice (zero-hintmap may absorb
+//        chunks spliced from other controllers into this column's slice)
+// ---------------------------------------------------------------------------
+void
+asm_parser::
+redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state)
+{
+  log_info() << "preemption point " << pt << ": column-slice redistribution" << std::endl;
+
+  hintmap_chunk_bits pool;
+  for (const auto& pc : state.cols) {
+    if (pc.key.empty())
+      continue;
+    pool |= pc.bm;
+  }
+
+  log_info() << "  pooled " << pool.count() << " chunk(s) from hintmap controllers" << std::endl;
+
+  for (const auto& pc : state.cols) {
+    preempt_scratchpad region = {0, 0};
+
+    if (pc.key.empty()) {
+      auto [base, size] = chunks_to_region(pc.span_lo, pc.span_hi);
+      region = {base, size};
+      log_warn() << "  controller " << pc.col << " (no hintmap): "
+                 << describe_chunk_span(pc.span_lo, pc.span_hi) << std::endl;
+    } else {
+      const hintmap_chunk_bits slice_bm = hintmap_in_column_slice(pool, pc.col);
+      auto [base, size] = region_from_hintmap_bits(slice_bm);
+      region = {base, size};
+      std::ostringstream oss;
+      oss << "  controller " << pc.col << " (hintmap '" << pc.key << "'): "
+          << describe_region(base, size);
+      const hintmap_chunk_bits own_slice = hintmap_in_column_slice(pc.bm, pc.col);
+      if (slice_bm != own_slice) {
+        const auto [slice_lo, slice_hi] = column_slice_bounds(pc.col);
+        oss << " [spliced to column slice [" << slice_lo << ", " << slice_hi << ")]";
+      }
+      log_warn() << oss.str() << std::endl;
+    }
+
+    m_preempt_region[pc.col][pt] = region;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// settle_preempt_regions — per preemption point
+//   1. Collect per-controller bitmap and span
+//   2. Verify no set-bit overlap between controllers
+//   3. Direct assign if spans disjoint; else column-slice redistribution
+// ---------------------------------------------------------------------------
+void
+asm_parser::
+settle_preempt_regions()
+{
+  m_preempt_region.clear();
+
+  // Initialize preemption regions for each column and find the maximum number of preemption points
+  std::size_t num_points = 0;
+  for (const auto& [col, points] : m_preempt_points) {
+    m_preempt_region[col].resize(points.size());
+    num_points = std::max(num_points, points.size());
+  }
+
+  // Process each preemption point across all columns
+  for (std::size_t pt = 0; pt < num_points; ++pt) {
+    const preempt_point_state state = collect_preempt_point(pt);
+    verify_overlap(pt, state);
+    if (need_distribution_or_assign_direct(pt, state))
+      redistribute_preempt_regions(pt, state);
+  }
+}
+
+// Prebuilt save/restore map key for multi-column group 0 (1c0 template).
+constexpr uint32_t MULTICOL_PREEMPT_SAVE_RESTORE_BASE = 10;
 
 // ---------------------------------------------------------------------------
 // finalize_preempt
@@ -1355,10 +1706,13 @@ finalize_preempt()
     return;
 
   if (is_multi_column_mode()) {
+    // Settle who transfers which chunks before any save/restore code is injected.
+    settle_preempt_regions();
+
     for (const auto& [group, labels] : m_preempt_labels) {
-      auto [save_data, restore_data] = get_preempt_save_restore(10 + group);
-      auto [save_bd, restore_bd] = get_preempt_save_restore_shimbd(10 + group);
-      auto [save_membd, restore_membd] = get_preempt_save_restore_membd(10 + group);
+      auto [save_data, restore_data] = get_preempt_save_restore(MULTICOL_PREEMPT_SAVE_RESTORE_BASE + group);
+      auto [save_bd, restore_bd] = get_preempt_save_restore_shimbd(MULTICOL_PREEMPT_SAVE_RESTORE_BASE + group);
+      auto [save_membd, restore_membd] = get_preempt_save_restore_membd(MULTICOL_PREEMPT_SAVE_RESTORE_BASE + group);
       if (save_data.empty() || restore_data.empty() || save_bd.empty() || restore_bd.empty() || save_membd.empty() || restore_membd.empty())
         throw error(error::error_code::internal_error,
                     "Preempt save/restore data not found for group " + std::to_string(group));
@@ -1366,7 +1720,7 @@ finalize_preempt()
       std::string suffix       = multicol_suffix(group);
       std::string save_file    = "aie4_save_"    + suffix + ".asm";
       std::string restore_file = "aie4_restore_" + suffix + ".asm";
-      process_preempt_group(group, group / 2 + 1,
+      process_preempt_group(group, group / 2,
                              save_file, restore_file, save_data, restore_data, save_bd, restore_bd, save_membd, restore_membd);
     }
   } else {
@@ -1381,7 +1735,7 @@ finalize_preempt()
     std::string col_str      = std::to_string(num_cols) + "c.asm";
     std::string save_file    = "aie4_save_"    + col_str;
     std::string restore_file = "aie4_restore_" + col_str;
-    process_preempt_group(0, 1, save_file, restore_file, save_data, restore_data, save_bd, restore_bd, save_membd, restore_membd);
+    process_preempt_group(0, 0, save_file, restore_file, save_data, restore_data, save_bd, restore_bd, save_membd, restore_membd);
   }
 }
 
@@ -1397,7 +1751,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
   // dummy eof added if col change happens before eof
   m_parserptr->insert_col_asmdata(std::make_shared<asm_data>(operation("eof", ""),
                                                               operation_type::op, code_section::unknown, 0,
-                                                              (uint32_t)-1, 0, m_parserptr->default_source_file_idx()));
+                                                              (uint32_t)-1, 0, m_parserptr->current_parse_file_idx()));
   m_parserptr->set_current_col(std::stoi(args_tail));
   m_parserptr->set_data_state(false);
 }
@@ -1567,13 +1921,19 @@ operate(std::shared_ptr<asm_parser> parserptr,
 void
 pad_directive::
 operate(std::shared_ptr<asm_parser> parserptr,
-        const std::string& /*directive_line*/,
+        const std::string& directive_line,
         const std::string& args_tail)
 {
   m_parserptr = parserptr;
   verify_nonempty_args(args_tail, error::error_code::invalid_asm, ".setpad directive requires arguments\n");
 
   std::vector<std::string> args = splitoption(args_tail.c_str(), ',');
+
+  // .setpad should only be part of save/restore routines
+  if (!m_parserptr->should_skip_setpad_in_save_restore()) {
+    log_warn() << "Warning: Directive \"" << directive_line << "\" found outside save/restore routine for target: "
+               << m_parserptr->get_target_type() << "\n";
+  }
 
   add_scratchpad(args[0], args[1]);
 }

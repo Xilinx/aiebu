@@ -132,6 +132,8 @@ class transform_manager {
   uint64_t read57_aie4(const uint32_t* bd_data_ptr) const;
   void write57(uint32_t* bd_data_ptr, uint64_t bd_offset);
   void write57_aie4(uint32_t* bd_data_ptr, uint64_t bd_offset);
+  uint64_t read_pl_ddr64(const uint32_t* bd_data_ptr) const;
+  void write_pl_ddr64(uint32_t* bd_data_ptr, uint64_t bd_offset);
   uint64_t ctrlpkt_read57(const uint32_t* bd_data_ptr) const;
   void ctrlpkt_write57(uint32_t* bd_data_ptr, uint64_t bd_offset);
   uint64_t ctrlpkt_read57_aie4(const uint32_t* bd_data_ptr) const;
@@ -147,16 +149,6 @@ class transform_manager {
    * @return Group ID string or empty string if not a group ELF
    */
   std::string get_grp_id_if_group_elf(const std::string& name) const;
-
-  /**
-   * @brief Extract kernel name from C++ mangled symbol
-   * @param symbol_name: Mangled symbol name (e.g., "_Z3DPUPcPc")
-   * @return Kernel name if found, empty string otherwise
-   *
-   * Parses C++ mangled names in format _Z<length><name>... and extracts the identifier.
-   * Example: "_Z3DPUPcPc" -> "DPU" (length=3, name=DPU)
-   */
-  std::string extract_kernel_name_from_mangled(const std::string& symbol_name) const;
 
   /**
    * @brief Get filtered section indices for a kernel:instance filter

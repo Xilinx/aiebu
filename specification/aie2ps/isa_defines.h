@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 /*
- * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (C) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  */
 
 #ifndef _ISA_DEFINES_H_
@@ -27,6 +27,7 @@ static unsigned int control_op_write_32_d(const uint8_t *_pc, uint8_t flags, uin
 static unsigned int control_op_read_32(const uint8_t *_pc, uint8_t value_reg, uint32_t address);
 static unsigned int control_op_read_32_d(const uint8_t *_pc, uint8_t address_reg, uint8_t value_reg);
 static unsigned int control_op_apply_offset_57(const uint8_t *_pc, uint16_t table_ptr, uint16_t num_entries, uint16_t offset);
+static unsigned int control_op_apply_offset_sram(const uint8_t *_pc, uint16_t table_ptr, uint16_t num_entries, uint32_t address);
 static unsigned int control_op_add(const uint8_t *_pc, uint8_t dest_reg, uint32_t value);
 static unsigned int control_op_mov(const uint8_t *_pc, uint8_t dest_reg, uint32_t value);
 static unsigned int control_op_local_barrier(const uint8_t *_pc, uint8_t local_barrier_id, uint8_t num_participants);
@@ -45,6 +46,8 @@ static unsigned int control_op_save_timestamps(const uint8_t *_pc, uint32_t unq_
 static unsigned int control_op_sleep(const uint8_t *_pc, uint32_t target);
 static unsigned int control_op_save_register(const uint8_t *_pc, uint32_t address, uint32_t unq_id);
 static unsigned int control_op_rel_acq_sync(const uint8_t *_pc, uint32_t rel_address, uint32_t acq_address);
+static unsigned int control_op_uc_dma_mask_poll_ext(const uint8_t *_pc, uint32_t addr_hi, uint32_t addr_lo, uint32_t mask, uint32_t value);
+static unsigned int control_op_apply_offset_pl(const uint8_t *_pc, uint16_t table_ptr, uint16_t buffer_id);
 
 
 // Dispatchers
@@ -187,6 +190,16 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_apply_
     /* table_ptr (const) */ *(uint16_t *)(&pc[2]),
     /* num_entries (const) */ *(uint16_t *)(&pc[4]),
     /* offset (const) */ *(uint16_t *)(&pc[6])
+  );
+}
+
+FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_apply_offset_sram(const uint8_t *pc)
+{
+  return control_op_apply_offset_sram(
+    pc,
+    /* table_ptr (const) */ *(uint16_t *)(&pc[2]),
+    /* num_entries (const) */ *(uint16_t *)(&pc[4]),
+    /* address (const) */ *(uint32_t *)(&pc[8])
   );
 }
 
@@ -344,6 +357,26 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_rel_ac
   );
 }
 
+FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_uc_dma_mask_poll_ext(const uint8_t *pc)
+{
+  return control_op_uc_dma_mask_poll_ext(
+    pc,
+    /* addr_hi (const) */ *(uint32_t *)(&pc[4]),
+    /* addr_lo (const) */ *(uint32_t *)(&pc[8]),
+    /* mask (const) */ *(uint32_t *)(&pc[12]),
+    /* value (const) */ *(uint32_t *)(&pc[16])
+  );
+}
+
+FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_apply_offset_pl(const uint8_t *pc)
+{
+  return control_op_apply_offset_pl(
+    pc,
+    /* table_ptr (const) */ *(uint16_t *)(&pc[2]),
+    /* buffer_id (const) */ *(uint16_t *)(&pc[4])
+  );
+}
+
 
 // Case statements for regular operations
 
@@ -360,6 +393,7 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_rel_ac
   case ISA_OPCODE_READ_32: pc += control_dispatch_read_32(pc); break; \
   case ISA_OPCODE_READ_32_D: pc += control_dispatch_read_32_d(pc); break; \
   case ISA_OPCODE_APPLY_OFFSET_57: pc += control_dispatch_apply_offset_57(pc); break; \
+  case ISA_OPCODE_APPLY_OFFSET_SRAM: pc += control_dispatch_apply_offset_sram(pc); break; \
   case ISA_OPCODE_ADD: pc += control_dispatch_add(pc); break; \
   case ISA_OPCODE_MOV: pc += control_dispatch_mov(pc); break; \
   case ISA_OPCODE_LOCAL_BARRIER: pc += control_dispatch_local_barrier(pc); break; \
@@ -376,7 +410,9 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_rel_ac
   case ISA_OPCODE_SAVE_TIMESTAMPS: pc += control_dispatch_save_timestamps(pc); break; \
   case ISA_OPCODE_SLEEP: pc += control_dispatch_sleep(pc); break; \
   case ISA_OPCODE_SAVE_REGISTER: pc += control_dispatch_save_register(pc); break; \
-  case ISA_OPCODE_REL_ACQ_SYNC: pc += control_dispatch_rel_acq_sync(pc); break;
+  case ISA_OPCODE_REL_ACQ_SYNC: pc += control_dispatch_rel_acq_sync(pc); break; \
+  case ISA_OPCODE_UC_DMA_MASK_POLL_EXT: pc += control_dispatch_uc_dma_mask_poll_ext(pc); break; \
+  case ISA_OPCODE_APPLY_OFFSET_PL: pc += control_dispatch_apply_offset_pl(pc); break;
 
 
 #endif

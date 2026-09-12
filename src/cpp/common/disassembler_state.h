@@ -5,14 +5,18 @@
 #define AIEBU_SRC_CPP_COMMON_DISASSEMBLER_STATE_H
 
 #include <cstdint>
+#include <map>
+#include <memory>
+#include <optional>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <map>
-#include <sstream>
 
 #include "aiebu/aiebu_error.h"
 
 namespace aiebu {
+
+class merged_disasm_context;
 
 // Abstract base class for disassembler state
 // Derived classes implement architecture-specific actor ID mappings
@@ -23,6 +27,11 @@ private:
     std::map<uint32_t, std::string> external_labels;
     std::map<uint32_t, std::pair<std::string, uint32_t>> local_ptr;
     std::vector<std::string> pending_ooo_labels;  // Labels from OOO instructions (load_pdi, preempt, load_cores)
+    std::map<uint16_t, std::string> external_page_labels;  // page_idx -> label (without '@')
+    std::shared_ptr<merged_disasm_context> merged_ctx;
+    int current_col = -1;
+    uint16_t current_page_idx = 0;
+    uint32_t current_text_offset = 0;  // offset within current page text region
 
 public:
     virtual ~disassembler_state() = default;
@@ -55,6 +64,34 @@ public:
 
     // OOO (Out-Of-Order) labels from load_pdi, preempt, load_cores instructions
     // These reference text sections that come after the current one
+    void set_merged_context(std::shared_ptr<merged_disasm_context> ctx) {
+        merged_ctx = std::move(ctx);
+    }
+
+    const std::shared_ptr<merged_disasm_context>& get_merged_context() const {
+        return merged_ctx;
+    }
+
+    void set_current_col(int col) { current_col = col; }
+    int get_current_col() const { return current_col; }
+
+    void set_current_page_idx(uint16_t page_idx) { current_page_idx = page_idx; }
+    uint16_t get_current_page_idx() const { return current_page_idx; }
+
+    void set_current_text_offset(uint32_t offset) { current_text_offset = offset; }
+    uint32_t get_current_text_offset() const { return current_text_offset; }
+
+    void register_external_page_label(uint16_t page_idx, const std::string& label) {
+        external_page_labels[page_idx] = label;
+    }
+
+    std::string lookup_page_label(uint16_t page_idx) const {
+        const auto it = external_page_labels.find(page_idx);
+        if (it != external_page_labels.end())
+            return "@" + it->second;
+        return "";
+    }
+
     void add_ooo_label(const std::string& label) {
         pending_ooo_labels.push_back(label);
     }
@@ -76,15 +113,38 @@ public:
         return pending_ooo_labels.front();
     }
 
+    std::string take_external_page_label(uint16_t page_idx) {
+        const auto it = external_page_labels.find(page_idx);
+        if (it == external_page_labels.end())
+            return "";
+        const std::string label = "@" + it->second;
+        external_page_labels.erase(it);
+        return label;
+    }
+
+    bool has_external_page_label(uint16_t page_idx) const {
+        return external_page_labels.count(page_idx) > 0;
+    }
+
     void add_local_ptr(uint32_t address, const std::string& label, uint32_t offset) {
         local_ptr[address] = std::make_pair(label, offset);
     }
 
-    void reset() {
+    void reset_page_state() {
         position = 0;
         labels.clear();
         external_labels.clear();
         local_ptr.clear();
+    }
+
+    void reset() {
+        reset_page_state();
+    }
+
+    void reset_column_state() {
+        external_page_labels.clear();
+        pending_ooo_labels.clear();
+        current_text_offset = 0;
     }
 
     std::string to_string() const {

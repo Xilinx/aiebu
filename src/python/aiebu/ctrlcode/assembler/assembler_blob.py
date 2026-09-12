@@ -107,7 +107,9 @@ class Assembler_blob_transaction(Assembler_blob):
                     print(f"address {hex(reg)} have no block write opcode !!! removing all patching info")
                     self.symbols.clear()
                     return
-            pc = pc + size
+            if size <= 0 or pc + size > len(self.idata):
+                raise RuntimeError(f"invalid op size {size} at {pc}")
+            pc += size
 
     def run(self):
         self.extract_tansaction_buffer_symbol();

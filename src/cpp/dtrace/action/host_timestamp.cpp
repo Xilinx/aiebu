@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
 #include <sstream>
@@ -80,7 +80,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 uint64_t
 host_timestamp_action::
-serialize_helper(std::vector<uint32_t>& result_buffer, 
+serialize_helper(uint32_t* result_buffer,
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     uint32_t location_h = mapping.at(get_location(false));
@@ -105,12 +105,21 @@ serialize_helper(std::vector<uint32_t>& result_buffer,
  */
 void
 host_timestamp_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output) const
 {
     uint64_t result = host_timestamp_action::serialize_helper(result_buffer, mapping);
+    uint64_t result_init = (static_cast<uint64_t>(dtrace::dtrace_ctrl::result_value_init) << dtrace::dtrace_ctrl::forth_byte_shift) 
+                         + dtrace::dtrace_ctrl::result_value_init;
+    // Check if probe fired
+    if (result == result_init) {
+        m_result_type = action_result_type::read_action_not_fired;
+        return;
+    }
+
     // serialize string format
     script_output << "  " << m_result << " = " << result << "\n";
+    m_result_type = action_result_type::read_action_fired;
 }
 
 //-------------------------host_timestamp_action::serialize-------------------------//
@@ -124,12 +133,21 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
  */
 void
 host_timestamp_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output) const
 {
     uint64_t result = host_timestamp_action::serialize_helper(result_buffer, mapping);
+    uint64_t result_init = (static_cast<uint64_t>(dtrace::dtrace_ctrl::result_value_init) << dtrace::dtrace_ctrl::forth_byte_shift) 
+                         + dtrace::dtrace_ctrl::result_value_init;
+    // Check if probe fired
+    if (result == result_init) {
+        m_result_type = action_result_type::read_action_not_fired;
+        return;
+    }
+
     // serialize json format
     json_output[m_probe_name][m_result] = result;
+    m_result_type = action_result_type::read_action_fired;
 }
 
 } // namespace dtrace::action

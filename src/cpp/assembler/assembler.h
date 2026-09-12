@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include "aiebu/aiebu_assembler.h"
+#include "elf/elf_compression.h"
 #include "symbol.h"
 #include "utils.h"
 
@@ -51,6 +52,8 @@ private:
 
 public:
   explicit assembler(const elf_type type);
+
+  void set_compressor(std::unique_ptr<ElfCompressor> c);
 
   std::vector<char> process(const std::vector<char>& buffer1,
                             const std::vector<std::string>& libs = {},

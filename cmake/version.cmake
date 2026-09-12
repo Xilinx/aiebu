@@ -1,5 +1,5 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 # AMD promotion build works from copied sources with no git
 # repository.  The build cannot query git for git metadata.  The

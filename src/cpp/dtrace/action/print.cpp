@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
 #include "dtrace/probe/probe_control.h"
@@ -98,7 +98,7 @@ actionize(uint32_t, std::vector<uint32_t>&, std::vector<uint32_t>&)
  */
 void
 print_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, std::ostream& script_output) const
 {
     // serialize string format
@@ -108,6 +108,7 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
             script_output << "  " << key << " = " << '"' << value << '"' << "\n";
     }
     script_output << "  " << m_token << "\n";
+    m_result_type = action_result_type::print_action_fired;
 }
 
 //-------------------------print_action::serialize-------------------------//
@@ -121,9 +122,10 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>&,
  */
 void
 print_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>&, 
+serialize(uint32_t*, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
+    m_result_type = action_result_type::print_action_fired;
 }
 
 } // namespace dtrace::action

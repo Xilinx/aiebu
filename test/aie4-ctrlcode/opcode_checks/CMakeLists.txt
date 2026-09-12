@@ -4,6 +4,7 @@
 # Negative (WILL_FAIL) and positive tests that verify the aiebu assembler
 # enforces the opcode restrictions documented in the aiebu spec for:
 #   load_pdi, load_cores, load_cores_cp, preempt, start_cond_job_preempt
+# and the multi-UC preemption scratchpad rules enforced on hint bitmaps.
 #
 # All tests run via "aiebu-asm -t aie4_config -j <config.json>" so they
 # exercise the full aie4_config pipeline including aie4_preprocessor checks.
@@ -13,9 +14,16 @@
 # ---------------------------------------------------------------------------
 macro(add_aie4_config_neg_test TEST_NAME CONFIG_FILE)
   add_test(NAME "${TEST_NAME}"
-    COMMAND aiebu-asm -t aie4_config -j "${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_FILE}"
+    COMMAND aiebu-asm -t aie4_config -j "${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_FILE}" -o "${TEST_NAME}.elf"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   set_tests_properties("${TEST_NAME}" PROPERTIES WILL_FAIL TRUE)
+endmacro()
+
+# Helper macro: register one aie4_config positive test (expected to assemble).
+macro(add_aie4_config_pos_test TEST_NAME CONFIG_FILE)
+  add_test(NAME "${TEST_NAME}"
+    COMMAND aiebu-asm -t aie4_config -j "${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_FILE}" -o "${TEST_NAME}.elf" -f disabledump
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 endmacro()
 
 # ---------------------------------------------------------------------------
@@ -61,3 +69,25 @@ add_aie4_config_neg_test("aie4_check_start_cond_before_preempt"
 # start_cond_job_preempt: count differs across columns (col0=1, col2=0)
 add_aie4_config_neg_test("aie4_check_start_cond_count_mismatch"
   "config_start_cond_count_mismatch.json")
+
+# preempt: hint bitmaps of two controllers overlap at the same preemption point
+add_aie4_config_neg_test("aie4_check_preempt_hintmap_overlap"
+  "config_preempt_hintmap_overlap.json")
+
+# preempt: id values must be consecutive starting from 0
+add_aie4_config_neg_test("aie4_check_preempt_id_non_consecutive"
+  "config_preempt_id_non_consecutive.json")
+
+# ---------------------------------------------------------------------------
+# Positive tests
+# ---------------------------------------------------------------------------
+
+# preempt: non-contiguous hintmap bits (holes) are allowed; the scratchpad
+# is the first-to-last set-bit span and disjoint spans must assemble
+add_aie4_config_pos_test("aie4_check_preempt_hintmap_holes"
+  "config_preempt_hintmap_holes.json")
+
+# preempt: hole-absorbed spans may overlap even when set bits are disjoint;
+# the assembler redistributes chunk assignments instead of rejecting the asm
+add_aie4_config_pos_test("aie4_check_preempt_hintmap_hole_overlap"
+  "config_preempt_hintmap_hole_overlap.json")

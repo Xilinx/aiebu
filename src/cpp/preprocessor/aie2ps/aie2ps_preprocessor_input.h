@@ -30,6 +30,7 @@ protected:
   const file_artifact* m_artifacts = nullptr;
   uint32_t m_control_packet_index = 0xFFFFFFFF;
   uint32_t m_control_packet_offset_correction = 8;
+  std::string m_source_filename = default_source_filename;
   enum class offset_type {
     CONTROL_PACKET,
     COALESED_BUFFER
@@ -54,6 +55,8 @@ public:
   asm_preprocessor_input& operator=(asm_preprocessor_input&& rhs) = default;
   const std::vector<std::string>& get_include_paths() const { return m_libpaths; }
   uint32_t get_control_packet_index() const { return m_control_packet_index; }
+  const std::string& get_source_filename() const { return m_source_filename; }
+  void set_source_filename(const std::string& name) { m_source_filename = name; }
   const std::vector<std::string>& get_flags() const { return m_flags; }
   const file_artifact* get_artifacts() const { return m_artifacts; }
   virtual void set_args(const std::vector<char>& control_code,
@@ -137,7 +140,7 @@ public:
       if (!patch_json_file.empty())
         jdata = m_artifacts->get(patch_json_file, paths);
 
-      add_preprocessor_input(kernel, tname, ccode, jdata, flags, paths, m_artifacts);
+      add_preprocessor_input(kernel, tname, ccode_file_name, ccode, jdata, flags, paths, m_artifacts);
     }
   }
 
@@ -204,6 +207,7 @@ public:
 
   virtual void add_preprocessor_input(const std::string& /*kernel*/,
                                       const std::string& /*instance*/,
+                                      const std::string& /*source_filename*/,
                                       const std::vector<char>& /*control_code*/,
                                       const std::vector<char>& /*patch_json*/,
                                       const std::vector<std::string>& /*flags*/,
@@ -219,6 +223,7 @@ class controlcode_config_preprocessor_input : public asm_config_preprocessor_inp
 public:
   void add_preprocessor_input(const std::string& kernel,
                               const std::string& instance,
+                              const std::string& source_filename,
                               const std::vector<char>& control_code,
                               const std::vector<char>& patch_json,
                               const std::vector<std::string>& flags,
@@ -226,6 +231,7 @@ public:
                               const file_artifact* artifacts) override
   {
     auto input = std::make_shared<T>();
+    input->set_source_filename(source_filename);
     input->set_args(control_code, patch_json, {}, flags, paths, {}, artifacts);
     m_preprocessor_input[kernel][instance] = input;
   }

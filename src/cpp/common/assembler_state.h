@@ -115,6 +115,7 @@ protected:
   std::vector<std::string> m_labellist;
   std::map<std::string, std::vector<std::string>> m_dependent_labelmap;
   std::set<std::string> m_opt_opcodes;
+  bool m_is_save_restore_op = false;  // True when currently serializing a save/restore op
   inline std::string gen_label_name(bool makeunique, const std::shared_ptr<asm_data> data)
   {
     return makeunique ? data->get_qualify_op_name() : data->get_operation().get_name();
@@ -163,6 +164,7 @@ public:
   bool m_merged_ctrltext_elf = false;
 
   HEADER_ACCESS_GET_SET(offset_type, pos);
+  HEADER_ACCESS_GET_SET(bool, is_save_restore_op);
 
   void printstate() const;
 
@@ -223,7 +225,7 @@ public:
 
   std::string get_label_at(size_t index) const
   {
-    if (index >  m_labellist.size())
+    if (index >=  m_labellist.size())
       throw error(error::error_code::internal_error, "index " + std::to_string(index) + " > label list size!!!");
     return "@" + m_labellist.at(index);
   }
@@ -236,9 +238,10 @@ public:
 
   void process_optimization(uint32_t optimize_level)
   {
-    if (optimize_level >= 1)
+    if (optimize_level >= 1) {
       m_opt_opcodes.insert("apply_offset_57");
-    else
+      m_opt_opcodes.insert("apply_offset_pl");
+    } else
       m_opt_opcodes.clear();
   }
 

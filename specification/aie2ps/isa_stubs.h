@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 /*
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (C) 2023 - 2026 Advanced Micro Devices, Inc. All rights reserved.
  */
 
 #ifndef _ISA_STUBS_H_
@@ -41,6 +41,7 @@
 #define ISA_OPCODE_READ_32 0x0c
 #define ISA_OPCODE_READ_32_D 0x0d
 #define ISA_OPCODE_APPLY_OFFSET_57 0x0e
+#define ISA_OPCODE_APPLY_OFFSET_SRAM 0x24
 #define ISA_OPCODE_ADD 0x0f
 #define ISA_OPCODE_MOV 0x10
 #define ISA_OPCODE_LOCAL_BARRIER 0x11
@@ -59,6 +60,8 @@
 #define ISA_OPCODE_SLEEP 0x1d
 #define ISA_OPCODE_SAVE_REGISTER 0x1e
 #define ISA_OPCODE_REL_ACQ_SYNC 0x21
+#define ISA_OPCODE_UC_DMA_MASK_POLL_EXT 0x22
+#define ISA_OPCODE_APPLY_OFFSET_PL 0x23
 
 
 // Operation sizes
@@ -79,6 +82,7 @@
 #define ISA_OPSIZE_READ_32 0x08
 #define ISA_OPSIZE_READ_32_D 0x04
 #define ISA_OPSIZE_APPLY_OFFSET_57 0x08
+#define ISA_OPSIZE_APPLY_OFFSET_SRAM 0x0c
 #define ISA_OPSIZE_ADD 0x08
 #define ISA_OPSIZE_MOV 0x08
 #define ISA_OPSIZE_LOCAL_BARRIER 0x04
@@ -97,5 +101,7 @@
 #define ISA_OPSIZE_SLEEP 0x08
 #define ISA_OPSIZE_SAVE_REGISTER 0x0c
 #define ISA_OPSIZE_REL_ACQ_SYNC 0x0c
+#define ISA_OPSIZE_UC_DMA_MASK_POLL_EXT 0x14
+#define ISA_OPSIZE_APPLY_OFFSET_PL 0x08
 
 #endif

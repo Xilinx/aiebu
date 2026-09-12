@@ -1,0 +1,57 @@
+begin
+{
+  tss = timestamp()
+  print(f"\nstart tracing ts: {tss}...")
+}
+tracepoint:uc0:id2
+{
+  tps = timestamp();
+  c = count();
+  print(f'work load start ts: {tps}. {c} times')
+}
+tracepoint:uc0:id3
+{
+  tpe = timestamp();
+  c = count();
+  print(f'work load done ts: {tpe} in {tpe - tps} cycles. {c} times')
+}
+tracepoint:uc0:id4
+{
+  tps[3] = timestamps();
+  print(f'page load start ts: {tps}')
+}
+tracepoint:uc0:id5
+{
+  tpe[3] = timestamps();
+  print(f'page load done ts: {tpe}')
+}
+tracepoint:uc0:id6
+{
+  tps[3] = timestamps32();
+  print(f'page execution start ts: {tps}')
+}
+tracepoint:uc0:id7
+{
+  tpe[3] = timestamps32();
+  print(f'page execution done ts: {tpe}')
+}
+tracepoint:uc0:id8
+{
+  tps[1] = host_timestamps();
+  print(f'preemption point ts: {tps}')
+}
+tracepoint:uc0:id9
+{
+  tps[1] = host_timestamps();
+  print(f'preemption save ts: {tps}')
+}
+tracepoint:uc0:id10,11,12
+{
+  tps[1] = host_timestamps();
+  print(f'preemption restore ts: {tps}')
+}
+end
+{
+  tse = timestamp()
+  print(f"trace end! ts: {tse} last: {tse-tss} cycles\n")
+}
