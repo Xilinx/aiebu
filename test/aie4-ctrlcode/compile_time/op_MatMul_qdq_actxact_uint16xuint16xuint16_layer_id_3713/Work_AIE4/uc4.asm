@@ -1793,7 +1793,7 @@ REMOTE_BARRIER	 $rb0, 0x15
 END_JOB
 
 START_JOB 6
-PREEMPT	0xd527, @save, @restore , @hintmap_0
+PREEMPT	0xa0a, @save, @restore , @hintmap_0
 END_JOB
 
 .eop
