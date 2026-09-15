@@ -37,15 +37,20 @@ jprobe(uint32_t probe_type, const std::string& probe_name,
  * enable() - 
  *  Enables the job probe by adding probe header and actions to control and memory buffers.
  *
- * @param control_buffer
- * @param mem_buffer
+ * @param control_buffers
+ * @param mem_buffers
+ * @param uC
  * @return
  *  Memory action locations for host address patching. 
  */
 std::vector<uint32_t>
 jprobe::
-enable(std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer)
+enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
+    std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, uint32_t uC)
 {
+    auto& control_buffer = control_buffers.at(uC);
+    auto& mem_buffer = mem_buffers.at(uC);
+    auto& jprobe_link = control_buffers.at(uC + probe_ctrl::jprobe_link_offset);
     // Filter the print actions from the control actions.
     filter_action();
     // If there are no control actions, return.
@@ -54,17 +59,7 @@ enable(std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer)
         return mem_action_locations;
 
     // Get the location for jprobe in the control buffer and update the control buffer.
-    uint32_t link = 
-        control_buffer[probe_type::jprobe] >> dtrace::dtrace_ctrl::second_byte_shift;
-    uint32_t location = probe_type::jprobe;
-    while (link != probe_ctrl::link_end)
-    {
-        location = link;
-        link = control_buffer[link] >>  dtrace::dtrace_ctrl::second_byte_shift;
-    }
-    control_buffer[location] = 
-        (static_cast<uint32_t>(control_buffer.size()) <<  dtrace::dtrace_ctrl::second_byte_shift) | 
-        (probe_type::jprobe << dtrace::dtrace_ctrl::first_byte_shift);
+    jprobe_link.push_back(static_cast<uint32_t>(control_buffer.size()));
     control_buffer.push_back(
         (probe_ctrl::link_end <<  dtrace::dtrace_ctrl::second_byte_shift) | 
         (probe_type::jprobe << dtrace::dtrace_ctrl::first_byte_shift)
