@@ -413,13 +413,12 @@ dwarf_reader::parse_line_table(
         p = read_uleb128(p, stmt_end, ext_len);
         const uint8_t* ext_end = p + ext_len;
         if (ext_len == 0 || ext_end > stmt_end) break;
-        uint8_t ext_op = 0;
-        p = read_u8(p, ext_op);
+        const uint8_t ext_op = *p; // read opcode byte; p advanced to ext_end below
         if (ext_op == DW_LNE_end_sequence) {
           emit_row();
           reg_addr = 0; reg_file = 0; reg_line = 1;
         }
-        p = ext_end; // skip remainder of extended opcode
+        p = ext_end; // skip entire extended opcode (including ext_op byte)
       } else if (opcode < opcode_base) {
         // Standard opcode
         switch (opcode) {
