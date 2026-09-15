@@ -51,11 +51,9 @@ class dwarf_reader {
 public:
   /**
    * Construct and parse DWARF sections from the given ELF.
-   * @param elf     ELFIO object with the ELF already loaded.
-   * @param suffix  Optional group-ELF section suffix (e.g. ".0", ".1").
-   *                Pass "" for single-instance ELFs.
+   * @param elf  ELFIO object with the ELF already loaded.
    */
-  explicit dwarf_reader(const ELFIO::elfio& elf, const std::string& suffix = "");
+  explicit dwarf_reader(const ELFIO::elfio& elf);
 
   /// True if DWARF .debug_info was found and parsed successfully.
   bool has_dwarf() const { return m_has_dwarf; }
@@ -85,9 +83,9 @@ private:
   static const uint8_t* read_cstr(const uint8_t* p, const uint8_t* end, std::string& s);
 
   // ── Section data helpers ─────────────────────────────────────────────────
-  /// Return (data, size) for a section by name, checking suffix fallback.
+  /// Return (data, size) for a named section, or {nullptr, 0} if absent.
   static std::pair<const uint8_t*, size_t>
-  get_section_data(const ELFIO::elfio& elf, const std::string& name, const std::string& suffix);
+  get_section_data(const ELFIO::elfio& elf, const std::string& name);
 
   // ── DWARF v5 line-number program interpreter ─────────────────────────────
   struct col_info {
@@ -107,7 +105,8 @@ private:
   void parse_line_table(
       const uint8_t* line_data, size_t line_size,
       size_t stmt_offset,
-      uint32_t col_num);
+      uint32_t col_num,
+      const uint8_t* str_data, size_t str_size);
 
   // Read a strp (4-byte offset into .debug_str)
   static std::string read_strp(const uint8_t* p, const uint8_t* str_data, size_t str_size);

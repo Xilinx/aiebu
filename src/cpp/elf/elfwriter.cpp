@@ -182,11 +182,11 @@ add_text_data_section(const std::vector<std::shared_ptr<writer>>& mwriter, std::
       continue;
 
     // DWARF .debug_* sections: no SHF_ALLOC, no PT_LOAD, no UID contribution.
-    // The group-ELF suffix (index_string) is appended so each instance gets
-    // distinct section names, e.g. ".debug_info.0", ".debug_info.1".
+    // Section names must be exactly ".debug_info", ".debug_line", etc. — no
+    // group-ELF suffix — so that GNU Binutils and llvm tools recognise them.
     if (buffer->get_type() == code_section::debug) {
       elf_section dbg_sec;
-      dbg_sec.set_name(buffer->get_name() + index_string);
+      dbg_sec.set_name(buffer->get_name());
       dbg_sec.set_type(ELFIO::SHT_PROGBITS);
       dbg_sec.set_flags(0);   // no SHF_ALLOC
       dbg_sec.set_align(1);

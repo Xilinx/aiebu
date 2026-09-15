@@ -93,8 +93,8 @@ write_opcode_information(std::ostream& stream, const std::string& filename,
   // For merged-format ELFs with DWARF v5 debug sections (no .dump present).
   if (has_dwarf()) {
     const dwarf_reader* dr = get_dwarf_reader();
-    const uint32_t offset32 = static_cast<uint32_t>(pc);
-    const uint32_t page32   = static_cast<uint32_t>(page_index);
+    const auto offset32 = static_cast<uint32_t>(pc);
+    const auto page32   = static_cast<uint32_t>(page_index);
     const dwarf_debug_row row = dr->find_row(uc_index, page32, offset32);
 
     stream << "ELF File:       " << filename << '\n';
@@ -597,8 +597,7 @@ AIEDebug::get_opcode_information(const std::string& kernel_name,
   // 2. ISA binary walk for opcode name/args; supplement with DWARF for source info.
   opcode_information result = decode_opcode(uc_idx, page_idx, offset, name_id);
   if (result.found) {
-    const std::string suffix = (name_id != UINT32_MAX) ? "." + std::to_string(name_id) : "";
-    dwarf_reader dr(m_elf, suffix);
+    dwarf_reader dr(m_elf);
     if (dr.has_dwarf()) {
       const dwarf_debug_row row = dr.find_row(uc_idx, page_idx, offset);
       if (!row.file.empty() && row.line != 0) {
