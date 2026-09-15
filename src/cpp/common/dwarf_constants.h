@@ -11,7 +11,9 @@
 #ifndef AIEBU_COMMON_DWARF_CONSTANTS_H_
 #define AIEBU_COMMON_DWARF_CONSTANTS_H_
 
+#include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 namespace aiebu::dwarf5 {
 
@@ -24,8 +26,8 @@ inline constexpr uint8_t  DWARF_ADDR_SIZE = 4;
 inline constexpr uint32_t DWARF_PAGE_SIZE = 0x2000;
 
 // ── Column name prefix used in DW_AT_name for DW_TAG_module DIEs ─────────
-inline constexpr char   COLUMN_PREFIX[]   = "column ";
-inline constexpr size_t COLUMN_PREFIX_LEN = 7;
+inline constexpr std::string_view COLUMN_PREFIX    = "column ";
+inline constexpr std::size_t      COLUMN_PREFIX_LEN = COLUMN_PREFIX.size();
 
 // ── Unit types (Table 7.2) ────────────────────────────────────────────────
 inline constexpr uint8_t DW_UT_compile = 0x01;
@@ -78,6 +80,10 @@ inline constexpr uint8_t DW_LNS_set_isa           = 0x0c;
 
 // ── Extended line-number opcodes (Table 7.25) ────────────────────────────
 inline constexpr uint8_t DW_LNE_end_sequence = 0x01;
+
+// ── Special opcode range ──────────────────────────────────────────────────
+// Opcodes in [opcode_base, 255] are special opcodes (DWARF v5 §6.2.5.1).
+inline constexpr uint8_t DWARF_MAX_SPECIAL_OPCODE = 255;
 
 // ── Line-number content-type codes (Table 7.27) ──────────────────────────
 inline constexpr uint8_t DW_LNCT_path            = 0x01;
