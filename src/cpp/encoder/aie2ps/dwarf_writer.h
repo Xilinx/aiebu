@@ -81,15 +81,18 @@ private:
       const std::vector<std::shared_ptr<Function>>& col_funcs);
 
   // ── .debug_info ─────────────────────────────────────────────────────────
+  // Per-column data bundle passed to build_info() to avoid adjacent same-type params.
+  struct col_data {
+    std::vector<uint32_t>                             nums;          ///< column numbers
+    std::vector<uint32_t>                             stmt_offsets;  ///< byte offset into .debug_line
+    std::vector<uint32_t>                             byte_sizes;    ///< DW_AT_byte_size per column
+    std::vector<std::vector<std::shared_ptr<Function>>> funcs;       ///< functions per column
+  };
+
   // Build the full .debug_info CU with one DW_TAG_module per column.
-  // col_stmt_offsets[i] is the byte offset of column i's stmt_list in .debug_line.
-  // col_byte_sizes[i]   is DW_AT_byte_size for that module.
   std::vector<uint8_t> build_info(
       const std::string& cu_name,
-      const std::vector<uint32_t>& col_nums,
-      const std::vector<uint32_t>& col_stmt_offsets,
-      const std::vector<uint32_t>& col_byte_sizes,
-      const std::vector<std::vector<std::shared_ptr<Function>>>& col_funcs,
+      const col_data& cols,
       const std::vector<annotation_type>& annotations);
 };
 

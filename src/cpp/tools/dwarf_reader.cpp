@@ -24,10 +24,19 @@ using namespace dwarf5;
 
 // ─── LEB128 encoding constants ───────────────────────────────────────────────
 
-static constexpr uint8_t  LEB128_VALUE_MASK = 0x7F;
-static constexpr uint8_t  LEB128_MORE_BIT   = 0x80;
-static constexpr uint8_t  LEB128_SIGN_BIT   = 0x40;
-static constexpr unsigned LEB128_SHIFT      = 7;
+static constexpr uint8_t  LEB128_VALUE_MASK  = 0x7F;
+static constexpr uint8_t  LEB128_MORE_BIT    = 0x80;
+static constexpr uint8_t  LEB128_SIGN_BIT    = 0x40;
+static constexpr unsigned LEB128_SHIFT       = 7;
+static constexpr unsigned LEB128_MAX_SHIFT   = 64U; // bits in int64_t
+
+// Minimum byte counts for DWARF v5 headers (used as guard checks before parsing).
+// CU header:   unit_length(4) + version(2) + unit_type(1) + addr_size(1) + abbrev_off(4) = 12,
+//              but we check 11 to detect at least the length + version fields.
+static constexpr size_t CU_HEADER_MIN_SIZE   = 11;
+// Line table:  total_length(4) + version(2) + addr_size(1) + seg_size(1) + hdr_length(4) = 12,
+//              but we check 10 to detect the length + version fields.
+static constexpr size_t LINE_HEADER_MIN_SIZE = 10;
 
 // ─── Raw-read helpers ────────────────────────────────────────────────────────
 
@@ -74,14 +83,14 @@ const uint8_t* dwarf_reader::read_sleb128(const uint8_t* p, const uint8_t* end, 
     if ((byte & LEB128_MORE_BIT) == 0) break;
   }
   // Sign extend
-  if (shift < 64U && (byte & LEB128_SIGN_BIT) != 0)
+  if (shift < LEB128_MAX_SHIFT && (byte & LEB128_SIGN_BIT) != 0)
     v |= -(static_cast<int64_t>(1) << shift);
   return p;
 }
 
 const uint8_t* dwarf_reader::read_cstr(const uint8_t* p, const uint8_t* end, std::string& s)
 {
-  const uint8_t* nul = static_cast<const uint8_t*>(
+  const auto* nul = static_cast<const uint8_t*>(
       std::memchr(p, 0, static_cast<size_t>(end - p)));
   if (!nul) nul = end;
   s.assign(reinterpret_cast<const char*>(p), nul - p);
@@ -96,23 +105,19 @@ std::string dwarf_reader::read_strp(const uint8_t* p, const uint8_t* str_data, s
   const char* cstr = reinterpret_cast<const char*>(str_data + offset);
   // Find NUL within bounds
   size_t max_len = str_size - offset;
-  size_t len = strnlen(cstr, max_len);
+  const auto* nul = static_cast<const char*>(std::memchr(cstr, 0, max_len));
+  size_t len = nul ? static_cast<size_t>(nul - cstr) : max_len;
   return {cstr, len};
 }
 
 // ─── Section lookup ──────────────────────────────────────────────────────────
 
 std::pair<const uint8_t*, size_t>
-dwarf_reader::get_section_data(const ELFIO::elfio& elf,
-                                const std::string& name,
-                                const std::string& suffix)
+dwarf_reader::get_section_data(const ELFIO::elfio& elf, const std::string& name)
 {
-  // Try exact name first, then name+suffix
-  for (const auto& s : {name + suffix, name}) {
-    const ELFIO::section* sec = elf.sections[s];
-    if (sec && sec->get_data() && sec->get_size() > 0)
-      return {reinterpret_cast<const uint8_t*>(sec->get_data()), sec->get_size()};
-  }
+  const ELFIO::section* sec = elf.sections[name];
+  if (sec && sec->get_data() && sec->get_size() > 0)
+    return {reinterpret_cast<const uint8_t*>(sec->get_data()), sec->get_size()};
   return {nullptr, 0};
 }
 
@@ -145,7 +150,7 @@ dwarf_reader::parse_debug_info(
   const uint8_t* p   = info_data;
   const uint8_t* end = info_data + info_size;
 
-  if (p + 11 > end) return; // Too small for a v5 CU header
+  if (p + CU_HEADER_MIN_SIZE > end) return; // Too small for a v5 CU header
 
   // Parse DWARF v5 CU header
   auto unit_length = uint32_t{0};
@@ -242,7 +247,8 @@ dwarf_reader::parse_debug_info(
         std::string ann_name = read_strp(p, str_data, str_size); p += 4;
         std::string ann_desc = read_strp(p, str_data, str_size); p += 4;
         if (cur_col != UINT32_MAX)
-          pending_labels.push_back({cur_col, low_pc, ann_id, ann_name, ann_desc});
+          pending_labels.push_back({cur_col, low_pc,
+                                    std::move(ann_id), std::move(ann_name), std::move(ann_desc)});
         break;
       }
       default:
@@ -271,14 +277,15 @@ void
 dwarf_reader::parse_line_table(
     const uint8_t* line_data, size_t line_size,
     size_t stmt_offset,
-    uint32_t col_num)
+    uint32_t col_num,
+    const uint8_t* str_data, size_t str_size)
 {
   if (stmt_offset >= line_size) return;
 
   const uint8_t* p   = line_data + stmt_offset;
   const uint8_t* end = line_data + line_size;
 
-  if (p + 10 > end) return;
+  if (p + LINE_HEADER_MIN_SIZE > end) return;
 
   // Parse prologue
   auto total_length = uint32_t{0};
@@ -302,7 +309,7 @@ dwarf_reader::parse_line_table(
   uint8_t max_ops_inst  = 0; p = read_u8(p, max_ops_inst);
   { uint8_t tmp = 0; p = read_u8(p, tmp); (void)tmp; } // default_is_stmt — not used by this consumer
   uint8_t line_base_u   = 0; p = read_u8(p, line_base_u);
-  const int8_t line_base = static_cast<int8_t>(line_base_u);
+  const auto line_base = static_cast<int8_t>(line_base_u);
   uint8_t line_range    = 0; p = read_u8(p, line_range);
   uint8_t opcode_base   = 0; p = read_u8(p, opcode_base);
 
@@ -315,25 +322,35 @@ dwarf_reader::parse_line_table(
   // Parse DWARF v5 prologue tables and collect file names.
   std::vector<std::string> filenames;
   if (p < program_start) {
-    // DWARF v5 directory table
+    // DWARF v5 directory table — read format descriptors then skip all entries.
     uint8_t dir_fmt_count = 0;
     p = read_u8(p, dir_fmt_count);
-    if (dir_fmt_count > 0) {
-      for (uint8_t i = 0; i < dir_fmt_count; ++i) {
-        uint64_t ct = 0, form = 0;
-        p = read_uleb128(p, program_start, ct);
-        p = read_uleb128(p, program_start, form);
-      }
+    struct fmt_pair { uint64_t ct = 0; uint64_t form = 0; };
+    std::vector<fmt_pair> dir_fmts(dir_fmt_count);
+    for (uint8_t i = 0; i < dir_fmt_count && p < program_start; ++i) {
+      p = read_uleb128(p, program_start, dir_fmts[i].ct);
+      p = read_uleb128(p, program_start, dir_fmts[i].form);
     }
     uint64_t dir_count = 0;
     p = read_uleb128(p, program_start, dir_count);
-    // We don't use directory entries; dir_count should be 0 in our output.
+    // Skip directory entries — we use full paths in the file name table.
+    for (uint64_t di = 0; di < dir_count && p < program_start; ++di) {
+      for (const auto& dfmt : dir_fmts) {
+        if (dfmt.form == DW_FORM_string) {
+          std::string dummy;
+          p = read_cstr(p, program_start, dummy);
+        } else {
+          const size_t fsz = form_fixed_size(dfmt.form);
+          if (fsz) p += fsz;
+          else break;
+        }
+      }
+    }
 
     // DWARF v5 file name table
     if (p < program_start) {
       uint8_t fn_fmt_count = 0;
       p = read_u8(p, fn_fmt_count);
-      struct fmt_pair { uint64_t ct = 0; uint64_t form = 0; };
       std::vector<fmt_pair> fn_fmts(fn_fmt_count);
       for (uint8_t i = 0; i < fn_fmt_count && p < program_start; ++i) {
         p = read_uleb128(p, program_start, fn_fmts[i].ct);
@@ -344,10 +361,19 @@ dwarf_reader::parse_line_table(
       for (uint64_t fi = 0; fi < fn_count && p < program_start; ++fi) {
         std::string fname;
         for (const auto& fmt : fn_fmts) {
-          if (fmt.form == DW_FORM_string) {
-            p = read_cstr(p, program_start, fname);
+          if (fmt.ct == DW_LNCT_path) {
+            if (fmt.form == DW_FORM_string) {
+              p = read_cstr(p, program_start, fname);       // inline NUL-terminated
+            } else if (fmt.form == DW_FORM_strp) {
+              fname = read_strp(p, str_data, str_size);     // 4-byte .debug_str offset
+              p += 4;
+            } else {
+              const size_t fsz = form_fixed_size(fmt.form);
+              if (fsz) p += fsz;
+              else break;
+            }
           } else {
-            size_t fsz = form_fixed_size(static_cast<uint64_t>(fmt.form));
+            const size_t fsz = form_fixed_size(fmt.form);
             if (fsz) p += fsz;
             else break;
           }
@@ -364,10 +390,8 @@ dwarf_reader::parse_line_table(
     uint32_t reg_addr = 0;
     uint32_t reg_file = 0;
     int32_t  reg_line = 1;
-    bool     end_seq  = false;
 
     auto emit_row = [&]() {
-      if (end_seq) return;
       dwarf_debug_row row{};
       row.column      = col_num;
       row.address     = reg_addr;
@@ -390,11 +414,10 @@ dwarf_reader::parse_line_table(
         const uint8_t* ext_end = p + ext_len;
         if (ext_len == 0 || ext_end > stmt_end) break;
         uint8_t ext_op = 0;
-        read_u8(p, ext_op);
+        p = read_u8(p, ext_op);
         if (ext_op == DW_LNE_end_sequence) {
           emit_row();
-          end_seq = true;
-          reg_addr = 0; reg_file = 0; reg_line = 1; end_seq = false;
+          reg_addr = 0; reg_file = 0; reg_line = 1;
         }
         p = ext_end; // skip remainder of extended opcode
       } else if (opcode < opcode_base) {
@@ -431,11 +454,10 @@ dwarf_reader::parse_line_table(
           case DW_LNS_set_basic_block:
             break;
           case DW_LNS_const_add_pc: {
-            // advance PC by: ((MAX_SPECIAL_OPCODE - opcode_base) / line_range) * min_inst_len
-            static constexpr uint8_t MAX_SPECIAL_OPCODE = 255;
+            // advance PC by: ((DWARF_MAX_SPECIAL_OPCODE - opcode_base) / line_range) * min_inst_len
             if (line_range > 0) {
               auto advance = static_cast<uint32_t>(
-                  ((MAX_SPECIAL_OPCODE - opcode_base) / line_range) * min_inst_len);
+                  ((DWARF_MAX_SPECIAL_OPCODE - opcode_base) / line_range) * min_inst_len);
               reg_addr += advance;
             }
             break;
@@ -456,7 +478,7 @@ dwarf_reader::parse_line_table(
           }
           default: {
             // Skip unknown standard opcode using opcode length table
-            const size_t opcode_idx = static_cast<size_t>(opcode - 1U);
+            const auto opcode_idx = static_cast<size_t>(opcode - 1U);
             const uint8_t nargs = (opcode_idx < std_opcode_lens.size())
                                   ? std_opcode_lens[opcode_idx] : 0;
             for (uint8_t a = 0; a < nargs; ++a) {
@@ -482,14 +504,11 @@ dwarf_reader::parse_line_table(
 
 // ─── Constructor ─────────────────────────────────────────────────────────────
 
-dwarf_reader::dwarf_reader(const ELFIO::elfio& elf, const std::string& suffix)
+dwarf_reader::dwarf_reader(const ELFIO::elfio& elf)
 {
-  const auto [str_data, str_size] =
-      get_section_data(elf, ".debug_str", suffix);
-  const auto [line_data, line_size] =
-      get_section_data(elf, ".debug_line", suffix);
-  const auto [info_data, info_size] =
-      get_section_data(elf, ".debug_info", suffix);
+  const auto [str_data, str_size]   = get_section_data(elf, ".debug_str");
+  const auto [line_data, line_size] = get_section_data(elf, ".debug_line");
+  const auto [info_data, info_size] = get_section_data(elf, ".debug_info");
 
   if (!info_data || !line_data) return; // No DWARF present
 
@@ -501,7 +520,7 @@ dwarf_reader::dwarf_reader(const ELFIO::elfio& elf, const std::string& suffix)
 
   // Parse each column's line-number program
   for (const auto& ci : cols)
-    parse_line_table(line_data, line_size, ci.stmt_offset, ci.col_num);
+    parse_line_table(line_data, line_size, ci.stmt_offset, ci.col_num, str_data, str_size);
 
   m_has_dwarf = !m_rows.empty() || !cols.empty();
 }
