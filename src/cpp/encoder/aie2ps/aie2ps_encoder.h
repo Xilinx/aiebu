@@ -23,6 +23,7 @@ class aie2ps_encoder : public encoder
   Debug m_debug;
   asm_dump_flag m_dump_flag = asm_dump_flag::disable;
   bool m_merged_ctrltext_elf;
+  std::string m_cu_name; // DWARF compile-unit name; set by asm_config_encoder for config ELFs
 
 protected:
   bool use_merged_ctrltext_sections() const { return m_merged_ctrltext_elf; }
@@ -52,6 +53,7 @@ public:
   }
 
   void set_merged_ctrltext_elf(bool merged) override { m_merged_ctrltext_elf = merged; m_report.set_merged(merged); }
+  void set_cu_name(const std::string& name) override { m_cu_name = name; }
 
   virtual std::vector<std::shared_ptr<writer>>
   process(std::shared_ptr<preprocessed_output> input) override;
@@ -148,6 +150,7 @@ public:
       for(auto& [iname, instance] : instances)
       {
         T encoder_object(m_merged_ctrltext_elf);
+        encoder_object.set_cu_name(kernel + ":" + iname);
         encoder_object.check_partition_info(instance->get_partition_info(), output_writer->get_partition_info());
         encoder_object.check_target_info(instance->get_target_info(), tinfo_first_instance);
         encoder_object.check_aie_row_topology_info(instance->get_aie_row_topology_info(), rinfo_first_instance);
