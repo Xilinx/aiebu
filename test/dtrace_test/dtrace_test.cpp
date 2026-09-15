@@ -12,7 +12,6 @@
 #include <vector>
 
 static const uint64_t TRACE_CTRL_CODE_BASE = 0x200000;
-static const uint64_t TRACE_CTRL_CODE_SIZE = 16384; // 8kB
 static const uint32_t word_byte_shift = 32;
 
 int
