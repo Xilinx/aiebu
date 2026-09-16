@@ -60,6 +60,22 @@ add_test(NAME "dtrace_multi_column_result_md5sum"
   )
 set_tests_properties("dtrace_multi_column_result_md5sum" PROPERTIES DEPENDS "dtrace_multi_column")
 
+# Test large compile-time generated jprobe script
+add_test(NAME "dtrace_compile_time"
+  COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/compile_time"
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_compile_time.dat"
+  "python"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+add_test(NAME "dtrace_compile_time_md5sum"
+  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_compile_time.dat"
+  "${AIEBU_SOURCE_DIR}/test/dtrace_test/compile_time/gold.md5"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_compile_time_md5sum" PROPERTIES DEPENDS "dtrace_compile_time")
+
 # Test profile script
 add_test(NAME "dtrace_profile"
   COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/profile"

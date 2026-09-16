@@ -37,15 +37,18 @@ profile_probe(uint32_t probe_type, const std::string& probe_name)
  * enable() - 
  *  Enables the profile probe by adding probe header to control and memory buffers.
  *
- * @param control_buffer
- * @param mem_buffer
+ * @param control_buffers
+ * @param mem_buffers
+ * @param uC
  * @return
  *  Memory action locations for host address patching. 
  */
 std::vector<uint32_t>
 profile_probe::
-enable(std::vector<uint32_t>& control_buffer, std::vector<uint32_t>&)
+enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
+    std::unordered_map<uint32_t, std::vector<uint32_t>>&, uint32_t uC)
 {
+    auto& control_buffer = control_buffers.at(uC);
     // Clear the control buffer and resize it to TRACE_PAGE_SIZE
     // profiling and other type of probes are not enabled concurrently 
     control_buffer.clear();

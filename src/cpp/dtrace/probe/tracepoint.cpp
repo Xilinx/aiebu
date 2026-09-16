@@ -37,15 +37,19 @@ tracepoint_probe(uint32_t probe_type, const std::string& probe_name)
  * enable() - 
  *  Enables the tracepoint probe by adding probe header and actions to control and memory buffers.
  *
- * @param control_buffer
- * @param mem_buffer
+ * @param control_buffers
+ * @param mem_buffers
+ * @param uC
  * @return
  *  Memory action locations for host address patching. 
  */
 std::vector<uint32_t>
 tracepoint_probe::
-enable(std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer)
+enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
+    std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, uint32_t uC)
 {
+    auto& control_buffer = control_buffers.at(uC);
+    auto& mem_buffer = mem_buffers.at(uC);
     // Filter the print actions from the control actions.
     filter_action();
     // If there are no control actions, return.
