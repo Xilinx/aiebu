@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace dtrace::probe
@@ -87,6 +88,7 @@ public:
     static constexpr uint16_t tracepoint_split = 12;
 #endif
     static constexpr uint16_t probe_type = 0xFF00;
+    static constexpr uint32_t jprobe_link_offset = 36;
 };
 
 //-------------------------Probe Class-------------------------//
@@ -116,8 +118,8 @@ public:
     std::vector<std::shared_ptr<dtrace::action::action>> m_actions;
     void add_action(std::shared_ptr<dtrace::action::action> action);
     std::string create_string() const;
-    virtual std::vector<uint32_t> enable(std::vector<uint32_t>& control_buffer, 
-        std::vector<uint32_t>& mem_buffer) = 0;
+    virtual std::vector<uint32_t> enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
+        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, uint32_t uC) = 0;
     virtual ~probe() = default;
 };
 
@@ -136,8 +138,8 @@ class begin_probe : public probe
 {
 public:
     begin_probe(uint32_t probe_type, const std::string& probe_name);
-    std::vector<uint32_t> enable(std::vector<uint32_t>& control_buffer, 
-        std::vector<uint32_t>& mem_buffer) override;
+    std::vector<uint32_t> enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
+        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, uint32_t uC) override;
 };
 
 //-------------------------End probe-------------------------//
@@ -155,8 +157,8 @@ class end_probe : public probe
 {
 public:
     end_probe(uint32_t probe_type, const std::string& probe_name);
-    std::vector<uint32_t> enable(std::vector<uint32_t>& control_buffer, 
-        std::vector<uint32_t>& mem_buffer) override;
+    std::vector<uint32_t> enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
+        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, uint32_t uC) override;
 };
 
 //-------------------------Jprobe-------------------------//
@@ -181,8 +183,8 @@ private:
 public:
     jprobe(uint32_t probe_type, const std::string& probe_name, 
         uint32_t probe_page, uint32_t probe_offset);
-    std::vector<uint32_t> enable(std::vector<uint32_t>& control_buffer, 
-        std::vector<uint32_t>& mem_buffer) override;
+    std::vector<uint32_t> enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
+        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, uint32_t uC) override;
 };
 
 //-------------------------Tracepoint probe-------------------------//
@@ -205,8 +207,8 @@ private:
 
 public:
     tracepoint_probe(uint32_t probe_type, const std::string& probe_name);
-    std::vector<uint32_t> enable(std::vector<uint32_t>& control_buffer, 
-        std::vector<uint32_t>& mem_buffer) override;
+    std::vector<uint32_t> enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
+        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, uint32_t uC) override;
 };
 
 //-------------------------Profile probe-------------------------//
@@ -228,8 +230,8 @@ private:
 
 public:
     profile_probe(uint32_t probe_type, const std::string& probe_name);
-    std::vector<uint32_t> enable(std::vector<uint32_t>& control_buffer, 
-        std::vector<uint32_t>& mem_buffer) override;
+    std::vector<uint32_t> enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
+        std::unordered_map<uint32_t, std::vector<uint32_t>>& mem_buffers, uint32_t uC) override;
 };
 
 } // namespace dtrace::probe

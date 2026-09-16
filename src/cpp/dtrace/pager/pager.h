@@ -56,7 +56,8 @@ public:
     std::vector<uint32_t> m_secondary_buffer;
     std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>> m_primary_action_location_mapping;
     std::unordered_map<uint32_t, uint32_t> m_secondary_action_location_mapping;
-    std::vector<uint32_t> paging(const std::vector<uint32_t>& buffer, uint32_t uC_index);
+    std::vector<uint32_t> paging(const std::unordered_map<uint32_t, std::vector<uint32_t>>& buffers,
+        uint32_t uC_index);
     const std::unordered_map<uint32_t, uint32_t>& get_action_location_mapping(uint32_t uC_index) const;
 
 private:
@@ -74,9 +75,11 @@ private:
         std::vector<uint32_t>& destination, uint32_t uC_index);
     void get_end_probe(const std::vector<uint32_t>& source, 
         std::vector<uint32_t>& destination, uint32_t uC_index);
-    void get_probe(const std::vector<uint32_t>& source, uint32_t uC_index);
+    void get_probe(const std::vector<uint32_t>& source, uint32_t uC_index,
+        const std::vector<uint32_t>& jprobe_link);
     void get_jprobe_probe(const std::vector<uint32_t>& source, 
-        std::vector<uint32_t>& destination, uint32_t uC_index);
+        std::vector<uint32_t>& destination, uint32_t uC_index,
+        const std::vector<uint32_t>& jprobe_link);
     uint32_t get_action_size(const std::vector<uint32_t>& source, uint32_t action_offset);
     void copy_actions(const std::vector<uint32_t>& source, 
         uint32_t offset, std::vector<uint32_t>& destination, uint32_t size, uint32_t uC_index);

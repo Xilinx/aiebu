@@ -88,6 +88,8 @@ control(const std::string& script_file, const std::string& map_data)
         m_control_buffers[uC] = {};
         m_mem_buffers[uC] = {};
         m_mem_action_locations[uC] = {};
+        // buffer for jprobe link
+        m_control_buffers[uC + dtrace::probe::probe_ctrl::jprobe_link_offset] = {};
 
         // Initialize control buffer
         m_control_buffers.at(uC).push_back(
@@ -115,7 +117,7 @@ control(const std::string& script_file, const std::string& map_data)
             try 
             {
                 const auto mem_action_locations = 
-                    probe->enable(m_control_buffers.at(uC), m_mem_buffers.at(uC));
+                    probe->enable(m_control_buffers, m_mem_buffers, uC);
 
                 // Add the mem action locations for probe to control member locations variable
                 m_mem_action_locations.at(uC).insert(
@@ -143,7 +145,9 @@ control(const std::string& script_file, const std::string& map_data)
             m_mem_action_present = true;
 
         // Trace control block paging
-        m_control_buffers[uC] = m_pager.paging(m_control_buffers.at(uC), uC);
+        m_control_buffers[uC] = m_pager.paging(m_control_buffers, uC);
+        // Jprobe link buffer removal
+        m_control_buffers.erase(uC + dtrace::probe::probe_ctrl::jprobe_link_offset);
         DTRACE_INFO("DTRACE CONTROL BUFFER PAGING COMPLETE for uC index " << uC);
     }
 
