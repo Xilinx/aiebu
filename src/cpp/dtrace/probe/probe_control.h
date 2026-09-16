@@ -88,7 +88,7 @@ public:
     static constexpr uint16_t tracepoint_split = 12;
 #endif
     static constexpr uint16_t probe_type = 0xFF00;
-    static constexpr uint32_t jprobe_link_offset = 32;
+    static constexpr uint32_t jprobe_link_offset = 36;
 };
 
 //-------------------------Probe Class-------------------------//
