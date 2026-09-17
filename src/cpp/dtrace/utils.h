@@ -122,10 +122,10 @@ public:
  // True for full ELF; false for partial ELF.
   static bool is_group_elf(const ELFIO::elfio& elf);
 
-  // Partial ELF
+  // Partial ELF: returns .dump section JSON, or empty if no .dump section found.
   std::string get_debug_section_json() const;
 
-  // Full ELF: ".dump" section for kernel:instance (group-filtered).
+  // Full ELF: .dump section for kernel:instance (group-filtered), or DWARF v5 fallback.
   std::string get_debug_section_json(const std::string& kernel_instance) const;
 
 private:
