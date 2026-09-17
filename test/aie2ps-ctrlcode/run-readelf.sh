@@ -13,5 +13,14 @@
 # Normalize ELF header Machine: to match gold files (col_0.gold et al.),
 # which expect WE32100. Ancient versions of eu-readelf report "m32" which
 # skews the gold comparison.
+#
+# elfutils 0.190 (RHEL 8.10) prints unknown e_machine values as "<unknown>"
+# without the hex suffix. Other versions print "<unknown>: 0x10d". Normalize
+# the bare "<unknown>" form to "<unknown>: 0x10d" as AIE Ctrlcode has been
+# officially assigned machine code 269 (0x10d)
 
-eu-readelf -a $1 | sed "/Key to Flags/,+3d" | sed '/^[[:space:]]*Machine:/s/m32/WE32100/' > "$2"
+eu-readelf -a $1 \
+  | sed "/Key to Flags/,+3d" \
+  | sed '/^[[:space:]]*Machine:/s/m32/WE32100/' \
+  | sed '/^[[:space:]]*Machine:.*<unknown>$/s/<unknown>/<unknown>: 0x10d/' \
+  > "$2"
