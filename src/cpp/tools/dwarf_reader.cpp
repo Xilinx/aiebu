@@ -15,6 +15,7 @@
 #include "common/dwarf_constants.h"
 
 #include <cstring>
+#include <string_view>
 #include <boost/endian/conversion.hpp>
 #include <elfio/elfio.hpp>
 
@@ -113,9 +114,11 @@ std::string dwarf_reader::read_strp(const uint8_t* p, const uint8_t* str_data, s
 // ─── Section lookup ──────────────────────────────────────────────────────────
 
 std::pair<const uint8_t*, size_t>
-dwarf_reader::get_section_data(const ELFIO::elfio& elf, const std::string& name)
+dwarf_reader::get_section_data_by_index(const ELFIO::elfio& elf, size_t index)
 {
-  const ELFIO::section* sec = elf.sections[name];
+  if (index >= elf.sections.size())
+    return {nullptr, 0};
+  const ELFIO::section* sec = elf.sections[static_cast<ELFIO::Elf_Half>(index)];
   if (sec && sec->get_data() && sec->get_size() > 0)
     return {reinterpret_cast<const uint8_t*>(sec->get_data()), sec->get_size()};
   return {nullptr, 0};
@@ -141,35 +144,36 @@ static size_t form_fixed_size(uint64_t form)
   }
 }
 
-void
+std::string
 dwarf_reader::parse_debug_info(
     const uint8_t* info_data, size_t info_size,
     const uint8_t* str_data,  size_t str_size,
     std::vector<col_info>& cols_out)
 {
+  std::string cu_name_result;
   const uint8_t* p   = info_data;
   const uint8_t* end = info_data + info_size;
 
-  if (p + CU_HEADER_MIN_SIZE > end) return; // Too small for a v5 CU header
+  if (p + CU_HEADER_MIN_SIZE > end) return cu_name_result; // Too small for a v5 CU header
 
   // Parse DWARF v5 CU header
   auto unit_length = uint32_t{0};
   p = read_u32(p, unit_length);
   const uint8_t* cu_end = p + unit_length;
-  if (cu_end > end) return;
+  if (cu_end > end) return cu_name_result;
 
   uint16_t version = 0;
   p = read_u16(p, version);
-  if (version != DWARF_VERSION) return;
+  if (version != DWARF_VERSION) return cu_name_result;
 
   uint8_t unit_type = 0;
   p = read_u8(p, unit_type);
+  if (unit_type != DW_UT_compile) return cu_name_result; // Only compile units supported
   uint8_t addr_size = 0;
   p = read_u8(p, addr_size);
-  uint32_t abbrev_offset = 0;
-  p = read_u32(p, abbrev_offset);
+  p += 4; // abbrev_offset — skip (.debug_abbrev not parsed; fixed schema assumed)
 
-  if (addr_size != DWARF_ADDR_SIZE) return; // Only support 32-bit addresses
+  if (addr_size != DWARF_ADDR_SIZE) return cu_name_result; // Only support 32-bit addresses
 
   // We now parse DIEs using our fixed abbreviation knowledge:
   //   abbrev 1 = compile_unit (has_children): producer(strp), language(data2), name(strp)
@@ -189,6 +193,11 @@ dwarf_reader::parse_debug_info(
     std::string ann_id;
     std::string ann_name;
     std::string ann_desc;
+    pending_label(uint32_t c, uint32_t pc,
+                  std::string id, std::string name, std::string desc)
+      : col(c), low_pc(pc)
+      , ann_id(std::move(id)), ann_name(std::move(name)), ann_desc(std::move(desc))
+    {}
   };
   std::vector<pending_label> pending_labels;
 
@@ -199,10 +208,7 @@ dwarf_reader::parse_debug_info(
       // null DIE — ends children list
       // If we were in a module, record it
       if (cur_col != UINT32_MAX) {
-        col_info ci;
-        ci.col_num     = cur_col;
-        ci.stmt_offset = cur_stmt;
-        cols_out.push_back(ci);
+        cols_out.emplace_back(col_info{cur_col, cur_stmt});
         cur_col = UINT32_MAX;
       }
       continue;
@@ -213,11 +219,12 @@ dwarf_reader::parse_debug_info(
         // producer(strp) language(data2) name(strp)
         p += 4; // producer — skip
         p += 2; // language — skip
-        p += 4; // name — skip
+        cu_name_result = read_strp(p, str_data, str_size);
+        p += 4; // name
         break;
       }
       case 2: { // module
-        if (p + 4 + 4 + 4 > cu_end) return;
+        if (p + 4 + 4 + 4 > cu_end) return cu_name_result; // name(strp) + stmt_list(sec_offset) + byte_size(data4)
         // name(strp)
         std::string mod_name = read_strp(p, str_data, str_size);
         p += 4;
@@ -240,35 +247,37 @@ dwarf_reader::parse_debug_info(
         break;
       }
       case 3: { // label
-        if (p + 4 + 4 + 4 + 4 > cu_end) return;
+        if (p + 4 + 4 + 4 + 4 > cu_end) return cu_name_result; // low_pc(addr4) + ann_id(strp) + ann_name(strp) + ann_desc(strp)
         uint32_t low_pc = 0;
         p = read_u32(p, low_pc);
         std::string ann_id   = read_strp(p, str_data, str_size); p += 4;
         std::string ann_name = read_strp(p, str_data, str_size); p += 4;
         std::string ann_desc = read_strp(p, str_data, str_size); p += 4;
         if (cur_col != UINT32_MAX)
-          pending_labels.push_back({cur_col, low_pc,
-                                    std::move(ann_id), std::move(ann_name), std::move(ann_desc)});
+          pending_labels.emplace_back(cur_col, low_pc,
+                                     std::move(ann_id), std::move(ann_name), std::move(ann_desc));
         break;
       }
       default:
         // Unknown DIE — we cannot safely skip; stop parsing
-        return;
+        return cu_name_result;
     }
   }
 
   // Convert pending_labels into dwarf_debug_row annotations (line=0, file empty).
-  for (const auto& lbl : pending_labels) {
+  for (auto& lbl : pending_labels) {
     dwarf_debug_row row{};
     row.column          = lbl.col;
     row.address         = lbl.low_pc;
     row.page_index      = lbl.low_pc / DWARF_PAGE_SIZE;
     row.page_offset     = lbl.low_pc % DWARF_PAGE_SIZE;
-    row.annotation_id   = lbl.ann_id;
-    row.annotation_name = lbl.ann_name;
-    row.annotation_desc = lbl.ann_desc;
-    m_rows.push_back(row);
+    row.annotation_id   = std::move(lbl.ann_id);
+    row.annotation_name = std::move(lbl.ann_name);
+    row.annotation_desc = std::move(lbl.ann_desc);
+    row.cu_name         = cu_name_result;
+    m_rows.emplace_back(std::move(row));
   }
+  return cu_name_result;
 }
 
 // ─── .debug_line interpreter ─────────────────────────────────────────────────
@@ -278,7 +287,8 @@ dwarf_reader::parse_line_table(
     const uint8_t* line_data, size_t line_size,
     size_t stmt_offset,
     uint32_t col_num,
-    const uint8_t* str_data, size_t str_size)
+    const uint8_t* str_data, size_t str_size,
+    const std::string& cu_name)
 {
   if (stmt_offset >= line_size) return;
 
@@ -298,7 +308,7 @@ dwarf_reader::parse_line_table(
   if (version != DWARF_VERSION) return;
 
   uint8_t addr_size = 0; p = read_u8(p, addr_size);
-  uint8_t seg_size  = 0; p = read_u8(p, seg_size);
+  p += 1; // seg_selector_size — skip (always 0 for AIEBU; not used by this consumer)
 
   uint32_t header_length = 0;
   p = read_u32(p, header_length);
@@ -378,7 +388,7 @@ dwarf_reader::parse_line_table(
             else break;
           }
         }
-        filenames.push_back(fname);
+        filenames.emplace_back(std::move(fname));
       }
     }
   }
@@ -391,16 +401,20 @@ dwarf_reader::parse_line_table(
     uint32_t reg_file = 0;
     int32_t  reg_line = 1;
 
+    // Template row: column and cu_name are constant for this column/CU — set once.
+    dwarf_debug_row row_tmpl{};
+    row_tmpl.column  = col_num;
+    row_tmpl.cu_name = cu_name;
+
     auto emit_row = [&]() {
-      dwarf_debug_row row{};
-      row.column      = col_num;
+      dwarf_debug_row row = row_tmpl;
       row.address     = reg_addr;
       row.page_index  = reg_addr / DWARF_PAGE_SIZE;
       row.page_offset = reg_addr % DWARF_PAGE_SIZE;
       row.line        = static_cast<uint32_t>(reg_line);
       if (reg_file < filenames.size())
         row.file = filenames[reg_file];
-      m_rows.push_back(row);
+      m_rows.emplace_back(std::move(row));
     };
 
     while (p < stmt_end) {
@@ -415,7 +429,9 @@ dwarf_reader::parse_line_table(
         if (ext_len == 0 || ext_end > stmt_end) break;
         const uint8_t ext_op = *p; // read opcode byte; p advanced to ext_end below
         if (ext_op == DW_LNE_end_sequence) {
-          emit_row();
+          // DW_LNE_end_sequence marks the end of a sequence; it does NOT
+          // represent a real instruction address and must not be emitted as
+          // a source-location row (DWARF v5 spec §6.2.5.3).
           reg_addr = 0; reg_file = 0; reg_line = 1;
         }
         p = ext_end; // skip entire extended opcode (including ext_op byte)
@@ -505,23 +521,51 @@ dwarf_reader::parse_line_table(
 
 dwarf_reader::dwarf_reader(const ELFIO::elfio& elf)
 {
-  const auto [str_data, str_size]   = get_section_data(elf, ".debug_str");
-  const auto [line_data, line_size] = get_section_data(elf, ".debug_line");
-  const auto [info_data, info_size] = get_section_data(elf, ".debug_info");
+  // Collect the indices of all .debug_info, .debug_line, and .debug_str sections
+  // in section-table order.  For multi-instance ELFs, each instance contributes
+  // one section of each kind; we process them as matched triples by occurrence index.
+  static constexpr std::string_view NAME_INFO  = ".debug_info";
+  static constexpr std::string_view NAME_LINE  = ".debug_line";
+  static constexpr std::string_view NAME_STR   = ".debug_str";
 
-  if (!info_data || !line_data) return; // No DWARF present
+  std::vector<size_t> info_indices, line_indices, str_indices;
+  const size_t num_sections = elf.sections.size();
+  for (size_t i = 0; i < num_sections; ++i) {
+    const ELFIO::section* sec = elf.sections[static_cast<ELFIO::Elf_Half>(i)];
+    if (!sec) continue;
+    const std::string& name = sec->get_name();
+    if (name == NAME_INFO)  info_indices.emplace_back(i);
+    else if (name == NAME_LINE) line_indices.emplace_back(i);
+    else if (name == NAME_STR)  str_indices.emplace_back(i);
+  }
 
-  // Parse .debug_info to get column→stmt_offset mapping + annotation DIEs
-  std::vector<col_info> cols;
-  parse_debug_info(info_data, info_size,
-                   str_data, str_size,
-                   cols);
+  if (info_indices.empty() || line_indices.empty()) return; // No DWARF present
 
-  // Parse each column's line-number program
-  for (const auto& ci : cols)
-    parse_line_table(line_data, line_size, ci.stmt_offset, ci.col_num, str_data, str_size);
+  const size_t num_cus = info_indices.size();
+  for (size_t cu = 0; cu < num_cus; ++cu) {
+    const auto [info_data, info_size] = get_section_data_by_index(elf, info_indices[cu]);
+    const auto [line_data, line_size] = (cu < line_indices.size())
+        ? get_section_data_by_index(elf, line_indices[cu])
+        : std::pair<const uint8_t*, size_t>{nullptr, 0};
+    const auto [str_data, str_size]  = (cu < str_indices.size())
+        ? get_section_data_by_index(elf, str_indices[cu])
+        : std::pair<const uint8_t*, size_t>{nullptr, 0};
 
-  m_has_dwarf = !m_rows.empty() || !cols.empty();
+    if (!info_data || !line_data) continue;
+
+    // Parse .debug_info — returns the DW_AT_name of the compile_unit.
+    std::vector<col_info> cols;
+    const std::string cu_name = parse_debug_info(info_data, info_size,
+                                                  str_data, str_size,
+                                                  cols);
+
+    // Parse each column's line-number program, tagging rows with the CU name.
+    for (const auto& ci : cols)
+      parse_line_table(line_data, line_size, ci.stmt_offset, ci.col_num,
+                       str_data, str_size, cu_name);
+  }
+
+  m_has_dwarf = !m_rows.empty();
 }
 
 // ─── Lookup ──────────────────────────────────────────────────────────────────

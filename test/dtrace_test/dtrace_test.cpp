@@ -2,6 +2,7 @@
 // Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/dtrace.h"
+#include "dtrace/utils.h"
 #include <elfio/elfio.hpp>
 
 #include <iostream>
@@ -125,6 +126,19 @@ int main(int argc, char** argv)
                 std::cerr << "[ERROR]: failed to load " << elf_file;
                 return 1;
             }
+
+            // Write the intermediate debug JSON to a .debug.json file alongside
+            // the output .dat for inspection.
+            // Partial ELFs (kernel_instance empty): .dump section JSON only.
+            // Full ELFs (kernel_instance set): .dump or DWARF v5 fallback, filtered by instance.
+            const std::string debug_json = kernel_instance.empty()
+                ? dtrace::elf_debug_map(elf).get_debug_section_json()
+                : dtrace::elf_debug_map(elf).get_debug_section_json(kernel_instance);
+            if (!debug_json.empty()) {
+                const std::string json_file = output_path.stem().string() + ".debug.json";
+                std::ofstream(json_file) << debug_json;
+            }
+
             return run_dtrace_test(script_file, {}, output_file, result_file, output_fmt,
                 &elf, kernel_instance);
         }

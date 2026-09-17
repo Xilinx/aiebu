@@ -144,4 +144,57 @@ add_test(NAME "dtrace_elf_no_kernel_md5sum"
   )
 set_tests_properties("dtrace_elf_no_kernel_md5sum" PROPERTIES DEPENDS "dtrace_elf_no_kernel")
 
+# DWARF ELF dtrace test — multi-graph-dwarf.elf and multi-graph-dump.elf are
+# assembled from the same multi-graph (DPU kernel, 29 subgraph instances):
+#   multi-graph-dwarf.elf  has DWARF v5 .debug_* sections (no .dump)
+#   multi-graph-dump.elf   has legacy .dump sections (no DWARF)
+# Both are filtered to the same kernel instance "DPU:subgraph_0" and share
+# the same jprobe target: control.asm:uc0:line5.
+# Comparing their control buffers proves the DWARF fallback resolves identical
+# probe locations as the .dump path for multi-instance group ELFs.
+
+# Run dtrace against the DWARF ELF (instance DPU:subgraph_0)
+add_test(NAME "dtrace_dwarf_elf"
+  COMMAND ${DTRACE_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/dwarf_elf"
+    "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_dwarf_elf.dat"
+    "python"
+    "elf" "${AIEBU_SOURCE_DIR}/test/dtrace_test/dwarf_elf/multi-graph-dwarf.elf" "DPU:subgraph_0"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+# Run dtrace against the .dump ELF (same script, same kernel instance)
+add_test(NAME "dtrace_dump_elf"
+  COMMAND ${DTRACE_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/dwarf_elf"
+    "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_dump_elf.dat"
+    "python"
+    "elf" "${AIEBU_SOURCE_DIR}/test/dtrace_test/dwarf_elf/multi-graph-dump.elf" "DPU:subgraph_0"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+# Compare control buffers: identical .dat files prove the DWARF path resolves
+# the same probe locations as the .dump path.
+add_test(NAME "dtrace_dwarf_vs_dump_compare"
+  COMMAND ${CMAKE_COMMAND} -E compare_files
+    "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_dwarf_elf.dat"
+    "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_dump_elf.dat"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+set_tests_properties("dtrace_dwarf_vs_dump_compare" PROPERTIES
+  DEPENDS "dtrace_dwarf_elf;dtrace_dump_elf")
+
+# Verify the DWARF result script matches the expected gold.
+# operation="" is expected: DWARF .debug_line does not store instruction mnemonics.
+add_test(NAME "dtrace_dwarf_elf_result_compare"
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
+    "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_dwarf_elf.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/dwarf_elf/gold_result_dwarf.py"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+set_tests_properties("dtrace_dwarf_elf_result_compare" PROPERTIES
+  DEPENDS "dtrace_dwarf_elf")
+
 add_subdirectory(duplicate_filename)
