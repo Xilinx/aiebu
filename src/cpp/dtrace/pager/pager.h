@@ -35,6 +35,7 @@ public:
     static constexpr uint32_t mask_probe_type = 0xFF;           // Mask to identify the probe type.
     static constexpr uint32_t mask_probe_count = 0x7F;          // Mask to identify the probe count.
     static constexpr uint32_t mask_probe_ctrl = 0xFFFF;         // Mask to control probe operations.
+    static constexpr uint32_t page_header_size = 4;             // Words in a page header (begin, end, jprobe, tracepoint).
 };
 
 //-------------------------Pager-------------------------//
@@ -53,9 +54,7 @@ class pager
 public:
     pager(bool restricted_order = false);
     std::vector<uint32_t> m_primary_buffer;
-    std::vector<uint32_t> m_secondary_buffer;
     std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>> m_primary_action_location_mapping;
-    std::unordered_map<uint32_t, uint32_t> m_secondary_action_location_mapping;
     std::vector<uint32_t> paging(const std::unordered_map<uint32_t, std::vector<uint32_t>>& buffers,
         uint32_t uC_index);
     const std::unordered_map<uint32_t, uint32_t>& get_action_location_mapping(uint32_t uC_index) const;
