@@ -88,7 +88,10 @@ public:
     static constexpr uint16_t tracepoint_split = 12;
 #endif
     static constexpr uint16_t probe_type = 0xFF00;
+    // Maximum number of uCs supported is 36, jprobe/end links are
+    // uC+36 and uC+72 respectively and do not alias a control buffer (uC 0-35).
     static constexpr uint32_t jprobe_link_offset = 36;
+    static constexpr uint32_t end_link_offset = 72;
 };
 
 //-------------------------Probe Class-------------------------//
