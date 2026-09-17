@@ -84,6 +84,31 @@ add_test(NAME "dtrace_compile_time_result_md5sum"
   )
 set_tests_properties("dtrace_compile_time_result_md5sum" PROPERTIES DEPENDS "dtrace_compile_time")
 
+# Test yolox latency script with extracted aie_control.elf dump map
+add_test(NAME "dtrace_yolox_latency"
+  COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/yolox_latency"
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_yolox_latency.dat"
+  "python"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_yolox_latency" PROPERTIES TIMEOUT 180)
+
+add_test(NAME "dtrace_yolox_latency_md5sum"
+  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_yolox_latency.dat"
+  "${AIEBU_SOURCE_DIR}/test/dtrace_test/yolox_latency/gold.md5"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_yolox_latency_md5sum" PROPERTIES DEPENDS "dtrace_yolox_latency")
+
+add_test(NAME "dtrace_yolox_latency_result_md5sum"
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol 
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_yolox_latency.py"
+  "${CMAKE_CURRENT_SOURCE_DIR}/yolox_latency/gold_result.py"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_yolox_latency_result_md5sum" PROPERTIES DEPENDS "dtrace_yolox_latency")
+
 # Test profile script
 add_test(NAME "dtrace_profile"
   COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/profile"
