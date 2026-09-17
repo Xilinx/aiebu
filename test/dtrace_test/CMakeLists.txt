@@ -144,21 +144,35 @@ add_test(NAME "dtrace_elf_no_kernel_md5sum"
   )
 set_tests_properties("dtrace_elf_no_kernel_md5sum" PROPERTIES DEPENDS "dtrace_elf_no_kernel")
 
-# DWARF ELF dtrace test — multi-graph-dwarf.elf is a multi-graph ELF
-# (DPU kernel, 29 subgraph instances) with DWARF v5 .debug_* sections (no .dump).
-# Filtered to kernel instance "DPU:subgraph_0", jprobe target: control.asm:uc0:line5.
+# DWARF ELF dtrace test — multi-graph-dwarf.elf is generated at test time from
+# test/aie4-ctrlcode/multi_graph/config.json using aiebu-asm (aie4_config, fulldump).
+# It is a multi-graph ELF (DPU kernel, 29 subgraph instances) with DWARF v5
+# .debug_* sections. Filtered to kernel instance "DPU:subgraph_0",
+# jprobe target: control.asm:uc0:line5.
 # The result script is verified against gold_result_dwarf.py; operation="" is
 # expected since DWARF .debug_line does not store instruction mnemonics.
 
-# Run dtrace against the DWARF ELF (instance DPU:subgraph_0)
+# Generate multi-graph-dwarf.elf from source (avoids storing a large binary in the repo)
+add_test(NAME "generate_dwarf_elf"
+  COMMAND aiebu-asm
+    -t aie4_config
+    -j "${AIEBU_SOURCE_DIR}/test/aie4-ctrlcode/multi_graph/config.json"
+    -o "${CMAKE_CURRENT_BINARY_DIR}/multi-graph-dwarf.elf"
+    -f fulldump
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+# Run dtrace against the generated DWARF ELF (instance DPU:subgraph_0)
 add_test(NAME "dtrace_dwarf_elf"
   COMMAND ${DTRACE_TESTNAME}
     "${AIEBU_SOURCE_DIR}/test/dtrace_test/dwarf_elf"
     "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_dwarf_elf.dat"
     "python"
-    "elf" "${AIEBU_SOURCE_DIR}/test/dtrace_test/dwarf_elf/multi-graph-dwarf.elf" "DPU:subgraph_0"
+    "elf" "${CMAKE_CURRENT_BINARY_DIR}/multi-graph-dwarf.elf" "DPU:subgraph_0"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
+
+set_tests_properties("dtrace_dwarf_elf" PROPERTIES DEPENDS "generate_dwarf_elf")
 
 # Verify the DWARF result script matches the expected gold.
 # operation="" is expected: DWARF .debug_line does not store instruction mnemonics.

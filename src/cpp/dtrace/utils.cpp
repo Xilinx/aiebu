@@ -193,27 +193,27 @@ static std::string dwarf_rows_to_json(const std::vector<aiebu::dwarf_debug_row>&
 
   // Build JSON manually to avoid pulling in nlohmann or boost::json here.
   std::ostringstream out;
-  out << "{\"debug\":[";
+  out << R"({"debug":[)";
   bool first = true;
   for (const auto& row : rows) {
     if (!first) out << ',';
     first = false;
 
-    out << "{\"file\":\"" << row.file << "\""
-        << ",\"operation\":\"\""
-        << ",\"page_index\":\"" << row.page_index << "\""
-        << ",\"page_offset\":\"" << row.page_offset << "\""
-        << ",\"column\":\"" << row.column << "\"";
+    out << R"({"file":")" << row.file << '"'
+        << R"(,"operation":"")"
+        << R"(,"page_index":")" << row.page_index << '"'
+        << R"(,"page_offset":")" << row.page_offset << '"'
+        << R"(,"column":")" << row.column << '"';
 
     if (row.line > 0) {
-      out << ",\"line\":\"" << row.line << "\"";
+      out << R"(,"line":")" << row.line << '"';
     }
 
     if (!row.annotation_id.empty()) {
-      out << ",\"annotation\":{\"id\":\"" << row.annotation_id << "\"}";
+      out << R"(,"annotation":{"id":")" << row.annotation_id << R"("})";
     }
 
-    out << "}";
+    out << '}';
   }
   out << "]}";
   return out.str();
@@ -286,7 +286,7 @@ get_debug_section_json(const std::string& kernel_instance_filter) const
           || name.compare(0, debug_prefix.size(), debug_prefix) != 0)
         continue;
 
-      return std::string(sec->get_data(), static_cast<size_t>(sec->get_size()));
+      return {sec->get_data(), static_cast<size_t>(sec->get_size())};
     }
   }
 
