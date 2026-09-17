@@ -31,6 +31,7 @@ struct dwarf_debug_row {
   std::string annotation_name; ///< From DW_TAG_label DW_AT_name (empty if none)
   std::string annotation_id;   ///< From DW_TAG_label DW_AT_const_value (empty if none)
   std::string annotation_desc; ///< From DW_TAG_label DW_AT_description (empty if none)
+  std::string cu_name;          ///< DW_AT_name of the enclosing compile_unit (e.g. "DPU:subgraph_0")
 };
 
 /**
@@ -83,9 +84,9 @@ private:
   static const uint8_t* read_cstr(const uint8_t* p, const uint8_t* end, std::string& s);
 
   // ── Section data helpers ─────────────────────────────────────────────────
-  /// Return (data, size) for a named section, or {nullptr, 0} if absent.
+  /// Return (data, size) for the section at the given index, or {nullptr, 0} if absent.
   static std::pair<const uint8_t*, size_t>
-  get_section_data(const ELFIO::elfio& elf, const std::string& name);
+  get_section_data_by_index(const ELFIO::elfio& elf, size_t index);
 
   // ── DWARF v5 line-number program interpreter ─────────────────────────────
   struct col_info {
@@ -95,8 +96,9 @@ private:
 
   // Parse .debug_info to get per-column stmt_list offsets and annotation DIEs.
   // Fills m_rows with annotation entries; fills cols_out with (col_num, stmt_offset) pairs.
+  // Returns the DW_AT_name of the compile_unit (e.g. "DPU:subgraph_0").
   // The .debug_abbrev section is not parsed: the fixed schema emitted by dwarf_writer is assumed.
-  void parse_debug_info(
+  std::string parse_debug_info(
       const uint8_t* info_data, size_t info_size,
       const uint8_t* str_data,  size_t str_size,
       std::vector<col_info>& cols_out);
@@ -106,7 +108,8 @@ private:
       const uint8_t* line_data, size_t line_size,
       size_t stmt_offset,
       uint32_t col_num,
-      const uint8_t* str_data, size_t str_size);
+      const uint8_t* str_data, size_t str_size,
+      const std::string& cu_name);
 
   // Read a strp (4-byte offset into .debug_str)
   static std::string read_strp(const uint8_t* p, const uint8_t* str_data, size_t str_size);
