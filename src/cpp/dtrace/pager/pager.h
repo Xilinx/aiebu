@@ -74,9 +74,10 @@ private:
     void get_begin_probe(const std::vector<uint32_t>& source, 
         std::vector<uint32_t>& destination, uint32_t uC_index);
     void get_end_probe(const std::vector<uint32_t>& source, 
-        std::vector<uint32_t>& destination, uint32_t uC_index);
+        std::vector<uint32_t>& destination, uint32_t uC_index, 
+        const std::vector<uint32_t>& end_link);
     void get_probe(const std::vector<uint32_t>& source, uint32_t uC_index,
-        const std::vector<uint32_t>& jprobe_link);
+        const std::vector<uint32_t>& jprobe_link, const std::vector<uint32_t>& end_link);
     void get_jprobe_probe(const std::vector<uint32_t>& source, 
         std::vector<uint32_t>& destination, uint32_t uC_index,
         const std::vector<uint32_t>& jprobe_link);

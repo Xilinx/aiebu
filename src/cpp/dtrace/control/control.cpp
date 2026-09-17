@@ -88,8 +88,9 @@ control(const std::string& script_file, const std::string& map_data)
         m_control_buffers[uC] = {};
         m_mem_buffers[uC] = {};
         m_mem_action_locations[uC] = {};
-        // buffer for jprobe link
+        // buffer for jprobe link and end link
         m_control_buffers[uC + dtrace::probe::probe_ctrl::jprobe_link_offset] = {};
+        m_control_buffers[uC + dtrace::probe::probe_ctrl::end_link_offset] = {};
 
         // Initialize control buffer
         m_control_buffers.at(uC).push_back(

@@ -69,6 +69,8 @@ paging(const std::unordered_map<uint32_t, std::vector<uint32_t>>& buffers,
     const auto& buffer = buffers.at(uC_index);
     const auto& jprobe_link =
         buffers.at(uC_index + dtrace::probe::probe_ctrl::jprobe_link_offset);
+    const auto& end_link =
+        buffers.at(uC_index + dtrace::probe::probe_ctrl::end_link_offset);
 
     // Check if the control block contains tracepoint probes and exceeds page size
     m_has_tracepoint = (buffer[dtrace::probe::probe_type::tracepoint] >> 
@@ -95,7 +97,7 @@ paging(const std::unordered_map<uint32_t, std::vector<uint32_t>>& buffers,
         if (buffer.size() <= m_page_size)
         {
             // Get the probe information from the buffer 
-            get_probe(buffer, uC_index, jprobe_link);
+            get_probe(buffer, uC_index, jprobe_link, end_link);
             // Update the page header of the primary buffer with the number of probes in the page, 
             // page length and page index.
             update_page_header(m_primary_buffer);
@@ -107,11 +109,11 @@ paging(const std::unordered_map<uint32_t, std::vector<uint32_t>>& buffers,
         add_page_header(m_secondary_buffer);
         // Add the begin probe to the primary buffer and the end probe to the secondary buffer.
         get_begin_probe(buffer, m_primary_buffer, uC_index);
-        get_end_probe(buffer, m_secondary_buffer, uC_index);
+        get_end_probe(buffer, m_secondary_buffer, uC_index, end_link);
         // Add the jprobe probe to the primary buffer.
         get_jprobe_probe(buffer, m_primary_buffer, uC_index, jprobe_link);
         // Add the end probe to the primary buffer from secondary buffer.
-        get_end_probe(m_secondary_buffer, m_primary_buffer, uC_index);
+        get_end_probe(m_secondary_buffer, m_primary_buffer, uC_index, end_link);
         // Update the page header of the primary buffer with the number of probes 
         // in the page, page length and page index.
         update_page_header(m_primary_buffer);
@@ -283,6 +285,13 @@ get_begin_probe(const std::vector<uint32_t>& source, std::vector<uint32_t>& dest
         uint32_t action_size = get_action_size(
             source, source[location] >> dtrace::dtrace_ctrl::second_byte_shift
         );
+
+        // Error out if single probe exceeds page size
+        if (action_size + static_cast<uint32_t>(destination.size()) > m_page_size)
+            DTRACE_ERROR("DTRACE_PAGER_BEGIN_PROBE_EXCEEDED_PAGE_SIZE",
+                "Probe size (" << (action_size * 4) << " bytes) exceeds page size (" <<
+                (m_page_size * 4) << " bytes), Probe cannot span multiple pages.");
+
         destination[location] = 
             (static_cast<uint32_t>(destination.size()) << dtrace::dtrace_ctrl::second_byte_shift) | 
             (dtrace::probe::probe_type::begin << dtrace::dtrace_ctrl::first_byte_shift) | 
@@ -305,6 +314,8 @@ get_begin_probe(const std::vector<uint32_t>& source, std::vector<uint32_t>& dest
  *  Destination secondary buffer vector where the end probe and actions will be copied.
  * @param uC_index 
  *  Index of the uC to be used while paging.
+ * @param end_link
+ * Link offsets of the end probe
  *
  * This function checks if the next at the end location in the source control block buffer 
  * vector is not link end. If it is not link end, it calculates the action size and 
@@ -314,25 +325,28 @@ get_begin_probe(const std::vector<uint32_t>& source, std::vector<uint32_t>& dest
  */
 void 
 pager::
-get_end_probe(const std::vector<uint32_t>& source, std::vector<uint32_t>& destination, uint32_t uC_index)
+get_end_probe(const std::vector<uint32_t>& source, std::vector<uint32_t>& destination,
+    uint32_t uC_index, const std::vector<uint32_t>& end_link)
 {
     // Get the location of the end probe.
     uint32_t location = dtrace::probe::probe_type::end;
-    if ((source[location] >> dtrace::dtrace_ctrl::second_byte_shift) != 
-        dtrace::probe::probe_ctrl::link_end)
+    // Get the end offset from the end link, otherwise use the end probe header location.
+    // But while adding the end probe to the secondary buffer, use the end probe header.
+    const uint32_t end_offset =
+        (&source == &m_secondary_buffer)
+        ? (source[location] >> dtrace::dtrace_ctrl::second_byte_shift)
+        : end_link.empty()
+            ? dtrace::probe::probe_ctrl::link_end
+            : end_link.front();
+    if (end_offset != dtrace::probe::probe_ctrl::link_end)
     {
-        uint32_t action_size = get_action_size(
-            source, source[location] >> dtrace::dtrace_ctrl::second_byte_shift
-        );
+        uint32_t action_size = get_action_size(source, end_offset);
         expand_page(destination, action_size + 1);
         destination[m_page_index * m_page_size + location] = 
             ((static_cast<uint32_t>(destination.size()) - m_page_index * m_page_size) << 
             dtrace::dtrace_ctrl::second_byte_shift) | 
             (dtrace::probe::probe_type::end << dtrace::dtrace_ctrl::first_byte_shift);
-        copy_actions(
-            source, source[location] >> dtrace::dtrace_ctrl::second_byte_shift, 
-            destination, action_size, uC_index
-        );
+        copy_actions(source, end_offset, destination, action_size, uC_index);
     }
 }
 
@@ -344,6 +358,10 @@ get_end_probe(const std::vector<uint32_t>& source, std::vector<uint32_t>& destin
  *  Source control block buffer vector containing the probes.
  * @param uC_index 
  *  Index of the uC to be used while paging.
+ * @param jprobe_link 
+ * Link offsets of the jprobe probes, used to link them in the primary buffer.
+ * @param end_link
+ * Link offsets of the end probe
  *
  * This function copies the control block buffer to the primary buffer and updates the 
  * action location mapping for the given uC index. It also updates the number of probes 
@@ -352,14 +370,14 @@ get_end_probe(const std::vector<uint32_t>& source, std::vector<uint32_t>& destin
 void
 pager::
 get_probe(const std::vector<uint32_t>& source, uint32_t uC_index,
-    const std::vector<uint32_t>& jprobe_link)
+    const std::vector<uint32_t>& jprobe_link, const std::vector<uint32_t>& end_link)
 {
     m_primary_buffer = source;
     m_primary_action_location_mapping[uC_index] = {};
     for (uint32_t i = 0; i < static_cast<uint32_t>(source.size()); ++i)
         m_primary_action_location_mapping[uC_index][i] = i;
 
-    // count the number of jprobes in the page and update the jprobe link
+    // update the jprobe link and count the number of jprobes in the page
     uint32_t location = dtrace::probe::probe_type::jprobe;
     for (const auto link : jprobe_link)
     {
@@ -369,6 +387,14 @@ get_probe(const std::vector<uint32_t>& source, uint32_t uC_index,
         location = link;
     }
     m_probes_in_page = static_cast<uint32_t>(jprobe_link.size());
+
+    // update the end probe header in the primary buffer.
+    if (!end_link.empty())
+    {
+        m_primary_buffer[dtrace::probe::probe_type::end] =
+            (end_link.front() << dtrace::dtrace_ctrl::second_byte_shift) |
+            (dtrace::probe::probe_type::end << dtrace::dtrace_ctrl::first_byte_shift);
+    }
 
     // mark last page
     m_primary_buffer[dtrace::probe::probe_type::begin] |= 1;

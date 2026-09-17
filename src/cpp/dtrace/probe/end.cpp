@@ -37,6 +37,7 @@ enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
 {
     auto& control_buffer = control_buffers.at(uC);
     auto& mem_buffer = mem_buffers.at(uC);
+    auto& end_link = control_buffers.at(uC + probe_ctrl::end_link_offset);
     // Filter the print actions from the control actions.
     filter_action();
     // If there are no control actions, return.
@@ -44,11 +45,9 @@ enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
     if (m_control_actions.empty())
         return mem_action_locations;
 
-    // Get the end probe location and update the control buffer
-    uint32_t location = probe_type::end;
-    control_buffer[location] = 
-        (static_cast<uint32_t>(control_buffer.size()) << dtrace::dtrace_ctrl::second_byte_shift) | 
-        (probe_type::end <<  dtrace::dtrace_ctrl::first_byte_shift);
+    // Get the end probe location and store the location.
+    end_link.push_back(static_cast<uint32_t>(control_buffer.size()));
+
     // Add the control actions to the control buffer and memory buffer for the end probe
     // and return the memory action locations for probe.
     mem_action_locations = actionize(control_buffer, mem_buffer);

@@ -76,6 +76,14 @@ add_test(NAME "dtrace_compile_time_md5sum"
   )
 set_tests_properties("dtrace_compile_time_md5sum" PROPERTIES DEPENDS "dtrace_compile_time")
 
+add_test(NAME "dtrace_compile_time_result_md5sum"
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_compile_time.py"
+  "${CMAKE_CURRENT_SOURCE_DIR}/compile_time/gold_result.py"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_compile_time_result_md5sum" PROPERTIES DEPENDS "dtrace_compile_time")
+
 # Test profile script
 add_test(NAME "dtrace_profile"
   COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/profile"
