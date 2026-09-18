@@ -2,6 +2,7 @@
 // Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/probe/probe_control.h"
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 
@@ -57,6 +58,12 @@ enable(std::unordered_map<uint32_t, std::vector<uint32_t>>& control_buffers,
     std::vector<uint32_t> mem_action_locations;
     if (m_control_actions.empty())
         return mem_action_locations;
+
+    // Error out if the control buffer size exceeds the 32-bit word limit.
+    if (control_buffer.size() > std::numeric_limits<uint32_t>::max())
+        DTRACE_ERROR("DTRACE_JPROBE_OFFSET_EXCEEDS_CONTROL_BLOCK_LIMIT",
+            "Jprobe offset for " << m_probe_name << " exceeds the 32-bit control block limit ("
+            << std::to_string(control_buffer.size()) << " words).");
 
     // Get the location for jprobe in the control buffer and update the control buffer.
     jprobe_link.push_back(static_cast<uint32_t>(control_buffer.size()));
