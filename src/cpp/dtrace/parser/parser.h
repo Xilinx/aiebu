@@ -10,9 +10,6 @@
 #include "dtrace/probe/probe_control.h"
 #include "dtrace/utils.h"
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -76,7 +73,7 @@ private:
     std::string m_probe_name;
     std::unordered_map<std::string, std::vector<std::pair<std::string, uint32_t>>> m_probe_expand;
     int m_position;
-    std::unordered_map<std::string, boost::property_tree::ptree> m_maps;
+    std::unordered_map<std::string, dtrace::action::probe_information> m_maps;
     std::string m_write_buffer;
     std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>> m_buffer_map;
     std::vector<int> get_list(const std::string& token) const;

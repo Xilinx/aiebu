@@ -6,6 +6,7 @@
 #include "dtrace/parser/parser.h"
 #include "dtrace/action/action_control.h"
 #include "dtrace/probe/probe_control.h"
+#include "json/nlohmann/json.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -44,9 +45,9 @@ parser(const std::string& map_data)
         return;
     }
 
-    std::istringstream data(map_data);
-    boost::property_tree::ptree pt;
-    boost::property_tree::read_json(data, pt);
+    auto pt = nlohmann::json::parse(map_data);
+    if (!pt.contains("debug") || !pt["debug"].is_array())
+        DTRACE_ERROR("DTRACE_PARSER_INVALID_MAP_DATA", "Invalid map debug data");
 
     // Track probe keys to detect filename conflicts retroactively during single-pass processing
     struct probe_tracking {
@@ -56,32 +57,35 @@ parser(const std::string& map_data)
     };
     std::map<std::string, probe_tracking> tracking_map;
 
-    for (const auto& item : pt.get_child("debug"))
+    for (const auto& item : pt["debug"])
     {
         // Extract file name and path from the map data
-        const std::string file_path = item.second.get<std::string>("file", "");
+        const std::string file_path = item.value("file", std::string{});
         const std::string file_name = std::filesystem::path(file_path).filename().string();
 
         // Process line-based entries
-        if (item.second.get_child_optional("line"))
+        if (item.contains("line"))
         {
             // Skip invalid operations for jprobes
-            auto operation = item.second.get<std::string>("operation");
+            auto operation = item.value("operation", std::string{});
             std::transform(operation.begin(), operation.end(), operation.begin(),
                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
             if (operation == "eof" || operation.find(".align") != std::string::npos ||
                 operation.find(".long") != std::string::npos)
                 continue;
 
-            // Create probe value
-            boost::property_tree::ptree probe_value;
-            probe_value.put("operation", item.second.get<std::string>("operation"));
-            probe_value.put("page_index", item.second.get<std::string>("page_index"));
-            probe_value.put("page_offset", item.second.get<std::string>("page_offset"));
+            dtrace::action::probe_information probe_information;
+            probe_information.operation = item.value("operation", std::string{});
+            probe_information.page_index = item.at("page_index").is_string() ?
+                item.at("page_index").get<std::string>() : item.at("page_index").dump();
+            probe_information.page_offset = item.at("page_offset").is_string() ?
+                item.at("page_offset").get<std::string>() : item.at("page_offset").dump();
 
             // Process line-based entries
-            const auto column = item.second.get<std::string>("column");
-            const auto line = item.second.get<std::string>("line");
+            const auto column = item.at("column").is_string() ?
+                item.at("column").get<std::string>() : item.at("column").dump();
+            const auto line = item.at("line").is_string() ?
+                item.at("line").get<std::string>() : item.at("line").dump();
             const std::string tracking_key = file_name + ":uc" + column;
             std::string m_maps_key = "jprobe:" + file_name + ":uc" + column + ":line" + line;
 
@@ -120,16 +124,16 @@ parser(const std::string& map_data)
             if (has_conflict)
                 m_maps_key = "jprobe:" + file_path + ":uc" + column + ":line" + line;
 
-            m_maps[m_maps_key] = probe_value;
+            m_maps[m_maps_key] = probe_information;
 
             // Store annotation key if exists, based on conflict
-            if (item.second.get_child_optional("annotation"))
+            if (item.contains("annotation") && item["annotation"].contains("id"))
             {
-                auto annotation = item.second.get_child("annotation");
-                const auto annotation_id = annotation.get<std::string>("id");
+                const auto annotation_id = item["annotation"].at("id").is_string() ?
+                    item["annotation"].at("id").get<std::string>() : item["annotation"].at("id").dump();
                 const std::string m_maps_annotation_key =
                     "jprobe:" + (has_conflict ? file_path : file_name) + ":uc" + column + ":annotation" + annotation_id;
-                m_maps[m_maps_annotation_key] = probe_value;
+                m_maps[m_maps_annotation_key] = probe_information;
 
                 // Store annotation key in tracking if no conflict
                 if (!has_conflict) {
@@ -162,8 +166,8 @@ lookup_control_code_location(const std::string& probe_name) const
     if (m_maps.find(probe_name) != m_maps.end())
     {
         const auto& value = m_maps.at(probe_name);
-        page = std::stoi(value.get<std::string>("page_index"));
-        offset = std::stoi(value.get<std::string>("page_offset")) -
+        page = std::stoi(value.page_index);
+        offset = std::stoi(value.page_offset) -
             static_cast<int>(page * dtrace::dtrace_ctrl::page_length_check);
     }
     return {page, offset};

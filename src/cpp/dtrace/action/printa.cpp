@@ -24,7 +24,7 @@ namespace dtrace::action
  */
 printa_action::
 printa_action(std::string token, uint32_t probe_type, const std::string& probe_name, 
-    std::unordered_map<std::string, boost::property_tree::ptree> maps)
+    const std::unordered_map<std::string, dtrace::action::probe_information>& maps)
     : action(probe_type, probe_name)
     , m_maps(std::move(maps)) 
 {  
@@ -88,12 +88,12 @@ get_opcode(const uint32_t& value) const
 {
     for (const auto& line : m_maps)
     {
-        uint32_t page = std::stoi(line.second.get<std::string>("page_index"));
-        uint32_t offset = std::stoi(line.second.get<std::string>("page_offset")) - 
+        uint32_t page = std::stoi(line.second.page_index);
+        uint32_t offset = std::stoi(line.second.page_offset) - 
             static_cast<int>(page * dtrace::dtrace_ctrl::page_length_check);
         if ((value & dtrace::dtrace_ctrl::mask_16) == offset && 
             ((value >> dtrace::dtrace_ctrl::second_byte_shift) & dtrace::dtrace_ctrl::mask_8) == page)
-            return {line.second.get<std::string>("operation"), page};
+            return {line.second.operation, page};
     }
     return {"", dtrace::dtrace_ctrl::mask_8};
 }

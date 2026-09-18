@@ -25,7 +25,7 @@ namespace dtrace::action
  */
 print_action::
 print_action(std::string token, uint32_t probe_type, const std::string& probe_name, 
-    const std::unordered_map<std::string, boost::property_tree::ptree>& maps)
+    const std::unordered_map<std::string, dtrace::action::probe_information>& maps)
     : action(probe_type, probe_name)
     , m_token(std::move(token))
 {
@@ -62,7 +62,7 @@ print_action(std::string token, uint32_t probe_type, const std::string& probe_na
             if (maps.find(m_probe_name) != maps.end()) 
             {
                 const auto& value = maps.at(m_probe_name);
-                m_built_ins["operation"] = value.get<std::string>("operation");
+                m_built_ins["operation"] = value.operation;
             }
             else 
                 DTRACE_ERROR("DTRACE_ACTION_TOKEN_INVALID", 

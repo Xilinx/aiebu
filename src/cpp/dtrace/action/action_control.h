@@ -12,8 +12,6 @@
 #include "trace_control.h"
 #endif
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <cstdint>
 #include <map>
 #include <string>
@@ -24,6 +22,20 @@ namespace dtrace::action
 {
 
 using json = nlohmann::ordered_json;
+
+//-------------------------Probe Information-------------------------//
+/**
+ * @struct probe_information
+ *
+ * @brief
+ * This structure is used to store information about a probe.
+ */
+struct probe_information
+{
+    std::string operation;
+    std::string page_index;
+    std::string page_offset;
+};
 
 //-------------------------Action Types-------------------------//
 /**
@@ -536,7 +548,7 @@ private:
 public:
     print_action(
         std::string token, uint32_t probe_type, const std::string& probe_name, 
-        const std::unordered_map<std::string, boost::property_tree::ptree>& maps
+        const std::unordered_map<std::string, dtrace::action::probe_information>& maps
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
@@ -565,12 +577,12 @@ public:
 class printa_action : public action
 {
 private:
-    std::unordered_map<std::string, boost::property_tree::ptree> m_maps;
+    std::unordered_map<std::string, dtrace::action::probe_information> m_maps;
 
 public:
     printa_action(
         std::string token, uint32_t probe_type, const std::string& probe_name, 
-        std::unordered_map<std::string, boost::property_tree::ptree> maps
+        const std::unordered_map<std::string, dtrace::action::probe_information>& maps
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
