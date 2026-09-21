@@ -118,4 +118,60 @@ strip(const std::string& token)
     return token.substr(first, last - first + 1);
 }
 
+//-------------------------action::getline-------------------------//
+/**
+ * getline() - Splits a token on a delimiter and strips every field.
+ *
+ * @param token
+ *  Token to split.
+ * @param delimiter
+ * @param fields
+ *  Stripped fields of the token.
+ */
+void
+action::
+getline(const std::string& token, char delimiter, std::vector<std::string>& fields)
+{
+    fields.clear();
+    size_t field_start = 0;
+    while (field_start < token.size())
+    {
+        size_t field_end = token.find(delimiter, field_start);
+        if (field_end == std::string::npos)
+            field_end = token.size();
+
+        fields.push_back(strip(token.substr(field_start, field_end - field_start)));
+        field_start = field_end + 1;
+    }
+}
+
+//-------------------------action::match-------------------------//
+/**
+ * match() - Splits an action call into action name and arguments.
+ *
+ * @param token
+ *  Action call to match: name(arguments)
+ * @param name
+ *  Action name of the call.
+ * @param arguments
+ *  Argument string of the call, without the brackets.
+ * @return
+ *  true if the token has the form name(arguments).
+ */
+bool
+action::
+match(const std::string& token, std::string& name, std::string& arguments)
+{
+    if (token.empty() || token.back() != ')')
+        return false;
+
+    size_t open_bracket = token.find('(');
+    if (open_bracket == 0 || open_bracket == std::string::npos)
+        return false;
+
+    name = token.substr(0, open_bracket);
+    arguments = token.substr(open_bracket + 1, token.size() - open_bracket - 2);
+    return true;
+}
+
 } // namespace dtrace::action

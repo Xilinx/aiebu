@@ -86,7 +86,7 @@ private:
     void probe_add_action(uint32_t probe_type, const std::string& probe_name, 
         const std::string& action);
     std::shared_ptr<dtrace::action::action> create_action(
-        const std::string& action_string, uint32_t probe_type, 
+        uint32_t action_type, const std::string& action_string, uint32_t probe_type,
         const std::string& probe_name, uint32_t uC_index);
 
 public:

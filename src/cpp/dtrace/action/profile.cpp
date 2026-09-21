@@ -24,27 +24,20 @@ profile_action(std::string token, uint32_t probe_type, const std::string& probe_
     , m_token(std::move(token))
 {
     std::vector<std::string> fields;
-    std::stringstream token_stream(m_token);
-    std::string item;
-    while (std::getline(token_stream, item, '='))
-        fields.push_back(action::strip(item));
+    action::getline(m_token, '=', fields);
 
     if (fields.size() != 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_FORMAT", 
             "Invalid token: '" << m_token << "' Expected 'val = opcode()'");
 
-    aiebu::smatch action;
-    if (!aiebu::regex_match(fields[1], action, action_name::action_regex))
+    // Validate and parse the action name
+    std::string argument_string;
+    if (!action::match(fields[1], m_action_name, argument_string))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << m_token << "' Expected 'opcode()'");
 
-    m_action_name = action[1];
-    std::string argument_string = action[2]; 
-
-    std::stringstream argument_stream(argument_string);
-    while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(action::strip(item));
-
+    // Validate and parse the arguments
+    action::getline(argument_string, ',', m_arguments);
 }
 
 //-------------------------profile_action::actionize-------------------------//

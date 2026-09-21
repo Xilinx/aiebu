@@ -74,6 +74,7 @@ struct probe_information
  * - sleep:          Sleep action.
  * - count:          Count action.
  * - host_timestamps:Multiple Host timestamp action.
+ * - operation:      Python operation
  */
 class action_type
 {
@@ -85,7 +86,7 @@ public:
     static constexpr uint32_t profile = ACTION_PROFILE;
     static constexpr uint32_t print = ACTION_PRINT;
     static constexpr uint32_t printa = ACTION_PRINTA;
-    static constexpr uint32_t timestamp = ACTION_TIMESTAMP32;
+    static constexpr uint32_t timestamp32 = ACTION_TIMESTAMP32;
     static constexpr uint32_t mem_read = ACTION_MEM_READ;
     static constexpr uint32_t mem_write = ACTION_MEM_WRITE;
     static constexpr uint32_t break_action = ACTION_BREAK;
@@ -121,6 +122,31 @@ public:
     static constexpr uint32_t host_timestamps = 18;
     static constexpr uint32_t mask_poll32 = 19;
 #endif
+    static constexpr uint32_t operation = 20;
+
+    // NOLINTNEXTLINE(cert-err58-cpp,bugprone-throwing-static-initialization)
+    static inline const std::unordered_map<std::string, uint32_t> type_map = {
+        {"read_reg", reg_read},
+        {"write_reg", reg_write},
+        {"timestamp", timestamp},
+        {"opcode", profile},
+        {"print", print},
+        {"printa", printa},
+        {"timestamp32", timestamp32},
+        {"read_mem", mem_read},
+        {"write_mem", mem_write},
+        {"break", break_action},
+        {"timestamps", timestamps},
+        {"timestamps32", timestamps32},
+        {"mask_write_reg", reg_mask_write},
+        {"read_handshake", handshake_read},
+        {"write_handshake", handshake_write},
+        {"host_timestamp", host_timestamp},
+        {"sleep", sleep},
+        {"count", count},
+        {"host_timestamps", host_timestamps},
+        {"mask_poll32", mask_poll32},
+    };
 };
 
 //-------------------------Action Names-------------------------//
@@ -141,26 +167,7 @@ public:
 class action_name
 {
 public:
-    static inline const aiebu::regex timestamp_regex = aiebu::regex(R"(timestamp\()");              // NOLINT
-    static inline const aiebu::regex timestamp32_regex = aiebu::regex(R"(timestamp32\()");          // NOLINT
-    static inline const aiebu::regex read_reg_regex = aiebu::regex(R"(read_reg\()");                // NOLINT
-    static inline const aiebu::regex write_reg_regex = aiebu::regex(R"(\bwrite_reg\()");            // NOLINT
-    static inline const aiebu::regex mask_write_reg_regex = aiebu::regex(R"(\bmask_write_reg\()");  // NOLINT
-    static inline const aiebu::regex profile_regex = aiebu::regex(R"(opcode\(\))");                 // NOLINT
     static inline const aiebu::regex print_regex = aiebu::regex(R"(print\()");                      // NOLINT
-    static inline const aiebu::regex printa_regex = aiebu::regex(R"(printa\()");                    // NOLINT
-    static inline const aiebu::regex read_mem_regex = aiebu::regex(R"(read_mem\()");                // NOLINT
-    static inline const aiebu::regex write_mem_regex = aiebu::regex(R"(write_mem\()");              // NOLINT
-    static inline const aiebu::regex break_regex = aiebu::regex(R"(break\()");                      // NOLINT
-    static inline const aiebu::regex timestamps_regex = aiebu::regex(R"(timestamps\()");            // NOLINT
-    static inline const aiebu::regex timestamps32_regex = aiebu::regex(R"(timestamps32\()");        // NOLINT
-    static inline const aiebu::regex read_handshake_regex = aiebu::regex(R"(read_handshake\()");    // NOLINT
-    static inline const aiebu::regex write_handshake_regex = aiebu::regex(R"(write_handshake\()");  // NOLINT
-    static inline const aiebu::regex host_timestamp_regex = aiebu::regex(R"(host_timestamp\()");    // NOLINT
-    static inline const aiebu::regex sleep_regex = aiebu::regex(R"(sleep\()");                      // NOLINT
-    static inline const aiebu::regex count_regex = aiebu::regex(R"(count\()");                      // NOLINT
-    static inline const aiebu::regex host_timestamps_regex = aiebu::regex(R"(host_timestamps\()");  // NOLINT
-    static inline const aiebu::regex mask_poll32_regex = aiebu::regex(R"(mask_poll32\()");            // NOLINT
     static inline const aiebu::regex operation_regex = aiebu::regex(R"(^(\w+)\s*=\s*(.+)$)");       // NOLINT
     static inline const aiebu::regex action_regex = aiebu::regex(R"((\w+)\((.*)\))");               // NOLINT
 };
@@ -244,6 +251,8 @@ public:
     uint32_t get_location(bool is_mem_buffer) const;
     std::string create_string() const;
     static std::string strip(const std::string& token);
+    static void getline(const std::string& token, char delimiter, std::vector<std::string>& fields);
+    static bool match(const std::string& token, std::string& name, std::string& arguments);
 };
 
 //-------------------------Read register-------------------------//
