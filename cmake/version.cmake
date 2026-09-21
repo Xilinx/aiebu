@@ -96,15 +96,18 @@ string(REPLACE "\n" "," AIEBU_MODIFIED_FILES "${AIEBU_MODIFIED_FILES}")
 
 endif(DEFINED ENV{DK_ROOT})
 
-# Get the build date RFC format
-execute_process(
-  COMMAND date -R
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  OUTPUT_VARIABLE AIEBU_DATE_RFC
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+# Upstream builds must be reproducible.
+if (NOT AIEBU_UPSTREAM)
+  # Get the build date RFC format
+  execute_process(
+    COMMAND date -R
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    OUTPUT_VARIABLE AIEBU_DATE_RFC
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
 
-string(TIMESTAMP AIEBU_DATE "%Y-%m-%d %H:%M:%S")
+  string(TIMESTAMP AIEBU_DATE "%Y-%m-%d %H:%M:%S")
+endif()
 
 set(AIEBU_BOOST_VERSION_STRING "${Boost_VERSION_STRING}")
 set(AIEBU_CXX_COMPILER_ID "${CMAKE_CXX_COMPILER_ID}")
