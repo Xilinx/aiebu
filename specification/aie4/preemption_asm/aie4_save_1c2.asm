@@ -163,9 +163,39 @@ UCBD_label_1:
 	 UC_DMA_BD	 0, 0x4058000, @DMAWRITE_data_126, 0x9, 0, 0
 UCBD_label_2:
 	 UC_DMA_BD	 0, 0x4108c00, @DMAWRITE_data_127, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108c30, @DMAWRITE_data_127_1, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108c60, @DMAWRITE_data_127_2, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108c90, @DMAWRITE_data_127_3, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108cc0, @DMAWRITE_data_127_4, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108cf0, @DMAWRITE_data_127_5, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108d20, @DMAWRITE_data_127_6, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108d50, @DMAWRITE_data_127_7, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108d80, @DMAWRITE_data_127_8, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108db0, @DMAWRITE_data_127_9, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108de0, @DMAWRITE_data_127_10, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108e10, @DMAWRITE_data_127_11, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108e40, @DMAWRITE_data_127_12, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108e70, @DMAWRITE_data_127_13, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108ea0, @DMAWRITE_data_127_14, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108ed0, @DMAWRITE_data_127_15, 0xb, 0, 1
 	 UC_DMA_BD	 0, 0x4109e64, @WRITE_data_8, 1, 0, 1
 	 UC_DMA_BD	 0, 0x4018544, @WRITE_data_9, 1, 0, 1
 	 UC_DMA_BD	 0, 0x4108f00, @DMAWRITE_data_128, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108f30, @DMAWRITE_data_128_1, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108f60, @DMAWRITE_data_128_2, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108f90, @DMAWRITE_data_128_3, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108fc0, @DMAWRITE_data_128_4, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4108ff0, @DMAWRITE_data_128_5, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4109020, @DMAWRITE_data_128_6, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4109050, @DMAWRITE_data_128_7, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4109080, @DMAWRITE_data_128_8, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x41090b0, @DMAWRITE_data_128_9, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x41090e0, @DMAWRITE_data_128_10, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4109110, @DMAWRITE_data_128_11, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4109140, @DMAWRITE_data_128_12, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x4109170, @DMAWRITE_data_128_13, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x41091a0, @DMAWRITE_data_128_14, 0xb, 0, 1
+	 UC_DMA_BD	 0, 0x41091d0, @DMAWRITE_data_128_15, 0xb, 0, 1
 	 UC_DMA_BD	 0, 0x4109e6c, @WRITE_data_10, 1, 0, 1
 	 UC_DMA_BD	 0, 0x4058544, @WRITE_data_11, 1, 0, 0
 .align    4
@@ -707,6 +737,186 @@ DMAWRITE_data_127:
 	.long 0x00000000
 	.long 0x00000000
 	.long 0x00000000
+DMAWRITE_data_127_1:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_2:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_3:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_4:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_5:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_6:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_7:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_8:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_9:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_10:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_11:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_12:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_13:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_14:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_127_15:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
 WRITE_data_8:
 	.long 0x00000000
 WRITE_data_9:
@@ -714,6 +924,186 @@ WRITE_data_9:
 DMAWRITE_data_128:
 	.long 0x00860000
 	.long 0x00060000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_1:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_2:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_3:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_4:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_5:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_6:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_7:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_8:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_9:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_10:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_11:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_12:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_13:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_14:
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000001
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+DMAWRITE_data_128_15:
+	.long 0x00000000
+	.long 0x00000000
 	.long 0x00000000
 	.long 0x00000001
 	.long 0x00000001
