@@ -100,6 +100,7 @@ public:
     static constexpr uint32_t count = ACTION_COUNT;
     static constexpr uint32_t host_timestamps = ACTION_HOST_TIMESTAMPS;
     static constexpr uint32_t mask_poll32 = ACTION_MASK_POLL32;
+    static constexpr uint32_t operation = ACTION_OPERATION;
 #else
     static constexpr uint32_t reg_read = 0;
     static constexpr uint32_t reg_write = 1;
@@ -121,8 +122,8 @@ public:
     static constexpr uint32_t count = 17;
     static constexpr uint32_t host_timestamps = 18;
     static constexpr uint32_t mask_poll32 = 19;
-#endif
     static constexpr uint32_t operation = 20;
+#endif
 
     // NOLINTNEXTLINE(cert-err58-cpp,bugprone-throwing-static-initialization)
     static inline const std::unordered_map<std::string, uint32_t> type_map = {
