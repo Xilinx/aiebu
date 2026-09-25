@@ -24,29 +24,21 @@ namespace dtrace::action
  */
 printa_action::
 printa_action(std::string token, uint32_t probe_type, const std::string& probe_name, 
-    std::unordered_map<std::string, boost::property_tree::ptree> maps)
+    const std::unordered_map<std::string, dtrace::action::probe_information>& maps)
     : action(probe_type, probe_name)
     , m_maps(std::move(maps)) 
 {  
     std::vector<std::string> fields;
-    std::stringstream token_stream(token);
-    std::string item;
+    action::getline(token, '=', fields);
 
-    while (std::getline(token_stream, item, '='))
-        fields.push_back(action::strip(item));
-
-    aiebu::smatch action;
-    if (!aiebu::regex_match(fields[0], action, action_name::action_regex))
+    // Validate and parse the action name
+    std::string argument_string;
+    if (!action::match(fields[0], m_action_name, argument_string))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'printa(fmt)'");
 
-    m_action_name = action[1];
-    std::string argument_string = action[2];
-
-    // Validate and parse the length argument
-    std::stringstream argument_stream(argument_string);
-    while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(action::strip(item));
+    // Validate and parse the arguments
+    action::getline(argument_string, ',', m_arguments);
 
     if (m_arguments.size() < 1)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
@@ -88,12 +80,12 @@ get_opcode(const uint32_t& value) const
 {
     for (const auto& line : m_maps)
     {
-        uint32_t page = std::stoi(line.second.get<std::string>("page_index"));
-        uint32_t offset = std::stoi(line.second.get<std::string>("page_offset")) - 
+        uint32_t page = std::stoi(line.second.page_index);
+        uint32_t offset = std::stoi(line.second.page_offset) - 
             static_cast<int>(page * dtrace::dtrace_ctrl::page_length_check);
         if ((value & dtrace::dtrace_ctrl::mask_16) == offset && 
             ((value >> dtrace::dtrace_ctrl::second_byte_shift) & dtrace::dtrace_ctrl::mask_8) == page)
-            return {line.second.get<std::string>("operation"), page};
+            return {line.second.operation, page};
     }
     return {"", dtrace::dtrace_ctrl::mask_8};
 }

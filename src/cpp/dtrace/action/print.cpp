@@ -25,16 +25,14 @@ namespace dtrace::action
  */
 print_action::
 print_action(std::string token, uint32_t probe_type, const std::string& probe_name, 
-    const std::unordered_map<std::string, boost::property_tree::ptree>& maps)
+    const std::unordered_map<std::string, dtrace::action::probe_information>& maps)
     : action(probe_type, probe_name)
     , m_token(std::move(token))
 {
     std::vector<std::string> fields;
-    std::stringstream token_stream(m_token);
-    std::string item;
-    while (std::getline(token_stream, item, '='))
-        fields.push_back(action::strip(item));
+    action::getline(m_token, '=', fields);
 
+    // Validate and parse the action name
     std::string temp = fields[0];
     size_t position = temp.find('(');
     if (position == std::string::npos)
@@ -42,11 +40,9 @@ print_action(std::string token, uint32_t probe_type, const std::string& probe_na
             "Invalid token: '" << m_token << "' Expected 'print(fmt)'");
 
     m_action_name = temp.substr(0, position);
-    // Validate and parse the length argument
+    // Validate and parse the arguments
     std::string argument_string = temp.substr(position + 1, temp.length() - position - 2);
-    std::stringstream argument_stream(argument_string);
-    while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(action::strip(item));
+    action::getline(argument_string, ',', m_arguments);
 
     if (m_arguments.size() < 1)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
@@ -62,7 +58,7 @@ print_action(std::string token, uint32_t probe_type, const std::string& probe_na
             if (maps.find(m_probe_name) != maps.end()) 
             {
                 const auto& value = maps.at(m_probe_name);
-                m_built_ins["operation"] = value.get<std::string>("operation");
+                m_built_ins["operation"] = value.operation;
             }
             else 
                 DTRACE_ERROR("DTRACE_ACTION_TOKEN_INVALID", 

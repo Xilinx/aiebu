@@ -23,17 +23,14 @@ timestamps_action(std::string token, uint32_t probe_type, const std::string& pro
     : action(probe_type, probe_name)
 {
     std::vector<std::string> fields;
-    std::stringstream token_stream(token);
-    std::string item;
-    while (std::getline(token_stream, item, '='))
-        fields.push_back(action::strip(item));
+    action::getline(token, '=', fields);
 
     if (fields.size() != 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'name[length] = timestamps()'");
 
     // Regex pattern to match '<name>[<length>]' format
-    aiebu::regex buffer_regex(R"(^(.+)\[(.+)\]$)");
+    static const aiebu::regex buffer_regex(R"(^(.+)\[(.+)\]$)");
     aiebu::smatch buffer;
     if (!aiebu::regex_match(fields[0], buffer, buffer_regex))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
@@ -41,14 +38,13 @@ timestamps_action(std::string token, uint32_t probe_type, const std::string& pro
 
     m_result = buffer[1];
     std::string length = buffer[2];
+    m_length = static_cast<uint32_t>(std::stoull(length, nullptr, 0));
 
-    aiebu::smatch action;
-    if (!aiebu::regex_match(fields[1], action, action_name::action_regex))
+    // Validate and parse the action name
+    std::string argument_string;
+    if (!action::match(fields[1], m_action_name, argument_string))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'timestamps()'");
-
-    m_action_name = action[1];
-    m_length = static_cast<uint32_t>(std::stoull(length, nullptr, 0));
 }
 
 //-------------------------timestamps_action::actionize-------------------------//

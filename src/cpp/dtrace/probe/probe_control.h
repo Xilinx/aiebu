@@ -11,8 +11,6 @@
 #include "trace_control.h"
 #endif
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <cstdint>
 #include <memory>
 #include <string>

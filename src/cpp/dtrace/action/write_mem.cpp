@@ -24,24 +24,17 @@ write_mem_action(std::string token, uint32_t probe_type, const std::string& prob
     : action(probe_type, probe_name)
 {
     std::vector<std::string> fields;
-    std::stringstream token_stream(token);
-    std::string item;
-    while (std::getline(token_stream, item, '='))
-        fields.push_back(action::strip(item));
+    action::getline(token, '=', fields);
 
-    aiebu::smatch action;
-    if (!aiebu::regex_match(fields[0], action, action_name::action_regex))
+    // Validate and parse the action name
+    std::string argument_string;
+    if (!action::match(fields[0], m_action_name, argument_string))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'write_mem(addr, length, buffer)'");
 
-    m_action_name = action[1];
-    std::string argument_string = action[2]; 
+    action::getline(argument_string, ',', m_arguments);
 
-    std::stringstream argument_stream(argument_string);
-    while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(action::strip(item));
-
-    // Validate and parse the length argument
+    // Validate and parse the arguments
     if (m_arguments.size() < 3)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
             "Invalid arguments: '" << token << "' write_mem requires 3 arguments (addr, length, buffer)");

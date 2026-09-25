@@ -6,6 +6,7 @@
 #include "dtrace/parser/parser.h"
 #include "dtrace/action/action_control.h"
 #include "dtrace/probe/probe_control.h"
+#include "json/nlohmann/json.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -44,9 +45,9 @@ parser(const std::string& map_data)
         return;
     }
 
-    std::istringstream data(map_data);
-    boost::property_tree::ptree pt;
-    boost::property_tree::read_json(data, pt);
+    auto pt = nlohmann::json::parse(map_data);
+    if (!pt.contains("debug") || !pt["debug"].is_array())
+        DTRACE_ERROR("DTRACE_PARSER_INVALID_MAP_DATA", "Invalid map debug data");
 
     // Track probe keys to detect filename conflicts retroactively during single-pass processing
     struct probe_tracking {
@@ -56,32 +57,35 @@ parser(const std::string& map_data)
     };
     std::map<std::string, probe_tracking> tracking_map;
 
-    for (const auto& item : pt.get_child("debug"))
+    for (const auto& item : pt["debug"])
     {
         // Extract file name and path from the map data
-        const std::string file_path = item.second.get<std::string>("file", "");
+        const std::string file_path = item.value("file", std::string{});
         const std::string file_name = std::filesystem::path(file_path).filename().string();
 
         // Process line-based entries
-        if (item.second.get_child_optional("line"))
+        if (item.contains("line"))
         {
             // Skip invalid operations for jprobes
-            auto operation = item.second.get<std::string>("operation");
+            auto operation = item.value("operation", std::string{});
             std::transform(operation.begin(), operation.end(), operation.begin(),
                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
             if (operation == "eof" || operation.find(".align") != std::string::npos ||
                 operation.find(".long") != std::string::npos)
                 continue;
 
-            // Create probe value
-            boost::property_tree::ptree probe_value;
-            probe_value.put("operation", item.second.get<std::string>("operation"));
-            probe_value.put("page_index", item.second.get<std::string>("page_index"));
-            probe_value.put("page_offset", item.second.get<std::string>("page_offset"));
+            dtrace::action::probe_information probe_information;
+            probe_information.operation = item.value("operation", std::string{});
+            probe_information.page_index = item.at("page_index").is_string() ?
+                item.at("page_index").get<std::string>() : item.at("page_index").dump();
+            probe_information.page_offset = item.at("page_offset").is_string() ?
+                item.at("page_offset").get<std::string>() : item.at("page_offset").dump();
 
             // Process line-based entries
-            const auto column = item.second.get<std::string>("column");
-            const auto line = item.second.get<std::string>("line");
+            const auto column = item.at("column").is_string() ?
+                item.at("column").get<std::string>() : item.at("column").dump();
+            const auto line = item.at("line").is_string() ?
+                item.at("line").get<std::string>() : item.at("line").dump();
             const std::string tracking_key = file_name + ":uc" + column;
             std::string m_maps_key = "jprobe:" + file_name + ":uc" + column + ":line" + line;
 
@@ -120,16 +124,16 @@ parser(const std::string& map_data)
             if (has_conflict)
                 m_maps_key = "jprobe:" + file_path + ":uc" + column + ":line" + line;
 
-            m_maps[m_maps_key] = probe_value;
+            m_maps[m_maps_key] = probe_information;
 
             // Store annotation key if exists, based on conflict
-            if (item.second.get_child_optional("annotation"))
+            if (item.contains("annotation") && item["annotation"].contains("id"))
             {
-                auto annotation = item.second.get_child("annotation");
-                const auto annotation_id = annotation.get<std::string>("id");
+                const auto annotation_id = item["annotation"].at("id").is_string() ?
+                    item["annotation"].at("id").get<std::string>() : item["annotation"].at("id").dump();
                 const std::string m_maps_annotation_key =
                     "jprobe:" + (has_conflict ? file_path : file_name) + ":uc" + column + ":annotation" + annotation_id;
-                m_maps[m_maps_annotation_key] = probe_value;
+                m_maps[m_maps_annotation_key] = probe_information;
 
                 // Store annotation key in tracking if no conflict
                 if (!has_conflict) {
@@ -162,8 +166,8 @@ lookup_control_code_location(const std::string& probe_name) const
     if (m_maps.find(probe_name) != m_maps.end())
     {
         const auto& value = m_maps.at(probe_name);
-        page = std::stoi(value.get<std::string>("page_index"));
-        offset = std::stoi(value.get<std::string>("page_offset")) -
+        page = std::stoi(value.page_index);
+        offset = std::stoi(value.page_offset) -
             static_cast<int>(page * dtrace::dtrace_ctrl::page_length_check);
     }
     return {page, offset};
@@ -412,7 +416,7 @@ parser::
 expand_write_buffer(const std::string& write_buffer)
 {
     // Regex to extract buffer name and values
-    aiebu::regex buffer_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\[(.*)\]\s*$)");
+    static const aiebu::regex buffer_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\[(.*)\]\s*$)");
     aiebu::smatch buffer;
     if (!aiebu::regex_match(write_buffer, buffer, buffer_regex))
     {
@@ -484,7 +488,7 @@ parser::
 expand_init_buffer(const std::string& init_buffer)
 {
     // Regex to extract buffer name and length
-    aiebu::regex buffer_init_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\{0\}\s*$)");
+    static const aiebu::regex buffer_init_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\{0\}\s*$)");
     aiebu::smatch buffer;
     if (!aiebu::regex_match(init_buffer, buffer, buffer_init_regex))
     {
@@ -537,17 +541,47 @@ void
 parser::
 probe_add_action(uint32_t probe_type, const std::string& probe_name, const std::string& action)
 {
+    uint32_t action_type = dtrace::action::action_type::operation;
+    if (m_state == state_type::operation_block)
+    {
+        action_type = dtrace::action::action_type::operation;
+    }
+    else if (aiebu::regex_search(action, dtrace::action::action_name::print_regex))
+    {
+        action_type = dtrace::action::action_type::print;
+    }
+    else
+    {
+        std::vector<std::string> fields;
+        dtrace::action::action::getline(action, '=', fields);
+
+        std::string action_name;
+        std::string argument_string;
+        auto found = dtrace::action::action_type::type_map.end();
+        if (!fields.empty() &&
+            dtrace::action::action::match(fields.back(), action_name, argument_string))
+            found = dtrace::action::action_type::type_map.find(action_name);
+
+        if (found != dtrace::action::action_type::type_map.end())
+            action_type = found->second;
+        else if (aiebu::regex_match(action, dtrace::action::action_name::operation_regex))
+            action_type = dtrace::action::action_type::operation;
+        else
+            DTRACE_ERROR("DTRACE_PARSER_INVALID_ACTION_LINE",
+                "Invalid action line: '" << action << "' at position " << m_position);
+    }
+
     if (m_probe_expand.find(probe_name) != m_probe_expand.end())
     {
         for (const auto& probe : m_probe_expand[probe_name])
         {
-            auto action_ptr = create_action(action, probe_type, probe.first, probe.second);
+            auto action_ptr = create_action(action_type, action, probe_type, probe.first, probe.second);
             m_probes[probe.second][probe.first]->add_action(action_ptr);
         }
     }
     else
     {
-        auto action_ptr = create_action(action, probe_type, probe_name, m_uC_index);
+        auto action_ptr = create_action(action_type, action, probe_type, probe_name, m_uC_index);
         m_probes[m_uC_index][probe_name]->add_action(action_ptr);
     }
 }
@@ -556,6 +590,8 @@ probe_add_action(uint32_t probe_type, const std::string& probe_name, const std::
 /**
  * create_action() - Creates an action based on the provided action string.
  *
+ * @param action_type
+ *  Action type for this token.
  * @param action_string
  *  String representing the action to be created.
  * @param probe_type
@@ -572,148 +608,123 @@ probe_add_action(uint32_t probe_type, const std::string& probe_name, const std::
  */
 std::shared_ptr<dtrace::action::action>
 parser::
-create_action(const std::string& action_string, uint32_t probe_type,
+create_action(uint32_t action_type, const std::string& action_string, uint32_t probe_type,
     const std::string& probe_name, uint32_t uC_index)
 {
     std::shared_ptr<dtrace::action::action> action;
-    if (m_state == state_type::operation_block)
-    {   // Python operation action // NOLINT(bugprone-branch-clone)
+    switch (action_type)
+    {
+    case dtrace::action::action_type::operation:
         action = std::make_shared<dtrace::action::operation_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::read_reg_regex))
-    {   // Read register action
+        break;
+    case dtrace::action::action_type::reg_read:
         action = std::make_shared<dtrace::action::read_reg_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::mask_write_reg_regex))
-    {   // Mask write register action
+        break;
+    case dtrace::action::action_type::reg_mask_write:
         action = std::make_shared<dtrace::action::mask_write_reg_action>(
             action_string, probe_type, probe_name, m_buffer_map
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::mask_poll32_regex))
-    {   // Mask poll32 register action
+        break;
+    case dtrace::action::action_type::mask_poll32:
         action = std::make_shared<dtrace::action::mask_poll32_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::write_reg_regex))
-    {   // Write register action
+        break;
+    case dtrace::action::action_type::reg_write:
         action = std::make_shared<dtrace::action::write_reg_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::host_timestamp_regex))
-    {   // Host Timestamp action
+        break;
+    case dtrace::action::action_type::host_timestamp:
         action = std::make_shared<dtrace::action::host_timestamp_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::host_timestamps_regex))
-    {   // Host Timestamps action
+        break;
+    case dtrace::action::action_type::host_timestamps:
         action = std::make_shared<dtrace::action::host_timestamps_action>(
             action_string, probe_type, probe_name, m_mem_host_addr_map[uC_index]
         );
         m_mem_host_addr_map[uC_index] = action->get_mem_host_addr();
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::timestamp_regex))
-    {   // Timestamp action
+        break;
+    case dtrace::action::action_type::timestamp:
         action = std::make_shared<dtrace::action::timestamp_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::timestamp32_regex))
-    {   // Timestamp32 action
+        break;
+    case dtrace::action::action_type::timestamp32:
         action = std::make_shared<dtrace::action::timestamp32_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::profile_regex))
-    {   // Profile action
+        break;
+    case dtrace::action::action_type::profile:
         action = std::make_shared<dtrace::action::profile_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::print_regex))
-    {   // Print action
+        break;
+    case dtrace::action::action_type::print:
         action = std::make_shared<dtrace::action::print_action>(
             action_string, probe_type, probe_name, m_maps
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::printa_regex))
-    {   // Profile print action
+        break;
+    case dtrace::action::action_type::printa:
         action = std::make_shared<dtrace::action::printa_action>(
             action_string, probe_type, probe_name, m_maps
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::read_mem_regex))
-    {   // Read memory action
+        break;
+    case dtrace::action::action_type::mem_read:
         action = std::make_shared<dtrace::action::read_mem_action>(
             action_string, probe_type, probe_name, m_mem_host_addr_map[uC_index], m_buffer_map
         );
         m_mem_host_addr_map[uC_index] = action->get_mem_host_addr();
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::write_mem_regex))
-    {   // Write memory action
+        break;
+    case dtrace::action::action_type::mem_write:
         action = std::make_shared<dtrace::action::write_mem_action>(
             action_string, probe_type, probe_name, m_buffer_map
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::break_regex))
-    {   // Break action
+        break;
+    case dtrace::action::action_type::break_action:
         action = std::make_shared<dtrace::action::break_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::timestamps_regex))
-    {   // Timestamps action
+        break;
+    case dtrace::action::action_type::timestamps:
         action = std::make_shared<dtrace::action::timestamps_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::timestamps32_regex))
-    {   // Timestamps32 action
+        break;
+    case dtrace::action::action_type::timestamps32:
         action = std::make_shared<dtrace::action::timestamps32_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::read_handshake_regex))
-    {   // Read handshake action
+        break;
+    case dtrace::action::action_type::handshake_read:
         action = std::make_shared<dtrace::action::read_handshake_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::write_handshake_regex))
-    {   // Write handshake action
+        break;
+    case dtrace::action::action_type::handshake_write:
         action = std::make_shared<dtrace::action::write_handshake_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::sleep_regex))
-    {   // Sleep action
+        break;
+    case dtrace::action::action_type::sleep:
         action = std::make_shared<dtrace::action::sleep_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::count_regex))
-    {   // Count action
+        break;
+    case dtrace::action::action_type::count:
         action = std::make_shared<dtrace::action::count_action>(
             action_string, probe_type, probe_name
         );
-    }
-    else if (aiebu::regex_search(action_string, dtrace::action::action_name::operation_regex))
-    {   // Operation action
-        action = std::make_shared<dtrace::action::operation_action>(
-            action_string, probe_type, probe_name
-        );
-    }
-    else
-    {
+        break;
+    default:
         DTRACE_ERROR("DTRACE_PARSER_INVALID_ACTION_LINE",
             "Invalid action line: '" << action_string << "' at position " << m_position);
+        break;
     }
     return action;
 }
@@ -763,12 +774,12 @@ parse_line(const std::string& parse_line)
     }
 
     // Skip comments
-    aiebu::regex comment_regex(R"(^#(.*)$)");
+    static const aiebu::regex comment_regex(R"(^#(.*)$)");
     if (aiebu::regex_match(line, comment_regex))
         return;
 
     // Parse the line for begin probe
-    aiebu::regex begin_regex(R"(^begin\s*\{?$)");
+    static const aiebu::regex begin_regex(R"(^begin\s*\{?$)");
     if (aiebu::regex_match(line, begin_regex))
     {
         if (m_state != state_type::probe || m_begin_exist)
@@ -793,7 +804,7 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for end probe
-    aiebu::regex end_regex(R"(^end\s*\{?$)");
+    static const aiebu::regex end_regex(R"(^end\s*\{?$)");
     if (aiebu::regex_match(line, end_regex))
     {
         if (m_state != state_type::probe || m_end_exist)
@@ -840,7 +851,7 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for jprobe
-    aiebu::regex jprobe_regex(R"(^jprobe:([a-zA-Z0-9_\.\/]*)\:(uc[0-9,-]+)\:((line|annotation)[0-9,-]+)\s*\{?$)");
+    static const aiebu::regex jprobe_regex(R"(^jprobe:([a-zA-Z0-9_\.\/]*)\:(uc[0-9,-]+)\:((line|annotation)[0-9,-]+)\s*\{?$)");
     if (aiebu::regex_match(line, jprobe_regex))
     {
         if (m_state != state_type::probe)
@@ -859,7 +870,7 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for tracepoint probe
-    aiebu::regex tracepoint_regex(R"(^tracepoint:(uc[0-9,-]+)\:(id[0-9,-]+)\s*\{?$)");
+    static const aiebu::regex tracepoint_regex(R"(^tracepoint:(uc[0-9,-]+)\:(id[0-9,-]+)\s*\{?$)");
     if (aiebu::regex_match(line, tracepoint_regex))
     {
         if (m_state != state_type::probe)
@@ -878,7 +889,7 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for profile probe
-    aiebu::regex profile_regex(R"(^profile:(uc[0-9,-]+)\:([0-9]+)hz\s*\{?$)");
+    static const aiebu::regex profile_regex(R"(^profile:(uc[0-9,-]+)\:([0-9]+)hz\s*\{?$)");
     if (aiebu::regex_match(line, profile_regex))
     {
         if (m_state != state_type::probe)
@@ -897,8 +908,8 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for action and operation
-    aiebu::regex action_regex(R"(^(.+\(.*\).*\)?)$)");
-    aiebu::regex operation_regex(R"(^(\w+)\s*=\s*(.+)$)");
+    static const aiebu::regex action_regex(R"(^(.+\(.*\).*\)?)$)");
+    static const aiebu::regex operation_regex(R"(^(\w+)\s*=\s*(.+)$)");
     if ((aiebu::regex_match(line, action_regex) || aiebu::regex_match(line, operation_regex))
         && m_state == state_type::action)
     {
@@ -915,7 +926,7 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for buffer initialization
-    aiebu::regex buffer_init_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\{0\}\s*$)");
+    static const aiebu::regex buffer_init_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\{0\}\s*$)");
     if (aiebu::regex_match(line, buffer_init_regex) && m_state == state_type::action)
     {
         expand_init_buffer(line);
@@ -923,8 +934,8 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for write buffer for memory action
-    aiebu::regex buffer_open_regex(R"(^(\w+\[(0x[a-fA-F0-9]+|\d+)\])(?:\s*=\s*(\[.*)?)?$)");
-    aiebu::regex buffer_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\[(.*)\]\s*$)");
+    static const aiebu::regex buffer_open_regex(R"(^(\w+\[(0x[a-fA-F0-9]+|\d+)\])(?:\s*=\s*(\[.*)?)?$)");
+    static const aiebu::regex buffer_regex(R"(^(\w+)\[(0x[a-fA-F0-9]+|\d+)\]\s*=\s*\[(.*)\]\s*$)");
     if (aiebu::regex_match(line, buffer_open_regex) && m_state == state_type::action)
     {
         m_state = state_type::buffer_open;

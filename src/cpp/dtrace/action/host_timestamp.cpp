@@ -23,10 +23,7 @@ host_timestamp_action(std::string token, uint32_t probe_type, const std::string&
     : action(probe_type, probe_name)
 {
     std::vector<std::string> fields;
-    std::stringstream token_stream(token);
-    std::string item;
-    while (std::getline(token_stream, item, '='))
-        fields.push_back(action::strip(item));
+    action::getline(token, '=', fields);
 
     if (fields.size() != 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
@@ -34,12 +31,11 @@ host_timestamp_action(std::string token, uint32_t probe_type, const std::string&
 
     m_result = fields[0];
 
-    aiebu::smatch action;
-    if (!aiebu::regex_match(fields[1], action, action_name::action_regex))
+    // Validate and parse the action name
+    std::string argument_string;
+    if (!action::match(fields[1], m_action_name, argument_string))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'host_timestamp()'");
-
-    m_action_name = action[1];
 }
 
 //-------------------------host_timestamp_action::actionize-------------------------//

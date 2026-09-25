@@ -25,23 +25,16 @@ mask_write_reg_action(std::string token, uint32_t probe_type, const std::string&
     , m_mode(0)
 {
     std::vector<std::string> fields;
-    std::stringstream token_stream(token);
-    std::string item;
-    while (std::getline(token_stream, item, '='))
-        fields.push_back(action::strip(item));
+    action::getline(token, '=', fields);
 
-    aiebu::smatch action;
-    if (!aiebu::regex_match(fields[0], action, action_name::action_regex))
+    // Validate and parse the action name
+    std::string argument_string;
+    if (!action::match(fields[0], m_action_name, argument_string))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_FORMAT", 
             "Invalid token: '" << token << "' Expected 'mask_write_reg(addr, mask, val)'");
 
-    m_action_name = action[1];
-    std::string argument_string = action[2]; 
-
-    // Validate and parse the length argument
-    std::stringstream argument_stream(argument_string);
-    while (std::getline(argument_stream, item, ','))
-        m_arguments.push_back(action::strip(item));
+    // Validate and parse the arguments
+    action::getline(argument_string, ',', m_arguments);
 
     if (m_arguments.size() < 3)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
@@ -49,7 +42,7 @@ mask_write_reg_action(std::string token, uint32_t probe_type, const std::string&
 
     // Check if the value argument is a buffer address reference with HIGH() or LOW()
     aiebu::smatch value;
-    aiebu::regex high_low_regex(R"(^(HIGH|LOW)\(&(\w+)\)$)");
+    static const aiebu::regex high_low_regex(R"(^(HIGH|LOW)\(&(\w+)\)$)");
     if (aiebu::regex_match(m_arguments[2], value, high_low_regex)) 
     {
         std::string write_buffer_name = value[2];
