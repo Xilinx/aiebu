@@ -20,6 +20,12 @@ begin
     write_mem(0x100000, 0x20, buf1)
     print(f"write 0xdeadbeef starting memtile offset 0x100000 and next 32 memory locations")
 }
+begin:uc4
+{
+    print("\ntracing started uc4 ...\n")
+    tss4 = timestamp32()
+    print(f"begin uc4 ts: {tss4:d}")
+}
 jprobe:aie_asm_elfs.asm:uc0:line4-484
 {
     ts1 = timestamp32()
@@ -67,12 +73,18 @@ jprobe:dummy.asm:uc4,8,12,16,20:line3
 {
     print("opcode: {}".format(operation))
 }
-end
+end:uc0
 {
     buf2 = read_mem(0x100000, 32)
     print(f"read mem = {buf2}")
+    tse = timestamp32()
 
-    time = ts_end_job - ts_start_job 
+    time = tse - tss 
     print(f"total time: {time:d}")
     print("\ntracing ended !!\n")
+}
+end:uc8
+{
+    tse8 = timestamp32()
+    print(f"end uc8 ts: {ts_end8:d}")
 }

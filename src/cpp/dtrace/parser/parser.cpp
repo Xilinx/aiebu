@@ -32,8 +32,6 @@ namespace dtrace::parser
 parser::
 parser(const std::string& map_data)
     : m_state(state_type::probe)
-    , m_begin_exist(false)
-    , m_end_exist(false)
     , m_open(false)
     , m_open_buffer(false)
     , m_probe_type(0)
@@ -249,10 +247,7 @@ expand_jprobe(uint32_t probe_type, const std::string& probe_name)
     m_probe_expand[probe_name] = {};
     std::vector<std::string> probe_fields;
     // Split the probe name into its components
-    std::istringstream probe_stream(probe_name);
-    std::string item;
-    while (std::getline(probe_stream, item, ':'))
-        probe_fields.push_back(item);
+    dtrace::action::action::getline(probe_name, ':', probe_fields);
 
     if (probe_fields.size() < 4)
         DTRACE_ERROR("DTRACE_PARSER_INVALID_JPROBE_PROBE_ARGUMENTS",
@@ -308,6 +303,100 @@ expand_jprobe(uint32_t probe_type, const std::string& probe_name)
     }
 }
 
+//-------------------------parser::expand_begin-------------------------//
+/**
+ * expand_begin() - Begin probe processing function.
+ *
+ * @param probe_type
+ * @param probe_name
+ *
+ * Parses optional uC spec from begin[:ucX], defaults to uc0, and stores expanded
+ * probes as begin:ucN in m_probe_expand, m_probe_order, and m_probes.
+ */
+void
+parser::
+expand_begin(uint32_t probe_type, const std::string& probe_name)
+{
+    m_probe_expand[probe_name] = {};
+    std::vector<std::string> probe_fields;
+    // Split the probe name into its components
+    dtrace::action::action::getline(probe_name, ':', probe_fields);
+
+    if (probe_fields.empty() || probe_fields.size() > 2)
+        DTRACE_ERROR("DTRACE_PARSER_INVALID_BEGIN_PROBE_ARGUMENTS",
+            "Invalid begin format: '" << probe_name << "' Expected 'begin[:ucX]'");
+
+    // uC is optional, begin probe is placed on uC 0 when it is not specified
+    std::vector<int> uCs = {0};
+    if (probe_fields.size() == 2)
+        uCs = get_list(probe_fields[1].substr(2));
+
+    // For each uC, generate probe name and store it in the probe expand map
+    for (const auto& uC : uCs)
+    {
+        m_uC_index = uC;
+        std::string probe = "begin:uc" + std::to_string(m_uC_index);
+        // Control block holds single begin probe per uC
+        if (m_probes[m_uC_index].find(probe) != m_probes[m_uC_index].end())
+            DTRACE_ERROR("DTRACE_PARSER_DUPLICATE_BEGIN_PROBE",
+                "Duplicate begin probe for uC " << m_uC_index << " at position " << m_position);
+
+        m_uC_indices.insert(m_uC_index);
+        m_mem_host_addr_map.insert({m_uC_index, 0});
+        m_probe_expand[probe_name].emplace_back(probe, m_uC_index);
+        m_probe_order[m_uC_index].push_back(probe);
+        m_probes[m_uC_index][probe] =
+            std::make_shared<dtrace::probe::begin_probe>(probe_type, probe);
+    }
+}
+
+//-------------------------parser::expand_end-------------------------//
+/**
+ * expand_end() - End probe processing function.
+ *
+ * @param probe_type
+ * @param probe_name
+ *
+ * Parses optional uC spec from end[:ucX], defaults to uc0, and stores expanded
+ * probes as end:ucN in m_probe_expand, m_probe_order, and m_probes.
+ */
+void
+parser::
+expand_end(uint32_t probe_type, const std::string& probe_name)
+{
+    m_probe_expand[probe_name] = {};
+    std::vector<std::string> probe_fields;
+    // Split the probe name into its components
+    dtrace::action::action::getline(probe_name, ':', probe_fields);
+
+    if (probe_fields.empty() || probe_fields.size() > 2)
+        DTRACE_ERROR("DTRACE_PARSER_INVALID_END_PROBE_ARGUMENTS",
+            "Invalid end format: '" << probe_name << "' Expected 'end[:ucX]'");
+
+    // uC is optional, end probe is placed on uC 0 when it is not specified
+    std::vector<int> uCs = {0};
+    if (probe_fields.size() == 2)
+        uCs = get_list(probe_fields[1].substr(2));
+
+    // For each uC, generate probe name and store it in the probe expand map
+    for (const auto& uC : uCs)
+    {
+        m_uC_index = uC;
+        std::string probe = "end:uc" + std::to_string(m_uC_index);
+        // Control block holds single end probe per uC
+        if (m_probes[m_uC_index].find(probe) != m_probes[m_uC_index].end())
+            DTRACE_ERROR("DTRACE_PARSER_DUPLICATE_END_PROBE",
+                "Duplicate end probe for uC " << m_uC_index << " at position " << m_position);
+
+        m_uC_indices.insert(m_uC_index);
+        m_mem_host_addr_map.insert({m_uC_index, 0});
+        m_probe_expand[probe_name].emplace_back(probe, m_uC_index);
+        m_probe_order[m_uC_index].push_back(probe);
+        m_probes[m_uC_index][probe] =
+            std::make_shared<dtrace::probe::end_probe>(probe_type, probe);
+    }
+}
+
 //-------------------------parser::expand_tracepoint-------------------------//
 /**
  * expand_tracepoint() - Tracepoint probe processing function.
@@ -325,10 +414,7 @@ expand_tracepoint(uint32_t probe_type, const std::string& probe_name)
     m_probe_expand[probe_name] = {};
     std::vector<std::string> probe_fields;
     // Split the probe name into its components
-    std::istringstream probe_stream(probe_name);
-    std::string item;
-    while (std::getline(probe_stream, item, ':'))
-        probe_fields.push_back(item);
+    dtrace::action::action::getline(probe_name, ':', probe_fields);
 
     if (probe_fields.size() < 3)
         DTRACE_ERROR("DTRACE_PARSER_INVALID_TRACEPOINT_PROBE_ARGUMENTS",
@@ -376,10 +462,7 @@ expand_profile(uint32_t probe_type, const std::string& probe_name)
     m_probe_expand[probe_name] = {};
     std::vector<std::string> probe_fields;
     // Split the probe name into its components
-    std::istringstream probe_stream(probe_name);
-    std::string item;
-    while (std::getline(probe_stream, item, ':'))
-        probe_fields.push_back(item);
+    dtrace::action::action::getline(probe_name, ':', probe_fields);
 
     if (probe_fields.size() < 3)
         DTRACE_ERROR("DTRACE_PARSER_INVALID_PROFILE_PROBE_ARGUMENTS",
@@ -779,22 +862,16 @@ parse_line(const std::string& parse_line)
         return;
 
     // Parse the line for begin probe
-    static const aiebu::regex begin_regex(R"(^begin\s*\{?$)");
+    static const aiebu::regex begin_regex(R"(^begin(:(uc[0-9,-]+))?\s*\{?$)");
     if (aiebu::regex_match(line, begin_regex))
     {
-        if (m_state != state_type::probe || m_begin_exist)
+        if (m_state != state_type::probe)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
 
-        m_uC_index = 0;
-        m_begin_exist = true;
         m_state = state_type::action_open;
         m_probe_type = dtrace::probe::probe_type::begin;
         m_probe_name = line;
-        m_probe_order[m_uC_index].push_back(m_probe_name);
-        m_probes[m_uC_index][m_probe_name] =
-            std::make_shared<dtrace::probe::begin_probe>(m_probe_type, m_probe_name);
-        m_uC_indices.insert(m_uC_index);
-        m_mem_host_addr_map.insert({m_uC_index, 0});
+        expand_begin(m_probe_type, m_probe_name);
         if (line.back() == '{')
         {
             m_state = state_type::action;
@@ -804,22 +881,16 @@ parse_line(const std::string& parse_line)
     }
 
     // Parse the line for end probe
-    static const aiebu::regex end_regex(R"(^end\s*\{?$)");
+    static const aiebu::regex end_regex(R"(^end(:(uc[0-9,-]+))?\s*\{?$)");
     if (aiebu::regex_match(line, end_regex))
     {
-        if (m_state != state_type::probe || m_end_exist)
+        if (m_state != state_type::probe)
             DTRACE_ERROR("DTRACE_PARSER_INVALID_LINE", "Invalid line " << m_position << ": " << line);
 
-        m_uC_index = 0;
-        m_end_exist = true;
         m_state = state_type::action_open;
         m_probe_type = dtrace::probe::probe_type::end;
         m_probe_name = line;
-        m_probe_order[m_uC_index].push_back(m_probe_name);
-        m_probes[m_uC_index][m_probe_name] =
-            std::make_shared<dtrace::probe::end_probe>(m_probe_type, m_probe_name);
-        m_uC_indices.insert(m_uC_index);
-        m_mem_host_addr_map.insert({m_uC_index, 0});
+        expand_end(m_probe_type, m_probe_name);
         if (line.back() == '{')
         {
             m_state = state_type::action;
