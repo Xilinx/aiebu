@@ -16,18 +16,17 @@ void
 aie2_blob_preprocessor_input::
 add_preemption_code(uint32_t col)
 {
-  auto& stx_save_restore_map = get_stx_save_restore();
-  if (stx_save_restore_map.count(col) == 0)
+  const auto* save_restore = get_stx_save_restore(col);
+  if (!save_restore)
   {
     auto error_msg = boost::format("Preemption save/restore code for not available for txn buffer with col:(%d)\n") % col;
     throw error(error::error_code::invalid_asm, error_msg.str());
   }
   log_info() << "Save/Restore preemption code added for col " << col << "\n";
-  m_data[preempt_save].resize(stx_save_restore_map.at(col).first.size());
-  std::memcpy(m_data[preempt_save].data(), stx_save_restore_map.at(col).first.data(), stx_save_restore_map.at(col).first.size());
-
-  m_data[preempt_restore].resize(stx_save_restore_map.at(col).second.size());
-  std::memcpy(m_data[preempt_restore].data(), stx_save_restore_map.at(col).second.data(), stx_save_restore_map.at(col).second.size());
+  m_data[preempt_save].assign(save_restore->save.data,
+                              save_restore->save.data + save_restore->save.size);
+  m_data[preempt_restore].assign(save_restore->restore.data,
+                                 save_restore->restore.data + save_restore->restore.size);
 
   extractSymbolFromBuffer(m_data[preempt_save], preempt_save, scratch_pad);
   extractSymbolFromBuffer(m_data[preempt_restore], preempt_restore, scratch_pad);
@@ -176,12 +175,22 @@ add_preemption_code(uint32_t col)
   void
   aie2_blob_preprocessor_input::
   validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const {
-    // Return if the offset and arg_index are within their respective sizes.
-    if ((offset <= size) && (arg_index <= MAX_ARG_INDEX)) {
-      return;
+    // Control packet offsets must be >= 8 (the header correction) to prevent underflow on subtraction.
+    constexpr uint32_t ctrl_pkt_correction = 8;
+    if (type == offset_type::CONTROL_PACKET && offset < ctrl_pkt_correction) {
+      auto errorMessage = std::string("INVALID JSON: Offset(")
+        + std::to_string(offset)
+        + ") is less than control packet offset correction("
+        + std::to_string(ctrl_pkt_correction)
+        + ") for offset Type: CONTROL PACKET and arg index is "
+        + (arg_index > MAX_ARG_INDEX ? "INVALID = " : "VALID = ")
+        + std::to_string(arg_index) + ". ";
+      throw error(error::error_code::invalid_asm, errorMessage);
     }
+    if ((offset <= size) && (arg_index <= MAX_ARG_INDEX))
+      return;
     std::string errorMessage;
-    if (offset > size ) {
+    if (offset > size) {
       errorMessage = std::string("INVALID JSON: Offset(")
       + std::to_string(offset)
       + ") is greater than size("
@@ -383,6 +392,8 @@ add_preemption_code(uint32_t col)
   {
     constexpr static uint32_t DMA_BD_1_IN_BYTES = 1 * 4;
     constexpr static uint32_t DMA_BD_2_IN_BYTES = 2 * 4;
+    if (offset >= mc_code.size() || mc_code.size() - offset <= DMA_BD_2_IN_BYTES + 1)
+      throw error(error::error_code::invalid_asm, "shimBD offset OOB");
     //Clearing address bits as they are set at runtime during patching(xrt/firmware).
     //Lower Base Address. 30 LSB of a 46-bit long 32-bit-word-address. (bits [31:2] in DMA_BD_1 of a 48-bit byte-address)
     //Upper Base Address. 16 MSB of a 46-bit long 32-bit-word-address. (bits [47:32] in DMA_BD_2 of a 48-bit byte-address)
@@ -434,6 +445,7 @@ add_preemption_code(uint32_t col)
     uint32_t loadsequence = 0;
     bool pm_exist = false;
     uint32_t pm_id = 0;
+    const char *mc_code_end = &mc_code.back();
 
     ptr += sizeof(XAie_TxnHeader);
     for(uint32_t num = 0; num < txn_header->NumOps; num++) {
@@ -447,7 +459,10 @@ add_preemption_code(uint32_t col)
         case XAIE_IO_BLOCKWRITE: {
           auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr *>(ptr);
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr));
-          auto offset = static_cast<uint32_t>(payload-mc_code.data());
+          auto offset = static_cast<uint32_t>(payload - mc_code.data());
+          if (bw_header->Size < sizeof(*bw_header) ||
+              bw_header->Size > static_cast<size_t>(mc_code_end - reinterpret_cast<const char*>(bw_header)))
+            throw error(error::error_code::invalid_asm, "BLOCKWRITE size out of range");
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
           if (loadsequence > 0 && pm_exist)
           {
@@ -607,6 +622,7 @@ add_preemption_code(uint32_t col)
     uint32_t loadsequence = 0;
     bool pm_exist = false;
     uint32_t pm_id = 0;
+    const char *mc_code_end = &mc_code.back();
 
     ptr += sizeof(XAie_TxnHeader);
     for(uint32_t num = 0; num < txn_header->NumOps; num++) {
@@ -619,7 +635,10 @@ add_preemption_code(uint32_t col)
         case XAIE_IO_BLOCKWRITE: {
           auto bw_header = reinterpret_cast<const XAie_BlockWrite32Hdr_opt *>(ptr);
           auto payload = reinterpret_cast<const char*>(ptr + sizeof(XAie_BlockWrite32Hdr_opt));
-          auto offset = static_cast<uint32_t>(payload-mc_code.data());
+          auto offset = static_cast<uint32_t>(payload - mc_code.data());
+          if (bw_header->Size < sizeof(*bw_header) ||
+              bw_header->Size > static_cast<size_t>(mc_code_end - reinterpret_cast<const char*>(bw_header)))
+            throw error(error::error_code::invalid_asm, "BLOCKWRITE size out of range");
           uint32_t size = (bw_header->Size - sizeof(*bw_header));
           if (loadsequence > 0 && pm_exist)
           {
@@ -773,6 +792,11 @@ add_preemption_code(uint32_t col)
       std::cout << "txn buffer is empty\n";
       return 0;
     }
+
+    if (mc_code.size() < sizeof(XAie_TxnHeader))
+      throw error(error::error_code::invalid_asm,
+                  "txn buffer smaller than header");
+
     const char *ptr = (mc_code.data());
     auto txn_header = reinterpret_cast<const XAie_TxnHeader *>(ptr);
 

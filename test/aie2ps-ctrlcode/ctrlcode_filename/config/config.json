@@ -1,0 +1,19 @@
+{
+  "xrt-kernels": [
+    {
+      "name": "DPU",
+      "arguments": [
+        { "name": "arg0", "type": "char *", "offset": "0x00" },
+        { "name": "arg1", "type": "char *", "offset": "0x08" },
+        { "name": "arg2", "type": "char *", "offset": "0x10" },
+        { "name": "arg3", "type": "char *", "offset": "0x18" }
+      ],
+      "instance": [
+        {
+          "id": "vadd",
+          "ctrl_code_file": "../ml_asm/merged_control.asm"
+        }
+      ]
+    }
+  ]
+}

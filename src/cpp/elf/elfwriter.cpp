@@ -167,7 +167,7 @@ finalize()
   std::vector<char> out(bytes.size());
   if (!bytes.empty())
     std::memcpy(out.data(), bytes.data(), bytes.size());
-  return out;
+  return m_compressor->compress(std::move(out));
 }
 
 std::vector<uint32_t>

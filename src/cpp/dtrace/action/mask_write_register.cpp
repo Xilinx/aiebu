@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
 #include <sstream>
@@ -113,9 +113,9 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     // write address
     control_buffer.push_back(std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
     // mask value
-    control_buffer.push_back(std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
+    control_buffer.push_back(std::stoul(m_arguments[1], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base));
     // write value
-    control_buffer.push_back(std::stoul(m_arguments[2], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
+    control_buffer.push_back(std::stoul(m_arguments[2], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base));
 
     if (m_mode == 2)
     {   // mem buffer 
@@ -139,14 +139,14 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 void
 mask_write_reg_action::
-serialize_helper(std::vector<uint32_t>& mem_buffer) const
+serialize_helper(uint32_t* mem_buffer) const
 {
     if (m_mode == 2)
     {
         uint32_t index = get_location(true);
         auto length = static_cast<uint32_t>(m_write_buffer_values.size());
         // reset value after serialization
-        for (uint32_t i = index; i < index+length; ++i)
+        for (uint32_t i = index; i < index + length; ++i)
             mem_buffer[i] = m_write_buffer_values[i - index];
     }
 }
@@ -162,7 +162,7 @@ serialize_helper(std::vector<uint32_t>& mem_buffer) const
  */
 void
 mask_write_reg_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>& mem_buffer, 
+serialize(uint32_t*, uint32_t* mem_buffer,
     const std::unordered_map<uint32_t, uint32_t>&, std::ostream&) const
 {
     mask_write_reg_action::serialize_helper(mem_buffer);
@@ -179,7 +179,7 @@ serialize(std::vector<uint32_t>&, std::vector<uint32_t>& mem_buffer,
  */
 void
 mask_write_reg_action::
-serialize(std::vector<uint32_t>&, std::vector<uint32_t>& mem_buffer, 
+serialize(uint32_t*, uint32_t* mem_buffer,
     const std::unordered_map<uint32_t, uint32_t>&, json&) const
 {
     mask_write_reg_action::serialize_helper(mem_buffer);

@@ -25,6 +25,7 @@ public:
     address_64 = 8,
     control_packet_57_aie4 = 9,
     unknown = 10,
+    pl_ddr_64 = 11,
   };
 
 private:

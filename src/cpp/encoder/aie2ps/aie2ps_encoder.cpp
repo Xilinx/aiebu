@@ -14,24 +14,6 @@ namespace aiebu {
 
 void
 aie2ps_encoder::
-fill_scratchpad(std::shared_ptr<section_writer> padwriter, const std::map<std::string, std::shared_ptr<scratchpad_info>>& scratchpads)
-{
-  for (const auto& pad : scratchpads)
-  {
-    const auto& content = pad.second->get_content();
-    if (content.size())
-    {
-      assert((void("Pad content size and size doesnt match\n"), content.size() == pad.second->get_size()));
-      padwriter->write_bytes(content);
-    } else {
-      auto size = pad.second->get_size();
-      padwriter->write_default_bytes(size);
-    }
-  }
-}
-
-void
-aie2ps_encoder::
 fill_controlpkt(std::shared_ptr<section_writer> ctrlpktwriter, const std::vector<char>& ctrlpkt)
 {
   ctrlpktwriter->write_bytes(ctrlpkt);
@@ -108,19 +90,24 @@ process(std::shared_ptr<preprocessed_output> input)
                     optimizatiom_level, nullptr, nullptr);
     }
 
-    if (coldata.second->m_scratchpad.size()) {
-      auto padwriter = std::make_shared<section_writer>(get_PadSectionName(colnum), code_section::data);
-      fill_scratchpad(padwriter, coldata.second->m_scratchpad);
-      twriter.push_back(padwriter);
-    }
-
-    for (const auto& pair : ctrlpkt_id_map) {
-      auto ctrlpktwriter = std::make_shared<section_writer>(pair.second, code_section::data);
-      fill_controlpkt(ctrlpktwriter, ctrlpkt[pair.second]);
-      fill_control_packet_symbols(ctrlpktwriter, totalsyms);
-      twriter.push_back(ctrlpktwriter);
-    }
   }
+
+  // Write control packet sections once, after all columns are processed.
+  // Filter totalsyms per section, so each ctrlpkt section only receives its
+  // own symbols. A local copy is used to avoid the addend reset in
+  // fill_control_packet_symbols from affecting other sections' symbols.
+  for (const auto& pair : ctrlpkt_id_map) {
+    auto ctrlpktwriter = std::make_shared<section_writer>(pair.second, code_section::data);
+    fill_controlpkt(ctrlpktwriter, ctrlpkt[pair.second]);
+    std::vector<symbol> section_syms;
+    for (const auto& sym : totalsyms) {
+      if (sym.get_section_name() == pair.second)
+        section_syms.push_back(sym);
+    }
+    fill_control_packet_symbols(ctrlpktwriter, section_syms);
+    twriter.push_back(ctrlpktwriter);
+  }
+
   // Report (only if log level is info or higher)
   if (get_log_level() >= log_level::info)
     m_report.summary(std::cout);
@@ -245,6 +232,7 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
     if (text->isOpcode())
     {
       page_state->set_pos(textwriter->tell() - text_base);
+      page_state->set_is_save_restore_op(text->get_is_save_restore());  // Track if this is save/restore op
       std::vector<uint8_t> ret = (*m_isa)[name]->serializer(args)
                                                ->serialize(page_state, tsym, colnum, pagenum);
       textwriter->write_bytes(ret);
@@ -295,25 +283,27 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
   if (textwriter->tell() + datawriter->tell() > PAGE_SIZE)
     throw error(error::error_code::internal_error, "page content more the pagesize !!!");
 
+  offset_type padsize = PAGE_SIZE - textwriter->tell() - datawriter->tell();
   if (merged) {
     merged_writer->write_bytes(textwriter->get_data());
     merged_writer->write_bytes(datawriter->get_data());
-    offset_type padsize = PAGE_SIZE - textwriter->tell() - datawriter->tell();
     if (padsize > 0) {
       std::vector<uint8_t> zeros(padsize, 0x00);
       merged_writer->write_bytes(zeros);
     }
     merged_syms->insert(merged_syms->end(), tsym.begin(), tsym.end());
     merged_syms->insert(merged_syms->end(), dsym.begin(), dsym.end());
+    // in case of merged, data section of page dont have padsize added
+    m_report.addpage(lpage, page_state, textwriter->tell(), datawriter->tell() + padsize, padsize);
   } else {
     datawriter->padding(PAGE_SIZE - textwriter->tell());
     textwriter->add_symbols(tsym);
     datawriter->add_symbols(dsym);
     twriter.push_back(textwriter);
     twriter.push_back(datawriter);
+    // data section have pad added
+    m_report.addpage(lpage, page_state, textwriter->tell(), datawriter->tell(), padsize);
   }
-
-  m_report.addpage(lpage, page_state, textwriter->tell(), datawriter->tell());
 }
 
 void
@@ -325,6 +315,12 @@ patch57(const std::shared_ptr<section_writer> textwriter, std::shared_ptr<sectio
   uint64_t bd2 = datawriter->read_word(offset + 2*4); // NOLINT
   uint64_t bd8 = datawriter->read_word(offset + 8*4); // NOLINT
   uint64_t arg = ((bd8 & 0x1FF) << 48) + ((bd2 & 0xFFFF) << 32) + (bd1 & 0xFFFFFFFF); // NOLINT
+  // Add log for debugging patching
+  log_info() << "aie2ps_encoder::patch57: offset=" << offset
+             << ", patch=0x" << std::hex << patch
+             << ", arg=0x" << std::hex << arg
+             << ", after patch=0x" << std::hex << patch + arg
+             << std::dec << std::endl;
   patch = arg + patch;
   datawriter->write_word_at(offset + 1*4, patch & 0xFFFFFFFF); // NOLINT
   datawriter->write_word_at(offset + 2*4, ((patch >> 32) & 0xFFFF) | (bd2 & 0xFFFF0000)); // NOLINT

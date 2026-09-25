@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
 
-#include "dtrace.h"
+#include "dtrace/dtrace.h"
+#include <elfio/elfio.hpp>
 
 #include <iostream>
 #include <filesystem>
@@ -14,9 +15,12 @@ static const uint64_t TRACE_CTRL_CODE_BASE = 0x200000;
 static const uint64_t TRACE_CTRL_CODE_SIZE = 16384; // 8kB
 static const uint32_t word_byte_shift = 32;
 
-int 
-run_dtrace_test(const std::string& script_file, 
-    const std::string& map_data, const std::string& output_file) 
+int
+run_dtrace_test(const std::string& script_file,
+    const std::string& map_data, const std::string& output_file,
+    const std::string& result_file, uint32_t output_fmt,
+    const ELFIO::elfio* elf = nullptr,
+    const std::string& kernel_instance = {})
 {
     if (!std::filesystem::exists(script_file)) {
         std::cerr << "ERROR: test files not found: " << script_file;
@@ -25,24 +29,24 @@ run_dtrace_test(const std::string& script_file,
 
     uint32_t dtrace_buffer_length = 0;
     uint32_t buffers_length = 0;
-    uint32_t log_level = 0U;   // dtrace_error
-    uint32_t output_fmt = 0U;  // python format
+    uint32_t log_level = 0U;  // dtrace_error
 
-    // get dtrace handle using create_dtrace_handle api from libcert_dtrace
-    void* dtrace_handle = create_dtrace_handle(script_file, map_data, log_level, output_fmt);
+    void* dtrace_handle = elf
+        ? create_dtrace_handle_elf(script_file, *elf, kernel_instance, log_level, output_fmt)
+        : create_dtrace_handle(script_file, map_data, log_level, output_fmt);
     if (!dtrace_handle) {
         std::cerr << "[ERROR]: dtrace compiler failed";
         return 1;
     }
     else {
-        // get dtrace number of column using get_dtrace_col_numbers api from libcert_dtrace
+        // get dtrace number of column using get_dtrace_col_numbers api
         get_dtrace_col_numbers(dtrace_handle, &buffers_length);
 
         // allocate dtrace information buffer
         std::unique_ptr<uint32_t[]> dtrace_buffer = std::make_unique<uint32_t[]>(TRACE_CTRL_CODE_SIZE); // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
         std::unique_ptr<uint64_t[]> buffers = std::make_unique<uint64_t[]>(buffers_length); // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 
-        // get dtrace information using get_dtrace_buffer_size api from libcert_dtrace
+        // get dtrace information using get_dtrace_buffer_size api
         get_dtrace_buffer_size(dtrace_handle, buffers.get());
 
         for (uint32_t i = 0; i < buffers_length; ++i) {
@@ -51,13 +55,13 @@ run_dtrace_test(const std::string& script_file,
             dtrace_buffer_length += length;
         }
 
-        // create dtrace buffer using populate_dtrace_buffer api from libcert_dtrace
+        // create dtrace buffer using populate_dtrace_buffer api
         populate_dtrace_buffer(dtrace_handle, dtrace_buffer.get(), TRACE_CTRL_CODE_BASE);
 
         // create control_buffer.dat file
         if (dtrace_buffer_length > 0) {
             std::ofstream control_buffer_file(output_file, std::ios::binary);
-            control_buffer_file.write(reinterpret_cast<const char*>(dtrace_buffer.get()), 
+            control_buffer_file.write(reinterpret_cast<const char*>(dtrace_buffer.get()),
                 static_cast<std::streamsize>(dtrace_buffer_length * sizeof(uint32_t)));
             control_buffer_file.close();
         }
@@ -66,37 +70,76 @@ run_dtrace_test(const std::string& script_file,
             return 1;
         }
 
-        // destroy dtrace handle using destroy_dtrace_handle api from libcert_dtrace
+        if (!result_file.empty()) {
+            // replace init values in the result buffer with 0xabcdabcd
+            const uint32_t result_init_value = 0xfbadcafe;
+            const uint32_t result_mocked_value = 0xabcdabcd;
+            for (uint32_t i = 0; i < dtrace_buffer_length; ++i) {
+                if (dtrace_buffer[i] == result_init_value)
+                    dtrace_buffer[i] = result_mocked_value;
+            }
+
+            // create result file using get_dtrace_result_file api 
+            get_dtrace_result_file(dtrace_handle, result_file);
+        }
+
+        // destroy dtrace handle using destroy_dtrace_handle api
         destroy_dtrace_handle(dtrace_handle);
         return 0;
     }
 }
 
-int main(int argc, char** argv) 
+int main(int argc, char** argv)
 {
     try {
-        if (argc != 3) {
-            std::cerr << "Usage: " << argv[0] << " <testcase_path> <output_file>";
+        if (argc != 4 && argc != 7) {
+            std::cerr << "Usage: " << argv[0] << " <testcase_path> <output_file> <python|json>\n"
+                      << "       " << argv[0] << " <testcase_path> <output_file> <python|json> elf <elf_file> <kernel|none>";
             return 1;
         }
 
         std::string script_file = std::string(argv[1]) + "/script.ct";
-        std::string map_file = std::string(argv[1]) + "/map.json";
         std::string output_file = argv[2];
+        std::string result_file;
+        uint32_t output_fmt = 0U;  // python format (default)
 
-        if (!std::filesystem::exists(map_file)) {
-            throw std::runtime_error("[ERROR]: map file does not exist: " + map_file);
-            return 1; 
+        const std::string fmt_arg = argv[3];
+        const std::filesystem::path output_path(output_file);
+        if (fmt_arg == "python") {
+            output_fmt = 0U;
+            result_file = output_path.stem().string() + ".py";
+        } else if (fmt_arg == "json") {
+            output_fmt = 1U;
+            result_file = output_path.stem().string() + ".json";
         }
 
-        std::ifstream map_file_stream(map_file, std::ios::binary);
-        std::vector<uint8_t> map_buffer((std::istreambuf_iterator<char>(map_file_stream)), 
-            std::istreambuf_iterator<char>());
-        map_file_stream.close();
-        std::string map_data = std::string(map_buffer.begin(), map_buffer.end());
+        if (argc == 7) {
+            std::string kernel_instance = argv[6];
+            if (kernel_instance == "none")
+                kernel_instance.clear();
 
-        int ret = run_dtrace_test(script_file, map_data, output_file);
-        return ret;
+            std::string elf_file = argv[5];
+            std::ifstream elf_stream(elf_file, std::ios::binary);
+            ELFIO::elfio elf;
+            if (!elf.load(elf_stream)) {
+                std::cerr << "[ERROR]: failed to load " << elf_file;
+                return 1;
+            }
+            return run_dtrace_test(script_file, {}, output_file, result_file, output_fmt,
+                &elf, kernel_instance);
+        }
+
+        std::string map_file = std::string(argv[1]) + "/map.json";
+        std::string map_data;
+        if (std::filesystem::exists(map_file)) {
+            std::ifstream map_file_stream(map_file, std::ios::binary);
+            std::vector<uint8_t> map_buffer((std::istreambuf_iterator<char>(map_file_stream)),
+                std::istreambuf_iterator<char>());
+            map_file_stream.close();
+            map_data = std::string(map_buffer.begin(), map_buffer.end());
+        }
+
+        return run_dtrace_test(script_file, map_data, output_file, result_file, output_fmt);
     } catch (const std::exception& e) {
         std::cerr << "[ERROR]: Exception: " << e.what();
         return 1;

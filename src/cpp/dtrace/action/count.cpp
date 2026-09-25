@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "dtrace/action/action_control.h"
 #include <sstream>
@@ -78,7 +78,7 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
  */
 uint32_t
 count_action::
-serialize_helper(std::vector<uint32_t>& result_buffer, 
+serialize_helper(uint32_t* result_buffer,
     const std::unordered_map<uint32_t, uint32_t>& mapping) const
 {
     uint32_t location = mapping.at(get_location(false));
@@ -99,7 +99,7 @@ serialize_helper(std::vector<uint32_t>& result_buffer,
  */
 void
 count_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>& mapping, std::ostream& script_output) const
 {
     uint32_t result = count_action::serialize_helper(result_buffer, mapping);
@@ -118,7 +118,7 @@ serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&,
  */
 void
 count_action::
-serialize(std::vector<uint32_t>& result_buffer, std::vector<uint32_t>&, 
+serialize(uint32_t* result_buffer, uint32_t*,
     const std::unordered_map<uint32_t, uint32_t>& mapping, json& json_output) const
 {
     uint32_t result = count_action::serialize_helper(result_buffer, mapping);

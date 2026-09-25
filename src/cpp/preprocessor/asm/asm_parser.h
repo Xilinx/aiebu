@@ -4,6 +4,7 @@
 #define AIEBU_PREPROCESSOR_ASM_ASM_PARSER_H_
 
 #include "code_section.h"
+#include "hintmap_bitset.h"
 #include "utils.h"
 #include "file_utils.h"
 #include "logger.h"
@@ -23,8 +24,6 @@
 #include <vector>
 
 namespace aiebu {
-
-constexpr uint64_t CHUNK_SIZE = 64ULL * 1024ULL; // 64KB
 
 inline std::string trim(const std::string& line)
 {
@@ -233,7 +232,6 @@ class filename_table {
   //TODO: redundant data for fast insertion and lookup. To be removed in future.
   std::vector<std::string> m_table;
   std::unordered_map<std::string, uint32_t> m_index;
-  uint32_t m_default_idx = static_cast<uint32_t>(-1);
 
 public:
   uint32_t intern_filename(const std::string& fname) {
@@ -256,11 +254,6 @@ public:
     return it != m_index.end() ? it->second : static_cast<uint32_t>(-1);
   }
 
-  uint32_t default_source_file_idx() {
-    if (m_default_idx == static_cast<uint32_t>(-1))
-      m_default_idx = intern_filename(std::string("default"));
-    return m_default_idx;
-  }
 };
 } // namespace detail
 
@@ -276,6 +269,7 @@ class asm_data
   // m_file replaced with a 32-bit index into the owning parser's filename_table.
   uint32_t m_file_idx;
   int m_annotation_index = -1;
+  bool m_is_save_restore = false;  // True if this instruction is from save/restore routine
 
 public:
   asm_data() = default;
@@ -289,10 +283,10 @@ public:
   */
   asm_data(operation op, operation_type optype,
            code_section sec, offset_type size, uint32_t pgnum,
-           uint32_t ln, uint32_t file_idx)
+           uint32_t ln, uint32_t file_idx, bool is_save_restore = false)
            :m_op(std::move(op)), m_optype(optype), m_section(sec), m_size(size),
             m_pagenum(pgnum), m_linenumber(ln),
-            m_file_idx(file_idx) {}
+            m_file_idx(file_idx), m_is_save_restore(is_save_restore) {}
 
   // Rule of Zero: implicit copy/move keeps insert_col_asmdata / vector growth cheap.
 
@@ -303,6 +297,7 @@ public:
   const std::string& get_file(const detail::filename_table& table) const {
     return table.lookup_filename(m_file_idx);
   }
+
   uint32_t get_file_idx() const { return m_file_idx; }
   // Qualify the operation's own name as a label-map key (e.g. "0:start_job").
   std::string get_qualify_op_name() const {
@@ -331,6 +326,7 @@ public:
     return n + ' ' + a;
   }
 
+  HEADER_ACCESS_GET_SET(bool, is_save_restore);
   bool isLabel() const { return m_optype == operation_type::label; }
   bool isOpcode() const { return m_optype == operation_type::op; }
   bool isAnnotation() const { return m_optype == operation_type::annotation; }
@@ -508,6 +504,7 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::stack<bool> isdatastack;
   std::string m_current_label = "default";
   int m_current_col = -1;
+  uint32_t m_current_parse_file_idx = static_cast<uint32_t>(-1);
   const std::vector<std::string>& m_include_list;
   bool annotation_state = false;
   std::vector<annotation_type> m_annotation_list;
@@ -520,27 +517,60 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::map<int, std::vector<std::string>> m_preempt_hintmaps;  // group -> vector of hintmap_labels (multiple PREEMPT opcodes per group)
   std::map<std::string, std::pair<std::string, std::string>> m_hintmap_labels;  // hintmap_label -> (save_label, restore_label)
   std::set<int> m_preempt_without_hintmap;  // groups that have PREEMPT opcodes without hintmaps
+
+  // One PREEMPT opcode, in the order it appears in a column's control code.
+  struct preempt_point {
+    std::string id;           // PREEMPT id argument as written in the asm
+    std::string hintmap_key;  // "<label_scope>:<hintmap_label>", empty when the opcode has no hintmap
+  };
+  std::map<int, std::vector<preempt_point>> m_preempt_points;  // group -> preemption points in program order
+
+  struct preempt_scratchpad {
+    uint64_t scratchbase;
+    uint64_t size;
+  };
+  // Settled scratchpad region per column and preemption-point index.
+  std::map<int, std::vector<preempt_scratchpad>> m_preempt_region;
+
+  // Per-controller state at one preemption point (Step 1 output).
+  struct preempt_col {
+    int                col;          // controller column index (.attach_to_group)
+    std::string        key;          // qualified hintmap key; empty => no-hintmap 3MB home slice
+    hintmap_chunk_bits bm;           // hintmap bits, or column home slice when key is empty
+    uint64_t           span_lo;      // first set chunk in bm (inclusive)
+    uint64_t           span_hi;      // last set chunk in bm (inclusive)
+    bool               has_span;     // true when bm has at least one set bit
+    bool               zero_hintmap; // true when the hintmap is all-zero (absorb leftover runs)
+  };
+
+  struct preempt_point_state {
+    std::vector<preempt_col> cols;
+  };
+
+  preempt_point_state collect_preempt_point(std::size_t pt);
+  void verify_overlap(std::size_t pt, const preempt_point_state& state);
+  bool need_distribution_or_assign_direct(std::size_t pt, const preempt_point_state& state);
+  void redistribute_preempt_regions(std::size_t pt, const preempt_point_state& state);
   detail::filename_table m_filename_table;
   // Tracks which filename indices have been interned per column so that duplicate
   // .include detection is scoped per-col rather than globally across the parser.
   // Keyed by m_current_col (-1 = pre-attach_to_group context).
   std::unordered_map<int, std::set<uint32_t>> m_col_seen_files;
+  bool m_is_save_restore_routine = false;  // True when parsing save/restore routine files
 
-  // One unique scratchpad region: all hintmap labels that share the same scratchbase+size
+  // One unique scratchpad region: hintmaps at preemption points that share scratchbase+size
   struct hintmap_group_entry {
-    std::vector<std::string>         hintmaps;    // hintmap labels sharing this scratchpad
+    std::vector<std::pair<std::size_t, std::string>> hintmap_pts; // pt index, qualified key
     std::pair<std::string,std::string> labels;    // shared save/restore label pair
     uint64_t                         scratchbase;
     uint64_t                         size;
   };
 
   // Group hintmap labels by (scratchbase, size) and assign unique save/restore labels.
-  std::vector<hintmap_group_entry> build_hintmap_groups(int group,
-                                                        const std::vector<std::string>& hintmap_labels,
-                                                        int group_index);
+  std::vector<hintmap_group_entry> build_hintmap_groups(int group, int group_index);
 
   // Register scratchpad and inject patched save/restore asm for one hintmap group.
-  void inject_hintmap_save_restore(int col,
+  void inject_hintmap_save_restore(int col, int group_index,
                                    const std::string& save_file,
                                    const std::string& restore_file,
                                    const std::vector<uint8_t>& save_data,
@@ -555,8 +585,15 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   // Walk column col and update PREEMPT opcode args to reflect shared labels.
   void update_preempt_opcodes(int col);
 
+  // Settle scratchpad regions at each preemption point before save/restore injection.
+  void settle_preempt_regions();
+
+  hintmap_chunk_bits hintmap_chunks(int col,
+                                    const std::string& search_context,
+                                    const std::string& hintmap_label);
+
   // Inject default (no-hintmap) save/restore asm into column col.
-  void inject_default_save_restore(int col,
+  void inject_default_save_restore(int col, int group_index,
                                    const std::string& save_file,
                                    const std::string& restore_file,
                                    const std::vector<uint8_t>& save_data,
@@ -607,6 +644,15 @@ public:
   const std::string& get_target_type() const { return m_target_type; }
 
   bool is_multi_column_mode() const { return m_preempt_labels.size() > 1; }
+
+  // Check if currently parsing save/restore routine
+  bool is_save_restore_routine() const { return m_is_save_restore_routine; }
+  void set_save_restore_routine(bool val) { m_is_save_restore_routine = val; }
+
+  // Check if we should skip setpad for this target in save/restore routine
+  bool should_skip_setpad_in_save_restore() const {
+    return m_is_save_restore_routine;
+  }
 
   // Record preempt label for current group (called when PREEMPT opcode is hit)
   // Label naming: save_N / restore_N where N = index (group/2 + 1)
@@ -672,6 +718,10 @@ public:
     }
     return {true, expected_count, 0, 0};  // All columns match
   }
+
+  // Verify PREEMPT id values are consecutive starting from 0 in program order
+  // within each controller, per isa-spec PREEMPT opcode.
+  void verify_preempt_ids() const;
 
   // Check if any column in the control code contains PREEMPT opcodes
   bool has_preempt() const {
@@ -849,13 +899,11 @@ public:
     return it->second.count(idx) > 0;
   }
 
-  uint32_t default_source_file_idx() {
-    return m_filename_table.default_source_file_idx();
-  }
+  uint32_t current_parse_file_idx() const { return m_current_parse_file_idx; }
 
-  void parse_lines();
+  void parse_lines(const std::string& source_filename = default_source_filename);
 
-  void parse_lines(const std::vector<char>& data, std::string& file);
+  void parse_lines(const std::vector<char>& data, const std::string& file);
 
   // Rewrites arg_str and line in-place for a PREEMPT opcode.
   void handle_preempt_opcode(std::string& arg_str, std::string& line);

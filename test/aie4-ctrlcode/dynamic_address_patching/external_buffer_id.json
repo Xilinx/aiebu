@@ -1,0 +1,46 @@
+{
+    "external_buffers": {
+        "buffer0": {
+            "xrt_id": 6,
+            "logical_id": 6,
+            "size_in_bytes": 512,
+            "name": "gr.out_ddr"
+        },
+        "buffer1": {
+            "xrt_id": 0,
+            "logical_id": 0,
+            "size_in_bytes": 128,
+            "name": "gr.sel_ifm"
+        },
+        "buffer2": {
+            "xrt_id": 1,
+            "logical_id": 1,
+            "size_in_bytes": 128,
+            "name": "gr.vadd_ifm"
+        },
+        "buffer3": {
+            "xrt_id": 2,
+            "logical_id": 2,
+            "size_in_bytes": 8192,
+            "name": "gr.wts_pool[0]"
+        },
+        "buffer4": {
+            "xrt_id": 3,
+            "logical_id": 3,
+            "size_in_bytes": 8192,
+            "name": "gr.wts_pool[1]"
+        },
+        "buffer5": {
+            "xrt_id": 4,
+            "logical_id": 4,
+            "size_in_bytes": 8192,
+            "name": "gr.wts_pool[2]"
+        },
+        "buffer6": {
+            "xrt_id": 5,
+            "logical_id": 5,
+            "size_in_bytes": 8192,
+            "name": "gr.wts_pool[3]"
+        }
+    }
+}

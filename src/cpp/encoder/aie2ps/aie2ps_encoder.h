@@ -48,9 +48,10 @@ public:
   {
     isa i;
     m_isa = i.get_isamap();
+    m_report.set_merged(merged_ctrltext_elf);
   }
 
-  void set_merged_ctrltext_elf(bool merged) override { m_merged_ctrltext_elf = merged; }
+  void set_merged_ctrltext_elf(bool merged) override { m_merged_ctrltext_elf = merged; m_report.set_merged(merged); }
 
   virtual std::vector<std::shared_ptr<writer>>
   process(std::shared_ptr<preprocessed_output> input) override;

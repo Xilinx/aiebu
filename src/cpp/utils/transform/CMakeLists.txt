@@ -29,7 +29,14 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   # set by projects that are built for upstreaming and includes AIEBU as a
   # submodule
   if (NOT AIEBU_UPSTREAM)
-    target_link_options(aiebu-transform PRIVATE "-static")
+    # GCC 16's C compiler reports gcc_s_asneeded as an implicit link library.
+    # CMake merges implicit libs from all languages in the link graph; since
+    # libaiebu.a contains C objects (zstd), it adds CMAKE_C_IMPLICIT_LINK_LIBRARIES
+    # which includes gcc_s_asneeded by its literal name, producing -lgcc_s_asneeded.
+    # That flag is fatal with -static because libgcc_s_asneeded.a does not exist.
+    # Remove it here; -static-libgcc folds libgcc into the binary directly.
+    list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES gcc_s_asneeded)
+    target_link_options(aiebu-transform PRIVATE "-static" "-static-libgcc" "-static-libstdc++")
     set_target_properties(aiebu-transform PROPERTIES INSTALL_RPATH "" BUILD_RPATH "")
 
     # Create a dynamically linked executable. aiebu-transform-dyn, on Linux for

@@ -116,12 +116,12 @@ process(bool makeunique)
         m_jobmap[cjob_id]->set_end_index(index);
         cjob_id.clear();
       }
-      // maintain map of label and num_entries for apply_offset_57
+      // maintain map of label and num_entries for apply_offset_57 / apply_offset_pl
       // only used in pager
       // since label are after control code ops we need to record intermediately and resolve it later
-      if (!name.compare("apply_offset_57") && makeunique)
+      if ((!name.compare("apply_offset_57") || !name.compare("apply_offset_pl")) && makeunique)
         apply_label_map[data->get_qualify_label(data->get_operation().get_args()[0].substr(1))]
-                 = std::stoul(data->get_operation().get_args()[1]);
+                 = !name.compare("apply_offset_pl") ? 1 : std::stoul(data->get_operation().get_args()[1]);
     } else {
       throw error(error::error_code::internal_error, "Unknown type found!!!");
     }

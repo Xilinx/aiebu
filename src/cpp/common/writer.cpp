@@ -56,10 +56,10 @@ read_word(offset_type offset) const
   return result;
 }
 
-void
-section_writer::
-write_word_at(offset_type offset, uint32_t word)
+void section_writer::write_word_at(offset_type offset, uint32_t word)
 {
+  if (offset >= m_data.size() || m_data.size() - offset < sizeof(uint32_t))
+    throw error(error::error_code::internal_error, "write_word_at: offset out of range");
   m_data[offset] = ((word >> FIRST_BYTE_SHIFT) & BYTE_MASK);
   m_data[offset + 1] = ((word >> SECOND_BYTE_SHIFT) & BYTE_MASK);
   m_data[offset + 2] = ((word >> THIRD_BYTE_SHIFT) & BYTE_MASK);
@@ -121,6 +121,11 @@ void asm_writer::write_label(const std::string& name)
 void asm_writer::write_attach_to_group(int col)
 {
   for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".attach_to_group " << col << '\n'; });
+}
+
+void asm_writer::write_target(const std::string& target)
+{
+  for_all_streams(m_streams, [&](std::ostream* s) { (*s) << ".target\t " << target << '\n'; });
 }
 
 void asm_writer::write_partition(const std::string& partition_str)

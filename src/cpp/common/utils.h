@@ -32,9 +32,13 @@ const static jobid_type EOP_ID("EOP");
 constexpr offset_type PAGE_SIZE = 8192;
 constexpr int HEX_BASE = 16;
 constexpr int WORD_SIZE = 4;
+constexpr uint32_t WORD_BITS = 32;
+constexpr uint64_t BYTES_PER_KB = 1024ULL;
+constexpr uint64_t BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB;
 constexpr uint32_t byte_to_bits = 8;
 constexpr uint32_t shim_bd_len = 9;
 constexpr opcode_type align_opcode = 0xA5;
+const std::string default_source_filename = "default";
 
 namespace aiebu {
 
@@ -300,6 +304,11 @@ even_parity_check(uint32_t data) {
 std::string version_string();
 
 std::string metrics_report();
+
+// Extracts the plain identifier from a C++ mangled symbol name.
+// Format: _Z<length><name>...  e.g. "_Z3DPUPcPc" -> "DPU"
+// Returns "" if the name is not a valid mangled symbol.
+std::string extract_kernel_name_from_mangled(const std::string& symbol_name);
 
 }
 #endif // AIEBU_COMMOM_UTILS_H_
