@@ -19,8 +19,8 @@ namespace dtrace::action
  * @param probe_name
  */
 write_mem_action::
-write_mem_action(std::string token, uint32_t probe_type, const std::string& probe_name, 
-    const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map)
+write_mem_action(std::string token, uint32_t probe_type, const std::string& probe_name,
+    const buffer_map& buffer_map)
     : action(probe_type, probe_name)
 {
     std::vector<std::string> fields;

@@ -22,6 +22,8 @@ namespace dtrace::action
 {
 
 using json = nlohmann::ordered_json;
+// Host address buffers, keyed by buffer name. Each address {high, low} and values.
+using buffer_map = std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>;
 
 //-------------------------Probe Information-------------------------//
 /**
@@ -337,7 +339,7 @@ private:
 public:
     mask_write_reg_action(
         std::string token, uint32_t probe_type, const std::string& probe_name,
-        const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map
+        const buffer_map& buffer_map
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
@@ -662,7 +664,7 @@ private:
 public:
     read_mem_action(
         std::string token, uint32_t probe_type, const std::string& probe_name, uint64_t mem_host_addr,
-        const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map
+        const buffer_map& buffer_map
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
@@ -700,7 +702,7 @@ private:
 public:
     write_mem_action(
         std::string token, uint32_t probe_type, const std::string& probe_name,
-        const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map
+        const buffer_map& buffer_map
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer

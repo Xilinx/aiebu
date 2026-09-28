@@ -19,8 +19,8 @@ namespace dtrace::action
  * @param probe_name
  */
 mask_write_reg_action::
-mask_write_reg_action(std::string token, uint32_t probe_type, const std::string& probe_name, 
-    const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map)
+mask_write_reg_action(std::string token, uint32_t probe_type, const std::string& probe_name,
+    const buffer_map& buffer_map)
     : action(probe_type, probe_name)
     , m_mode(0)
 {
@@ -52,7 +52,7 @@ mask_write_reg_action(std::string token, uint32_t probe_type, const std::string&
             m_write_buffer_values = buffer_map.at(write_buffer_name).second;
 
             // set mode and value argument based on HIGH or LOW
-            std::vector<uint32_t> write_buffer_addr = buffer_map.at(write_buffer_name).first;
+            const std::vector<uint32_t>& write_buffer_addr = buffer_map.at(write_buffer_name).first;
             std::stringstream argument;
             if (value[1] == "HIGH")
             {// HIGH mode

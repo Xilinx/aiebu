@@ -254,7 +254,7 @@ expand_jprobe(uint32_t probe_type, const std::string& probe_name)
             "Invalid jprobe format: '" << probe_name <<
             "' Expected 'jprobe:name_of_asm:ucX:line|annotationY'");
 
-    auto uCs = get_list(probe_fields[2].substr(2));
+    m_uC_list = get_list(probe_fields[2].substr(2));
 
     std::string label;
     std::vector<int> range;
@@ -274,7 +274,7 @@ expand_jprobe(uint32_t probe_type, const std::string& probe_name)
             "Invalid jprobe label: " << probe_fields[3]);
     }
     // For each uC and line, generate probe name and store it in the probe expand map
-    for (const auto& uC : uCs)
+    for (const auto& uC : m_uC_list)
     {
         m_uC_index = uC;
         m_uC_indices.insert(m_uC_index);
@@ -327,12 +327,12 @@ expand_begin(uint32_t probe_type, const std::string& probe_name)
             "Invalid begin format: '" << probe_name << "' Expected 'begin[:ucX]'");
 
     // uC is optional, begin probe is placed on uC 0 when it is not specified
-    std::vector<int> uCs = {0};
+    m_uC_list = {0};
     if (probe_fields.size() == 2)
-        uCs = get_list(probe_fields[1].substr(2));
+        m_uC_list = get_list(probe_fields[1].substr(2));
 
     // For each uC, generate probe name and store it in the probe expand map
-    for (const auto& uC : uCs)
+    for (const auto& uC : m_uC_list)
     {
         m_uC_index = uC;
         std::string probe = "begin:uc" + std::to_string(m_uC_index);
@@ -374,12 +374,12 @@ expand_end(uint32_t probe_type, const std::string& probe_name)
             "Invalid end format: '" << probe_name << "' Expected 'end[:ucX]'");
 
     // uC is optional, end probe is placed on uC 0 when it is not specified
-    std::vector<int> uCs = {0};
+    m_uC_list = {0};
     if (probe_fields.size() == 2)
-        uCs = get_list(probe_fields[1].substr(2));
+        m_uC_list = get_list(probe_fields[1].substr(2));
 
     // For each uC, generate probe name and store it in the probe expand map
-    for (const auto& uC : uCs)
+    for (const auto& uC : m_uC_list)
     {
         m_uC_index = uC;
         std::string probe = "end:uc" + std::to_string(m_uC_index);
@@ -420,10 +420,10 @@ expand_tracepoint(uint32_t probe_type, const std::string& probe_name)
         DTRACE_ERROR("DTRACE_PARSER_INVALID_TRACEPOINT_PROBE_ARGUMENTS",
             "Invalid tracepoint format: '" << probe_name << "' Expected 'tracepoint:ucX:idZ'");
 
-    auto uCs = get_list(probe_fields[1].substr(2));
+    m_uC_list = get_list(probe_fields[1].substr(2));
     auto ids = get_list(probe_fields[2].substr(2));
     // For each uC and line, generate probe name and store it in the probe expand map
-    for (const auto& uC : uCs)
+    for (const auto& uC : m_uC_list)
     {
         m_uC_index = uC;
         m_uC_indices.insert(m_uC_index);
@@ -468,9 +468,9 @@ expand_profile(uint32_t probe_type, const std::string& probe_name)
         DTRACE_ERROR("DTRACE_PARSER_INVALID_PROFILE_PROBE_ARGUMENTS",
             "Invalid profile format: '" << probe_name << "' Expected 'profile:ucX:Whz'");
 
-    auto uCs = get_list(probe_fields[1].substr(2));
+    m_uC_list = get_list(probe_fields[1].substr(2));
     // For each uC and line, generate probe name and store it in the probe expand map
-    for (const auto& uC : uCs)
+    for (const auto& uC : m_uC_list)
     {
         m_uC_index = uC;
         m_uC_indices.insert(m_uC_index);
@@ -511,20 +511,7 @@ expand_write_buffer(const std::string& write_buffer)
     size_t buffer_length = std::stoul(buffer[2], nullptr, dtrace::dtrace_ctrl::decimal_hexadecimal_base);
     std::string buffer_values = buffer[3];
 
-    // Add values to the buffer
-    std::vector<uint32_t> buffer_addr = {
-        static_cast<uint32_t>(
-            (m_mem_host_addr_map[m_uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift)
-            & dtrace::dtrace_ctrl::mask_32
-        ),
-        static_cast<uint32_t>(
-            m_mem_host_addr_map[m_uC_index] & dtrace::dtrace_ctrl::mask_32
-        )
-    };
-    m_buffer_map[buffer_name] = std::make_pair(buffer_addr, std::vector<uint32_t>());
-
-    std::vector<uint32_t>& buffer_map_values = m_buffer_map.at(buffer_name).second;
-    buffer_map_values.clear();
+    std::vector<uint32_t> buffer_map_values;
     std::string item;
     std::istringstream value_stream(buffer_values);
     while (std::getline(value_stream, item, ','))
@@ -545,10 +532,26 @@ expand_write_buffer(const std::string& write_buffer)
     if (buffer_length != 0)
         DTRACE_ERROR("DTRACE_PARSER_WRITE_BUFFER_LENGTH_MISMATCH", "Buffer " << buffer_name);
 
-    // Update the memory host address map
-    m_mem_host_addr_map[m_uC_index] += static_cast<uint64_t>(
-        (buffer_map_values.size()) * dtrace::dtrace_ctrl::word_byte_size
-    );
+    // Add values to the buffer map for each uC
+    for (const auto& uC : m_uC_list)
+    {
+        const auto uC_index = static_cast<uint32_t>(uC);
+        std::vector<uint32_t> buffer_addr = {
+            static_cast<uint32_t>(
+                (m_mem_host_addr_map[uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift)
+                & dtrace::dtrace_ctrl::mask_32
+            ),
+            static_cast<uint32_t>(
+                m_mem_host_addr_map[uC_index] & dtrace::dtrace_ctrl::mask_32
+            )
+        };
+        m_buffer_map[uC_index][buffer_name] = std::make_pair(buffer_addr, buffer_map_values);
+
+        // Update the memory host address map
+        m_mem_host_addr_map[uC_index] += static_cast<uint64_t>(
+            buffer_map_values.size() * dtrace::dtrace_ctrl::word_byte_size
+        );
+    }
 
     // Reset state
     m_write_buffer.clear();
@@ -589,22 +592,26 @@ expand_init_buffer(const std::string& init_buffer)
 
     // Initialize the buffer with default value and set host address for buffer in buffer map
     std::vector<uint32_t> buffer_values(buffer_length, dtrace::dtrace_ctrl::result_value_init);
-    // Set the memory host address for the buffer in the buffer map vector
-    std::vector<uint32_t> buffer_addr = {
-        static_cast<uint32_t>(
-            (m_mem_host_addr_map[m_uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift)
-            & dtrace::dtrace_ctrl::mask_32
-        ),
-        static_cast<uint32_t>(
-            m_mem_host_addr_map[m_uC_index] & dtrace::dtrace_ctrl::mask_32
-        )
-    };
-    m_buffer_map[buffer_name] = std::make_pair(buffer_addr, buffer_values);
+    // Set the memory host address for the buffer in the buffer map vector for each uC
+    for (const auto& uC : m_uC_list)
+    {
+        const auto uC_index = static_cast<uint32_t>(uC);
+        std::vector<uint32_t> buffer_addr = {
+            static_cast<uint32_t>(
+                (m_mem_host_addr_map[uC_index] >> dtrace::dtrace_ctrl::forth_byte_shift)
+                & dtrace::dtrace_ctrl::mask_32
+            ),
+            static_cast<uint32_t>(
+                m_mem_host_addr_map[uC_index] & dtrace::dtrace_ctrl::mask_32
+            )
+        };
+        m_buffer_map[uC_index][buffer_name] = std::make_pair(buffer_addr, buffer_values);
 
-    // Update the memory host address map
-    m_mem_host_addr_map[m_uC_index] += static_cast<uint64_t>(
-        buffer_length * dtrace::dtrace_ctrl::word_byte_size
-    );
+        // Update the memory host address map
+        m_mem_host_addr_map[uC_index] += static_cast<uint64_t>(
+            buffer_length * dtrace::dtrace_ctrl::word_byte_size
+        );
+    }
 }
 
 //-------------------------parser::probe_add_action-------------------------//
@@ -709,7 +716,7 @@ create_action(uint32_t action_type, const std::string& action_string, uint32_t p
         break;
     case dtrace::action::action_type::reg_mask_write:
         action = std::make_shared<dtrace::action::mask_write_reg_action>(
-            action_string, probe_type, probe_name, m_buffer_map
+            action_string, probe_type, probe_name, m_buffer_map[uC_index]
         );
         break;
     case dtrace::action::action_type::mask_poll32:
@@ -760,13 +767,13 @@ create_action(uint32_t action_type, const std::string& action_string, uint32_t p
         break;
     case dtrace::action::action_type::mem_read:
         action = std::make_shared<dtrace::action::read_mem_action>(
-            action_string, probe_type, probe_name, m_mem_host_addr_map[uC_index], m_buffer_map
+            action_string, probe_type, probe_name, m_mem_host_addr_map[uC_index], m_buffer_map[uC_index]
         );
         m_mem_host_addr_map[uC_index] = action->get_mem_host_addr();
         break;
     case dtrace::action::action_type::mem_write:
         action = std::make_shared<dtrace::action::write_mem_action>(
-            action_string, probe_type, probe_name, m_buffer_map
+            action_string, probe_type, probe_name, m_buffer_map[uC_index]
         );
         break;
     case dtrace::action::action_type::break_action:

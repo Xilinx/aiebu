@@ -23,7 +23,7 @@ namespace dtrace::action
  */
 read_mem_action::
 read_mem_action(std::string token, uint32_t probe_type, const std::string& probe_name, uint64_t mem_host_addr,
-    const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map)
+    const buffer_map& buffer_map)
     : action(probe_type, probe_name)
     , m_mem_host_addr(mem_host_addr)
     , m_read_buffer_initialized(false)

@@ -73,6 +73,15 @@ jprobe:dummy.asm:uc4,8,12,16,20:line3
 {
     print("opcode: {}".format(operation))
 }
+jprobe:dummy.asm:uc4,8,12:line4
+{
+    buf3[4] = [
+        0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef
+    ]
+    write_mem(0x180000, 4, buf3)
+    buf4 = read_mem(0x180000, 4)
+    print(f"multi uc mem = {buf4}")
+}
 end:uc0
 {
     buf2 = read_mem(0x100000, 32)
@@ -86,5 +95,5 @@ end:uc0
 end:uc8
 {
     tse8 = timestamp32()
-    print(f"end uc8 ts: {ts_end8:d}")
+    print(f"end uc8 ts: {tse8:d}")
 }
