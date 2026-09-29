@@ -36,6 +36,16 @@ if (NOT WIN32)
   target_link_libraries(${AIEBU_ERROR_TESTNAME} PRIVATE pthread)
 endif()
 
+set(ASM_PARSER_LIFETIME_TESTNAME "asm_parser_lifetime_cpp")
+add_executable(${ASM_PARSER_LIFETIME_TESTNAME} asm_parser_lifetime_test.cpp)
+target_link_libraries(${ASM_PARSER_LIFETIME_TESTNAME} PRIVATE aiebu_static)
+target_include_directories(${ASM_PARSER_LIFETIME_TESTNAME} PRIVATE
+  ${AIEBU_SOURCE_DIR}/src/cpp
+  ${AIEBU_SOURCE_DIR}/src/cpp/common)
+if (NOT WIN32)
+  target_link_libraries(${ASM_PARSER_LIFETIME_TESTNAME} PRIVATE pthread)
+endif()
+
 set(AIE_COREDUMP_TESTNAME "aie_coredump_cpp")
 add_executable(${AIE_COREDUMP_TESTNAME} aie_coredump_test.cpp)
 target_link_libraries(${AIE_COREDUMP_TESTNAME} PRIVATE aiebu_static)
@@ -169,6 +179,11 @@ add_test(NAME "aie4_1col_preempt_savetimestamps_target"
 add_test(NAME "aiebu_error_duplicate_asm_filename"
   COMMAND ${AIEBU_ERROR_TESTNAME}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME "asm_parser_lifetime"
+  COMMAND ${ASM_PARSER_LIFETIME_TESTNAME}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties("asm_parser_lifetime" PROPERTIES LABELS memcheck)
 
 # AIE Coredump ELF generation tests.
 add_test(NAME "aie_coredump_elf_generation"

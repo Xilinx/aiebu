@@ -1752,7 +1752,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
         const std::string& /*directive_line*/,
         const std::string& args_tail)
 {
-  m_parserptr = parserptr;
+  m_parserptr = parserptr.get();
   verify_nonempty_args(args_tail, error::error_code::invalid_asm, "Invalid attach_to_group directive argument\n");
 
   // dummy eof added if col change happens before eof
@@ -1769,7 +1769,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
         const std::string& /*directive_line*/,
         const std::string& args_tail)
 {
-  m_parserptr = parserptr;
+  m_parserptr = parserptr.get();
   verify_nonempty_args(args_tail, error::error_code::invalid_asm, ".section directive requires arguments\n");
 
   std::vector<std::string> args = splitoption(args_tail.c_str(), ',');
@@ -1789,7 +1789,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
         const std::string& directive_line,
         const std::string& /*args_tail*/)
 {
-  m_parserptr = parserptr;
+  m_parserptr = parserptr.get();
   static const regex pattern(R"(\.partition\s+(\d+)(column|core:(\d+)mem))");
   smatch match;
   log_info() << "PARTITION:" << directive_line << "\n";
@@ -1814,7 +1814,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
         const std::string& directive_line,
         const std::string& /*args_tail*/)
 {
-  m_parserptr = parserptr;
+  m_parserptr = parserptr.get();
   // Pattern: .target <arch>-<sub-arch> or .target <arch>
   static const regex pattern(R"(\.target\s+([a-zA-Z0-9]+)(?:-([a-zA-Z0-9]+))?)");
   smatch match;
@@ -1840,7 +1840,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
         const std::string& directive_line,
         const std::string& /*args_tail*/)
 {
-  m_parserptr = parserptr;
+  m_parserptr = parserptr.get();
   // Pattern: .aie_row_topology A-B-C-D
   // Where: A=num_south_shim, B=num_memtile_row, C=num_coretile_row, D=num_north_shim
   // Example: .aie_row_topology 1-1-4-0
@@ -1896,7 +1896,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
         const std::string& /*directive_line*/,
         const std::string& args_tail)
 {
-  m_parserptr = parserptr;
+  m_parserptr = parserptr.get();
   std::string file = args_tail;
   if (file.size() >= 2 && file.front() == '"' && file.back() == '"')
     file =  file.substr(1, file.size() - 2);
@@ -1912,7 +1912,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
         const std::string& /*directive_line*/,
         const std::string& args_tail)
 {
-  m_parserptr = parserptr;
+  m_parserptr = parserptr.get();
 
   std::string label = m_parserptr->top_label();
   m_parserptr->pop_label();
@@ -1931,7 +1931,7 @@ operate(std::shared_ptr<asm_parser> parserptr,
         const std::string& directive_line,
         const std::string& args_tail)
 {
-  m_parserptr = parserptr;
+  m_parserptr = parserptr.get();
   verify_nonempty_args(args_tail, error::error_code::invalid_asm, ".setpad directive requires arguments\n");
 
   std::vector<std::string> args = splitoption(args_tail.c_str(), ',');
