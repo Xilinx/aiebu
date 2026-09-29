@@ -1,41 +1,47 @@
 ELF Header:
-  Magic:   7f 45 4c 46 01 01 01 40 01 00 00 00 00 00 00 00
+  Magic:   7f 45 4c 46 01 01 01 46 02 00 00 00 00 00 00 00
   Class:                             ELF32
   Data:                              2's complement, little endian
   Ident Version:                     1 (current)
-  OS/ABI:                            <unknown>: 64
-  ABI Version:                       1
+  OS/ABI:                            <unknown>: 70
+  ABI Version:                       2
   Type:                              EXEC (Executable file)
-  Machine:                           WE32100
+  Machine:                           <unknown>: 0x10d
   Version:                           1 (current)
   Entry point address:               0
   Start of program headers:          52 (bytes into file)
-  Start of section headers:          8424 (bytes into file)
+  Start of section headers:          29632 (bytes into file)
   Flags:                             
   Size of this header:               52 (bytes)
   Size of program header entries:    32 (bytes)
   Number of program headers entries: 4
   Size of section header entries:    40 (bytes)
-  Number of section headers entries: 4
-  Section header string table index: 3
+  Number of section headers entries: 6
+  Section header string table index: 1
 
 Section Headers:
 [Nr] Name                 Type         Addr     Off    Size   ES Flags Lk Inf Al
 [ 0]                      NULL         00000000 000000 000000  0        0   0  0
-[ 1] .ctrltext.0.0        PROGBITS     00000000 0000c0 000420  0 AX     0   0 16
-[ 2] .ctrldata.0.0        PROGBITS     00000000 0004e0 001be0  0 WA     0   0 16
-[ 3] .shstrtab            STRTAB       00000000 0020c0 000027  0 AS     0   0  1
+[ 1] .shstrtab            STRTAB       00000000 00735c 00003b  0        0   0  1
+[ 2] .ctrltext.0.0        PROGBITS     00000000 0000c0 000420  0 AX     0   0 16
+[ 3] .ctrldata.0.0        PROGBITS     00000420 0004e0 001be0  0 WA     0   0 16
+[ 4] .dump                PROGBITS     00002000 0020c0 00529c  0 WA     0   0 16
+[ 5] .note.xrt.UID        NOTE         00000000 007397 000020  0        0   0  1
 
 Program Headers:
   Type           Offset   VirtAddr   PhysAddr   FileSiz  MemSiz   Flg Align
-  PHDR           0x000034 0x00000034 0x00000034 0x000080 0x000080 R   0x8
-  LOAD           0x000000 0x00000000 0x00000000 0x0000c0 0x0000c0 R   0x8
-  LOAD           0x0000c0 0x000000c0 0x000000c0 0x000420 0x000420 R E 0x10
-  LOAD           0x0004e0 0x000004e0 0x000004e0 0x001be0 0x001be0 RW  0x10
+  PHDR           0x000034 0x00000000 0x00000000 0x000080 0x000080 R   0x0
+  LOAD           0x0000c0 0x00000000 0x00000000 0x000420 0x000420 R E 0x10
+  LOAD           0x0004e0 0x00000420 0x00000000 0x001be0 0x001be0 RW  0x10
+  LOAD           0x0020c0 0x00002000 0x00000000 0x00529c 0x00529c RW  0x10
 
  Section to Segment mapping:
   Segment Sections...
    00     
-   01      [RO: .shstrtab]
-   02     
-   03     
+   01      [RO: .ctrltext.0.0]
+   02      .ctrldata.0.0
+   03      .dump
+
+Note section [ 5] '.note.xrt.UID' of 32 bytes at offset 0x7397:
+  Owner          Data size  Type
+  XRT                   16  <unknown>: 4

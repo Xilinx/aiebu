@@ -2,6 +2,8 @@
 // Copyright (C) 2024-2026, Advanced Micro Devices, Inc. All rights reserved.
 #include "aie2ps_encoder.h"
 
+#include "page_busy_poll.h"
+
 #include "aiebu/aiebu_error.h"
 #include "logger.h"
 
@@ -195,6 +197,8 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
   all.insert(all.end(), lpage.m_text.begin(), lpage.m_text.end());
   all.insert(all.end(), lpage.m_data.begin(), lpage.m_data.end());
   std::shared_ptr<assembler_state> page_state = create_assembler_state(m_isa, all, scratchpad, labelpageindex, ctrlpkt_id_map, optimization_level, false);
+  page_header[PAGE_HEADER_BUSY_POLL_HINT_BYTE] =
+      compute_page_busy_poll_hint(*page_state, page_state->m_jobids);
 
   std::shared_ptr<section_writer> textwriter;
   std::shared_ptr<section_writer> datawriter;
