@@ -543,7 +543,8 @@ expand_write_buffer(const std::string& write_buffer)
             ),
             static_cast<uint32_t>(
                 m_mem_host_addr_map[uC_index] & dtrace::dtrace_ctrl::mask_32
-            )
+            ),
+            dtrace::dtrace_ctrl::write_mem_buffer_not_appended
         };
         m_buffer_map[uC_index][buffer_name] = std::make_pair(buffer_addr, buffer_map_values);
 
@@ -603,7 +604,8 @@ expand_init_buffer(const std::string& init_buffer)
             ),
             static_cast<uint32_t>(
                 m_mem_host_addr_map[uC_index] & dtrace::dtrace_ctrl::mask_32
-            )
+            ),
+            dtrace::dtrace_ctrl::write_mem_buffer_not_appended
         };
         m_buffer_map[uC_index][buffer_name] = std::make_pair(buffer_addr, buffer_values);
 

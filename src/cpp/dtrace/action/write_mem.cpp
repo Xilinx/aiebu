@@ -20,8 +20,9 @@ namespace dtrace::action
  */
 write_mem_action::
 write_mem_action(std::string token, uint32_t probe_type, const std::string& probe_name,
-    const buffer_map& buffer_map)
+    buffer_map& buffer_map)
     : action(probe_type, probe_name)
+    , m_append_write_buffer(false)
 {
     std::vector<std::string> fields;
     action::getline(token, '=', fields);
@@ -48,6 +49,12 @@ write_mem_action(std::string token, uint32_t probe_type, const std::string& prob
     {
         m_write_buffer_addr = buffer_map.at(write_buffer_name).first;
         m_write_buffer_values = buffer_map.at(write_buffer_name).second;
+        // Check if the write buffer is the first write_mem of this buffer on this uC
+        m_append_write_buffer = 
+            (m_write_buffer_addr[2] == dtrace::dtrace_ctrl::write_mem_buffer_not_appended);
+        // Set the write buffer append flag to indicate that the write buffer 
+        // has been appended to the mem buffer
+        buffer_map.at(write_buffer_name).first[2] = dtrace::dtrace_ctrl::write_mem_buffer_appended;
     }
     else
         DTRACE_ERROR("DTRACE_ACTION_WRITE_BUFFER_NOT_FOUND", 
@@ -83,9 +90,10 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
 
     // mem buffer
     // values
-    mem_buffer.insert(
-        mem_buffer.end(), m_write_buffer_values.begin(), m_write_buffer_values.end()
-    );
+    if (m_append_write_buffer)
+        mem_buffer.insert(
+            mem_buffer.end(), m_write_buffer_values.begin(), m_write_buffer_values.end()
+        );
 }
 
 //-------------------------write_mem_action::serialize-------------------------//

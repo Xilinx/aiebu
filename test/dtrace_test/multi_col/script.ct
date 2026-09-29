@@ -79,6 +79,7 @@ jprobe:dummy.asm:uc4,8,12:line4
         0xdeadbeef, 0xdeadbeef, 0xdeadbeef, 0xdeadbeef
     ]
     write_mem(0x180000, 4, buf3)
+    write_mem(0x1A0000, 4, buf3)
     buf4 = read_mem(0x180000, 4)
     print(f"multi uc mem = {buf4}")
 }
