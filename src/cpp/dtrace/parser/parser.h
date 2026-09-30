@@ -77,8 +77,7 @@ private:
     std::unordered_map<uint32_t, dtrace::action::buffer_map> m_buffer_map; 
     std::vector<int> get_list(const std::string& token) const;
     std::pair<int, int> lookup_control_code_location(const std::string& probe_name) const;
-    void expand_begin(uint32_t probe_type, const std::string& probe_name);
-    void expand_end(uint32_t probe_type, const std::string& probe_name);
+    void expand_begin_end(uint32_t probe_type, const std::string& probe_name);
     void expand_profile(uint32_t probe_type, const std::string& probe_name);
     void expand_jprobe(uint32_t probe_type, const std::string& probe_name);
     void expand_tracepoint(uint32_t probe_type, const std::string& probe_name);

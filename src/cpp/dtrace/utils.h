@@ -18,6 +18,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace dtrace
 {
@@ -138,6 +139,43 @@ private:
   std::set<ELFIO::Elf_Half>
   get_filtered_section_indices(const std::string& kernel_instance_filter) const;
 };
+
+//-------------------------Token helpers-------------------------//
+/**
+ * strip() - Removes leading and trailing whitespace from a token.
+ *
+ * @param token
+ *  Input string.
+ * @return
+ *  Token with leading and trailing spaces, newlines, carriage returns, and tabs removed.
+ *  An empty string when the input is only whitespace.
+ */
+std::string strip(const std::string& token);
+
+/**
+ * getline() - Splits a token on a delimiter and strips every field.
+ *
+ * @param token
+ *  Token to split.
+ * @param delimiter
+ * @param fields
+ *  Stripped fields of the token.
+ */
+void getline(const std::string& token, char delimiter, std::vector<std::string>& fields);
+
+/**
+ * match() - Splits an action call into action name and arguments.
+ *
+ * @param token
+ *  Action call to match: name(arguments)
+ * @param name
+ *  Action name of the call.
+ * @param arguments
+ *  Argument string of the call, without the brackets.
+ * @return
+ *  true if the token has the form name(arguments).
+ */
+bool match(const std::string& token, std::string& name, std::string& arguments);
 
 } // namespace dtrace
 

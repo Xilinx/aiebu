@@ -318,26 +318,52 @@ patch_control_buffer(const std::unordered_map<uint32_t, uint64_t>& mem_host_addr
  * populate_result_actions() - Populates m_result_actions in execution order across probes.
  *
  * This function populates the m_result_actions vector with actions in the order
- * they are executed across all probes. It iterates through the probes in the order
- * they were defined for each uC, so begin and end probes are ordered along with
- * the other probes of their uC.
+ * they are executed across all probes. It first adds actions from the "begin" probe, 
+ * then iterates through the probes in the order they were defined for each uC, 
+ * and finally adds actions from the "end" probe.
  */
 void
 control::
 populate_result_actions()
 {
     m_result_actions.clear();
-    // Probes
     for (const auto& uC : m_parser.m_uC_indices)
     {
+        const auto& probes = m_parser.m_probes.at(uC);
+        const std::string begin_probe = "begin:uc" + std::to_string(uC);
+        const std::string end_probe = "end:uc" + std::to_string(uC);
+
+        // Probe - begin
+        if (m_parser.m_probes.at(uC).find(begin_probe) != m_parser.m_probes.at(uC).end())
+        {
+            std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> begin_actions;
+            for (const auto& action : probes.at(begin_probe)->m_actions)
+                begin_actions.emplace_back(action, uC);
+
+            m_result_actions.emplace_back(begin_actions);
+        }
+
+        // Probe - Jprobe and Tracepoint
         for (const auto& probe_name : m_parser.m_probe_order.at(uC))
         {
+            if (probe_name == begin_probe || probe_name == end_probe)
+                continue;
+
             std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> probe_actions;
-            const auto& probe = m_parser.m_probes.at(uC).at(probe_name);
-            for (const auto& action : probe->m_actions)
+            for (const auto& action : probes.at(probe_name)->m_actions)
                 probe_actions.emplace_back(action, uC);
 
             m_result_actions.emplace_back(probe_actions);
+        }
+
+        // Probe - end
+        if (m_parser.m_probes.at(uC).find(end_probe) != m_parser.m_probes.at(uC).end())
+        {
+            std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> end_actions;
+            for (const auto& action : probes.at(end_probe)->m_actions)
+                end_actions.emplace_back(action, uC);
+
+            m_result_actions.emplace_back(end_actions);
         }
     }
 }

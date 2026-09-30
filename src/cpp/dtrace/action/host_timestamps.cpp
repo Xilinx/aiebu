@@ -27,7 +27,7 @@ host_timestamps_action(std::string token, uint32_t probe_type, const std::string
     , m_mem_host_addr(mem_host_addr)
 {
     std::vector<std::string> fields;
-    action::getline(token, '=', fields);
+    dtrace::getline(token, '=', fields);
 
     if (fields.size() != 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
@@ -46,7 +46,7 @@ host_timestamps_action(std::string token, uint32_t probe_type, const std::string
 
     // Validate and parse the action name
     std::string argument_string;
-    if (!action::match(fields[1], m_action_name, argument_string))
+    if (!dtrace::match(fields[1], m_action_name, argument_string))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'host_timestamps()'");
 

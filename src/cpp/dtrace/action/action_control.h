@@ -253,9 +253,6 @@ public:
     virtual uint64_t get_mem_host_addr() const { return 0; }
     uint32_t get_location(bool is_mem_buffer) const;
     std::string create_string() const;
-    static std::string strip(const std::string& token);
-    static void getline(const std::string& token, char delimiter, std::vector<std::string>& fields);
-    static bool match(const std::string& token, std::string& name, std::string& arguments);
 };
 
 //-------------------------Read register-------------------------//

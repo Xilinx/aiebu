@@ -23,7 +23,7 @@ read_reg_action(std::string token, uint32_t probe_type, const std::string& probe
     : action(probe_type, probe_name)
 {
     std::vector<std::string> fields;
-    action::getline(token, '=', fields);
+    dtrace::getline(token, '=', fields);
 
     if (fields.size() != 2)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
@@ -33,12 +33,12 @@ read_reg_action(std::string token, uint32_t probe_type, const std::string& probe
 
     // Validate and parse the action name
     std::string argument_string;
-    if (!action::match(fields[1], m_action_name, argument_string))
+    if (!dtrace::match(fields[1], m_action_name, argument_string))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'read_reg(addr)'");
 
     // Validate and parse the arguments
-    action::getline(argument_string, ',', m_arguments);
+    dtrace::getline(argument_string, ',', m_arguments);
 
     if (m_arguments.size() < 1)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 

@@ -30,7 +30,7 @@ print_action(std::string token, uint32_t probe_type, const std::string& probe_na
     , m_token(std::move(token))
 {
     std::vector<std::string> fields;
-    action::getline(m_token, '=', fields);
+    dtrace::getline(m_token, '=', fields);
 
     // Validate and parse the action name
     std::string temp = fields[0];
@@ -42,7 +42,7 @@ print_action(std::string token, uint32_t probe_type, const std::string& probe_na
     m_action_name = temp.substr(0, position);
     // Validate and parse the arguments
     std::string argument_string = temp.substr(position + 1, temp.length() - position - 2);
-    action::getline(argument_string, ',', m_arguments);
+    dtrace::getline(argument_string, ',', m_arguments);
 
     if (m_arguments.size() < 1)
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN_ARGUMENTS", 
