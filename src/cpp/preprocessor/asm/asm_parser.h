@@ -102,7 +102,8 @@ class asm_parser;
 class directive
 {
 public:
-  std::shared_ptr<asm_parser> m_parserptr;
+  // Borrowed: operate() keeps the owning parser alive during dispatch.
+  asm_parser* m_parserptr = nullptr;
 public:
   directive() {}
   virtual void operate(std::shared_ptr<asm_parser> parserptr,
