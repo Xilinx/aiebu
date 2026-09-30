@@ -20,16 +20,18 @@ foreach(tfile ${tfiles})
     COMMAND aiebu-asm  -t aie2ps -c "${tfile}" -o "${samplecppelf}"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-  add_test(NAME "${sample}_readelf"
-    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run-readelf.sh" "${samplecppelf}" "${samplecppelftext}"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    add_test(NAME "${sample}_readelf"
+      COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run-readelf.sh" "${samplecppelf}" "${samplecppelftext}"
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-  add_test(NAME "${sample}_compareelf"
-    COMMAND ${CMAKE_COMMAND} -E compare_files "${samplecppelftext}" "${CMAKE_CURRENT_SOURCE_DIR}/${samplegold}"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    add_test(NAME "${sample}_compareelf"
+      COMMAND ${CMAKE_COMMAND} -E compare_files "${samplecppelftext}" "${CMAKE_CURRENT_SOURCE_DIR}/${samplegold}"
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-  set_tests_properties("${sample}_readelf" PROPERTIES DEPENDS "${sample}_cpp")
-  set_tests_properties("${sample}_compareelf" PROPERTIES DEPENDS "${sample}_readelf")
+    set_tests_properties("${sample}_readelf" PROPERTIES DEPENDS "${sample}_cpp")
+    set_tests_properties("${sample}_compareelf" PROPERTIES DEPENDS "${sample}_readelf")
+  endif()
 
   if (NOT (AIEBU_PYTHON STREQUAL "ON"))
     continue()
