@@ -110,15 +110,12 @@
 <li><a href="#write_32-0x05">WRITE_32 (0x05)</a></li>
 <li><a href="#wait_tcts-0x06">WAIT_TCTS (0x06)</a></li>
 <li><a href="#end_job-0x07">END_JOB (0x07)</a></li>
-<li><a href="#yield-0x08">YIELD (0x08)</a></li>
 <li><a href="#uc_dma_write_des_sync-0x09">UC_DMA_WRITE_DES_SYNC (0x09)</a></li>
 <li><a href="#write_32_d-0x0b">WRITE_32_D (0x0b)</a></li>
 <li><a href="#read_32-0x0c">READ_32 (0x0c)</a></li>
 <li><a href="#read_32_d-0x0d">READ_32_D (0x0d)</a></li>
 <li><a href="#apply_offset_57-0x0e">APPLY_OFFSET_57 (0x0e)</a></li>
 <li><a href="#apply_offset_sram-0x24">APPLY_OFFSET_SRAM (0x24)</a></li>
-<li><a href="#add-0x0f">ADD (0x0f)</a></li>
-<li><a href="#mov-0x10">MOV (0x10)</a></li>
 <li><a href="#local_barrier-0x11">LOCAL_BARRIER (0x11)</a></li>
 <li><a href="#remote_barrier-0x12">REMOTE_BARRIER (0x12)</a></li>
 <li><a href="#eof-0xff">EOF (0xff)</a></li>
@@ -132,7 +129,6 @@
 <li><a href="#load_cores_cp-0x20">LOAD_CORES_CP (0x20)</a></li>
 <li><a href="#load_last_pdi-0x1b">LOAD_LAST_PDI (0x1b)</a></li>
 <li><a href="#save_timestamps-0x1c">SAVE_TIMESTAMPS (0x1c)</a></li>
-<li><a href="#sleep-0x1d">SLEEP (0x1d)</a></li>
 <li><a href="#save_register-0x1e">SAVE_REGISTER (0x1e)</a></li>
 <li><a href="#rel_acq_sync-0x21">REL_ACQ_SYNC (0x21)</a></li>
 <li><a href="#uc_dma_mask_poll_ext-0x22">UC_DMA_MASK_POLL_EXT (0x22)</a></li>
@@ -816,28 +812,6 @@ waiting for more tcts than enqueued will hang the job forever</p>
 </table>
 <p>Indicates the end of a job started with <code>START_JOB</code>. After <code>END_JOB</code>, the only
 valid operations are <code>START_JOB</code> and <code>EOF</code>.</p>
-<h2 id="yield-0x08">YIELD (0x08)</h2>
-<p>Yields to another job.</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">0x08</th>
-<th>-</th>
-<th>-</th>
-<th style="text-align: right;">instruction size</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">opcode (8b)</td>
-<td>pad (8b)</td>
-<td>pad (16b)</td>
-<td style="text-align: right;">4B</td>
-</tr>
-</tbody>
-</table>
-<p>Tells the scheduler to perform a context switch to the next available job. The
-current job will be re-scheduled in the next scheduling cycle.</p>
 <h2 id="uc_dma_write_des_sync-0x09">UC_DMA_WRITE_DES_SYNC (0x09)</h2>
 <p>Enqueues a DM2MM uC-DMA transfer and waits for it to finish.</p>
 <table>
@@ -1080,57 +1054,6 @@ wts_shim_bd:
   .long              0x80000000
   .long              0x00000000
 </code></pre>
-<h2 id="add-0x0f">ADD (0x0f)</h2>
-<p>Adds <code>value</code> to the content of register <code>dest</code>.</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">0x0f</th>
-<th>-</th>
-<th>dest</th>
-<th>-</th>
-<th>value</th>
-<th style="text-align: right;">instruction size</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">opcode (8b)</td>
-<td>pad (8b)</td>
-<td>register (8b)</td>
-<td>pad (8b)</td>
-<td>const (32b)</td>
-<td style="text-align: right;">8B</td>
-</tr>
-</tbody>
-</table>
-<p>The value stored in register <code>dest</code> is loaded, then <code>value</code> is added to it and the result is
-stored in the <code>dest</code> register.</p>
-<h2 id="mov-0x10">MOV (0x10)</h2>
-<p>Moves <code>value</code> to register <code>dest</code>.</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">0x10</th>
-<th>-</th>
-<th>dest</th>
-<th>-</th>
-<th>value</th>
-<th style="text-align: right;">instruction size</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">opcode (8b)</td>
-<td>pad (8b)</td>
-<td>register (8b)</td>
-<td>pad (8b)</td>
-<td>const (32b)</td>
-<td style="text-align: right;">8B</td>
-</tr>
-</tbody>
-</table>
-<p>Stores the constant <code>value</code> in the register <code>dest</code>.</p>
 <h2 id="local_barrier-0x11">LOCAL_BARRIER (0x11)</h2>
 <p>Local barrier used to synchronize multiple jobs.</p>
 <table>
@@ -1615,31 +1538,6 @@ For the latter approach, <code>POLL_32</code>/<code>MASK_POLL_32</code> is used 
 identifier while generating control code. The timestamps will get saved in shared data memory. Whenever the
 allocated shared memory gets fill, CERT should initiate the uc-DMA to transfer data from shared
 data memory to host memory.</p>
-<h2 id="sleep-0x1d">SLEEP (0x1d)</h2>
-<p>sleep instruction.</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">0x1d</th>
-<th>-</th>
-<th>-</th>
-<th>target</th>
-<th style="text-align: right;">instruction size</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">opcode (8b)</td>
-<td>pad (8b)</td>
-<td>pad (16b)</td>
-<td>const (32b)</td>
-<td style="text-align: right;">8B</td>
-</tr>
-</tbody>
-</table>
-<p>Sleep instruction makes the current job busy waiting <code>target</code> microseconds. This opcode is for test purpose
-only. Calling this operation doesn't yield control to another job.</p>
-<p>Note that this opcode is not supported in release CERT. Dtrace action sleep() is recommended for this test purpose.</p>
 <h2 id="save_register-0x1e">SAVE_REGISTER (0x1e)</h2>
 <p>Reads value from specified register address and saves it in Shared Data Memory.</p>
 <table>

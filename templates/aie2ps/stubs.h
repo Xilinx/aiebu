@@ -12,12 +12,12 @@
 #define {{macro_define.mnemonic.upper()}} {{'0x{:02x}'.format(macro_define.value)}}{% endfor %}
 
 // Op codes
-{% for operation in operations %}
+{% for operation in operations if operation.mnemonic|upper != 'POLL_32' %}
 #define ISA_OPCODE_{{operation.mnemonic.upper()}} {{'0x{:02x}'.format(operation.opcode)}}{% endfor %}
 
 
 // Operation sizes
-{% for operation in operations %}
+{% for operation in operations if operation.mnemonic|upper != 'POLL_32' %}
 #define ISA_OPSIZE_{{operation.mnemonic.upper()}} {{'0x{:02x}'.format(get_operation_size(operation))}}{% endfor %}
 
 #endif

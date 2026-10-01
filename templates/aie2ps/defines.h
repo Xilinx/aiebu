@@ -10,12 +10,12 @@
 #include "isa_stubs.h"
 
 // Operation implementation forward declarations
-{% for operation in operations %}
+{% for operation in operations if operation.mnemonic|upper != 'POLL_32' %}
 static unsigned int control_op_{{operation.mnemonic.lower()}}(const uint8_t *_pc{% for arg in operation.arguments if arg.type != 'pad' and arg.type != 'patch_buf' %}, {{get_arg_c_type(arg)}} {{arg.name}}{% if arg.type == 'register' %}_reg{% endif %}{% endfor %});{% endfor %}
 
 
 // Dispatchers
-{% for operation in operations %}
+{% for operation in operations if operation.mnemonic|upper != 'POLL_32' %}
 FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_{{operation.mnemonic.lower()}}(const uint8_t *pc)
 {
   return control_op_{{operation.mnemonic.lower()}}(
@@ -27,7 +27,7 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_{{oper
 
 // Case statements for regular operations
 
-#define DISPATCH_REGULAR_OPS{% for operation in operations if operation.regular %} \
+#define DISPATCH_REGULAR_OPS{% for operation in operations if operation.regular and operation.mnemonic|upper != 'POLL_32' %} \
   case ISA_OPCODE_{{operation.mnemonic.upper()}}: pc += control_dispatch_{{operation.mnemonic.lower()}}(pc); break;{% endfor %}
 
 

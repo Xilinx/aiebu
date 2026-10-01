@@ -30,8 +30,16 @@ public:
     {% for operation in operations %}(*m_isa)["{{operation.mnemonic.lower()}}"] = std::make_shared<isa_op>("{{operation.mnemonic.lower()}}", OPCODE_{{operation.mnemonic.upper()}}, std::vector<opArg>{
     {% for arg in operation.arguments if arg.type != 'patch_buf' %} opArg({%if arg.type != 'pad' %}"{{arg.name}}"{% else %}"_pad"{% endif %}, opArg::optype::{% if arg.type == 'register' %}REG{% else %}{{arg.type.upper()}}{% endif %}, BIT_WIDTH_{{get_arg_width(arg)}}),{% endfor %}
     });
+    {% endfor %}
+    // poll_32 is an assembler alias: emitted as MASK_POLL_32 with mask = 0xffffffff
+    (*m_isa)["poll_32"] = std::make_shared<isa_op>("poll_32", OPCODE_MASK_POLL_32, std::vector<opArg>{
+      opArg("_pad",    opArg::optype::PAD,      BIT_WIDTH_16),
+      opArg("address", opArg::optype::CONST,    BIT_WIDTH_32),
+      opArg("mask",    opArg::optype::CONSTVAL, BIT_WIDTH_32, 0xffffffffu),
+      opArg("value",   opArg::optype::CONST,    BIT_WIDTH_32),
+    });
 
-    {% endfor %}(*m_isa)[".align"] = std::make_shared<isa_op>(".align", OPCODE_ALIGN, std::vector<opArg>{});
+    (*m_isa)[".align"] = std::make_shared<isa_op>(".align", OPCODE_ALIGN, std::vector<opArg>{});
     (*m_isa)[".long"] = std::make_shared<isa_op>(".long", 0/* dummy*/, std::vector<opArg>{});
     (*m_isa)["uc_dma_bd"] = std::make_shared<isa_op>("uc_dma_bd", 0/* dummy*/, std::vector<opArg>{});
     (*m_isa)["uc_dma_bd_shim"] = std::make_shared<isa_op>("uc_dma_bd_shim", 0/* dummy*/, std::vector<opArg>{});

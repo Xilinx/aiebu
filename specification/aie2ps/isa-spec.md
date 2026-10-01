@@ -337,18 +337,6 @@ Indicates the end of a job started with `START_JOB`. After `END_JOB`, the only
 valid operations are `START_JOB` and `EOF`.
 
 
-## YIELD (0x08)
-
-Yields to another job.
-
-| 0x08 | - | - | instruction size |
-| :-: | - | - | -: |
-| opcode (8b) | pad (8b) | pad (16b) | 4B |
-
-Tells the scheduler to perform a context switch to the next available job. The
-current job will be re-scheduled in the next scheduling cycle.
-
-
 ## UC_DMA_WRITE_DES_SYNC (0x09)
 
 Enqueues a DM2MM uC-DMA transfer and waits for it to finish.
@@ -510,29 +498,6 @@ wts_shim_bd:
   .long              0x80000000
   .long              0x00000000
 ```
-
-
-## ADD (0x0f)
-
-Adds `value` to the content of register `dest`.
-
-| 0x0f | - | dest | - | value | instruction size |
-| :-: | - | - | - | - | -: |
-| opcode (8b) | pad (8b) | register (8b) | pad (8b) | const (32b) | 8B |
-
-The value stored in register `dest` is loaded, then `value` is added to it and the result is
-stored in the `dest` register.
-
-
-## MOV (0x10)
-
-Moves `value` to register `dest`.
-
-| 0x10 | - | dest | - | value | instruction size |
-| :-: | - | - | - | - | -: |
-| opcode (8b) | pad (8b) | register (8b) | pad (8b) | const (32b) | 8B |
-
-Stores the constant `value` in the register `dest`.
 
 
 ## LOCAL_BARRIER (0x11)
@@ -851,20 +816,6 @@ Used to save the time stamps whenever control code encountered this opcode. AIE 
 identifier while generating control code. The timestamps will get saved in shared data memory. Whenever the
 allocated shared memory gets fill, CERT should initiate the uc-DMA to transfer data from shared
 data memory to host memory.
-
-
-## SLEEP (0x1d)
-
-sleep instruction.
-
-| 0x1d | - | - | target | instruction size |
-| :-: | - | - | - | -: |
-| opcode (8b) | pad (8b) | pad (16b) | const (32b) | 8B |
-
-Sleep instruction makes the current job busy waiting `target` microseconds. This opcode is for test purpose
-only. Calling this operation doesn't yield control to another job.
-
-Note that this opcode is not supported in release CERT. Dtrace action sleep() is recommended for this test purpose.
 
 
 ## SAVE_REGISTER (0x1e)
