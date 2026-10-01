@@ -105,11 +105,15 @@ elf_debug_map::
 get_filtered_section_indices(const std::string& kernel_instance_filter) const
 {
   const size_t delimiter_pos = kernel_instance_filter.find(':');
-  if (delimiter_pos == std::string::npos)
-    return {};
-
-  const std::string filter_kernel = kernel_instance_filter.substr(0, delimiter_pos);
-  const std::string filter_instance = kernel_instance_filter.substr(delimiter_pos + 1);
+  // If no ':' is present, treat the entire string as the kernel name and accept
+  // the first matching instance.  This supports single-instance kernels where
+  // the caller passes "DPU" rather than "DPU:dpu"
+  const std::string filter_kernel = (delimiter_pos == std::string::npos)
+      ? kernel_instance_filter
+      : kernel_instance_filter.substr(0, delimiter_pos);
+  const std::string filter_instance = (delimiter_pos == std::string::npos)
+      ? std::string{}
+      : kernel_instance_filter.substr(delimiter_pos + 1);
 
   const ELFIO::section* symtab = m_elf.sections[".symtab"];
   const ELFIO::section* strtab = m_elf.sections[".strtab"];
@@ -146,7 +150,9 @@ get_filtered_section_indices(const std::string& kernel_instance_filter) const
       continue;
 
     const char* sym_name = strtab->get_data() + sym->st_name;
-    if (std::string(sym_name) == filter_instance && sym->st_shndx == kernel_symbol_index) {
+    const bool instance_match = filter_instance.empty()
+        || std::string(sym_name) == filter_instance;
+    if (instance_match && sym->st_shndx == kernel_symbol_index) {
       instance_symbol_index = static_cast<ELFIO::Elf_Word>(i);
       break;
     }
@@ -296,15 +302,19 @@ get_debug_section_json(const std::string& kernel_instance_filter) const
     return {};
 
   const size_t delimiter_pos = kernel_instance_filter.find(':');
-  if (delimiter_pos == std::string::npos)
-    return dwarf_rows_to_json(reader.get_all_rows());
+  // If no ':' is present, treat the entire string as the kernel name and accept
+  // any instance — consistent with the single-instance XRT usage of "DPU" vs "DPU:dpu".
+  const std::string filter_kernel   = (delimiter_pos == std::string::npos)
+      ? kernel_instance_filter
+      : kernel_instance_filter.substr(0, delimiter_pos);
+  const std::string filter_instance = (delimiter_pos == std::string::npos)
+      ? std::string{}
+      : kernel_instance_filter.substr(delimiter_pos + 1);
 
-  const std::string filter_kernel   = kernel_instance_filter.substr(0, delimiter_pos);
-  const std::string filter_instance = kernel_instance_filter.substr(delimiter_pos + 1);
-
-  // Filter rows to those whose CU name matches this kernel:instance.
+  // Filter rows to those whose CU name matches this kernel(:instance).
   // CU names are stored as "mangled_kernel:instance" (e.g. "_Z3DPUPcPcPcPc:subgraph_0");
   // we demangle the kernel prefix for comparison.
+  // If filter_instance is empty, accept any instance for the matching kernel.
   std::vector<aiebu::dwarf_debug_row> filtered;
   for (const auto& row : reader.get_all_rows()) {
     const size_t cu_delim = row.cu_name.find(':');
@@ -313,7 +323,8 @@ get_debug_section_json(const std::string& kernel_instance_filter) const
     const std::string cu_instance = row.cu_name.substr(cu_delim + 1);
     const std::string demangled   = extract_kernel_name_from_mangled(cu_kernel);
     const bool kernel_match = (demangled == filter_kernel) || (cu_kernel == filter_kernel);
-    if (kernel_match && cu_instance == filter_instance)
+    const bool instance_match = filter_instance.empty() || (cu_instance == filter_instance);
+    if (kernel_match && instance_match)
       filtered.push_back(row);
   }
   return dwarf_rows_to_json(filtered);
