@@ -18,6 +18,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace dtrace
 {
@@ -98,6 +99,8 @@ public:
     static constexpr uint32_t empty_buffer_check = 0xFFFFFFFF;          // Check for empty buffer
     static constexpr uint32_t handshake_overflow = 0xFBADBEEF;          // Value used to check handshake overflow
     static constexpr uint32_t result_value_init = 0xFBADCAFE;           // Initial value for action result
+    static constexpr uint32_t write_mem_buffer_not_appended = 0;        // Write buffer payload not copied to mem buffer
+    static constexpr uint32_t write_mem_buffer_appended = 1;            // Write buffer payload copied to mem buffer
     static constexpr uint32_t decimal_base = 10;                        // Base for decimal numbers
     static constexpr uint32_t hexadecimal_base = 16;                    // Base for hexadecimal numbers
     static constexpr uint32_t decimal_hexadecimal_base = 0;             // Base for both decimal and hexadecimal numbers
@@ -136,6 +139,43 @@ private:
   std::set<ELFIO::Elf_Half>
   get_filtered_section_indices(const std::string& kernel_instance_filter) const;
 };
+
+//-------------------------Token helpers-------------------------//
+/**
+ * strip() - Removes leading and trailing whitespace from a token.
+ *
+ * @param token
+ *  Input string.
+ * @return
+ *  Token with leading and trailing spaces, newlines, carriage returns, and tabs removed.
+ *  An empty string when the input is only whitespace.
+ */
+std::string strip(const std::string& token);
+
+/**
+ * getline() - Splits a token on a delimiter and strips every field.
+ *
+ * @param token
+ *  Token to split.
+ * @param delimiter
+ * @param fields
+ *  Stripped fields of the token.
+ */
+void getline(const std::string& token, char delimiter, std::vector<std::string>& fields);
+
+/**
+ * match() - Splits an action call into action name and arguments.
+ *
+ * @param token
+ *  Action call to match: name(arguments)
+ * @param name
+ *  Action name of the call.
+ * @param arguments
+ *  Argument string of the call, without the brackets.
+ * @return
+ *  true if the token has the form name(arguments).
+ */
+bool match(const std::string& token, std::string& name, std::string& arguments);
 
 } // namespace dtrace
 

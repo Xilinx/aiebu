@@ -22,6 +22,8 @@ namespace dtrace::action
 {
 
 using json = nlohmann::ordered_json;
+// Host address buffers, keyed by buffer name. Each address {high, low, append_write_buffer} and values.
+using buffer_map = std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>;
 
 //-------------------------Probe Information-------------------------//
 /**
@@ -251,9 +253,6 @@ public:
     virtual uint64_t get_mem_host_addr() const { return 0; }
     uint32_t get_location(bool is_mem_buffer) const;
     std::string create_string() const;
-    static std::string strip(const std::string& token);
-    static void getline(const std::string& token, char delimiter, std::vector<std::string>& fields);
-    static bool match(const std::string& token, std::string& name, std::string& arguments);
 };
 
 //-------------------------Read register-------------------------//
@@ -337,7 +336,7 @@ private:
 public:
     mask_write_reg_action(
         std::string token, uint32_t probe_type, const std::string& probe_name,
-        const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map
+        const buffer_map& buffer_map
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
@@ -662,7 +661,7 @@ private:
 public:
     read_mem_action(
         std::string token, uint32_t probe_type, const std::string& probe_name, uint64_t mem_host_addr,
-        const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map
+        const buffer_map& buffer_map
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer
@@ -696,11 +695,12 @@ private:
     uint32_t m_length;
     std::vector<uint32_t> m_write_buffer_addr;
     std::vector<uint32_t> m_write_buffer_values;
+    bool m_append_write_buffer;
 
 public:
     write_mem_action(
         std::string token, uint32_t probe_type, const std::string& probe_name,
-        const std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& buffer_map
+        buffer_map& buffer_map
     );
     void actionize(
         uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint32_t>& mem_buffer

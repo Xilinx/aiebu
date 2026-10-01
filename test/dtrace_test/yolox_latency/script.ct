@@ -6,8 +6,8 @@ begin
 {
     ts_start = timestamp32()
 
-    reset[5] = [0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000]
     config[2] = [0x272b2323, 0x00010200]
+    reset[5] = [0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000]
     # Hardware configuration for the performance counters
     # DMA_Event_Channel_Selection @ memtile (0,1) (mm2s sel0 = ch0)
     write_reg(0x00001a06a0, 0x00000000)

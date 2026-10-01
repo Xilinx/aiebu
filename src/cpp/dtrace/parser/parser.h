@@ -57,27 +57,27 @@ enum class state_type
  * @details
  * The parser class handles the parsing of script file, manages the state of the
  * parser, and stores information about probes and actions. It provides methods 
- * to parse lines of script file, expand profile, jprobe, and tracepoint probes, 
- * and create actions based on the parsed data.
+ * to parse lines of script file, expand begin, end, profile, jprobe, and
+ * tracepoint probes, and create actions based on the parsed data.
  */
 class parser
 {
 private:
     state_type m_state;
-    bool m_begin_exist;
-    bool m_end_exist;
     bool m_open;
     bool m_open_buffer;
     uint32_t m_probe_type;
     uint32_t m_uC_index;
+    std::vector<int> m_uC_list;
     std::string m_probe_name;
     std::unordered_map<std::string, std::vector<std::pair<std::string, uint32_t>>> m_probe_expand;
     int m_position;
     std::unordered_map<std::string, dtrace::action::probe_information> m_maps;
     std::string m_write_buffer;
-    std::unordered_map<std::string, std::pair<std::vector<uint32_t>, std::vector<uint32_t>>> m_buffer_map;
+    std::unordered_map<uint32_t, dtrace::action::buffer_map> m_buffer_map; 
     std::vector<int> get_list(const std::string& token) const;
     std::pair<int, int> lookup_control_code_location(const std::string& probe_name) const;
+    void expand_begin_end(uint32_t probe_type, const std::string& probe_name);
     void expand_profile(uint32_t probe_type, const std::string& probe_name);
     void expand_jprobe(uint32_t probe_type, const std::string& probe_name);
     void expand_tracepoint(uint32_t probe_type, const std::string& probe_name);

@@ -327,46 +327,44 @@ control::
 populate_result_actions()
 {
     m_result_actions.clear();
-    uint32_t uC_index = 0;  // uC_index 0 for begin and end probes
-    const bool begin_end_exist = m_parser.m_probes.find(uC_index) != m_parser.m_probes.end();
-
-    // Probe - begin
-    if (begin_end_exist &&
-        m_parser.m_probes.at(uC_index).find("begin") != m_parser.m_probes.at(uC_index).end())
-    {
-        std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> begin_actions;
-        for (const auto& action : m_parser.m_probes.at(uC_index).at("begin")->m_actions)
-            begin_actions.emplace_back(action, uC_index);
-
-        m_result_actions.emplace_back(begin_actions);
-    }
-
-    // Probe - Jprobe and Tracepoint
     for (const auto& uC : m_parser.m_uC_indices)
     {
+        const auto& probes = m_parser.m_probes.at(uC);
+        const std::string begin_probe = "begin:uc" + std::to_string(uC);
+        const std::string end_probe = "end:uc" + std::to_string(uC);
+
+        // Probe - begin
+        if (m_parser.m_probes.at(uC).find(begin_probe) != m_parser.m_probes.at(uC).end())
+        {
+            std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> begin_actions;
+            for (const auto& action : probes.at(begin_probe)->m_actions)
+                begin_actions.emplace_back(action, uC);
+
+            m_result_actions.emplace_back(begin_actions);
+        }
+
+        // Probe - Jprobe and Tracepoint
         for (const auto& probe_name : m_parser.m_probe_order.at(uC))
         {
-            if (probe_name == "begin" || probe_name == "end")
+            if (probe_name == begin_probe || probe_name == end_probe)
                 continue;
 
             std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> probe_actions;
-            const auto& probe = m_parser.m_probes.at(uC).at(probe_name);
-            for (const auto& action : probe->m_actions)
+            for (const auto& action : probes.at(probe_name)->m_actions)
                 probe_actions.emplace_back(action, uC);
 
             m_result_actions.emplace_back(probe_actions);
         }
-    }
 
-    // Probe - end
-    if (begin_end_exist &&
-        m_parser.m_probes.at(uC_index).find("end") != m_parser.m_probes.at(uC_index).end())
-    {
-        std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> end_actions;
-        for (const auto& action : m_parser.m_probes.at(uC_index).at("end")->m_actions)
-            end_actions.emplace_back(action, uC_index);
+        // Probe - end
+        if (m_parser.m_probes.at(uC).find(end_probe) != m_parser.m_probes.at(uC).end())
+        {
+            std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>> end_actions;
+            for (const auto& action : probes.at(end_probe)->m_actions)
+                end_actions.emplace_back(action, uC);
 
-        m_result_actions.emplace_back(end_actions);
+            m_result_actions.emplace_back(end_actions);
+        }
     }
 }
 
