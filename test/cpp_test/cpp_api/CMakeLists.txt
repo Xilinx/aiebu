@@ -183,6 +183,7 @@ add_test(NAME "aiebu_error_duplicate_asm_filename"
 add_test(NAME "asm_parser_lifetime"
   COMMAND ${ASM_PARSER_LIFETIME_TESTNAME}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
 set_tests_properties("asm_parser_lifetime" PROPERTIES LABELS memcheck)
 
 # AIE Coredump ELF generation tests.
