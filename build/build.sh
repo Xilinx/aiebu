@@ -53,12 +53,12 @@ function compile {
 
 build_python="yes"
 ctrlcode_codegen="no"
-usage() { echo "Usage: $0 [-pthc]" 1>&2; exit 1; }
+usage() { echo "Usage: $0 [-pmtch]" 1>&2; exit 1; }
 
-while getopts ":rtphc" o; do
+while getopts ":pmtch" o; do
     case "${o}" in
         p)
-            build_python="yes"
+            build_python="no"
             ;;
         m)
             run_memtest="yes"
@@ -70,6 +70,9 @@ while getopts ":rtphc" o; do
             ctrlcode_codegen="yes"
             ;;
         h)
+            usage
+            ;;
+        *)
             usage
             ;;
     esac

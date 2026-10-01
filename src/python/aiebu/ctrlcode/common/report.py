@@ -1,9 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2023-2024 Advanced Micro Devices, Inc.
 
-from colorama import init as colorama_init
-from colorama import Fore
-from colorama import Style
+from ctrlcode.common.ansi import Fore, Style
 import json
 import os.path
 
@@ -34,7 +32,6 @@ class Report:
                                          })
 
     def generate(self):
-        colorama_init()
         print(f"{Fore.GREEN}************************** ASSEMBLER REPORT **************************{Style.RESET_ALL}")
         print(f"{Fore.BLUE}BUILD ID: {Fore.MAGENTA}{self._build_id}{Style.RESET_ALL}")
         for col in self._pages:
