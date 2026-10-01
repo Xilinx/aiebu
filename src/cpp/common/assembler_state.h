@@ -69,6 +69,8 @@ public:
   {
     return m_end - m_start;
   }
+
+  bool is_deferred() const { return m_isdeferred; }
 };
 
 class label
