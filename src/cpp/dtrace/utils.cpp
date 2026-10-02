@@ -158,8 +158,8 @@ get_filtered_section_indices(const std::string& kernel_instance_filter) const
       if (instance_symbol_index == 0)
         instance_symbol_index = static_cast<ELFIO::Elf_Word>(i);
       else if (filter_instance.empty()) {
-        std::cerr << "[DTRACE] [ERROR] : kernel '" << filter_kernel << "' has multiple instances;"
-            " specify 'kernel:instance' for dtrace";
+        DTRACE_ERROR("DTRACE_KERNEL_INSTANCE_FILTER_FAILED", "kernel '" << filter_kernel
+                     << "' has multiple instances; specify 'kernel:instance' for dtrace");
         return {};
       }
       if (!filter_instance.empty())
