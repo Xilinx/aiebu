@@ -99,6 +99,11 @@ create_dtrace_handle_elf(const std::string& script_file, const ELFIO::elfio& elf
             map_data = debug_map.get_debug_section_json();
         }
 
+        if (map_data.empty()) {
+            std::cerr << "[DTRACE] [ERROR] : No debug data found in ELF";
+            return nullptr;
+        }
+
         // Handle setup mirrors create_dtrace_handle(); it will be removed once all callers
         // have migrated to create_dtrace_handle_elf().
 

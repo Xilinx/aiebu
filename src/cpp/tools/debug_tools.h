@@ -7,8 +7,10 @@
 #include "aiebu/aiebu_assembler.h"
 #include "aiebu/aiebu_debug.h"
 #include "analyzer/transform_manager.h"
+#include "tools/dwarf_reader.h"
 
 #include <cstdint>
+#include <memory>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -23,16 +25,23 @@ namespace aiebu {
  * from elf binary buffers.
  *
  * @details
- * This class is responsible for parsing the ELF buffer, extracting the .dump section, and providing
+ * This class is responsible for parsing the ELF buffer, extracting debug information, and providing
  * functions to write trace probe information and opcode information based on the extracted debug data.
  * It uses the transform_manager to handle ELF parsing and data extraction.
+ *
+ * Debug source precedence:
+ *   1. JSON .dump section (legacy format, per-page ELFs and old config ELFs)
+ *   2. DWARF v5 .debug_* sections (new merged-format config ELFs, abi_version=0x21)
+ * If neither is present the constructor throws.
  */
-class debug_tools 
+class debug_tools
 {
 private:
   transform_manager m_transform_manager;
   const aiebu_assembler::buffer_type m_buffer_type;
   std::string m_debug_json;
+  std::unique_ptr<dwarf_reader> m_dwarf;   ///< Non-null when DWARF sections are present
+
   static transform_manager make_transform(
     aiebu_assembler::buffer_type type,  const std::vector<char>& buffer);
   void get_dump_section();
@@ -52,6 +61,11 @@ public:
 
   // Member functions
   const std::string& get_dump_data() const { return m_debug_json; }
+  /// True if this ELF uses DWARF debug sections (no .dump present).
+  bool has_dwarf() const { return m_dwarf && m_dwarf->has_dwarf(); }
+  /// Non-null only when has_dwarf() is true.
+  const dwarf_reader* get_dwarf_reader() const { return m_dwarf.get(); }
+
   void write_trace_probes(std::ostream &stream) const;
   void write_opcode_information(std::ostream &stream, const std::string& filename,
     const std::string& pc_str, const std::string& page_str, const std::string& uc_str) const;
