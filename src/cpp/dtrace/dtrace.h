@@ -41,7 +41,8 @@ create_dtrace_handle(const std::string& script_file, const std::string& map_data
  * @script_file:       Path to script file containing probe and action details.
  * @elf:               Pre-parsed ELFIO object used to extract the debug information.
  * @kernel_instance:   Kernel instance in "kernel:instance" format.
- *                     Required for full ELFs; debug information is extracted
+ *                     Required for full ELFs with kernel instances
+ *                     "kernel" is allowed for single instance; debug information is extracted
  *                     for that kernel instance. Must be empty for partial ELFs.
  * @log_level:         Log level for debugging.
  * @output_fmt:        Output format for result file.
