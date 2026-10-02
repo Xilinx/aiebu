@@ -234,16 +234,6 @@ operations:
     description: |
       Indicates the end of a job started with `START_JOB`. After `END_JOB`, the only
       valid operations are `START_JOB` and `EOF`.
-  - mnemonic: YIELD
-    opcode: 0x08
-    regular: True
-    arguments:
-      - type: pad
-        width: 16
-    brief: Yields to another job.
-    description: |
-      Tells the scheduler to perform a context switch to the next available job. The
-      current job will be re-scheduled in the next scheduling cycle.
   - mnemonic: UC_DMA_WRITE_DES_SYNC
     opcode: 0x09
     regular: True
@@ -428,35 +418,6 @@ operations:
         .long              0x80000000
         .long              0x00000000
       ```
-  - mnemonic: ADD
-    opcode: 0x0f
-    regular: True
-    arguments:
-      - name: dest
-        type: register
-      - type: pad
-        width: 8
-      - name: value
-        type: const
-        width: 32
-    brief: Adds `value` to the content of register `dest`.
-    description: |
-      The value stored in register `dest` is loaded, then `value` is added to it and the result is
-      stored in the `dest` register.
-  - mnemonic: MOV
-    opcode: 0x10
-    regular: True
-    arguments:
-      - name: dest
-        type: register
-      - type: pad
-        width: 8
-      - name: value
-        type: const
-        width: 32
-    brief: Moves `value` to register `dest`.
-    description: |
-      Stores the constant `value` in the register `dest`.
   - mnemonic: LOCAL_BARRIER
     opcode: 0x11
     regular: True
@@ -804,21 +765,6 @@ operations:
       identifier while generating control code. The timestamps will get saved in shared data memory. Whenever the
       allocated shared memory gets fill, CERT should initiate the uc-DMA to transfer data from shared
       data memory to host memory.
-  - mnemonic: SLEEP
-    opcode: 0x1d
-    regular: True
-    arguments:
-      - type: pad
-        width: 16
-      - name: target
-        type: const
-        width: 32
-    brief:  sleep instruction.
-    description: |
-      Sleep instruction makes the current job busy waiting `target` microseconds. This opcode is for test purpose
-      only. Calling this operation doesn't yield control to another job.
-
-      Note that this opcode is not supported in release CERT. Dtrace action sleep() is recommended for this test purpose.
   - mnemonic: SAVE_REGISTER
     opcode: 0x1e
     regular: True

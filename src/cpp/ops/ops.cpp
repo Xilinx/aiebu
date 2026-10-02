@@ -78,6 +78,10 @@ serialize(std::shared_ptr<assembler_state> state, std::vector<symbol>& symbols,
     {
       sval = "0";
       atype = opArg::optype::CONST;
+    } else if (arg.m_type == opArg::optype::CONSTVAL)
+    {
+      sval = std::to_string(arg.m_const_value);
+      atype = opArg::optype::CONST; // arg_index is not incremented for CONSTVAL
     } else if (arg.m_type == opArg::optype::JOBSIZE)
     {
       jobid_type jobid = m_args[0];

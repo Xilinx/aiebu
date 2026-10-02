@@ -21,19 +21,15 @@ static unsigned int control_op_mask_write_32(const uint8_t *_pc, uint32_t addres
 static unsigned int control_op_write_32(const uint8_t *_pc, uint32_t address, uint32_t value);
 static unsigned int control_op_wait_tcts(const uint8_t *_pc, uint16_t tile_id, uint8_t actor_id, uint8_t target_tcts);
 static unsigned int control_op_end_job(const uint8_t *_pc);
-static unsigned int control_op_yield(const uint8_t *_pc);
 static unsigned int control_op_uc_dma_write_des_sync(const uint8_t *_pc, uint16_t descriptor_ptr);
 static unsigned int control_op_write_32_d(const uint8_t *_pc, uint8_t flags, uint32_t address, uint32_t value);
 static unsigned int control_op_read_32(const uint8_t *_pc, uint8_t value_reg, uint32_t address);
 static unsigned int control_op_read_32_d(const uint8_t *_pc, uint8_t address_reg, uint8_t value_reg);
 static unsigned int control_op_apply_offset_57(const uint8_t *_pc, uint16_t table_ptr, uint16_t num_entries, uint16_t offset);
 static unsigned int control_op_apply_offset_sram(const uint8_t *_pc, uint16_t table_ptr, uint16_t num_entries, uint32_t address);
-static unsigned int control_op_add(const uint8_t *_pc, uint8_t dest_reg, uint32_t value);
-static unsigned int control_op_mov(const uint8_t *_pc, uint8_t dest_reg, uint32_t value);
 static unsigned int control_op_local_barrier(const uint8_t *_pc, uint8_t local_barrier_id, uint8_t num_participants);
 static unsigned int control_op_remote_barrier(const uint8_t *_pc, uint8_t remote_barrier_id, uint32_t party_mask);
 static unsigned int control_op_eof(const uint8_t *_pc);
-static unsigned int control_op_poll_32(const uint8_t *_pc, uint32_t address, uint32_t value);
 static unsigned int control_op_mask_poll_32(const uint8_t *_pc, uint32_t address, uint32_t mask, uint32_t value);
 static unsigned int control_op_trace(const uint8_t *_pc, uint16_t info);
 static unsigned int control_op_nop(const uint8_t *_pc);
@@ -43,7 +39,6 @@ static unsigned int control_op_load_cores(const uint8_t *_pc, uint32_t core_elf_
 static unsigned int control_op_load_cores_cp(const uint8_t *_pc, uint32_t core_elf_id);
 static unsigned int control_op_load_last_pdi(const uint8_t *_pc);
 static unsigned int control_op_save_timestamps(const uint8_t *_pc, uint32_t unq_id);
-static unsigned int control_op_sleep(const uint8_t *_pc, uint32_t target);
 static unsigned int control_op_save_register(const uint8_t *_pc, uint32_t address, uint32_t unq_id);
 static unsigned int control_op_rel_acq_sync(const uint8_t *_pc, uint32_t rel_address, uint32_t acq_address);
 static unsigned int control_op_uc_dma_mask_poll_ext(const uint8_t *_pc, uint32_t addr_hi, uint32_t addr_lo, uint32_t mask, uint32_t value);
@@ -140,13 +135,6 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_end_jo
   );
 }
 
-FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_yield(const uint8_t *pc)
-{
-  return control_op_yield(
-    pc
-  );
-}
-
 FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_uc_dma_write_des_sync(const uint8_t *pc)
 {
   return control_op_uc_dma_write_des_sync(
@@ -203,24 +191,6 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_apply_
   );
 }
 
-FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_add(const uint8_t *pc)
-{
-  return control_op_add(
-    pc,
-    /* dest (register) */ *(uint8_t *)(&pc[2]),
-    /* value (const) */ *(uint32_t *)(&pc[4])
-  );
-}
-
-FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_mov(const uint8_t *pc)
-{
-  return control_op_mov(
-    pc,
-    /* dest (register) */ *(uint8_t *)(&pc[2]),
-    /* value (const) */ *(uint32_t *)(&pc[4])
-  );
-}
-
 FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_local_barrier(const uint8_t *pc)
 {
   return control_op_local_barrier(
@@ -243,15 +213,6 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_eof(co
 {
   return control_op_eof(
     pc
-  );
-}
-
-FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_poll_32(const uint8_t *pc)
-{
-  return control_op_poll_32(
-    pc,
-    /* address (const) */ *(uint32_t *)(&pc[4]),
-    /* value (const) */ *(uint32_t *)(&pc[8])
   );
 }
 
@@ -331,14 +292,6 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_save_t
   );
 }
 
-FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_sleep(const uint8_t *pc)
-{
-  return control_op_sleep(
-    pc,
-    /* target (const) */ *(uint32_t *)(&pc[4])
-  );
-}
-
 FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_save_register(const uint8_t *pc)
 {
   return control_op_save_register(
@@ -387,18 +340,14 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_apply_
   case ISA_OPCODE_MASK_WRITE_32: pc += control_dispatch_mask_write_32(pc); break; \
   case ISA_OPCODE_WRITE_32: pc += control_dispatch_write_32(pc); break; \
   case ISA_OPCODE_WAIT_TCTS: pc += control_dispatch_wait_tcts(pc); break; \
-  case ISA_OPCODE_YIELD: pc += control_dispatch_yield(pc); break; \
   case ISA_OPCODE_UC_DMA_WRITE_DES_SYNC: pc += control_dispatch_uc_dma_write_des_sync(pc); break; \
   case ISA_OPCODE_WRITE_32_D: pc += control_dispatch_write_32_d(pc); break; \
   case ISA_OPCODE_READ_32: pc += control_dispatch_read_32(pc); break; \
   case ISA_OPCODE_READ_32_D: pc += control_dispatch_read_32_d(pc); break; \
   case ISA_OPCODE_APPLY_OFFSET_57: pc += control_dispatch_apply_offset_57(pc); break; \
   case ISA_OPCODE_APPLY_OFFSET_SRAM: pc += control_dispatch_apply_offset_sram(pc); break; \
-  case ISA_OPCODE_ADD: pc += control_dispatch_add(pc); break; \
-  case ISA_OPCODE_MOV: pc += control_dispatch_mov(pc); break; \
   case ISA_OPCODE_LOCAL_BARRIER: pc += control_dispatch_local_barrier(pc); break; \
   case ISA_OPCODE_REMOTE_BARRIER: pc += control_dispatch_remote_barrier(pc); break; \
-  case ISA_OPCODE_POLL_32: pc += control_dispatch_poll_32(pc); break; \
   case ISA_OPCODE_MASK_POLL_32: pc += control_dispatch_mask_poll_32(pc); break; \
   case ISA_OPCODE_TRACE: pc += control_dispatch_trace(pc); break; \
   case ISA_OPCODE_NOP: pc += control_dispatch_nop(pc); break; \
@@ -408,7 +357,6 @@ FORCE_INLINE_FOR_RELEASE_ONLY static inline unsigned int control_dispatch_apply_
   case ISA_OPCODE_LOAD_CORES_CP: pc += control_dispatch_load_cores_cp(pc); break; \
   case ISA_OPCODE_LOAD_LAST_PDI: pc += control_dispatch_load_last_pdi(pc); break; \
   case ISA_OPCODE_SAVE_TIMESTAMPS: pc += control_dispatch_save_timestamps(pc); break; \
-  case ISA_OPCODE_SLEEP: pc += control_dispatch_sleep(pc); break; \
   case ISA_OPCODE_SAVE_REGISTER: pc += control_dispatch_save_register(pc); break; \
   case ISA_OPCODE_REL_ACQ_SYNC: pc += control_dispatch_rel_acq_sync(pc); break; \
   case ISA_OPCODE_UC_DMA_MASK_POLL_EXT: pc += control_dispatch_uc_dma_mask_poll_ext(pc); break; \
