@@ -4,6 +4,7 @@
 #include "utils.h"
 
 #include <cctype>
+#include <iostream>
 #include <string_view>
 
 namespace dtrace {
@@ -103,11 +104,15 @@ elf_debug_map::
 get_filtered_section_indices(const std::string& kernel_instance_filter) const
 {
   const size_t delimiter_pos = kernel_instance_filter.find(':');
-  if (delimiter_pos == std::string::npos)
-    return {};
-
-  const std::string filter_kernel = kernel_instance_filter.substr(0, delimiter_pos);
-  const std::string filter_instance = kernel_instance_filter.substr(delimiter_pos + 1);
+  // If no ':' is present, treat the entire string as the kernel name and accept
+  // the first matching instance.  This supports single-instance kernels where
+  // the caller passes "DPU" rather than "DPU:dpu"
+  const std::string filter_kernel = (delimiter_pos == std::string::npos)
+      ? kernel_instance_filter
+      : kernel_instance_filter.substr(0, delimiter_pos);
+  const std::string filter_instance = (delimiter_pos == std::string::npos)
+      ? std::string{}
+      : kernel_instance_filter.substr(delimiter_pos + 1);
 
   const ELFIO::section* symtab = m_elf.sections[".symtab"];
   const ELFIO::section* strtab = m_elf.sections[".strtab"];
@@ -135,6 +140,9 @@ get_filtered_section_indices(const std::string& kernel_instance_filter) const
   if (kernel_symbol_index == 0)
     return {};
 
+  // When no instance is specified, accept the first instance but error out
+  // if a second one is found. empty kernel instance is not allowed if there
+  // are multiple kernel instances
   ELFIO::Elf_Word instance_symbol_index = 0;
   for (size_t i = 0; i < sym_count; ++i) {
     const auto* sym = reinterpret_cast<const ELFIO::Elf32_Sym*>(
@@ -144,11 +152,21 @@ get_filtered_section_indices(const std::string& kernel_instance_filter) const
       continue;
 
     const char* sym_name = strtab->get_data() + sym->st_name;
-    if (std::string(sym_name) == filter_instance && sym->st_shndx == kernel_symbol_index) {
-      instance_symbol_index = static_cast<ELFIO::Elf_Word>(i);
-      break;
+    const bool instance_match = filter_instance.empty()
+        || std::string(sym_name) == filter_instance;
+    if (instance_match && sym->st_shndx == kernel_symbol_index) {
+      if (instance_symbol_index == 0)
+        instance_symbol_index = static_cast<ELFIO::Elf_Word>(i);
+      else if (filter_instance.empty()) {
+        DTRACE_ERROR("DTRACE_KERNEL_INSTANCE_FILTER_FAILED", "kernel '" << filter_kernel
+                     << "' has multiple instances; specify 'kernel:instance' for dtrace");
+        return {};
+      }
+      if (!filter_instance.empty())
+        break;  // exact match — no need to scan further
     }
   }
+
   if (instance_symbol_index == 0)
     return {};
 
