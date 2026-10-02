@@ -1,4 +1,5 @@
-; Negative test: PREEMPT id must be consecutive starting from 0.
+; Positive test: PREEMPT ids need not start at 0 or be consecutive.
+; Each controller has 0x0005 then 0x0001.
 .target aie4
 .aie_row_topology 1-1-4-0
 .partition 3column
@@ -8,7 +9,10 @@ START_JOB 0
 	LOAD_PDI 0, @pdi0
 END_JOB
 START_JOB 1
-	PREEMPT 0x0002, @save, @restore
+	PREEMPT 0x0005, @save, @restore
+END_JOB
+START_JOB 2
+	PREEMPT 0x0001, @save, @restore
 END_JOB
 pdi0:
 START_JOB 0
@@ -23,7 +27,10 @@ START_JOB 0
 	LOAD_PDI 0, @pdi2
 END_JOB
 START_JOB 1
-	PREEMPT 0x0002, @save, @restore
+	PREEMPT 0x0005, @save, @restore
+END_JOB
+START_JOB 2
+	PREEMPT 0x0001, @save, @restore
 END_JOB
 pdi2:
 START_JOB 0
@@ -38,7 +45,10 @@ START_JOB 0
 	LOAD_PDI 0, @pdi4
 END_JOB
 START_JOB 1
-	PREEMPT 0x0002, @save, @restore
+	PREEMPT 0x0005, @save, @restore
+END_JOB
+START_JOB 2
+	PREEMPT 0x0001, @save, @restore
 END_JOB
 pdi4:
 START_JOB 0
