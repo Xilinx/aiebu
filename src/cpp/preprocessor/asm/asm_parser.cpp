@@ -875,16 +875,19 @@ void
 asm_parser::
 verify_preempt_ids() const
 {
+  // Program order selects the preemption point. A sequence other than
+  // 0, 1, 2, ... is accepted, with one warning per controller.
   for (const auto& [col, points] : m_preempt_points) {
+    bool warned = false;
     for (std::size_t pt = 0; pt < points.size(); ++pt) {
       const uint32_t id_val = parse_preempt_id_value(points[pt].id, col, pt);
-      if (id_val != static_cast<uint32_t>(pt)) {
-        std::ostringstream oss;
-        oss << "PREEMPT id values must be consecutive starting from 0: controller "
-            << col << " preemption point " << pt << " expects id 0x"
-            << std::hex << pt << std::dec << ", but got '" << points[pt].id << "'\n";
-        throw error(error::error_code::invalid_asm, oss.str());
-      }
+      if (warned || id_val == static_cast<uint32_t>(pt))
+        continue;
+      log_warn() << "PREEMPT ids are not consecutive starting from 0 on controller "
+                 << col << ": preemption point " << pt << " has id '"
+                 << points[pt].id << "', expected 0x" << std::hex << pt
+                 << std::dec << ". Assembly continues." << std::endl;
+      warned = true;
     }
   }
 }
