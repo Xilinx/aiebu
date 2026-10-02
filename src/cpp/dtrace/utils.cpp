@@ -4,6 +4,7 @@
 #include "utils.h"
 
 #include <cctype>
+#include <iostream>
 #include <string_view>
 
 namespace dtrace {
@@ -139,6 +140,9 @@ get_filtered_section_indices(const std::string& kernel_instance_filter) const
   if (kernel_symbol_index == 0)
     return {};
 
+  // When no instance is specified, accept the first instance but error out
+  // if a second one is found. empty kernel instance is not allowed if there
+  // are multiple kernel instances
   ELFIO::Elf_Word instance_symbol_index = 0;
   for (size_t i = 0; i < sym_count; ++i) {
     const auto* sym = reinterpret_cast<const ELFIO::Elf32_Sym*>(
@@ -151,10 +155,18 @@ get_filtered_section_indices(const std::string& kernel_instance_filter) const
     const bool instance_match = filter_instance.empty()
         || std::string(sym_name) == filter_instance;
     if (instance_match && sym->st_shndx == kernel_symbol_index) {
-      instance_symbol_index = static_cast<ELFIO::Elf_Word>(i);
-      break;
+      if (instance_symbol_index == 0)
+        instance_symbol_index = static_cast<ELFIO::Elf_Word>(i);
+      else if (filter_instance.empty()) {
+        std::cerr << "[DTRACE] [ERROR] : kernel '" << filter_kernel << "' has multiple instances;"
+            " specify 'kernel:instance' for dtrace";
+        return {};
+      }
+      if (!filter_instance.empty())
+        break;  // exact match — no need to scan further
     }
   }
+
   if (instance_symbol_index == 0)
     return {};
 
