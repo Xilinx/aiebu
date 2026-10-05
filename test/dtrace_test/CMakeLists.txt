@@ -157,7 +157,7 @@ add_test(NAME "dtrace_empty_elf_dump_md5sum"
   )
 set_tests_properties("dtrace_empty_elf_dump_md5sum" PROPERTIES DEPENDS "dtrace_empty_elf_dump")
 
-# Test full elf with kernel
+# Test full elf with kernel:instance (explicit instance name)
 add_test(NAME "dtrace_elf_with_kernel"
   COMMAND ${DTRACE_TESTNAME}
     "${AIEBU_SOURCE_DIR}/test/dtrace_test/elf_handle"
@@ -174,6 +174,24 @@ add_test(NAME "dtrace_elf_with_kernel_md5sum"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
 set_tests_properties("dtrace_elf_with_kernel_md5sum" PROPERTIES DEPENDS "dtrace_elf_with_kernel")
+
+# Test full elf with kernel only (no instance suffix) — single-instance kernel support
+add_test(NAME "dtrace_elf_with_kernel_no_instance"
+  COMMAND ${DTRACE_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/elf_handle"
+    "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_elf_with_kernel_no_instance.dat"
+    "python"
+    "elf" "${AIEBU_SOURCE_DIR}/test/dtrace_test/elf_handle/test.elf" "CTRL"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+add_test(NAME "dtrace_elf_with_kernel_no_instance_md5sum"
+  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_elf_with_kernel_no_instance.dat"
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/elf_handle/gold.md5"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_elf_with_kernel_no_instance_md5sum" PROPERTIES DEPENDS "dtrace_elf_with_kernel_no_instance")
 
 # Test partial elf without kernel
 add_test(NAME "dtrace_elf_no_kernel"
