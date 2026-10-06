@@ -160,7 +160,6 @@ get_filtered_section_indices(const std::string& kernel_instance_filter) const
       else if (filter_instance.empty()) {
         DTRACE_ERROR("DTRACE_KERNEL_INSTANCE_FILTER_FAILED", "kernel '" << filter_kernel
                      << "' has multiple instances; specify 'kernel:instance' for dtrace");
-        return {};
       }
       if (!filter_instance.empty())
         break;  // exact match — no need to scan further
