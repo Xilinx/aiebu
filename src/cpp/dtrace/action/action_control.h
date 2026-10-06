@@ -693,7 +693,7 @@ class write_mem_action : public action
 {
 private:
     uint32_t m_length;
-    std::vector<uint32_t> m_write_buffer_addr;
+    std::vector<uint32_t>* m_write_buffer_addr;
     std::vector<uint32_t> m_write_buffer_values;
     bool m_append_write_buffer;
 
@@ -832,7 +832,6 @@ class host_timestamps_action : public action
 private:
     uint32_t m_length;
     uint64_t m_mem_host_addr;
-    std::vector<uint32_t> m_mem_buffer_addr;
 
 public:
     host_timestamps_action(

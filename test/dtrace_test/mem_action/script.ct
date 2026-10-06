@@ -1,0 +1,67 @@
+begin
+{
+    ts_start = timestamp32()
+
+    # Shim tile column 0, Performance_Counter0-3 (0x31020 + 4*N).
+    write_reg(0x0000031020, 0xa0000001)
+    write_reg(0x0000031024, 0xa0000002)
+    write_reg(0x0000031028, 0xa0000003)
+    write_reg(0x000003102c, 0xa0000004)
+
+    # Shim tile column 1, Performance_Counter0-3.
+    write_reg(0x0002031020, 0xb0000001)
+    write_reg(0x0002031024, 0xb0000002)
+    write_reg(0x0002031028, 0xb0000003)
+    write_reg(0x000203102c, 0xb0000004)
+}
+jprobe:aie_runtime_control0.asm:uc0:line8,14,15,16
+{
+    mem0 = read_mem(0x0000031020, 4)
+    mem1 = read_mem(0x0002031020, 4)
+    mem2 = read_mem(0x0004031020, 4)
+
+    block[2] = [0x99999999, 0x10101010]
+    write_mem(0x1F0000, 2, block)
+    write_mem(0x1D0000, 2, block)
+
+    mem3 = read_mem(0x0006031020, 4)
+    mem4 = read_mem(0x0008031020, 4)
+    mem5 = read_mem(0x0000032000, 4)
+}
+jprobe:aie_runtime_control0.asm:uc0:line20,26
+{
+    block1[4] = [0x55555555, 0x66666666, 0x77777777, 0x88888888]
+    mem6 = read_mem(0x0002032000, 4)
+    write_mem(0x300000, 4, block1)
+    mem7 = read_mem(0x0004032000, 4)
+    write_mem(0x320000, 4, block1)
+    mem8 = read_mem(0x0006032000, 4)
+    write_mem(0x340000, 4, block1)
+    mem9 = read_mem(0x0008032000, 4)
+}
+jprobe:dummy.asm:uc4,8:line2,3,4,6
+{
+    block2[4] = [0x11111111, 0x22222222, 0x33333333, 0x44444444]
+    write_mem(0x180000, 4, block2)
+    write_mem(0x1A0000, 4, block2)
+    write_mem(0x1C0000, 4, block2)
+
+    mem10 = read_mem(0x0000031020, 4)
+    mem11 = read_mem(0x0002031020, 4)
+
+    block3[4] = [0x44444444, 0x33333333, 0x22222222, 0x11111111]
+    write_mem(0x1E0000, 4, block3)
+    write_mem(0x200000, 4, block3)
+
+    mem12 = read_mem(0x0004031020, 4)
+    mem13 = read_mem(0x0006031020, 4)
+    mem14 = read_mem(0x0008031020, 4)    
+}
+tracepoint:uc4:id4
+{
+    hs[2] = host_timestamps()
+}
+end
+{
+    ts_end = timestamp32()
+}

@@ -59,15 +59,6 @@ read_mem_action(std::string token, uint32_t probe_type, const std::string& probe
         m_read_buffer_initialized = true;
         m_read_buffer_addr = buffer_map.at(m_result).first;
     }
-    else
-    {
-        m_read_buffer_addr.push_back(
-            (m_mem_host_addr >> dtrace::dtrace_ctrl::forth_byte_shift) & dtrace::dtrace_ctrl::mask_32
-        );
-        m_read_buffer_addr.push_back(
-            m_mem_host_addr & dtrace::dtrace_ctrl::mask_32
-        );
-    }
 }
 
 //-------------------------read_mem_action::get_mem_host_addr-------------------------//
@@ -113,6 +104,18 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     control_buffer.push_back(std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
     // length
     control_buffer.push_back(m_length);
+    // A declared buffer keeps its address. A fresh read takes the slot to be appended.
+    if (!m_read_buffer_initialized)
+    {
+        uint64_t buffer_addr = static_cast<uint64_t>(mem_buffer.size()) *
+            dtrace::dtrace_ctrl::word_byte_size;
+        m_read_buffer_addr.push_back(
+            (buffer_addr >> dtrace::dtrace_ctrl::forth_byte_shift) & dtrace::dtrace_ctrl::mask_32
+        );
+        m_read_buffer_addr.push_back(
+            buffer_addr & dtrace::dtrace_ctrl::mask_32
+        );
+    }
     // mem_host_addr high
     control_buffer.push_back(m_read_buffer_addr[0]);
     // mem_host_addr low
