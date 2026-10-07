@@ -654,9 +654,9 @@ class read_mem_action : public action
 {
 private:
     uint32_t m_length;
+    const std::vector<uint32_t>* m_read_buffer_addr;
     uint64_t m_mem_host_addr;
     bool m_read_buffer_initialized;
-    std::vector<uint32_t> m_read_buffer_addr;
 
 public:
     read_mem_action(
