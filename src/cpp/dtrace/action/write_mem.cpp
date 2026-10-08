@@ -22,6 +22,7 @@ write_mem_action::
 write_mem_action(std::string token, uint32_t probe_type, const std::string& probe_name,
     buffer_map& buffer_map)
     : action(probe_type, probe_name)
+    , m_write_buffer_addr(nullptr)
     , m_append_write_buffer(false)
 {
     std::vector<std::string> fields;
@@ -47,14 +48,15 @@ write_mem_action(std::string token, uint32_t probe_type, const std::string& prob
     // check if write buffer name exists in the map and get the values
     if (buffer_map.find(write_buffer_name) != buffer_map.end())
     {
-        m_write_buffer_addr = buffer_map.at(write_buffer_name).first;
+        m_write_buffer_addr = &buffer_map.at(write_buffer_name).first;
         m_write_buffer_values = buffer_map.at(write_buffer_name).second;
-        // Check if the write buffer is the first write_mem of this buffer on this uC
-        m_append_write_buffer = 
-            (m_write_buffer_addr[2] == dtrace::dtrace_ctrl::write_mem_buffer_not_appended);
-        // Set the write buffer append flag to indicate that the write buffer 
+        // Check if the write buffer is the first write_mem of this buffer on this uC.
+        // Every write_mem of this buffer shares m_write_buffer_addr.
+        m_append_write_buffer =
+            ((*m_write_buffer_addr)[2] == dtrace::dtrace_ctrl::write_mem_buffer_not_appended);
+        // Set the write buffer append flag to indicate that the write buffer
         // has been appended to the mem buffer
-        buffer_map.at(write_buffer_name).first[2] = dtrace::dtrace_ctrl::write_mem_buffer_appended;
+        (*m_write_buffer_addr)[2] = dtrace::dtrace_ctrl::write_mem_buffer_appended;
     }
     else
         DTRACE_ERROR("DTRACE_ACTION_WRITE_BUFFER_NOT_FOUND", 
@@ -83,10 +85,21 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     control_buffer.push_back(std::stoul(m_arguments[0], nullptr, dtrace::dtrace_ctrl::hexadecimal_base));
     // length
     control_buffer.push_back(m_length);
+    // The appending write records payload address
+    // Later writes of this buffer push same shared address.
+    if (m_append_write_buffer)
+    {
+        uint64_t buffer_addr = static_cast<uint64_t>(mem_buffer.size()) *
+            dtrace::dtrace_ctrl::word_byte_size;
+        (*m_write_buffer_addr)[0] =
+            (buffer_addr >> dtrace::dtrace_ctrl::forth_byte_shift) & dtrace::dtrace_ctrl::mask_32;
+        (*m_write_buffer_addr)[1] =
+            buffer_addr & dtrace::dtrace_ctrl::mask_32;
+    }
     // mem_host_addr high
-    control_buffer.push_back(m_write_buffer_addr[0]);
+    control_buffer.push_back((*m_write_buffer_addr)[0]);
     // mem_host_addr low
-    control_buffer.push_back(m_write_buffer_addr[1]);
+    control_buffer.push_back((*m_write_buffer_addr)[1]);
 
     // mem buffer
     // values

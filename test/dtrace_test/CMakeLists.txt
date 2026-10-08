@@ -60,6 +60,30 @@ add_test(NAME "dtrace_multi_column_result_md5sum"
   )
 set_tests_properties("dtrace_multi_column_result_md5sum" PROPERTIES DEPENDS "dtrace_multi_column")
 
+# Test mem action across multiple lines and columns
+add_test(NAME "dtrace_mem_action"
+  COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/mem_action"
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_mem_action.dat"
+  "python"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+add_test(NAME "dtrace_mem_action_md5sum"
+  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_mem_action.dat"
+  "${AIEBU_SOURCE_DIR}/test/dtrace_test/mem_action/gold.md5"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_mem_action_md5sum" PROPERTIES DEPENDS "dtrace_mem_action")
+
+add_test(NAME "dtrace_mem_action_result_md5sum"
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_mem_action.py"
+  "${CMAKE_CURRENT_SOURCE_DIR}/mem_action/gold_result.py"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_mem_action_result_md5sum" PROPERTIES DEPENDS "dtrace_mem_action")
+
 # Test large compile-time generated jprobe script
 add_test(NAME "dtrace_compile_time"
   COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/compile_time"

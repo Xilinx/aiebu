@@ -49,14 +49,6 @@ host_timestamps_action(std::string token, uint32_t probe_type, const std::string
     if (!dtrace::match(fields[1], m_action_name, argument_string))
         DTRACE_ERROR("DTRACE_ACTION_INVALID_TOKEN", 
             "Invalid token: '" << token << "' Expected 'host_timestamps()'");
-
-    // Store the memory host address in the memory buffer address vector
-    m_mem_buffer_addr.push_back(
-        (m_mem_host_addr >> dtrace::dtrace_ctrl::forth_byte_shift) & dtrace::dtrace_ctrl::mask_32
-    );
-    m_mem_buffer_addr.push_back(
-        m_mem_host_addr & dtrace::dtrace_ctrl::mask_32
-    );
 }
 
 //-------------------------host_timestamps_action::get_mem_host_addr-------------------------//
@@ -100,10 +92,17 @@ actionize(uint32_t last, std::vector<uint32_t>& control_buffer, std::vector<uint
     );
     // timestamp length
     control_buffer.push_back(m_length);
+    // A fresh host timestamp takes the slot to be appended.
+    uint64_t buffer_addr = static_cast<uint64_t>(mem_buffer.size()) *
+        dtrace::dtrace_ctrl::word_byte_size;
     // mem_host_addr high
-    control_buffer.push_back(m_mem_buffer_addr[0]);
+    control_buffer.push_back(
+        (buffer_addr >> dtrace::dtrace_ctrl::forth_byte_shift) & dtrace::dtrace_ctrl::mask_32
+    );
     // mem_host_addr low
-    control_buffer.push_back(m_mem_buffer_addr[1]);
+    control_buffer.push_back(
+        buffer_addr & dtrace::dtrace_ctrl::mask_32
+    );
 
     // mem buffer
     set_location(mem_buffer, true);
