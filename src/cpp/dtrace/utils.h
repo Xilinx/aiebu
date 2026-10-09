@@ -137,7 +137,8 @@ private:
   static std::string extract_kernel_name_from_mangled(const std::string& symbol_name);
 
   std::set<ELFIO::Elf_Half>
-  get_filtered_section_indices(const std::string& kernel_instance_filter) const;
+  get_filtered_section_indices(const std::string& filter_kernel,
+                               const std::string& filter_instance) const;
 };
 
 //-------------------------Token helpers-------------------------//

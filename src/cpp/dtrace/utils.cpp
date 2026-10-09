@@ -103,19 +103,9 @@ extract_kernel_name_from_mangled(const std::string& symbol_name)
  */
 std::set<ELFIO::Elf_Half>
 elf_debug_map::
-get_filtered_section_indices(const std::string& kernel_instance_filter) const
+get_filtered_section_indices(const std::string& filter_kernel,
+                             const std::string& filter_instance) const
 {
-  const size_t delimiter_pos = kernel_instance_filter.find(':');
-  // If no ':' is present, treat the entire string as the kernel name and accept
-  // the first matching instance.  This supports single-instance kernels where
-  // the caller passes "DPU" rather than "DPU:dpu"
-  const std::string filter_kernel = (delimiter_pos == std::string::npos)
-      ? kernel_instance_filter
-      : kernel_instance_filter.substr(0, delimiter_pos);
-  const std::string filter_instance = (delimiter_pos == std::string::npos)
-      ? std::string{}
-      : kernel_instance_filter.substr(delimiter_pos + 1);
-
   const ELFIO::section* symtab = m_elf.sections[".symtab"];
   const ELFIO::section* strtab = m_elf.sections[".strtab"];
   if (!symtab || !strtab || !symtab->get_data() || !strtab->get_data())
@@ -154,19 +144,21 @@ get_filtered_section_indices(const std::string& kernel_instance_filter) const
       continue;
 
     const char* sym_name = strtab->get_data() + sym->st_name;
-    const bool instance_match = filter_instance.empty()
-        || std::string(sym_name) == filter_instance;
-    if (instance_match && sym->st_shndx == kernel_symbol_index) {
-      if (instance_symbol_index == 0)
+    if (sym->st_shndx != kernel_symbol_index)
+      continue;
+    if (!filter_instance.empty()) {
+      if (std::string(sym_name) == filter_instance) {
         instance_symbol_index = static_cast<ELFIO::Elf_Word>(i);
-      else if (filter_instance.empty()) {
-        DTRACE_ERROR("DTRACE_KERNEL_INSTANCE_FILTER_FAILED", "kernel '" << filter_kernel
-                     << "' has multiple instances; specify 'kernel:instance' for dtrace");
-        return {};
-      }
-      if (!filter_instance.empty())
         break;  // exact match — no need to scan further
+      }
+      continue;
     }
+    // filter_instance is empty: accept first matching instance, error on second distinct one
+    if (instance_symbol_index == 0)
+      instance_symbol_index = static_cast<ELFIO::Elf_Word>(i);
+    else
+      DTRACE_ERROR("DTRACE_KERNEL_INSTANCE_FILTER_FAILED", "kernel '" << filter_kernel
+                   << "' has multiple instances; specify 'kernel:instance' for dtrace");
   }
 
   if (instance_symbol_index == 0)
@@ -278,15 +270,26 @@ get_debug_section_json() const
  *
  * Returns the raw .dump section JSON (group-filtered) if present; otherwise
  * synthesizes an equivalent JSON from DWARF v5 .debug_* sections.
- * For DWARF ELFs the group filter is not applied: the DWARF CU already
- * contains only the data for the specified kernel instance (the cu_name
- * DW_AT_name matches "kernel:instance").
+ * @kernel_instance_filter may be "kernel:instance" or just "kernel" for
+ * single-instance kernels; in the latter case the first matching instance
+ * is accepted for both .dump and DWARF paths.
  */
 std::string
 elf_debug_map::
 get_debug_section_json(const std::string& kernel_instance_filter) const
 {
-  const auto section_indices = get_filtered_section_indices(kernel_instance_filter);
+  // Parse once; pass pre-parsed values to both the .dump and DWARF paths.
+  // If no ':' is present, treat the entire string as the kernel name and accept
+  // the first matching instance — supports single-instance callers passing "DPU" vs "DPU:dpu".
+  const size_t delimiter_pos = kernel_instance_filter.find(':');
+  const std::string filter_kernel   = (delimiter_pos == std::string::npos)
+      ? kernel_instance_filter
+      : kernel_instance_filter.substr(0, delimiter_pos);
+  const std::string filter_instance = (delimiter_pos == std::string::npos)
+      ? std::string{}
+      : kernel_instance_filter.substr(delimiter_pos + 1);
+
+  const auto section_indices = get_filtered_section_indices(filter_kernel, filter_instance);
 
   static constexpr std::string_view debug_prefix = ".dump";
 
@@ -313,16 +316,12 @@ get_debug_section_json(const std::string& kernel_instance_filter) const
   if (!reader.has_dwarf())
     return {};
 
-  const size_t delimiter_pos = kernel_instance_filter.find(':');
-  if (delimiter_pos == std::string::npos)
-    return dwarf_rows_to_json(reader.get_all_rows());
-
-  const std::string filter_kernel   = kernel_instance_filter.substr(0, delimiter_pos);
-  const std::string filter_instance = kernel_instance_filter.substr(delimiter_pos + 1);
-
-  // Filter rows to those whose CU name matches this kernel:instance.
+  // Filter rows to those whose CU name matches this kernel(:instance).
   // CU names are stored as "mangled_kernel:instance" (e.g. "_Z3DPUPcPcPcPc:subgraph_0");
   // we demangle the kernel prefix for comparison.
+  // When no instance is specified, accept the first instance but error out
+  // if a second one is found — empty instance is not allowed for multi-instance kernels.
+  std::string first_instance;
   std::vector<aiebu::dwarf_debug_row> filtered;
   for (const auto& row : reader.get_all_rows()) {
     const size_t cu_delim = row.cu_name.find(':');
@@ -331,8 +330,23 @@ get_debug_section_json(const std::string& kernel_instance_filter) const
     const std::string cu_instance = row.cu_name.substr(cu_delim + 1);
     const std::string demangled   = extract_kernel_name_from_mangled(cu_kernel);
     const bool kernel_match = (demangled == filter_kernel) || (cu_kernel == filter_kernel);
-    if (kernel_match && cu_instance == filter_instance)
+    if (!kernel_match)
+      continue;
+    if (!filter_instance.empty()) {
+      if (cu_instance == filter_instance)
+        filtered.push_back(row);
+      continue;
+    }
+    // filter_instance is empty: accept first matching instance, error on second distinct one
+    if (first_instance.empty()) {
+      first_instance = cu_instance;
       filtered.push_back(row);
+    } else if (first_instance == cu_instance) {
+      filtered.push_back(row);
+    } else {
+      DTRACE_ERROR("DTRACE_KERNEL_INSTANCE_FILTER_FAILED", "kernel '" << filter_kernel
+                   << "' has multiple instances; specify 'kernel:instance' for dtrace");
+    }
   }
   return dwarf_rows_to_json(filtered);
 }
