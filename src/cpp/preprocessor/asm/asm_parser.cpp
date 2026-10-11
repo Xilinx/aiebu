@@ -875,14 +875,25 @@ void
 asm_parser::
 verify_preempt_ids() const
 {
+  //TODO: revert to original implementation where we errorout in case preemption id is not consecutive starting from 0
+  std::map<std::pair<int, uint32_t>, std::size_t> seen_ids;
+
   for (const auto& [col, points] : m_preempt_points) {
     for (std::size_t pt = 0; pt < points.size(); ++pt) {
       const uint32_t id_val = parse_preempt_id_value(points[pt].id, col, pt);
       if (id_val != static_cast<uint32_t>(pt)) {
+        log_warn() << "PREEMPT id values must be consecutive starting from 0: controller "
+        << col << " preemption point " << pt << " expects id 0x"
+        << std::hex << pt << std::dec << ", but got '" << points[pt].id << "'\n";
+      }
+
+      const auto key = std::make_pair(col, id_val);
+      const auto [it, inserted] = seen_ids.emplace(key, pt);
+      if (!inserted) {
         std::ostringstream oss;
-        oss << "PREEMPT id values must be consecutive starting from 0: controller "
-            << col << " preemption point " << pt << " expects id 0x"
-            << std::hex << pt << std::dec << ", but got '" << points[pt].id << "'\n";
+        oss << "duplicate PREEMPT id 0x" << std::hex << id_val << std::dec
+            << " at controller " << col << " preemption point " << pt
+            << " (first at preemption point " << it->second << ")\n";
         throw error(error::error_code::invalid_asm, oss.str());
       }
     }

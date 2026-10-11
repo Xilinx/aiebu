@@ -1,4 +1,4 @@
-; Negative test: PREEMPT id must be consecutive starting from 0.
+; Negative test: duplicate PREEMPT id within the same controller.
 .target aie4
 .aie_row_topology 1-1-4-0
 .partition 3column
@@ -8,6 +8,9 @@ START_JOB 0
 	LOAD_PDI 0, @pdi0
 END_JOB
 START_JOB 1
+	PREEMPT 0x0002, @save, @restore
+END_JOB
+START_JOB 2
 	PREEMPT 0x0002, @save, @restore
 END_JOB
 pdi0:
@@ -25,6 +28,9 @@ END_JOB
 START_JOB 1
 	PREEMPT 0x0002, @save, @restore
 END_JOB
+START_JOB 2
+	PREEMPT 0x0002, @save, @restore
+END_JOB
 pdi2:
 START_JOB 0
 	NOP
@@ -38,6 +44,9 @@ START_JOB 0
 	LOAD_PDI 0, @pdi4
 END_JOB
 START_JOB 1
+	PREEMPT 0x0002, @save, @restore
+END_JOB
+START_JOB 2
 	PREEMPT 0x0002, @save, @restore
 END_JOB
 pdi4:
