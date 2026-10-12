@@ -660,7 +660,7 @@ unit of page to the 1st page of control code, and this address is where the `RES
 can determine whether preemption is required, and if required, it can also distinguish whether it is to `SAVE` or to
 `RESTORE`, and run the `SAVE` or `RESTORE` control code accordingly.
 In multi-uC case, at each preemption point, CERT will do barrier sync regardless of whether the preemption happens or not, so
-for each preemption point id, the control code of each uc should have this opcode with same `id`.
+each uc controlcode should have same number of preemption points.
 This opcode should take one whole job but the job can share page with other jobs.
 
 Optional 4th assembler operand `@hintmap` (type `patch_buf`, not encoded in the binary PREEMPT opcode):

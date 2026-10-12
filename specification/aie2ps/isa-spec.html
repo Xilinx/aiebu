@@ -1313,7 +1313,7 @@ unit of page to the 1st page of control code, and this address is where the <cod
 can determine whether preemption is required, and if required, it can also distinguish whether it is to <code>SAVE</code> or to
 <code>RESTORE</code>, and run the <code>SAVE</code> or <code>RESTORE</code> control code accordingly.
 In multi-uC case, at each preemption point, CERT will do barrier sync regardless of whether the preemption happens or not, so
-for each preemption point id, the control code of each uc should have this opcode with same <code>id</code>.
+each uc controlcode should have same number of preemption points.
 This opcode should take one whole job but the job can share page with other jobs.</p>
 <p>Optional 4th assembler operand <code>@hintmap</code> (type <code>patch_buf</code>, not encoded in the binary PREEMPT opcode):
 a label in the same scope as the PREEMPT opcode, defined with <code>.long</code> words forming a hint bitmap.
