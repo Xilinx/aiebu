@@ -720,8 +720,8 @@ public:
     return {true, expected_count, 0, 0};  // All columns match
   }
 
-  // Verify PREEMPT id values are consecutive starting from 0 in program order
-  // within each controller, per isa-spec PREEMPT opcode.
+  // Verify PREEMPT id values are unique within each controller (ids need not
+  // start at 0 or follow program order).
   void verify_preempt_ids() const;
 
   // Check if any column in the control code contains PREEMPT opcodes

@@ -6,12 +6,14 @@
 #include "aiebu/aiebu_error.h"
 
 #include <fstream>
+#include <iostream>
 #include <iomanip>
 #include <optional>
 #include <algorithm>
 #include <climits>
 #include "common/regex_wrapper.h"
 #include <sstream>
+#include <unordered_set>
 
 // ---------------------------------------------------------------------------
 // MSVC does not provide GCC __builtin_popcount / __builtin_ctz / __builtin_clz.
@@ -876,13 +878,14 @@ asm_parser::
 verify_preempt_ids() const
 {
   for (const auto& [col, points] : m_preempt_points) {
+    std::unordered_set<uint32_t> seen_ids;
     for (std::size_t pt = 0; pt < points.size(); ++pt) {
       const uint32_t id_val = parse_preempt_id_value(points[pt].id, col, pt);
-      if (id_val != static_cast<uint32_t>(pt)) {
+      if (!seen_ids.insert(id_val).second) {
         std::ostringstream oss;
-        oss << "PREEMPT id values must be consecutive starting from 0: controller "
-            << col << " preemption point " << pt << " expects id 0x"
-            << std::hex << pt << std::dec << ", but got '" << points[pt].id << "'\n";
+        oss << "PREEMPT id values must be unique within each controller: controller "
+            << col << " preemption point " << pt << " reuses id 0x"
+            << std::hex << id_val << std::dec << " ('" << points[pt].id << "')\n";
         throw error(error::error_code::invalid_asm, oss.str());
       }
     }
