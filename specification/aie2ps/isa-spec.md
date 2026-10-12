@@ -652,7 +652,7 @@ save/restore context of an inference at preemption point in control code
 | opcode (8b) | pad (8b) | const (16b) | page_id (16b) | page_id (16b) | patch_buf (0b) | 8B |
 
 If the control code supports preemption, there will be preemption points inserted in it. `id` specifies the preemption
-point index. `id` values should be consecutive, starting with index 0. We assume all aie cores are stateless,
+point index. `id` values should be unique within each controller. We assume all aie cores are stateless,
 so at each preemption point, we only need to save/restore contents in memtile.
 `save_control_code_offset` specifies a relative address in unit of page to the 1st page of the control code,
 and this address is where the `SAVE` control code resides. `restore_control_code_offset` specifies a relative address in
@@ -660,7 +660,7 @@ unit of page to the 1st page of control code, and this address is where the `RES
 can determine whether preemption is required, and if required, it can also distinguish whether it is to `SAVE` or to
 `RESTORE`, and run the `SAVE` or `RESTORE` control code accordingly.
 In multi-uC case, at each preemption point, CERT will do barrier sync regardless of whether the preemption happens or not, so
-for each preemption point id, the control code of each uc should have this opcode with same `id`.
+each uc controlcode should have same number of preemption points.
 This opcode should take one whole job but the job can share page with other jobs.
 
 Optional 4th assembler operand `@hintmap` (type `patch_buf`, not encoded in the binary PREEMPT opcode):

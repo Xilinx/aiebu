@@ -1305,7 +1305,7 @@ control to another job.</p>
 </tbody>
 </table>
 <p>If the control code supports preemption, there will be preemption points inserted in it. <code>id</code> specifies the preemption
-point index. <code>id</code> values should be consecutive, starting with index 0. We assume all aie cores are stateless,
+point index. <code>id</code> values should be unique within each controller. We assume all aie cores are stateless,
 so at each preemption point, we only need to save/restore contents in memtile.
 <code>save_control_code_offset</code> specifies a relative address in unit of page to the 1st page of the control code,
 and this address is where the <code>SAVE</code> control code resides. <code>restore_control_code_offset</code> specifies a relative address in
@@ -1313,7 +1313,7 @@ unit of page to the 1st page of control code, and this address is where the <cod
 can determine whether preemption is required, and if required, it can also distinguish whether it is to <code>SAVE</code> or to
 <code>RESTORE</code>, and run the <code>SAVE</code> or <code>RESTORE</code> control code accordingly.
 In multi-uC case, at each preemption point, CERT will do barrier sync regardless of whether the preemption happens or not, so
-for each preemption point id, the control code of each uc should have this opcode with same <code>id</code>.
+each uc controlcode should have same number of preemption points.
 This opcode should take one whole job but the job can share page with other jobs.</p>
 <p>Optional 4th assembler operand <code>@hintmap</code> (type <code>patch_buf</code>, not encoded in the binary PREEMPT opcode):
 a label in the same scope as the PREEMPT opcode, defined with <code>.long</code> words forming a hint bitmap.
