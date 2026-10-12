@@ -652,7 +652,7 @@ save/restore context of an inference at preemption point in control code
 | opcode (8b) | pad (8b) | const (16b) | page_id (16b) | page_id (16b) | patch_buf (0b) | 8B |
 
 If the control code supports preemption, there will be preemption points inserted in it. `id` specifies the preemption
-point index. `id` values should be consecutive, starting with index 0. We assume all aie cores are stateless,
+point index. `id` values should unique within each controller. We assume all aie cores are stateless,
 so at each preemption point, we only need to save/restore contents in memtile.
 `save_control_code_offset` specifies a relative address in unit of page to the 1st page of the control code,
 and this address is where the `SAVE` control code resides. `restore_control_code_offset` specifies a relative address in
