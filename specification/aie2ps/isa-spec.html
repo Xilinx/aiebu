@@ -1305,7 +1305,7 @@ control to another job.</p>
 </tbody>
 </table>
 <p>If the control code supports preemption, there will be preemption points inserted in it. <code>id</code> specifies the preemption
-point index. <code>id</code> values should unique within each controller. We assume all aie cores are stateless,
+point index. <code>id</code> values should be unique within each controller. We assume all aie cores are stateless,
 so at each preemption point, we only need to save/restore contents in memtile.
 <code>save_control_code_offset</code> specifies a relative address in unit of page to the 1st page of the control code,
 and this address is where the <code>SAVE</code> control code resides. <code>restore_control_code_offset</code> specifies a relative address in
