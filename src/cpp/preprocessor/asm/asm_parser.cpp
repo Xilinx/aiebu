@@ -6,7 +6,6 @@
 #include "aiebu/aiebu_error.h"
 
 #include <fstream>
-#include <iostream>
 #include <iomanip>
 #include <optional>
 #include <algorithm>
