@@ -44,8 +44,10 @@ protected:
   void readmetajson(std::istream& patch_json);
   void extract_control_packet_patch(const std::string& name, const uint32_t arg_index, const boost::property_tree::ptree& _pt);
   void extract_coalesed_buffers(const std::string& name, const boost::property_tree::ptree& _pt);
-  void validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const;
-  uint32_t get_32_bit_property(const boost::property_tree::ptree& pt, const std::string& property, bool defaultvalue = false) const;
+  void validate_json(uint64_t offset, uint64_t size, uint32_t arg_index, offset_type type) const;
+  void patch_ctrl57_addend(std::vector<char>& buf, uint32_t offset, uint64_t addend) const;
+  virtual void patch_ctrlpkt_addend(std::vector<char>& buf, uint32_t offset, uint64_t addend) const;
+  virtual const char* control_packet_patch_schema_name() const { return "control_packet_57"; }
 
 public:
   asm_preprocessor_input() = default;

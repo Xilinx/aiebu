@@ -5,6 +5,8 @@
 #include "aiebu/aiebu_error.h"
 #include "common/regex_wrapper.h"
 
+#include <boost/property_tree/ptree.hpp>
+
 #include <cassert>
 #include <cstdint>
 #include <limits>
@@ -309,6 +311,16 @@ std::string metrics_report();
 // Format: _Z<length><name>...  e.g. "_Z3DPUPcPc" -> "DPU"
 // Returns "" if the name is not a valid mangled symbol.
 std::string extract_kernel_name_from_mangled(const std::string& symbol_name);
+
+constexpr uint64_t range_32bit = 0xFFFFFFFF;
+
+uint64_t get_64_bit_property(const boost::property_tree::ptree& pt,
+                             const std::string& property,
+                             bool defaultvalue = false);
+
+uint32_t get_32_bit_property(const boost::property_tree::ptree& pt,
+                             const std::string& property,
+                             bool defaultvalue = false);
 
 }
 #endif // AIEBU_COMMOM_UTILS_H_
