@@ -7,7 +7,6 @@
 #include "aiebu/aiebu_error.h"
 #include "logger.h"
 
-#include <cassert>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -121,22 +120,25 @@ process(std::shared_ptr<preprocessed_output> input)
     file.close();
   }
 
-  // Optional binary dump if debug flag is not disabled.
-  // Stream JSON directly into the section vector via a thin streambuf shim.
-  if (m_dump_flag != asm_dump_flag::disable) {
+  // Debug section emission.
+  // For merged-format (config) ELFs: DWARF v5 sections are built once for all
+  // instances by asm_config_encoder after all per-instance process() calls
+  // complete.  Nothing to emit here — m_debug is taken by take_debug().
+  // For legacy per-page ELFs: emit the JSON .dump section as before.
+  if (m_dump_flag != asm_dump_flag::disable && !use_merged_ctrltext_sections()) {
     auto dumpwriter = std::make_shared<section_writer>(".dump", code_section::data);
     std::vector<uint8_t> dump_data;
     {
       struct vec_streambuf : std::streambuf {
-        std::vector<uint8_t>& buf;
-        explicit vec_streambuf(std::vector<uint8_t>& b) : buf(b) {}
+        std::vector<uint8_t>* buf;
+        explicit vec_streambuf(std::vector<uint8_t>& b) : buf(&b) {}
         std::streamsize xsputn(const char* s, std::streamsize n) override {
-          buf.insert(buf.end(), reinterpret_cast<const uint8_t*>(s),
-                     reinterpret_cast<const uint8_t*>(s) + n);
+          buf->insert(buf->end(), reinterpret_cast<const uint8_t*>(s),
+                      reinterpret_cast<const uint8_t*>(s) + n);
           return n;
         }
         int overflow(int c) override {
-          if (c != EOF) buf.push_back(static_cast<uint8_t>(c));
+          if (c != EOF) buf->push_back(static_cast<uint8_t>(c));
           return c;
         }
       } vsb(dump_data);
@@ -230,7 +232,17 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
         fid = m_debug.add_function(text->get_file_idx(), name + "_" + page_state->gen_job_name(false, text, 0), pc_high, pc_low, colnum, pagenum);
       }
       pc_high = pc_low + (*m_isa)[name]->serializer(args)->size(*page_state) - 1;
-      m_debug.add_textline(fid, text->get_linenumber(), pc_high, pc_low, text->get_line(), text->get_annotation_index());
+      // Classify annotated instructions: data-referencing opcodes emit DW_TAG_variable;
+      // all others (NOP, START_JOB, WAIT_TCTS, ...) emit DW_TAG_label.
+      // New opcodes default safely to DW_TAG_label.
+      const int ann_idx = text->get_annotation_index();
+      if (ann_idx != -1) {
+        if (name == "apply_offset_57" ||
+            name == "uc_dma_write_des_sync" ||
+            name == "uc_dma_write_des")
+          m_debug.mark_annotation_variable(ann_idx);
+      }
+      m_debug.add_textline(fid, text->get_linenumber(), pc_high, pc_low, text->get_line(), ann_idx);
     }
 
     if (text->isOpcode())

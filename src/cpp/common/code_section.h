@@ -13,7 +13,8 @@ enum class code_section
   text = 1,
   data = 2,
   custom = 3,
-  unknown = 4
+  unknown = 4,
+  debug = 5   // DWARF .debug_* sections: SHT_PROGBITS, no SHF_ALLOC, no PT_LOAD
 };
 
 constexpr uint8_t AIE2P_OPT_MAJOR_VER = 1;

@@ -150,21 +150,6 @@ class transform_manager {
    */
   std::string get_grp_id_if_group_elf(const std::string& name) const;
 
-  /**
-   * @brief Get filtered section indices for a kernel:instance filter
-   * @param kernel_instance_filter: Filter in format "kernel:instance" (e.g., "DPU:dpu")
-   * @return Set of section indices that belong to the specified kernel:instance
-   *
-   * This method:
-   * 1. Parses filter string to extract kernel and instance names
-   * 2. Finds FUNC symbols matching kernel name (e.g., _Z3DPUPcPc -> "DPU")
-   * 3. Finds OBJECT symbols matching instance name (e.g., "dpu")
-   * 4. Traverses all sections to find group sections where sh_info points to instance
-   * 5. Extracts member section indices from group data
-   *
-   * @throws error if filter format is invalid, kernel/instance not found, or required sections missing
-   */
-  std::set<ELFIO::Elf_Half> get_filtered_section_indices(const std::string& kernel_instance_filter);
 
   /**
    * @brief Generate per-page control text section name
@@ -305,6 +290,12 @@ public:
   explicit transform_manager(const std::vector<char>& elf_data);
 
   /**
+   * @brief Expose the internal ELFIO object for DWARF section parsing.
+   * @return const reference to the loaded ELFIO::elfio object.
+   */
+  const ELFIO::elfio& get_elfio() const { return m_elfio; }
+
+  /**
    * @brief Load and validate ELF data
    * @param elf_data Vector containing ELF binary data
    *
@@ -417,6 +408,23 @@ public:
    */
   std::string
   get_dump_section_json();
+
+  /**
+   * @brief Get the set of ELF section indices belonging to a kernel:instance group
+   * @param kernel_instance_filter Filter in format "kernel:instance" (e.g., "DPU:dpu")
+   * @return Set of section indices that belong to the specified kernel:instance
+   *
+   * This method:
+   * 1. Parses filter string to extract kernel and instance names
+   * 2. Finds FUNC symbols matching kernel name (e.g., _Z3DPUPcPc -> "DPU")
+   * 3. Finds OBJECT symbols matching instance name (e.g., "dpu")
+   * 4. Traverses all SHT_GROUP sections whose sh_info points to the instance symbol
+   * 5. Extracts member section indices from each group
+   *
+   * @throws error if filter format is invalid, kernel/instance not found, or no group sections found
+   */
+  std::set<ELFIO::Elf_Half>
+  get_filtered_section_indices(const std::string& kernel_instance_filter);
 
   /**
    * @brief Validate that the loaded ELF is an aie2ps/aie4 standalone target

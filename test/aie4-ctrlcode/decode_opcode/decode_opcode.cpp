@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Advanced Micro Devices, Inc. All rights reserved.
 //
-// Test for aiebu::get_opcode_information() on an ELF without a .dump section
-// (ISA binary walk / no-dump path).
+// Test for aiebu::get_opcode_information() covering two paths:
+//   1. ISA binary walk (no .dump, no DWARF) — always run.
+//   2. ISA binary walk + DWARF source info   — run when a DWARF ELF is provided.
 //
 // Usage:
-//   decode_opcode <out_no_dump.elf> <input.json>
+//   decode_opcode <no_dump.elf> <input.json> [<dwarf.elf>]
 //
 // input.json (Boost.PropertyTree JSON parser) supports multiple test vectors:
 //
@@ -14,6 +15,10 @@
 // Each case object may include an optional "label" for log output.
 // Required per case: kernel_name, uc_idx, page_idx, offset,
 // expected_opcode_no_dump, expected_args_no_dump.
+// Optional DWARF fields (used only when dwarf.elf is provided):
+//   expected_source_file  — basename expected in opcode_information::source_file
+//                           ("none" to skip check)
+//   expected_line         — source line number expected (0 to skip check)
 //
 // For a single vector you may instead use a bare object with those keys
 // (no "cases" wrapper), or a JSON array of case objects at the root.
@@ -63,6 +68,16 @@ ELFIO::elfio load_elfio(const std::vector<char>& elf_bytes)
   return reader;
 }
 
+// Return the basename (filename without directory) of a path stored as a string.
+// Handles both forward and backslash separators.
+std::string basename_of(const std::string& path)
+{
+  const auto slash = path.find_last_of("/\\");
+  if (slash == std::string::npos)
+    return path;
+  return path.substr(slash + 1);
+}
+
 // Call get_opcode_information and verify the returned fields against expected values.
 // Pass "none" for expected_args / expected_source_file to skip those checks.
 // Pass 0 for expected_line to skip the line check.
@@ -90,9 +105,14 @@ bool check_opcode(const ELFIO::elfio& elf,
 
   bool pass = true;
 
+  // Build a human-readable decoded instruction string for display in all messages.
+  const std::string decoded_instr = info.args_str.empty()
+      ? info.opcode_name
+      : (info.opcode_name + " " + info.args_str);
+
   if (info.opcode_name != expected_opcode) {
     std::cerr << "[FAIL] " << label << ": expected opcode '" << expected_opcode
-              << "' but got '" << info.opcode_name << "'\n";
+              << "' but got '" << decoded_instr << "'\n";
     pass = false;
   }
 
@@ -103,11 +123,14 @@ bool check_opcode(const ELFIO::elfio& elf,
     pass = false;
   }
 
-  // source_file and line: only the dump path populates these.
-  if (expected_source_file != "none" && info.source_file != expected_source_file) {
-    std::cerr << "[FAIL] " << label << ": expected source_file '" << expected_source_file
-              << "' but got '" << info.source_file << "'\n";
-    pass = false;
+  // source_file: compare by basename to tolerate full-path vs relative-path differences.
+  if (expected_source_file != "none") {
+    const std::string got_base = basename_of(info.source_file);
+    if (got_base != expected_source_file) {
+      std::cerr << "[FAIL] " << label << ": expected source_file basename '"
+                << expected_source_file << "' but got '" << got_base << "'\n";
+      pass = false;
+    }
   }
 
   if (expected_line != 0 && info.line != expected_line) {
@@ -117,18 +140,21 @@ bool check_opcode(const ELFIO::elfio& elf,
   }
 
   if (pass)
-    std::cout << "[PASS] " << label << "\n";
+    std::cout << "[PASS] " << label << ": " << decoded_instr << "\n";
 
   return pass;
 }
 
 void usage()
 {
-  std::cerr << "Usage: decode_opcode <out_no_dump.elf> <input.json>\n"
+  std::cerr << "Usage: decode_opcode <out_no_dump.elf> <input.json> [<dwarf.elf>]\n"
                "  JSON: { \"cases\": [ { kernel_name, uc_idx, page_idx, offset,\n"
-               "      expected_opcode_no_dump, expected_args_no_dump [, label] }, ... ] }\n"
+               "      expected_opcode_no_dump, expected_args_no_dump [, label]\n"
+               "      [, expected_source_file, expected_line] }, ... ] }\n"
                "  or a root array of case objects, or one case object alone.\n"
-               "  (use \"none\" for expected_args_no_dump to skip args check)\n";
+               "  (use \"none\" for expected_args_no_dump to skip args check)\n"
+               "  (use \"none\" for expected_source_file to skip source file check)\n"
+               "  (use 0 for expected_line to skip line check)\n";
 }
 
 struct decode_opcode_case
@@ -140,6 +166,9 @@ struct decode_opcode_case
   uint32_t    offset{};
   std::string expected_opcode_no_dump;
   std::string expected_args_no_dump;
+  // Optional DWARF fields — defaults mean "skip check"
+  std::string expected_source_file{"none"};
+  uint32_t    expected_line{};
 };
 
 std::string get_string(const boost::property_tree::ptree& o, const char* key)
@@ -171,6 +200,13 @@ decode_opcode_case parse_case_object(const boost::property_tree::ptree& o)
   c.offset                   = get_u32(o, "offset");
   c.expected_opcode_no_dump  = get_string(o, "expected_opcode_no_dump");
   c.expected_args_no_dump    = get_string(o, "expected_args_no_dump");
+  // Optional DWARF fields
+  if (const auto v = o.get_optional<std::string>("expected_source_file"))
+    c.expected_source_file = *v;
+  if (const auto v = o.get_optional<unsigned long>("expected_line")) {
+    if (*v <= static_cast<unsigned long>(std::numeric_limits<uint32_t>::max()))
+      c.expected_line = static_cast<uint32_t>(*v);
+  }
   return c;
 }
 
@@ -256,39 +292,68 @@ std::vector<decode_opcode_case> parse_input_json(const std::filesystem::path& js
 
 int main(int argc, char** argv)
 {
-  if (argc != 3) {
+  if (argc < 3 || argc > 4) {
     usage();
     return 2;
   }
 
   const std::filesystem::path in_no_dump = argv[1];
   const std::filesystem::path json_path = argv[2];
+  const bool have_dwarf_elf = (argc == 4);
+  const std::filesystem::path in_dwarf = have_dwarf_elf ? argv[3] : std::filesystem::path{};
 
   try {
     const std::vector<decode_opcode_case> cases = parse_input_json(json_path);
 
     std::vector<char> buf;
     read_file(in_no_dump, buf);
-
     const ELFIO::elfio reader_no_dump = load_elfio(buf);
 
     bool all_pass = true;
+
+    // Path 1: ISA walk only (no .dump, no DWARF)
     for (std::size_t i = 0; i < cases.size(); ++i) {
-      const decode_opcode_case& in = cases[i];
+      const decode_opcode_case& c = cases[i];
       const std::string label =
-          !in.label.empty()
-              ? in.label
-              : ("ISA walk path [case " + std::to_string(i) + "]");
+          !c.label.empty()
+              ? ("ISA walk [" + c.label + "]")
+              : ("ISA walk [case " + std::to_string(i) + "]");
       all_pass &= check_opcode(reader_no_dump,
-                               in.kernel_name,
-                               in.uc_idx,
-                               in.page_idx,
-                               in.offset,
-                               in.expected_opcode_no_dump,
-                               in.expected_args_no_dump,
-                               "none",
-                               0,
+                               c.kernel_name,
+                               c.uc_idx,
+                               c.page_idx,
+                               c.offset,
+                               c.expected_opcode_no_dump,
+                               c.expected_args_no_dump,
+                               "none",   // no source file in ISA-only ELF
+                               0,        // no line number in ISA-only ELF
                                label);
+    }
+
+    // Path 2: ISA walk + DWARF source info
+    if (have_dwarf_elf) {
+      std::vector<char> dwarf_buf;
+      read_file(in_dwarf, dwarf_buf);
+      const ELFIO::elfio reader_dwarf = load_elfio(dwarf_buf);
+
+      for (std::size_t i = 0; i < cases.size(); ++i) {
+        const decode_opcode_case& c = cases[i];
+        const std::string label =
+            !c.label.empty()
+                ? ("DWARF [" + c.label + "]")
+                : ("DWARF [case " + std::to_string(i) + "]");
+        all_pass &= check_opcode(reader_dwarf,
+                                 c.kernel_name,
+                                 c.uc_idx,
+                                 c.page_idx,
+                                 c.offset,
+                                 c.expected_opcode_no_dump,   // opcode is same via ISA walk
+                                 "none",                      // skip args: label numbering may
+                                                              // differ between ELF builds
+                                 c.expected_source_file,      // DWARF source file (or "none")
+                                 c.expected_line,             // DWARF line number (or 0)
+                                 label);
+      }
     }
 
     return all_pass ? 0 : 1;

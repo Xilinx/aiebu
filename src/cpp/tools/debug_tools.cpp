@@ -49,36 +49,42 @@ make_transform(aiebu_assembler::buffer_type type, const std::vector<char>& buffe
  * and the information can be written from the debug information contained in the ELF.
  */
 debug_tools::
-debug_tools(aiebu_assembler::buffer_type type, const std::vector<char>& buffer)
+debug_tools(aiebu_assembler::buffer_type type, const std::vector<char>& buffer,
+            std::string kernel_instance)
   : m_transform_manager(make_transform(type, buffer))
   , m_buffer_type(type)
+  , m_kernel_instance(std::move(kernel_instance))
 {
-  get_dump_section(); 
+  get_dump_section();
 }
 
 /**
- * get_dump_section() - Extract and cache .dump section from ELF buffer
+ * get_dump_section() - Extract and cache debug information from ELF buffer.
  *
- * This function will extract and store the .dump section into m_debug_json, either
- * using the kernel instance name for config ELFs or without it for target ELFs.
- * The transform_manager is used to check the ELF format and extract the .dump section.
+ * Tries the legacy JSON .dump section first.  If absent, falls back to
+ * DWARF v5 .debug_* sections (produced by merged-format / config ELFs with
+ * abi_version=0x21 and a .target directive).  Throws if neither is found.
  */
 void
 debug_tools::
 get_dump_section()
 {
-  if (m_transform_manager.check_config_elf()) {
-    // TODO: hardcoding the kernel instance name for simplicity,
-    // this should be extended to support multiple instances.
-    std::string kernel_instance_name = "DPU:dpu";
-
-    m_debug_json = m_transform_manager.get_dump_section_json(kernel_instance_name);
-  } else {
+  // Try legacy .dump path first
+  if (m_transform_manager.check_config_elf())
+    m_debug_json = m_transform_manager.get_dump_section_json(m_kernel_instance);
+  else
     m_debug_json = m_transform_manager.get_dump_section_json();
-  }
 
-  if (m_debug_json.empty())
-    throw error(error::error_code::invalid_input, "No debug information found in the ELF file");
+  if (!m_debug_json.empty())
+    return; // .dump found — done
+
+  // .dump absent: try DWARF v5 .debug_* sections
+  m_dwarf = std::make_unique<dwarf_reader>(m_transform_manager.get_elfio());
+  if (m_dwarf->has_dwarf())
+    return; // DWARF found — debug_tools methods will use m_dwarf
+
+  // Neither .dump nor DWARF present
+  throw error(error::error_code::invalid_input, "No debug information found in the ELF file");
 }
 
 } // namespace aiebu

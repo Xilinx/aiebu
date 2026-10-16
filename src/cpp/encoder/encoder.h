@@ -5,6 +5,7 @@
 #define _AIEBU_ENCODER_ENCODER_H_
 
 #include <memory>
+#include <string>
 
 #include "preprocessed_output.h"
 #include "writer.h"

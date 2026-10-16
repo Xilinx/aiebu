@@ -11,6 +11,7 @@
 #include "utils.h"
 #include "file_utils.h"
 #include "transform_manager.h"
+#include "tools/dwarf_reader.h"
 #include "logger.h"
 #include "aiebu/aiebu.h"
 #include "aiebu/aiebu_assembler.h"
@@ -292,6 +293,74 @@ opcode_to_name(uint8_t opcode)
   return it->second.get_code_name();
 }
 
+// Read the first (opcode) byte of the instruction at a DWARF address from
+// the .ctrltext section of the given column that belongs to this instance.
+// DWARF address encodes page_index * PAGE_SIZE + page_offset, which is the
+// direct byte offset into the merged section (all pages concatenated).
+// instance_sections: section indices belonging to this kernel:instance group,
+// used to unambiguously select the right section in multi-instance ELFs.
+// Returns -1 if the section or byte is not found.
+static int
+opcode_byte_at_address(const ELFIO::elfio& elf,
+                       const std::set<ELFIO::Elf_Half>& instance_sections,
+                       uint32_t col, uint32_t address)
+{
+  const std::string col_prefix = ".ctrltext." + std::to_string(col) + ".";
+
+  for (const auto& sec_ptr : elf.sections) {
+    const ELFIO::section* sec = sec_ptr.get();
+    if (instance_sections.find(sec->get_index()) == instance_sections.end())
+      continue;
+    if (sec->get_name().compare(0, col_prefix.size(), col_prefix) != 0)
+      continue;
+
+    if (!sec->get_data() || address >= sec->get_size())
+      return -1;
+
+    return static_cast<uint8_t>(sec->get_data()[address]);
+  }
+  return -1;
+}
+
+// Scan DWARF rows, keeping only those whose cu_name instance matches inst_name
+// and whose instruction opcode matches the requested byte.  Appends grouped
+// lineinfo entries into loc.  Rows with line==0 are annotation-only and skipped.
+// instance_sections: section indices for this kernel:instance, forwarded to
+// opcode_byte_at_address to select the correct column section unambiguously.
+static void
+parse_dwarf_rows(const ELFIO::elfio& elf,
+                 const std::set<ELFIO::Elf_Half>& instance_sections,
+                 const std::vector<dwarf_debug_row>& rows,
+                 const std::string& inst_name,
+                 uint8_t opcode,
+                 aiebu_assembler::op_loc& loc)
+{
+  std::map<uint32_t, size_t> col_index;
+
+  for (const auto& row : rows) {
+    if (row.line == 0)
+      continue;  // annotation-only row — no source line
+
+    // Filter by instance: cu_name is "kernel:instance"; compare suffix in-place.
+    const size_t delim = row.cu_name.find(':');
+    if (delim == std::string::npos ||
+        row.cu_name.compare(delim + 1, std::string::npos, inst_name) != 0)
+      continue;
+
+    const int opbyte = opcode_byte_at_address(elf, instance_sections, row.column, row.address);
+    if (opbyte < 0 || static_cast<uint8_t>(opbyte) != opcode)
+      continue;
+
+    auto it = col_index.find(row.column);
+    if (it == col_index.end()) {
+      col_index[row.column] = loc.line_info.size();
+      loc.line_info.push_back({row.column, {{row.line, row.file}}});
+    } else {
+      loc.line_info[it->second].entries.emplace_back(row.line, row.file);
+    }
+  }
+}
+
 // Parse one .dump JSON blob and append grouped lineinfo entries into loc,
 // keeping only entries whose "operation" field starts with the given prefix.
 static void
@@ -343,7 +412,9 @@ get_op_locations(uint8_t opcode, const std::string& kernel_name) const
   } else {
     // Config ELF: one .dump section per kernel instance, filtered by group.
     trans.check_aie2ps_aie4_fullelf();
-    for (const auto& inst_name : trans.get_kernel_instances(kernel_name)) {
+    const auto instances = trans.get_kernel_instances(kernel_name);
+    bool any_dump = false;
+    for (const auto& inst_name : instances) {
       op_loc loc;
       loc.inst_name = inst_name;
 
@@ -351,9 +422,29 @@ get_op_locations(uint8_t opcode, const std::string& kernel_name) const
       if (dump_json.empty())
         continue;
 
+      any_dump = true;
       parse_dump_json(dump_json, prefix, loc);
       if (!loc.line_info.empty())
         results.push_back(std::move(loc));
+    }
+
+    // DWARF fallback: merged-format ELFs have no .dump section; read opcode
+    // bytes directly from .ctrltext and cross-reference with .debug_line rows.
+    if (!any_dump) {
+      const dwarf_reader reader(trans.get_elfio());
+      if (reader.has_dwarf()) {
+        const auto& all_rows = reader.get_all_rows();
+        for (const auto& inst_name : instances) {
+          op_loc loc;
+          loc.inst_name = inst_name;
+          const auto inst_sections =
+              trans.get_filtered_section_indices(kernel_name + ":" + inst_name);
+          parse_dwarf_rows(trans.get_elfio(), inst_sections, all_rows,
+                           inst_name, opcode, loc);
+          if (!loc.line_info.empty())
+            results.push_back(std::move(loc));
+        }
+      }
     }
   }
 

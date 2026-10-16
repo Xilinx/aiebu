@@ -3,6 +3,7 @@
 
 // opcode / source lookup by PC and page
 #include "tools/debug_tools.h"
+#include "tools/dwarf_reader.h"
 #include "aiebu/aiebu_decompress.h"
 #include "aiebu/aiebu_error.h"
 #include "elf/aie_elf_constants.h"
@@ -15,8 +16,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <limits>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -87,18 +88,53 @@ write_opcode_information(std::ostream& stream, const std::string& filename,
   const uint64_t page_length = page_index * k_page_length;
   if (pc > k_max_page_index * k_page_length - page_length)
     throw error(error::error_code::invalid_input, "PC and page index overflow when computing page offset");
+  if (pc > std::numeric_limits<uint32_t>::max())
+    throw error(error::error_code::invalid_input, "PC value exceeds uint32_t range");
 
-  // Extract .dump section from ELF buffer
+  const auto offset32 = static_cast<uint32_t>(pc);
+  const auto page32   = static_cast<uint32_t>(page_index);
+
+  stream << "ELF File:       " << filename << '\n';
+  stream << "PC:             " << format_hex(pc) << '\n';
+  stream << "Opcode Information:\n";
+
+  // ── DWARF path ────────────────────────────────────────────────────────────
+  // For merged-format ELFs with DWARF v5 debug sections (no .dump present).
+  // Use AIEDebug which does the ISA binary walk for opcode name/size and
+  // supplements with DWARF for source file and line.
+  if (has_dwarf()) {
+    const AIEDebug aie_debug(m_transform_manager.get_elfio());
+    const opcode_information info = aie_debug.get_opcode_information(
+        m_kernel_instance, uc_index, page32, offset32);
+
+    if (!info.found) {
+      stream << "Not found!\n";
+      if (!info.diag_info.empty())
+        stream << "Diagnostic:     " << info.diag_info << '\n';
+      return;
+    }
+
+    stream << "Opcode:         " << info.opcode_name << '\n';
+    stream << "Opcode Size:    " << format_hex(info.opcode_size) << '\n';
+    stream << "uC Index:       " << format_hex(static_cast<uint64_t>(uc_index)) << '\n';
+    stream << "Page Index:     " << format_hex(page_index) << '\n';
+    stream << "Page Offset:    " << format_hex(static_cast<uint64_t>(offset32)) << '\n';
+    stream << "Line:           " << info.line << '\n';
+    stream << "File:           " << info.source_file << '\n';
+    return;
+  }
+
+  // ── .dump path ────────────────────────────────────────────────────────────
+  // Legacy and config ELFs with a JSON .dump section.  m_debug_json is
+  // already filtered to the right kernel instance by get_dump_section().
   const auto& debug_data = get_dump_data();
   if (debug_data.empty())
     throw error(error::error_code::invalid_input, "No debug information found in the ELF file");
 
-  // Parse the .dump section as JSON
   std::istringstream data(debug_data);
   boost::property_tree::ptree pt;
   boost::property_tree::read_json(data, pt);
 
-  // Compute the page offset from the page length and the PC
   const uint64_t page_offset = page_length + pc;
 
   bool found = false;
@@ -110,24 +146,16 @@ write_opcode_information(std::ostream& stream, const std::string& filename,
     const auto data_column = static_cast<uint32_t>(std::stoul(node.get<std::string>("column"), nullptr, 0));
     if (data_page_offset != page_offset || data_page_index != page_index || data_column != uc_index)
       continue;
-
     opcode_info = node;
     found = true;
     break;
   }
 
-  // Write the ELF / PC information to the output stream
-  stream << "ELF File:       " << filename << '\n';
-  stream << "PC:             " << format_hex(pc) << '\n';
-  stream << "Opcode Information:\n";
-
-  // If no matching entry is found, write "Not found" message to the output stream
   if (!found) {
     stream << "Not found!\n";
     return;
   }
 
-  // If a matching entry is found, format and write the opcode information to the output stream
   const std::string operation = opcode_info.get<std::string>("operation", "");
   const auto opcode_size = std::stoull(opcode_info.get<std::string>("opcode_size", "0"), nullptr, 0);
   const auto column = static_cast<uint32_t>(std::stoul(opcode_info.get<std::string>("column", "0"), nullptr, 0));
@@ -143,8 +171,6 @@ write_opcode_information(std::ostream& stream, const std::string& filename,
   stream << "Page Offset:    " << format_hex(data_page_offset) << '\n';
   stream << "Line:           " << line << '\n';
   stream << "File:           " << file << '\n';
-
-  return;
 }
 
 // Searches the dump JSON for the entry matching (uc_idx, page_idx, offset) and
@@ -533,8 +559,11 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
 /**
  * AIEDebug::get_opcode_information() - Decode the opcode at (uc_idx, page_idx, offset).
  *
- * Prefers the .dump section (richer output: source file, line number) and falls
- * back to ISA binary walk when no dump is present.
+ * Priority:
+ *   1. .dump section (legacy): opcode name, args, source file and line all available.
+ *   2. DWARF v5 .debug_* sections: source file and line from dwarf_reader;
+ *      opcode name and args from ISA binary walk.
+ *   3. ISA binary walk only: opcode name and args; no source info.
  * Returns a structured opcode_information; the caller formats and presents it.
  */
 opcode_information
@@ -542,12 +571,11 @@ AIEDebug::get_opcode_information(const std::string& kernel_name,
                                   uint32_t uc_idx, uint32_t page_idx,
                                   uint32_t offset) const
 {
-  // Resolve the group index N for this kernel:instance.
-  // UINT32_MAX → single-instance ELF (no group suffix applied).
   const uint32_t name_id = resolve_group_name_id(kernel_name);
-  if (name_id == UINT32_MAX)
+  if (name_id == UINT32_MAX)  // kernel/instance not found in this group ELF
     return {};
 
+  // 1. Legacy .dump path
   const std::string dump_json = get_dump_json_from_elf(name_id);
   if (!dump_json.empty()) {
     const opcode_information result = decode_from_dump(dump_json, uc_idx, page_idx, offset);
@@ -561,7 +589,19 @@ AIEDebug::get_opcode_information(const std::string& kernel_name,
     return isa_result;
   }
 
-  return decode_opcode(uc_idx, page_idx, offset, name_id);
+  // 2. ISA binary walk for opcode name/args; supplement with DWARF for source info.
+  opcode_information result = decode_opcode(uc_idx, page_idx, offset, name_id);
+  if (result.found) {
+    dwarf_reader dr(m_elf);
+    if (dr.has_dwarf()) {
+      const dwarf_debug_row row = dr.find_row(uc_idx, page_idx, offset, kernel_name);
+      if (!row.file.empty() && row.line != 0) {
+        result.source_file = row.file;
+        result.line        = row.line;
+      }
+    }
+  }
+  return result;
 }
 
 } // namespace aiebu
