@@ -19,6 +19,7 @@ opcode_implies_load(uint8_t opcode)
 {
   switch (opcode) {
   case OPCODE_LOAD_PDI:
+  case OPCODE_LOAD_LAST_PDI:
   case OPCODE_LOAD_CORES:
   case OPCODE_LOAD_CORES_CP:
   case OPCODE_PREEMPT:
