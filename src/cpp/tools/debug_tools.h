@@ -40,6 +40,7 @@ private:
   transform_manager m_transform_manager;
   const aiebu_assembler::buffer_type m_buffer_type;
   std::string m_debug_json;
+  std::string m_kernel_instance;           ///< "kernel:instance" filter (empty = accept any/all)
   std::unique_ptr<dwarf_reader> m_dwarf;   ///< Non-null when DWARF sections are present
 
   static transform_manager make_transform(
@@ -48,7 +49,8 @@ private:
 
 public:
   // Constructor
-  debug_tools(aiebu_assembler::buffer_type type, const std::vector<char>& buffer);
+  debug_tools(aiebu_assembler::buffer_type type, const std::vector<char>& buffer,
+              std::string kernel_instance = "DPU:dpu");
 
   // Delete copy and move constructors and assignment operators
   debug_tools(const debug_tools&) = delete;               // Copy constructor

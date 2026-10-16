@@ -199,15 +199,34 @@ dwarf_reader::parse_debug_info(
   // We now parse DIEs using our fixed abbreviation knowledge:
   //   abbrev 1 = compile_unit (has_children): producer(strp), language(data2), name(strp)
   //   abbrev 2 = module       (has_children): name(strp), stmt_list(sec_offset), byte_size(data4)
-  //   abbrev 3 = label        (no_children):  low_pc(addr), const_value(strp), name(strp), description(strp)
+  //   abbrev 3 = variable     (no_children):  name(strp), location(exprloc: DW_OP_addr+addr4),
+  //                                           const_value(strp), description(strp)
+  //   abbrev 4 = label        (no_children):  name(strp), low_pc(addr),
+  //                                           const_value(strp), description(strp)
 
   // Current DW_TAG_module state
   uint32_t cur_col  = UINT32_MAX;
   uint32_t cur_stmt = 0;
 
-  // Annotation rows (line=0, file empty) are pushed to m_rows directly.
-  // compile_unit DIE (abbrev 1) always precedes module/label DIEs, so
-  // cu_name_result is known before any DW_TAG_label is encountered.
+  // Helper: push an annotation row to m_rows (used by cases 3 and 4).
+  // compile_unit DIE (abbrev 1) always precedes module/annotation DIEs, so
+  // cu_name_result is set before any annotation DIE is encountered.
+  auto push_annotation_row = [&](uint32_t addr,
+                                 std::string ann_name,
+                                 std::string ann_id,
+                                 std::string ann_desc) {
+    if (cur_col == UINT32_MAX) return;
+    dwarf_debug_row row{};
+    row.column          = cur_col;
+    row.address         = addr;
+    row.page_index      = addr / DWARF_PAGE_SIZE;
+    row.page_offset     = addr % DWARF_PAGE_SIZE;
+    row.annotation_name = std::move(ann_name);
+    row.annotation_id   = std::move(ann_id);
+    row.annotation_desc = std::move(ann_desc);
+    row.cu_name         = cu_name_result;
+    m_rows.emplace_back(std::move(row));
+  };
 
   while (p < cu_end) {
     uint64_t abbrev_code = 0;
@@ -256,26 +275,41 @@ dwarf_reader::parse_debug_info(
         cur_stmt = stmt_list;
         break;
       }
-      case 3: { // label
-        if (p + 4 + 4 + 4 + 4 > cu_end)
-          return cu_name_result; // low_pc(addr4) + ann_id(strp) + ann_name(strp) + ann_desc(strp)
-        uint32_t low_pc = 0;
-        p = read_u32(p, low_pc);
-        std::string ann_id   = read_strp(p, str_data, str_size); p += 4;
+      case 3: { // variable — annotated instruction
+        // name(strp) + location(exprloc) + const_value(strp) + description(strp)
+        // Minimum: 4(name) + 1(exprloc_len) + 1(DW_OP_addr) + 4(addr4) + 4(id) + 4(desc) = 18
+        if (p + 4 + 1 + 1 + 4 + 4 + 4 > cu_end)
+          return cu_name_result;
         std::string ann_name = read_strp(p, str_data, str_size); p += 4;
-        std::string ann_desc = read_strp(p, str_data, str_size); p += 4;
-        if (cur_col != UINT32_MAX) {
-          dwarf_debug_row row{};
-          row.column          = cur_col;
-          row.address         = low_pc;
-          row.page_index      = low_pc / DWARF_PAGE_SIZE;
-          row.page_offset     = low_pc % DWARF_PAGE_SIZE;
-          row.annotation_id   = std::move(ann_id);
-          row.annotation_name = std::move(ann_name);
-          row.annotation_desc = std::move(ann_desc);
-          row.cu_name         = cu_name_result;
-          m_rows.emplace_back(std::move(row));
+        // DW_AT_location as exprloc: ULEB128 length, then DW_OP_addr + 4-byte address
+        uint64_t loc_len = 0;
+        p = read_uleb128(p, cu_end, loc_len);
+        if (p + static_cast<size_t>(loc_len) > cu_end)
+          return cu_name_result;
+        // DW_OP_addr expression: 1 opcode byte + 4-byte address
+        uint32_t addr = 0;
+        if (loc_len >= dwarf5::DW_OP_ADDR_EXPR_SIZE) {
+          p += 1;                                                                            // skip DW_OP_addr byte
+          p = read_u32(p, addr);
+          p += static_cast<size_t>(loc_len - dwarf5::DW_OP_ADDR_EXPR_SIZE);  // skip any trailing bytes (none expected)
+        } else {
+          p += static_cast<size_t>(loc_len);                               // skip malformed expression
         }
+        std::string ann_id   = read_strp(p, str_data, str_size); p += 4;
+        std::string ann_desc = read_strp(p, str_data, str_size); p += 4;
+        push_annotation_row(addr, std::move(ann_name), std::move(ann_id), std::move(ann_desc));
+        break;
+      }
+      case 4: { // label — code-position probe point
+        // name(strp) + low_pc(addr) + const_value(strp) + description(strp)
+        if (p + 4 + 4 + 4 + 4 > cu_end)
+          return cu_name_result;
+        std::string ann_name = read_strp(p, str_data, str_size); p += 4;
+        uint32_t addr = 0;
+        p = read_u32(p, addr);           // DW_AT_low_pc DW_FORM_addr
+        std::string ann_id   = read_strp(p, str_data, str_size); p += 4;
+        std::string ann_desc = read_strp(p, str_data, str_size); p += 4;
+        push_annotation_row(addr, std::move(ann_name), std::move(ann_id), std::move(ann_desc));
         break;
       }
       default:
@@ -584,11 +618,29 @@ dwarf_reader::dwarf_reader(const ELFIO::elfio& elf)
 // ─── Lookup ──────────────────────────────────────────────────────────────────
 
 dwarf_debug_row
-dwarf_reader::find_row(uint32_t col, uint32_t page_idx, uint32_t offset) const
+dwarf_reader::find_row(uint32_t col, uint32_t page_idx, uint32_t offset,
+                       const std::string& kernel_name) const
 {
+  // If kernel_name contains an instance (e.g. "DPU:subgraph_0"), filter by the
+  // instance portion so that multi-instance ELFs return the correct CU's row.
+  std::string filter_instance;
+  if (!kernel_name.empty()) {
+    const auto colon = kernel_name.find(':');
+    if (colon != std::string::npos)
+      filter_instance = kernel_name.substr(colon + 1);
+  }
+
   for (const auto& row : m_rows) {
-    if (row.column == col && row.page_index == page_idx && row.page_offset == offset)
-      return row;
+    if (row.column != col || row.page_index != page_idx || row.page_offset != offset)
+      continue;
+    if (!filter_instance.empty()) {
+      // cu_name format: "kernel:instance" — match instance suffix
+      const auto colon = row.cu_name.find(':');
+      if (colon == std::string::npos ||
+          row.cu_name.compare(colon + 1, std::string::npos, filter_instance) != 0)
+        continue;
+    }
+    return row;
   }
   return {};
 }

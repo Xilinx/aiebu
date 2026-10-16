@@ -244,7 +244,7 @@ set_tests_properties("dtrace_elf_no_kernel_md5sum" PROPERTIES DEPENDS "dtrace_el
 # expected since DWARF .debug_line does not store instruction mnemonics.
 
 # Generate multi-graph-dwarf.elf from source (avoids storing a large binary in the repo)
-add_test(NAME "generate_dwarf_elf"
+add_test(NAME "dtrace_generate_dwarf_elf"
   COMMAND aiebu-asm
     -t aie4_config
     -j "${AIEBU_SOURCE_DIR}/test/aie4-ctrlcode/multi_graph/config.json"
@@ -263,7 +263,7 @@ add_test(NAME "dtrace_dwarf_elf"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
 
-set_tests_properties("dtrace_dwarf_elf" PROPERTIES DEPENDS "generate_dwarf_elf")
+set_tests_properties("dtrace_dwarf_elf" PROPERTIES DEPENDS "dtrace_generate_dwarf_elf")
 
 # Verify the DWARF result script matches the expected gold.
 # operation="" is expected: DWARF .debug_line does not store instruction mnemonics.

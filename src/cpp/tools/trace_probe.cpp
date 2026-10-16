@@ -33,9 +33,33 @@ namespace aiebu {
 // ─── DWARF path ─────────────────────────────────────────────────────────────
 
 static void
-write_trace_probes_from_dwarf(std::ostream& stream, const dwarf_reader& dr)
+write_trace_probes_from_dwarf(std::ostream& stream, const dwarf_reader& dr,
+                              const std::string& kernel_instance)
 {
-  const auto& all_rows = dr.get_all_rows();
+  // Extract the instance portion from "kernel:instance" for filtering.
+  std::string filter_instance;
+  const auto colon = kernel_instance.find(':');
+  if (colon != std::string::npos)
+    filter_instance = kernel_instance.substr(colon + 1);
+
+  // Build the filtered view: pointers into dr's row vector (no copy).
+  // If the filter matches nothing (e.g. wrong default for this ELF), fall back
+  // to all rows so the tool remains useful rather than silently producing empty output.
+  std::vector<const dwarf_debug_row*> all_rows;
+  for (const auto& row : dr.get_all_rows()) {
+    if (!filter_instance.empty()) {
+      const auto cu_colon = row.cu_name.find(':');
+      if (cu_colon == std::string::npos ||
+          row.cu_name.compare(cu_colon + 1, std::string::npos, filter_instance) != 0)
+        continue;
+    }
+    all_rows.push_back(&row);
+  }
+  if (all_rows.empty() && !filter_instance.empty()) {
+    // Filter matched nothing — emit all instances so output is not silently empty.
+    for (const auto& row : dr.get_all_rows())
+      all_rows.push_back(&row);
+  }
 
   // Conflict-detection tracking: keyed by "basename:ucN".
   struct probe_tracking {
@@ -45,55 +69,58 @@ write_trace_probes_from_dwarf(std::ostream& stream, const dwarf_reader& dr)
   std::map<std::string, probe_tracking> tracking_map;
 
   // Pass 1: detect filename conflicts across line rows (line > 0).
-  for (const auto& row : all_rows) {
-    if (row.line == 0) continue; // annotation rows carry no file/line
-    const std::string file_name = std::filesystem::path(row.file).filename().string();
-    const std::string key = file_name + ":uc" + std::to_string(row.column);
+  for (const auto* row : all_rows) {
+    if (row->line == 0)
+      continue; // annotation rows carry no file/line
+    const std::string file_name = std::filesystem::path(row->file).filename().string();
+    const std::string key = file_name + ":uc" + std::to_string(row->column);
     auto it = tracking_map.find(key);
-    if (it == tracking_map.end()) {
-      tracking_map[key] = {false, row.file};
-    } else if (it->second.file_path != row.file) {
+    if (it == tracking_map.end())
+      tracking_map[key] = {false, row->file};
+    else if (it->second.file_path != row->file)
       it->second.conflict = true;
-    }
   }
 
   // Build address → display_file map so annotation rows can resolve the same
   // display path as the line row at the same PC.
   std::map<uint32_t, std::string> addr_to_display;
-  for (const auto& row : all_rows) {
-    if (row.line == 0) continue;
-    const std::string file_name = std::filesystem::path(row.file).filename().string();
-    const std::string key = file_name + ":uc" + std::to_string(row.column);
+  for (const auto* row : all_rows) {
+    if (row->line == 0)
+      continue;
+    const std::string file_name = std::filesystem::path(row->file).filename().string();
+    const std::string key = file_name + ":uc" + std::to_string(row->column);
     const bool has_conflict = tracking_map.at(key).conflict;
-    addr_to_display.emplace(row.address, has_conflict ? row.file : file_name);
+    addr_to_display.emplace(row->address, has_conflict ? row->file : file_name);
   }
 
   // Pass 2: emit line probes.
-  for (const auto& row : all_rows) {
-    if (row.line == 0) continue;
-    const std::string file_name = std::filesystem::path(row.file).filename().string();
-    const std::string key = file_name + ":uc" + std::to_string(row.column);
+  for (const auto* row : all_rows) {
+    if (row->line == 0)
+      continue;
+    const std::string file_name = std::filesystem::path(row->file).filename().string();
+    const std::string key = file_name + ":uc" + std::to_string(row->column);
     const bool has_conflict = tracking_map.at(key).conflict;
-    const std::string& display_file = has_conflict ? row.file : file_name;
+    const std::string& display_file = has_conflict ? row->file : file_name;
 
     stream << "jprobe:" << display_file
-           << ":uc"     << row.column
-           << ":line"   << row.line
+           << ":uc"     << row->column
+           << ":line"   << row->line
            << " ( on UNKNOWN )\n";
   }
 
   // Pass 3: emit annotation probes from DW_TAG_label rows (line == 0).
   // Resolve display_file from the line row at the same PC; fall back to
   // the section address if no line row exists at that address.
-  for (const auto& row : all_rows) {
-    if (row.annotation_id.empty()) continue; // only annotation rows have this set
-    auto it = addr_to_display.find(row.address);
+  for (const auto* row : all_rows) {
+    if (row->annotation_id.empty())
+      continue; // only annotation rows have this set
+    auto it = addr_to_display.find(row->address);
     const std::string display_file =
-        (it != addr_to_display.end()) ? it->second : std::to_string(row.address);
+        (it != addr_to_display.end()) ? it->second : std::to_string(row->address);
 
     stream << "jprobe:" << display_file
-           << ":uc"     << row.column
-           << ":annotation" << row.annotation_id
+           << ":uc"     << row->column
+           << ":annotation" << row->annotation_id
            << " ( on UNKNOWN )\n";
   }
 }
@@ -106,7 +133,7 @@ write_trace_probes(std::ostream& stream) const
 {
   // DWARF path: no .dump present
   if (has_dwarf()) {
-    write_trace_probes_from_dwarf(stream, *m_dwarf);
+    write_trace_probes_from_dwarf(stream, *m_dwarf, m_kernel_instance);
     return;
   }
 

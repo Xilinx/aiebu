@@ -153,9 +153,9 @@ public:
 
 class config_writer_base : public writer
 {
-protected: // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
-  std::vector<std::shared_ptr<writer>> m_global_custom_sections;
-  std::vector<std::shared_ptr<writer>> m_global_debug_sections;
+protected:
+  std::vector<std::shared_ptr<writer>> m_global_custom_sections; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
+  std::vector<std::shared_ptr<writer>> m_global_debug_sections; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
 
 public:
   void add_global_custom_section(std::shared_ptr<writer> val)

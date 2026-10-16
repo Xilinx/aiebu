@@ -49,11 +49,13 @@ make_transform(aiebu_assembler::buffer_type type, const std::vector<char>& buffe
  * and the information can be written from the debug information contained in the ELF.
  */
 debug_tools::
-debug_tools(aiebu_assembler::buffer_type type, const std::vector<char>& buffer)
+debug_tools(aiebu_assembler::buffer_type type, const std::vector<char>& buffer,
+            std::string kernel_instance)
   : m_transform_manager(make_transform(type, buffer))
   , m_buffer_type(type)
+  , m_kernel_instance(std::move(kernel_instance))
 {
-  get_dump_section(); 
+  get_dump_section();
 }
 
 /**
@@ -68,14 +70,10 @@ debug_tools::
 get_dump_section()
 {
   // Try legacy .dump path first
-  if (m_transform_manager.check_config_elf()) {
-    // TODO: hardcoding the kernel instance name for simplicity,
-    // this should be extended to support multiple instances.
-    std::string kernel_instance_name = "DPU:dpu";
-    m_debug_json = m_transform_manager.get_dump_section_json(kernel_instance_name);
-  } else {
+  if (m_transform_manager.check_config_elf())
+    m_debug_json = m_transform_manager.get_dump_section_json(m_kernel_instance);
+  else
     m_debug_json = m_transform_manager.get_dump_section_json();
-  }
 
   if (!m_debug_json.empty())
     return; // .dump found — done

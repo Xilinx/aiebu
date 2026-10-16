@@ -135,6 +135,14 @@ public:
 
   const std::vector<annotation_type>& get_annotations() const { return m_annotation_list; }
 
+  // Mark annotation[index] as a data-variable probe point (DW_TAG_variable).
+  // Called by the encoder when it determines the annotated instruction references
+  // a data-section label.  Default (false) → DW_TAG_label (code-position probe).
+  void mark_annotation_variable(int index) {
+    if (index >= 0 && index < static_cast<int>(m_annotation_list.size()))
+      m_annotation_list[index].set_is_variable(true);
+  }
+
   // Serialises the entire debug array directly into out,
   // never building a large in-memory JSON tree.
   void write_json(std::ostream& out) const {

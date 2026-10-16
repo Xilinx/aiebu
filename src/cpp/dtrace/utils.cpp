@@ -206,7 +206,8 @@ static std::string dwarf_rows_to_json(const std::vector<aiebu::dwarf_debug_row>&
   out << R"({"debug":[)";
   bool first = true;
   for (const auto& row : rows) {
-    if (!first) out << ',';
+    if (!first)
+      out << ',';
     first = false;
 
     out << R"({"file":")" << row.file << '"'
@@ -215,13 +216,11 @@ static std::string dwarf_rows_to_json(const std::vector<aiebu::dwarf_debug_row>&
         << R"(,"page_offset":")" << row.page_offset << '"'
         << R"(,"column":")" << row.column << '"';
 
-    if (row.line > 0) {
+    if (row.line > 0)
       out << R"(,"line":")" << row.line << '"';
-    }
 
-    if (!row.annotation_id.empty()) {
+    if (!row.annotation_id.empty())
       out << R"(,"annotation":{"id":")" << row.annotation_id << R"("})";
-    }
 
     out << '}';
   }
@@ -255,7 +254,7 @@ get_debug_section_json() const
         || name.compare(0, debug_prefix.size(), debug_prefix) != 0)
       continue;
 
-    return std::string(sec->get_data(), static_cast<size_t>(sec->get_size()));
+    return {sec->get_data(), static_cast<size_t>(sec->get_size())};
   }
 
   return {};

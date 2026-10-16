@@ -232,7 +232,17 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
         fid = m_debug.add_function(text->get_file_idx(), name + "_" + page_state->gen_job_name(false, text, 0), pc_high, pc_low, colnum, pagenum);
       }
       pc_high = pc_low + (*m_isa)[name]->serializer(args)->size(*page_state) - 1;
-      m_debug.add_textline(fid, text->get_linenumber(), pc_high, pc_low, text->get_line(), text->get_annotation_index());
+      // Classify annotated instructions: data-referencing opcodes emit DW_TAG_variable;
+      // all others (NOP, START_JOB, WAIT_TCTS, ...) emit DW_TAG_label.
+      // New opcodes default safely to DW_TAG_label.
+      const int ann_idx = text->get_annotation_index();
+      if (ann_idx != -1) {
+        if (name == "apply_offset_57" ||
+            name == "uc_dma_write_des_sync" ||
+            name == "uc_dma_write_des")
+          m_debug.mark_annotation_variable(ann_idx);
+      }
+      m_debug.add_textline(fid, text->get_linenumber(), pc_high, pc_low, text->get_line(), ann_idx);
     }
 
     if (text->isOpcode())

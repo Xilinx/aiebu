@@ -40,8 +40,11 @@ struct dwarf_sections {
  * DWARF layout: one section of each kind per ELF.  The shared .debug_str
  * pool naturally deduplicates strings across CUs (e.g. the producer string
  * is only stored once).  Each column in a CU's Debug data becomes a
- * DW_TAG_module child of the CU.  Annotated instructions become
- * DW_TAG_label children of their column's module.
+ * DW_TAG_module child of the CU.  Annotated instructions become either
+ * DW_TAG_variable (data-referencing: APPLY_OFFSET_57, UC_DMA_WRITE_DES*) or
+ * DW_TAG_label (code-position probes: NOP, START_JOB, WAIT_TCTS, ...) children
+ * of their column's module.  Classification is done by aie2ps_encoder; new
+ * opcodes default to DW_TAG_label.
  */
 class dwarf_writer {
 public:

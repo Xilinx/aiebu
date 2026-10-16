@@ -28,9 +28,9 @@ struct dwarf_debug_row {
   uint32_t    address;          ///< Raw DWARF address (page_index*PAGE_SIZE + page_offset)
   uint32_t    line;             ///< Source line number
   std::string file;             ///< Source file name (basename from prologue table)
-  std::string annotation_name; ///< From DW_TAG_label DW_AT_name (empty if none)
-  std::string annotation_id;   ///< From DW_TAG_label DW_AT_const_value (empty if none)
-  std::string annotation_desc; ///< From DW_TAG_label DW_AT_description (empty if none)
+  std::string annotation_name; ///< DW_AT_name from DW_TAG_label or DW_TAG_variable DIE (empty if none)
+  std::string annotation_id;   ///< DW_AT_const_value (annotation id string) from annotated DIE (empty if none)
+  std::string annotation_desc; ///< DW_AT_description from annotated DIE (empty if none)
   std::string cu_name;          ///< DW_AT_name of the enclosing compile_unit (e.g. "DPU:subgraph_0")
 };
 
@@ -61,9 +61,14 @@ public:
 
   /**
    * Find the row matching (column, page_index, page_offset).
+   * If kernel_name contains a ':' (e.g. "DPU:subgraph_0"), only rows whose
+   * cu_name instance portion matches are considered — required for multi-instance
+   * ELFs where two CUs may share the same (col, page, offset).
+   * If kernel_name has no ':', no instance filter is applied (single-instance ELF).
    * Returns a row with line==0 and empty file if not found.
    */
-  dwarf_debug_row find_row(uint32_t col, uint32_t page_idx, uint32_t offset) const;
+  dwarf_debug_row find_row(uint32_t col, uint32_t page_idx, uint32_t offset,
+                           const std::string& kernel_name = {}) const;
 
   /// All decoded rows, in statement-list order.
   const std::vector<dwarf_debug_row>& get_all_rows() const { return m_rows; }
