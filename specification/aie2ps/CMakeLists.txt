@@ -8,7 +8,6 @@ add_custom_target(cpp-assembler-stubs
   ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
   ${AIEBU_SOURCE_DIR}/templates/aie2ps generate_cpp_assembler_stubs
   > ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa.h
-  BYPRODUCTS ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa.h
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   SOURCES ${AIEBU_SOURCE_DIR}/specification/spec_tool.py
   ${AIEBU_SOURCE_DIR}/specification/aie2ps/isa-spec.yaml
