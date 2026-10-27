@@ -1,0 +1,2488 @@
+{
+  "pdi_combination_0": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_conversion_fp16x16": 36,
+      "run_gemm_a8a8_transpose": 40,
+      "run_gemm_int8x8": 5,
+      "run_generic_reduce_int8x8": 45,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_quant_int8": 35,
+      "run_reduce_all_int8x8": 53,
+      "run_reshape_a8": 52,
+      "run_slice_a8": 28,
+      "run_transpose_a8": 26
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "conversion/conversion_fp16x16_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int8x8/gemm_int8x8_wrapper.cc",
+      "gemm_qdq_int8x8_transpose/gemm_a8a8_transpose_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_1": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_conversion_fp16x16": 36,
+      "run_gemm_a8a8_transpose": 40,
+      "run_gemm_int8x8": 5,
+      "run_generic_reduce_int8x8": 45,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_reduce_all_int8x8": 53,
+      "run_reshape_a8": 52,
+      "run_slice_a8": 28,
+      "run_softmax_fp16x16": 6,
+      "run_transpose_a8": 26
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "conversion/conversion_fp16x16_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int8x8/gemm_int8x8_wrapper.cc",
+      "gemm_qdq_int8x8_transpose/gemm_a8a8_transpose_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "reshape/wrapper_reshape.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_2": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_pad": 60,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "pad/wrapper_pad.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_3": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_expand": 57,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_reduce_all_int16x16": 54,
+      "run_reshape": 51,
+      "run_slice": 27,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "expand/wrapper_expand.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_4": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_rope_16": 33,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_5": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_conv_qdq_a16w8": 14,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_slice": 27,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_6": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_reshape": 51,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "reshape/wrapper_reshape.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_7": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_expand": 57,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "expand/wrapper_expand.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_8": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_9": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_gather_element": 47,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gather_element/wrapper_gather_element.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_10": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_11": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_12": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_reduce_all_int16x16": 54,
+      "run_reshape": 51,
+      "run_slice": 27,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "reshape/wrapper_reshape.cc",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_13": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_reduce_all_int16x16": 54,
+      "run_reshape": 51,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "reshape/wrapper_reshape.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_14": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_expand": 57,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_reduce_all_int16x16": 54,
+      "run_slice": 27,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "expand/wrapper_expand.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "q/q_impl.hpp",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_15": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_rope_16": 33,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_16": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_rope_16": 33,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc"
+    ]
+  },
+  "pdi_combination_17": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_rope_16": 33,
+      "run_slice": 27,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_18": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_rope_16": 33,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_19": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_quant": 10,
+      "run_rope_16": 33,
+      "run_slice": 27,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_20": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_rope_16": 33,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_21": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_quant": 10,
+      "run_rope_16": 33,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_22": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_conv_qdq_a16w8": 14,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc"
+    ]
+  },
+  "pdi_combination_23": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_24": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x2to4_block": 56,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_int16x2to4_block/gemm_int16x2to4_block_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_25": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_gemm_a16w16_transpose": 64,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_a16w16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_26": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_quant": 10,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_27": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_gemm_int16x4": 4,
+      "run_gemm_int16x8": 38,
+      "run_gemm_int16x8_transpose": 39,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_slice": 27
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x4/gemm_int16x4_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "gemm_qdq_int16x8_transpose/gemm_int16x8_transpose_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "slice/wrapper_slice.cc"
+    ]
+  },
+  "pdi_combination_28": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_layernorm_fp16x16": 13,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_29": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc"
+    ]
+  },
+  "pdi_combination_30": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_31": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_quant": 10,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_32": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_33": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_expand": 57,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_reduce_all_int16x16": 54,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "expand/wrapper_expand.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_34": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_expand": 57,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_layernorm_fp16x16": 13,
+      "run_reduce_all_int16x16": 54,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "expand/wrapper_expand.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_35": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_reduce_all_int16x16": 54,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_36": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_lut_fp16x16": 19,
+      "run_reduce_all_int16x16": 54,
+      "run_slice": 27,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_37": {
+    "combined_kernel_names": {
+      "run_bdcastmul_16": 17,
+      "run_conv_qdq_a16w8": 14,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_maxpool_int16x16": 31,
+      "run_quant": 10,
+      "run_reduce_all_int16x16": 54,
+      "run_reshape": 51,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "maxpool/maxpool_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_38": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat_a8": 24,
+      "run_dequant_int8": 34,
+      "run_gemm_int8x8": 5,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant_int8": 35,
+      "run_reshape_a8": 52,
+      "run_transpose_a8": 26
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int8x8/gemm_int8x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_39": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_40": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_conv_qdq_a16w8": 14,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_slice": 27,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_41": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_conv_qdq_a16w8": 14,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_group_norm_qdq": 21,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "groupnorm/norm.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_42": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_conv_qdq_a16w8": 14,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_43": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_gemm_int16x4": 4,
+      "run_gemm_int16x8_transpose": 39,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_transpose_a8": 26
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x4/gemm_int16x4_wrapper.cc",
+      "gemm_qdq_int16x8_transpose/gemm_int16x8_transpose_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_44": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_group_norm_qdq": 21,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "groupnorm/norm.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_45": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_conv_qdq_a16w8": 14,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_group_norm_qdq": 21,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "groupnorm/norm.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_46": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_dequant": 9,
+      "run_dwc_qdq_a16w8": 20,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "dwc_int16x8/dwc_qdq_a16w8_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_47": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_dequant": 9,
+      "run_dwc_qdq_a16w8": 20,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "dwc_int16x8/dwc_qdq_a16w8_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_48": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_dequant": 9,
+      "run_dwc_qdq_a16w8": 20,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_quant": 10,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "dwc_int16x8/dwc_qdq_a16w8_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_49": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_dwc_qdq_a16w8": 20,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dwc_int16x8/dwc_qdq_a16w8_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_50": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_reduce_all_int16x16": 54
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc"
+    ]
+  },
+  "pdi_combination_51": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_reduce_all_int16x16": 54,
+      "run_slice": 27
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "slice/wrapper_slice.cc"
+    ]
+  },
+  "pdi_combination_52": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_bdcastmul_16": 17,
+      "run_conv_qdq_a16w8": 14,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_quant": 10,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_53": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_slice": 27,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_54": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_reshape": 51,
+      "run_slice": 27
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "reshape/wrapper_reshape.cc",
+      "slice/wrapper_slice.cc"
+    ]
+  },
+  "pdi_combination_55": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x4": 4,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x4/gemm_int16x4_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc"
+    ]
+  },
+  "pdi_combination_56": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc"
+    ]
+  },
+  "pdi_combination_57": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_conv_qdq_a16w8": 14,
+      "run_gemm_int16x8": 38,
+      "run_group_norm_qdq": 21,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "groupnorm/norm.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_58": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_conv_qdq_a16w8": 14,
+      "run_dequant": 9,
+      "run_dwc_qdq_a16w8": 20,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_quant": 10,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "dwc_int16x8/dwc_qdq_a16w8_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_59": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_conv_qdq_a16w8": 14,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_group_norm_qdq": 21,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "groupnorm/norm.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_60": {
+    "combined_kernel_names": {
+      "run_bdcastdiv_16": 22,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_generic_reduce_int16x16": 46,
+      "run_l2norm_fp16x16": 7,
+      "run_quant": 10,
+      "run_reduce_all_int16x16": 54,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_61": {
+    "combined_kernel_names": {
+      "run_conv_qdq_a16w16": 59,
+      "run_dequant": 9,
+      "run_gemm_a16w16_transpose": 64,
+      "run_maxpool_int16x16": 31,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_softmax_fp16x16": 6,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "conv_qdq_int16x16/conv_qdq_a16w16_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_a16w16_transpose_wrapper.cc",
+      "maxpool/maxpool_wrapper.cc",
+      "q/q.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_62": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_gemm_int8x8": 5,
+      "run_gemm_int8x8_pwla": 67,
+      "run_layernorm_fp16x16": 13,
+      "run_maxpool_int8x8": 1,
+      "run_pad_a8": 61,
+      "run_slice_a8": 28,
+      "run_transpose_a8": 26
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "gemm_qdq_int8x8/gemm_int8x8_pwla_wrapper.cc",
+      "gemm_qdq_int8x8/gemm_int8x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "maxpool/maxpool_wrapper.cc",
+      "pad/wrapper_pad.cc",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_63": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_conv_qdq_a16w8": 14,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc"
+    ]
+  },
+  "pdi_combination_64": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_conv_qdq_a16w8": 14,
+      "run_lut_fp16x16": 19,
+      "run_maxpool_int16x16": 31,
+      "run_quant": 10,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "maxpool/maxpool_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_65": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_conv_qdq_a16w8": 14,
+      "run_dequant": 9,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc"
+    ]
+  },
+  "pdi_combination_66": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_gemm_int16x2to4_block": 56,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_int16x2to4_block/gemm_int16x2to4_block_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc"
+    ]
+  },
+  "pdi_combination_67": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_conv_qdq_a16w8": 14,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_group_norm_qdq": 21,
+      "run_lut_fp16x16": 19
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "groupnorm/norm.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp"
+    ]
+  },
+  "pdi_combination_68": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_conv_qdq_a16w8": 14,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_group_norm_qdq": 21,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "groupnorm/norm.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp"
+    ]
+  },
+  "pdi_combination_69": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_conv_qdq_a16w8": 14,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_group_norm_qdq": 21,
+      "run_lut_fp16x16": 19,
+      "run_softmax_fp16x16": 6
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "groupnorm/norm.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc"
+    ]
+  },
+  "pdi_combination_70": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_conv_qdq_a16w8": 14,
+      "run_gemm_int16x16_transpose": 15,
+      "run_gemm_int16x8": 38,
+      "run_layernorm_fp16x16": 13,
+      "run_lut_fp16x16": 19,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_71": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_gemm_int16x8_pwla": 68,
+      "run_layernorm_fp16x16": 13,
+      "run_quant": 10,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_pwla_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_72": {
+    "combined_kernel_names": {
+      "run_bdcastdiv_16": 22,
+      "run_bdcastmul_16": 17,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_quant": 10,
+      "run_reshape": 51,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_73": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_bdcastmul_16": 17,
+      "run_dequant_int8": 34,
+      "run_gemm_int8x8": 5,
+      "run_lut_fp16x16": 19,
+      "run_quant_int8": 35
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int8x8/gemm_int8x8_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_wrapper.cc"
+    ]
+  },
+  "pdi_combination_74": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_dequant": 9,
+      "run_gemm_int16x16_transpose": 15,
+      "run_quant": 10,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_75": {
+    "combined_kernel_names": {
+      "run_bdcastdiv_16": 22,
+      "run_bdcastmul_16": 17,
+      "run_dequant": 9,
+      "run_dequant_int8": 34,
+      "run_gemm_int16x8": 38,
+      "run_quant": 10
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc"
+    ]
+  },
+  "pdi_combination_76": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_bdcastdiv_16": 22,
+      "run_dequant": 9,
+      "run_l2norm_fp16x16": 7,
+      "run_quant": 10
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc"
+    ]
+  },
+  "pdi_combination_77": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_dequant_int8": 34,
+      "run_gemm_int8x8": 5,
+      "run_quant_int8": 35,
+      "run_softmax_fp16x16": 6
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int8x8/gemm_int8x8_wrapper.cc",
+      "q/q.hpp",
+      "q/q_wrapper.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc"
+    ]
+  },
+  "pdi_combination_78": {
+    "combined_kernel_names": {
+      "run_conv_qdq_a8w8": 32,
+      "run_dequant_int8": 34,
+      "run_lut_fp16x16": 19,
+      "run_quant_int8": 35,
+      "run_transpose_a8": 26
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "conv_qdq_int8x8/conv_qdq_a8w8_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_79": {
+    "combined_kernel_names": {
+      "run_conversion_fp16x16": 36,
+      "run_gemm_int16x8": 38,
+      "run_globalavgpool_int16x16": 37,
+      "run_l2norm_fp16x16": 7,
+      "run_layernorm_fp16x16": 13
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "conversion/conversion_fp16x16_wrapper.cc",
+      "dq/dq.hpp",
+      "gap/globalavgpool_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "q/q.hpp"
+    ]
+  },
+  "pdi_combination_80": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_conv_qdq_a8w8": 32,
+      "run_gemm_int8x8": 5,
+      "run_layernorm_fp16x16": 13,
+      "run_transpose_a8": 26
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "conv_qdq_int8x8/conv_qdq_a8w8_wrapper.cc",
+      "gemm_qdq_int8x8/gemm_int8x8_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_81": {
+    "combined_kernel_names": {
+      "run_conv_noqdq_a8w8": 0,
+      "run_copy_fp16x16": 8,
+      "run_expand_a8": 58,
+      "run_gather_32x8": 44,
+      "run_gather_64x16": 42,
+      "run_gather_64x8": 43,
+      "run_gather_element_a8": 50,
+      "run_globalavgpool_int8x8": 3,
+      "run_scatter_element": 48,
+      "run_scatter_element_a8": 49,
+      "run_topk": 62,
+      "run_topk_a8": 63
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_bdcastmul_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "conv/conv_noqdq_a8w8_wrapper.cc",
+      "conv_qdq_int16x16/conv_qdq_a16w16_wrapper.cc",
+      "conv_qdq_int16x8/conv_qdq_a16w8_wrapper.cc",
+      "conv_qdq_int8x8/conv_qdq_a8w8_wrapper.cc",
+      "conversion/conversion_fp16x16_wrapper.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "dwc_int16x8/dwc_qdq_a16w8_wrapper.cc",
+      "expand/wrapper_expand.cc",
+      "gap/globalavgpool_wrapper.cc",
+      "gather/wrapper_gather.cc",
+      "gather_element/wrapper_gather_element.cc",
+      "gemm_int16x2to4_block/gemm_int16x2to4_block_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_a16w16_transpose_wrapper.cc",
+      "gemm_qdq_int16x16_transpose/gemm_int16x16_transpose_wrapper.cc",
+      "gemm_qdq_int16x4/gemm_int16x4_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_pwla_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "gemm_qdq_int16x8_transpose/gemm_int16x8_transpose_wrapper.cc",
+      "gemm_qdq_int8x8/gemm_int8x8_pwla_wrapper.cc",
+      "gemm_qdq_int8x8/gemm_int8x8_wrapper.cc",
+      "gemm_qdq_int8x8_transpose/gemm_a8a8_transpose_wrapper.cc",
+      "generic_reduce_bf16/reduce_wrapper.cc",
+      "groupnorm/norm.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "layer_norm_fp16x16/layer_norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "maxpool/maxpool_wrapper.cc",
+      "pad/wrapper_pad.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "reshape/wrapper_reshape.cc",
+      "scatter_element/wrapper_scatter_element.cc",
+      "slice/wrapper_slice.cc",
+      "softmax_fp16x16/copy_fp16x16_wrapper.cc",
+      "softmax_fp16x16/softmax_fp16x16_wrapper.cc",
+      "topk/wrapper_topk.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_86": {
+    "combined_kernel_names": {
+      "run_flash_mha_uint16": 65
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "flash_mha_qdq_uint16/flash_mha_wrapper.cc"
+    ]
+  },
+  "pdi_combination_87": {
+    "combined_kernel_names": {
+      "run_flash_mha_uint8": 66
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "flash_mha_qdq_uint8/flash_mha_wrapper.cc"
+    ]
+  },
+  "pdi_combination_88": {
+    "combined_kernel_names": {
+      "run_gemm_a8w8_transpose": 41
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "gemm_qdq_int8x8_transpose/gemm_a8w8_transpose_wrapper.cc"
+    ]
+  },
+  "pdi_combination_1001": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_rope_16": 33,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_1002": {
+    "combined_kernel_names": {
+      "run_bdcastadd_16": 16,
+      "run_concat": 23,
+      "run_dequant": 9,
+      "run_gemm_int16x8": 38,
+      "run_l2norm_fp16x16": 7,
+      "run_lut_fp16x16": 19,
+      "run_quant": 10,
+      "run_rope_16": 33,
+      "run_slice": 27,
+      "run_transpose": 25
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "broadcast/run_bdcastadd_wrapper.cc",
+      "broadcast/run_bdcastdiv_wrapper.cc",
+      "broadcast/run_rope_wrapper.cc",
+      "concat/wrapper_concat.cc",
+      "dq/dq.hpp",
+      "dq/dq_impl.hpp",
+      "dq/dq_wrapper.cc",
+      "gemm_qdq_int16x8/gemm_int16x8_wrapper.cc",
+      "l2norm_fp16x16/l2norm_fp16x16_wrapper.cc",
+      "linear_approx_bf16/linear_approx_bf16_wrapper.cc",
+      "q/q.hpp",
+      "q/q_impl.hpp",
+      "q/q_wrapper.cc",
+      "slice/wrapper_slice.cc",
+      "transpose/wrapper_transpose.cc"
+    ]
+  },
+  "pdi_combination_1003": {
+    "combined_kernel_names": {
+      "run_flash_mha_uint16_batched": 65
+    },
+    "combined_kernel_includes": [
+      "super.hh",
+      "flash_mha_qdq_uint16_batched/flash_mha_wrapper.cc"
+    ]
+  }
+}

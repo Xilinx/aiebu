@@ -65,16 +65,16 @@ class LegacyGenerator():
               name = self.strtab.get(curr_name)
               scn_data = curr.elf_getdata()
               data = ctypes.string_at(scn_data.contents.d_buf, scn_data.contents.d_size)
-              if (name[0:9] == ".ctrltext"):
-                  idx = re.findall('\d+', name)
+              if name.startswith(".ctrltext"):
+                  idx = re.findall(r'\d+', name)
                   self._dumptext(data, curr_shdr, int(idx[0]))
+              elif name.startswith(".ctrldata"):
+                  idx = re.findall(r'\d+', name)
+                  self._dumpdata(data, curr_shdr, int(idx[0]))
+              elif name.startswith(".pad.") or name.startswith(".dump") or name.startswith(".ctrlpkt-"):
+                  pass
               else:
-                  if name[0:5]  == ".pad." or name[0:5] == ".dump":
-                      pass
-                  else:
-                      assert(name[0:9]  == ".ctrldata"), f"Invalid program section name {name}"
-                      idx = re.findall('\d+', name)
-                      self._dumpdata(data, curr_shdr, int(idx[0]))
+                  raise AssertionError(f"Invalid program section name {name}")
           curr = self.melf.elf_nextscn(curr)
 
     def run(self):

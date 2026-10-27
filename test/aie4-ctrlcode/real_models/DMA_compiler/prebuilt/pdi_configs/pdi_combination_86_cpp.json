@@ -1,0 +1,9 @@
+{
+  "combined_kernel_names": {
+    "run_flash_mha_uint16": 65
+  },
+  "combined_kernel_includes": [
+    "super.hh",
+    "flash_mha_qdq_uint16/flash_mha_wrapper.cc"
+  ]
+}

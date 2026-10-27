@@ -1,0 +1,1001 @@
+_main_no_exit_init: 168
+_main: 374
+BufferPort: 680
+super_kernel_loop: 810
+GLOBAL__sub_I_0_0___cc: 104
+run_conv_noqdq_a8w8:
+  size: 188
+  subkernels:
+    biased_conv_int8x8ILb0ELb0ELi1ELi1ELi4ELb0ELj64E15TypedBufferPortIaE12input_streamIaES2_IsES1_EvRT6_RT7_RT8_RT9_RK25BiasedConvInt8x8IdxParamsRK12Quantization:
+      size: 2440
+      subkernels: null
+run_maxpool_int8x8:
+  size: 1414
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_matadd_int8:
+  size: 528
+  subkernels: null
+run_globalavgpool_int8x8:
+  size: 1106
+  subkernels: null
+run_gemm_int16x4:
+  size: 4492
+  subkernels: null
+run_gemm_int8x8:
+  size: 5058
+  subkernels: null
+run_softmax_fp16x16:
+  size: 996
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    softmaxPaS_S_RK26KernelSoftmax_fp16x16Param:
+      size: 1184
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_l2norm_fp16x16:
+  size: 1122
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    l2norm_fp16x16I7float16S0_Qaaoosr3stdE9is_same_vIT_S0_Esr3stdE9is_same_vIS1_8bfloat16Eoosr3stdE9is_same_vIT0_S0_Esr3stdE9is_same_vIS3_S2_EEvPS1_S4_PS3_RK26KernelL2Norm_fp16x16_Param:
+      size: 650
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_copy_fp16x16:
+  size: 1582
+  subkernels: null
+run_dequant:
+  size: 1008
+  subkernels:
+    dqIfLj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+      size: 348
+      subkernels: null
+    dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+      size: 352
+      subkernels: null
+run_quant:
+  size: 1024
+  subkernels:
+    qIfsLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+      size: 336
+      subkernels: null
+    qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+      size: 336
+      subkernels: null
+run_matadd_16:
+  size: 1256
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_layernorm_fp16x16:
+  size: 1386
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    layer_norm_fp16x16I7float16sQaaoosr3stdE9is_same_vIT_S0_Esr3stdE9is_same_vIS1_8bfloat16Eoooooosr3stdE9is_same_vIT0_S0_Esr3stdE9is_same_vIS3_S2_Esr3stdE9is_same_vIS3_sEsr3stdE9is_same_vIS3_aEEvPS1_S4_PS3_RK29KernelLayerNorm_fp16x16_ParamiPfh:
+      size: 784
+      subkernels: null
+    layer_norm_fp16x16I7float16aQaaoosr3stdE9is_same_vIT_S0_Esr3stdE9is_same_vIS1_8bfloat16Eoooooosr3stdE9is_same_vIT0_S0_Esr3stdE9is_same_vIS3_S2_Esr3stdE9is_same_vIS3_sEsr3stdE9is_same_vIS3_aEEvPS1_S4_PS3_RK29KernelLayerNorm_fp16x16_ParamiPfh:
+      size: 848
+      subkernels: null
+run_conv_qdq_a16w8:
+  size: 5674
+  subkernels: null
+run_gemm_int16x16_transpose:
+  size: 150
+  subkernels:
+    activated_mmult_qdq_int16x16_transposeILj0ELj2ELi0EfLj1E10BufferPortS0_18logical_BufferPortS0_EvRT4_RT5_RT6_RT7_PaSA_SA_PT2_iRK35ActivatedMMultKernelParamsTranspose:
+      size: 4966
+      subkernels: null
+run_bdcastadd_16:
+  size: 920
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    add2d_bf16x16_nontemplatizedjP7float16S0_S0_RK18Add2dBf16x16Params:
+      size: 746
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_bdcastmul_16:
+  size: 1482
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_bdcastadd_8:
+  size: 980
+  subkernels: null
+run_lut_fp16x16:
+  size: 356
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    linear_approx_bf16I7float16Lj8EEvPT_PfS3_S2_PiRK22LinearApproxBF16ParamsIS1_E:
+      size: 1024
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_dwc_qdq_a16w8:
+  size: 4032
+  subkernels: null
+run_group_norm_qdq:
+  size: 1656
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+    mean_and_varI7float16EvPT_ttitsttPftS3_:
+      size: 1126
+      subkernels: null
+    me_primitive10udiv_dstepEjjRjS0_:
+      size: 144
+      subkernels: null
+run_bdcastdiv_16:
+  size: 1060
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    div_bf16x16ILj2E7float16S0_S0_EvPT0_PT1_PT2_RK21KernelDivBf16x16Param:
+      size: 1554
+      subkernels: null
+    div_bf16x16ILj0E7float16S0_S0_EvPT0_PT1_PT2_RK21KernelDivBf16x16Param:
+      size: 1392
+      subkernels: null
+    div_bf16x16ILj1E7float16S0_S0_EvPT0_PT1_PT2_RK21KernelDivBf16x16Param:
+      size: 2016
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_concat:
+  size: 1628
+  subkernels:
+    memset:
+      size: 270
+      subkernels: null
+    dq_float16_v32ILj2EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj2EEvPaPfPT_RK13KernelDqParamb:
+          size: 330
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj2EEvPaPfPT_RK13KernelDqParamb:
+          size: 302
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_concat_a8:
+  size: 3210
+  subkernels:
+    memset:
+      size: 270
+      subkernels: null
+    dq_float16_v32ILj2EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj2EEvPaPfPT_RK13KernelDqParamb:
+          size: 330
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj2EEvPaPfPT_RK13KernelDqParamb:
+          size: 302
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_transpose:
+  size: 640
+  subkernels:
+    memset:
+      size: 270
+      subkernels: null
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+    run_int16_transposePaS_R27KernelGenericTransposeParam:
+      size: 586
+      subkernels: null
+run_transpose_a8:
+  size: 738
+  subkernels:
+    memset:
+      size: 270
+      subkernels: null
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+    generic_transpose_scalar_3dIaEvPT_S1_RK27KernelGenericTransposeParam:
+      size: 1346
+      subkernels: null
+    run_int16_transposePaS_R27KernelGenericTransposeParam:
+      size: 586
+      subkernels: null
+run_slice:
+  size: 698
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_slice_a8:
+  size: 1224
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_maxpool_int16x16:
+  size: 1382
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_conv_qdq_a8w8:
+  size: 8440
+  subkernels: null
+run_rope_16:
+  size: 2344
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    add2d_bf16x16_nontemplatizedjP7float16S0_S0_RK18Add2dBf16x16Params:
+      size: 746
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+    me_primitive10udiv_dstepEjjRjS0_:
+      size: 144
+      subkernels: null
+run_dequant_int8:
+  size: 272
+  subkernels:
+    dqIfLj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+      size: 334
+      subkernels: null
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+run_quant_int8:
+  size: 274
+  subkernels:
+    qIfaLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+      size: 336
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_conversion_fp16x16:
+  size: 288
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_globalavgpool_int16x16:
+  size: 1806
+  subkernels: null
+run_gemm_int16x8:
+  size: 222
+  subkernels:
+    activated_mmult_qdq_int16x8ILj0ELj1ELj2ELj1ELj4Es12input_streamIsES0_IaES0_IfE15TypedBufferPortIsEEvRT5_RT6_RT7_RT8_PaSE_SE_PfiRK25MMultQdQInt16x8_RT_ParamsRK21MMultQdQInt16x8Params:
+      size: 7994
+      subkernels: null
+run_gemm_int16x8_transpose:
+  size: 214
+  subkernels:
+    activated_mmult_qdq_int16x8_transposeILj0ELj2ELj0EsLj1E15TypedBufferPortIsES0_IaE23Typedlogical_BufferPortIfES1_EvRT4_RT5_RT6_RT7_PaSD_SD_PfiRK21MMultQdQInt16x8Params:
+      size: 4282
+      subkernels: null
+run_gemm_a8a8_transpose:
+  size: 4030
+  subkernels: null
+run_gemm_a8w8_transpose:
+  size: 4168
+  subkernels: null
+run_gather_64x16:
+  size: 742
+  subkernels:
+    generic_gather_temporalIsxEvPT_PT0_S1_RK32KernelGenericGatherTemporalParamii:
+      size: 842
+      subkernels: null
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    dqIfLj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+      size: 348
+      subkernels: null
+    qIfsLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+      size: 336
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_gather_64x8:
+  size: 738
+  subkernels:
+    generic_gather_temporalIaxEvPT_PT0_S1_RK32KernelGenericGatherTemporalParamii:
+      size: 866
+      subkernels: null
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    dqIfLj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+      size: 334
+      subkernels: null
+    qIfaLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+      size: 336
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_gather_32x8:
+  size: 738
+  subkernels:
+    generic_gather_temporalIaiEvPT_PT0_S1_RK32KernelGenericGatherTemporalParamii:
+      size: 890
+      subkernels: null
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    dqIfLj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+      size: 334
+      subkernels: null
+    qIfaLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+      size: 336
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_generic_reduce_int8x8:
+  size: 658
+  subkernels:
+    memset:
+      size: 270
+      subkernels: null
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    generic_reduce_bf16ILj2E7float16S0_EvPT0_PT1_RK28KernelGenericReduceBf16Param:
+      size: 966
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+    me_primitive10udiv_dstepEjjRjS0_:
+      size: 144
+      subkernels: null
+run_generic_reduce_int16x16:
+  size: 600
+  subkernels:
+    memset:
+      size: 270
+      subkernels: null
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    generic_reduce_bf16ILj2E7float16S0_EvPT0_PT1_RK28KernelGenericReduceBf16Param:
+      size: 966
+      subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+    me_primitive10udiv_dstepEjjRjS0_:
+      size: 144
+      subkernels: null
+run_gather_element:
+  size: 756
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_scatter_element:
+  size: 364
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+    generic_scatter_elementILj1ELj1ELj1ELj1ELj1ELj1ELj2EssEvPT6_S1_PT7_S1_RK25KernelGenericScatterParam:
+      size: 2044
+      subkernels: null
+run_scatter_element_a8:
+  size: 14
+  subkernels: null
+run_gather_element_a8:
+  size: 14
+  subkernels: null
+run_reshape:
+  size: 672
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_reshape_a8:
+  size: 668
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_reduce_all_int8x8:
+  size: 2270
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_reduce_all_int16x16:
+  size: 2238
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_fill_int16x16:
+  size: 1108
+  subkernels:
+    float32_div:
+      size: 926
+      subkernels:
+        _ZL19propagateFloat32NaNjj:
+          size: 118
+          subkernels: null
+        _ZL25normalizeFloat32SubnormaljRiRj:
+          size: 26
+          subkernels: null
+        _ZL17estimateDiv64To32jjj:
+          size: 428
+          subkernels:
+            me_primitive10udiv_dstepEjjRjS0_:
+              size: 144
+              subkernels: null
+    int32_to_float32:
+      size: 112
+      subkernels:
+        _ZL28normalizeRoundAndPackFloat32iij:
+          size: 26
+          subkernels:
+            _ZL19roundAndPackFloat32iij:
+              size: 370
+              subkernels: null
+    float32_to_int32_round_to_zero:
+      size: 246
+      subkernels: null
+run_gemm_int16x2to4_block:
+  size: 338
+  subkernels:
+    activated_mmult_qdq_int16x2to4_blockILj0ELj1E4int215TypedBufferPortIsES1_IS0_E23Typedlogical_BufferPortIfES4_IS0_ES5_S2_EvRT2_RT3_RT4_RT5_RT6_RT7_PaSJ_RK25GemmQdqint16x16_RT_ParamsRK24MMultQdQInt16x2to4Params:
+      size: 3676
+      subkernels: null
+run_expand:
+  size: 896
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_expand_a8:
+  size: 754
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+    memset:
+      size: 270
+      subkernels: null
+run_conv_qdq_a16w16:
+  size: 5672
+  subkernels: null
+run_pad:
+  size: 14
+  subkernels: null
+run_pad_a8:
+  size: 14
+  subkernels: null
+run_topk:
+  size: 1692
+  subkernels:
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+    memset:
+      size: 270
+      subkernels: null
+run_topk_a8:
+  size: 1670
+  subkernels:
+    memset:
+      size: 270
+      subkernels: null
+    dq_float16_v32ILj12EEvPaPfP7float16RK13KernelDqParambb:
+      size: 54
+      subkernels:
+        dqI7float16Lj0ELb1ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 352
+          subkernels: null
+        dqI7float16Lj0ELb0ELj32ELj12EEvPaPfPT_RK13KernelDqParamb:
+          size: 340
+          subkernels: null
+    q_float16_to_int16_v32P7float16PfPsRK12KernelQParambb:
+      size: 54
+      subkernels:
+        qI7float16sLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+        qI7float16aLj0ELj32EEvPT_PfPT0_RK12KernelQParamb:
+          size: 336
+          subkernels: null
+run_gemm_a16w16_transpose:
+  size: 178
+  subkernels:
+    activated_mmult_qdq_int16x16_transposeILj0ELj1ELi2EfLj0E10BufferPortS0_18logical_BufferPortS0_EvRT4_RT5_RT6_RT7_PaSA_SA_PT2_iRK35ActivatedMMultKernelParamsTranspose:
+      size: 5104
+      subkernels: null
+run_gemm_int8x8_pwla:
+  size: 6156
+  subkernels: null
+run_gemm_int16x8_pwla:
+  size: 222
+  subkernels:
+    activated_mmult_qdq_int16x8ILj1ELj1ELj2ELj1ELj4Es12input_streamIsES0_IaES0_IfE15TypedBufferPortIsEEvRT5_RT6_RT7_RT8_PaSE_SE_PfiRK25MMultQdQInt16x8_RT_ParamsRK21MMultQdQInt16x8Params:
+      size: 8900
+      subkernels: null
