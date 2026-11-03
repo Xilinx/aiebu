@@ -98,6 +98,8 @@ inline constexpr uint8_t DW_LNCT_directory_index = 0x02;
 // and when decoding it in the reader.
 inline constexpr uint32_t DW_OP_ADDR_EXPR_SIZE = 5;
 
+inline constexpr unsigned BITS_PER_BYTE = 8U;
+
 // ── LEB128 encoding constants (DWARF §7.6) ───────────────────────────────────
 // Shared by dwarf_writer and dwarf_reader — defined once here to avoid drift.
 inline constexpr uint8_t  LEB128_VALUE_MASK = 0x7F;  // low 7 bits of each LEB128 byte
