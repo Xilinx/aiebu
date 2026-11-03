@@ -73,7 +73,7 @@ public:
     });
     (*m_isa)["uc_dma_write_des"] = std::make_shared<isa_op>("uc_dma_write_des", OPCODE_UC_DMA_WRITE_DES, std::vector<opArg>{
      opArg("wait_handle", opArg::optype::REG, BIT_WIDTH_8), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_8), opArg("descriptor_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16),
-    });
+    }, /*data_label_arg_index=*/1); // runtime args (PAD-stripped): [wait_handle, descriptor_ptr]
     (*m_isa)["wait_uc_dma"] = std::make_shared<isa_op>("wait_uc_dma", OPCODE_WAIT_UC_DMA, std::vector<opArg>{
      opArg("wait_handle", opArg::optype::REG, BIT_WIDTH_8), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_8),
     });
@@ -91,7 +91,7 @@ public:
     });
     (*m_isa)["uc_dma_write_des_sync"] = std::make_shared<isa_op>("uc_dma_write_des_sync", OPCODE_UC_DMA_WRITE_DES_SYNC, std::vector<opArg>{
      opArg("descriptor_ptr", opArg::optype::CONST, BIT_WIDTH_16),
-    });
+    }, /*data_label_arg_index=*/0); // runtime args: [descriptor_ptr]
     (*m_isa)["write_32_d"] = std::make_shared<isa_op>("write_32_d", OPCODE_WRITE_32_D, std::vector<opArg>{
      opArg("flags", opArg::optype::CONST, BIT_WIDTH_8), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_8), opArg("address", opArg::optype::CONST, BIT_WIDTH_32), opArg("value", opArg::optype::CONST, BIT_WIDTH_32),
     });
@@ -103,7 +103,7 @@ public:
     });
     (*m_isa)["apply_offset_57"] = std::make_shared<isa_op>("apply_offset_57", OPCODE_APPLY_OFFSET_57, std::vector<opArg>{
      opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("num_entries", opArg::optype::CONST, BIT_WIDTH_16), opArg("offset", opArg::optype::CONST, BIT_WIDTH_16),
-    });
+    }, /*data_label_arg_index=*/0); // runtime args: [table_ptr, num_entries, offset]
     (*m_isa)["apply_offset_sram"] = std::make_shared<isa_op>("apply_offset_sram", OPCODE_APPLY_OFFSET_SRAM, std::vector<opArg>{
      opArg("table_ptr", opArg::optype::CONST, BIT_WIDTH_16), opArg("num_entries", opArg::optype::CONST, BIT_WIDTH_16), opArg("_pad", opArg::optype::PAD, BIT_WIDTH_16), opArg("address", opArg::optype::CONST, BIT_WIDTH_32),
     });

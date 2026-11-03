@@ -217,6 +217,18 @@ public:
     return keys;
   }
 
+  // Look up the pre-scanned byte position of a data-section label (key without
+  // leading '@').  Returns true and writes the position into pos if found;
+  // returns false if the label is not in the map.
+  // Position is measured from the start of text instructions (page header
+  // excluded), consistent with the positions set during the constructor pre-scan.
+  bool get_label_pos(const std::string& key, uint32_t& pos) const {
+    const auto it = m_labelmap.find(key);
+    if (it == m_labelmap.end()) return false;
+    pos = it->second->get_pos();
+    return true;
+  }
+
   size_t find_label_entry(const std::string& entry) const
   {
     auto it = std::find(m_labellist.begin(), m_labellist.end(), entry);

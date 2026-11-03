@@ -1,0 +1,106 @@
+{
+    "xrt-kernels": [
+        {
+            "name": "DPU",
+            "arguments": [
+                {
+                    "name": "arg0",
+                    "type": "char *",
+                    "offset": "0x0"
+                },
+                {
+                    "name": "arg1",
+                    "type": "char *",
+                    "offset": "0x8"
+                },
+                {
+                    "name": "arg2",
+                    "type": "char *",
+                    "offset": "0x10"
+                },
+                {
+                    "name": "arg3",
+                    "type": "char *",
+                    "offset": "0x18"
+                },
+                {
+                    "name": "arg4",
+                    "type": "char *",
+                    "offset": "0x20"
+                },
+                {
+                    "name": "arg5",
+                    "type": "char *",
+                    "offset": "0x28"
+                },
+                {
+                    "name": "arg6",
+                    "type": "char *",
+                    "offset": "0x30"
+                },
+                {
+                    "name": "arg7",
+                    "type": "char *",
+                    "offset": "0x38"
+                },
+                {
+                    "name": "arg8",
+                    "type": "char *",
+                    "offset": "0x40"
+                },
+                {
+                    "name": "arg9",
+                    "type": "char *",
+                    "offset": "0x48"
+                },
+                {
+                    "name": "arg10",
+                    "type": "char *",
+                    "offset": "0x50"
+                },
+                {
+                    "name": "arg11",
+                    "type": "char *",
+                    "offset": "0x58"
+                },
+                {
+                    "name": "arg12",
+                    "type": "char *",
+                    "offset": "0x60"
+                },
+                {
+                    "name": "arg13",
+                    "type": "char *",
+                    "offset": "0x68"
+                },
+                {
+                    "name": "arg14",
+                    "type": "char *",
+                    "offset": "0x70"
+                },
+                {
+                    "name": "arg15",
+                    "type": "char *",
+                    "offset": "0x78"
+                },
+                {
+                    "name": "arg16",
+                    "type": "char *",
+                    "offset": "0x80"
+                },
+                {
+                    "name": "arg17",
+                    "type": "char *",
+                    "offset": "0x88"
+                }
+            ],
+            "instance": [
+                {
+                    "id": "dpu",
+                    "ctrl_code_file": "./ml_asm/merged_control.asm",
+                    "patch_info_file": "./external_buffer_id.json"
+                }
+            ]
+        }
+    ]
+}

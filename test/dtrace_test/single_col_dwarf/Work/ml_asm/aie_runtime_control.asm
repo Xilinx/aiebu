@@ -1,0 +1,190 @@
+;
+;text
+;
+START_JOB 0
+UC_DMA_WRITE_DES_SYNC	 @UCBD_label_0
+APPLY_OFFSET_57	 @DMAWRITE_data_0, 1, 2
+UC_DMA_WRITE_DES_SYNC	 @UCBD_label_1
+APPLY_OFFSET_57	 @DMAWRITE_data_2, 1, 0
+UC_DMA_WRITE_DES_SYNC	 @UCBD_label_2
+MASK_POLL_32	 0x61d0604, 0x1, 0x1
+MASK_POLL_32	 0x1d0604, 0x1, 0x1
+UC_DMA_WRITE_DES_SYNC	 @UCBD_label_3
+MASK_POLL_32	 0x21d0604, 0x1, 0x1
+UC_DMA_WRITE_DES_SYNC	 @UCBD_label_4
+APPLY_OFFSET_57	 @DMAWRITE_data_8, 1, 1
+UC_DMA_WRITE_DES_SYNC	 @UCBD_label_5
+MASK_POLL_32	 0x400c604, 0x1, 0x1
+END_JOB
+
+.eop
+
+EOF
+
+;
+;data
+;
+.align    16
+UCBD_label_0:
+	 UC_DMA_BD	 0, 0x6000000, @WRITE_data_0, 1, 0, 1
+	 UC_DMA_BD	 0, 0x6000010, @WRITE_data_1, 1, 0, 1
+	 UC_DMA_BD	 0, 0x61c0000, @WRITE_data_2, 1, 0, 1
+	 UC_DMA_BD	 0, 0x61c0010, @WRITE_data_3, 1, 0, 0
+UCBD_label_1:
+	 UC_DMA_BD	 0, 0x6009000, @DMAWRITE_data_0, 0x9, 0, 1
+	 UC_DMA_BD	 0, 0x6009314, @WRITE_data_4, 1, 0, 1
+	 UC_DMA_BD	 0, 0x61a0000, @DMAWRITE_data_1, 0x8, 0, 1
+	 UC_DMA_BD	 0, 0x61a0604, @WRITE_data_5, 1, 0, 1
+	 UC_DMA_BD	 0, 0x4000000, @WRITE_data_6, 1, 0, 1
+	 UC_DMA_BD	 0, 0x4000010, @WRITE_data_7, 1, 0, 1
+	 UC_DMA_BD	 0, 0x1c0000, @WRITE_data_8, 1, 0, 1
+	 UC_DMA_BD	 0, 0x1c0010, @WRITE_data_9, 1, 0, 0
+UCBD_label_2:
+	 UC_DMA_BD	 0, 0x4009000, @DMAWRITE_data_2, 0x9, 0, 1
+	 UC_DMA_BD	 0, 0x4009314, @WRITE_data_10, 1, 0, 1
+	 UC_DMA_BD	 0, 0x1a0000, @DMAWRITE_data_3, 0x8, 0, 1
+	 UC_DMA_BD	 0, 0x1a0604, @WRITE_data_11, 1, 0, 0
+UCBD_label_3:
+	 UC_DMA_BD	 0, 0x21c0000, @WRITE_data_12, 1, 0, 1
+	 UC_DMA_BD	 0, 0x21c0010, @WRITE_data_13, 1, 0, 1
+	 UC_DMA_BD	 0, 0x21a0000, @DMAWRITE_data_4, 0x8, 0, 1
+	 UC_DMA_BD	 0, 0x21a0634, @WRITE_data_14, 1, 0, 1
+	 UC_DMA_BD	 0, 0x61a0000, @DMAWRITE_data_5, 0x8, 0, 1
+	 UC_DMA_BD	 0, 0x61a0634, @WRITE_data_15, 1, 0, 1
+	 UC_DMA_BD	 0, 0x21a0020, @DMAWRITE_data_6, 0x8, 0, 1
+	 UC_DMA_BD	 0, 0x21a0604, @WRITE_data_16, 1, 0, 0
+UCBD_label_4:
+	 UC_DMA_BD	 0, 0x4000000, @WRITE_data_17, 1, 0, 1
+	 UC_DMA_BD	 0, 0x4000010, @WRITE_data_18, 1, 0, 1
+	 UC_DMA_BD	 0, 0x41a0000, @DMAWRITE_data_7, 0x8, 0, 1
+	 UC_DMA_BD	 0, 0x41a0634, @WRITE_data_19, 1, 0, 0
+UCBD_label_5:
+	 UC_DMA_BD	 0, 0x4009000, @DMAWRITE_data_8, 0x9, 0, 1
+	 UC_DMA_BD	 0, 0x4009304, @WRITE_data_20, 1, 0, 0
+.align    4
+WRITE_data_0:
+	.long 0x00000000
+WRITE_data_1:
+	.long 0x00000000
+WRITE_data_2:
+	.long 0x00000000
+WRITE_data_3:
+	.long 0x00000000
+WRITE_data_4:
+	.long 0x00000000
+WRITE_data_5:
+	.long 0x00000000
+WRITE_data_6:
+	.long 0x00000000
+WRITE_data_7:
+	.long 0x00000000
+WRITE_data_8:
+	.long 0x00000000
+WRITE_data_9:
+	.long 0x00000000
+WRITE_data_10:
+	.long 0x00000000
+WRITE_data_11:
+	.long 0x00000000
+WRITE_data_12:
+	.long 0x00000000
+WRITE_data_13:
+	.long 0x00000000
+WRITE_data_14:
+	.long 0x00000000
+WRITE_data_15:
+	.long 0x00000000
+WRITE_data_16:
+	.long 0x00000001
+WRITE_data_17:
+	.long 0x00000000
+WRITE_data_18:
+	.long 0x00000000
+WRITE_data_19:
+	.long 0x00000000
+WRITE_data_20:
+	.long 0x00000000
+DMAWRITE_data_0:
+	.long 0x00000010
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x80000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x02001001
+	.long 0x00000000
+DMAWRITE_data_1:
+	.long 0x00000010
+	.long 0x00020000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x81418040
+DMAWRITE_data_2:
+	.long 0x00000280
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x80000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x02001001
+	.long 0x00000000
+DMAWRITE_data_3:
+	.long 0x00000280
+	.long 0x00020000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x81418040
+DMAWRITE_data_4:
+	.long 0x00000280
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x80008101
+DMAWRITE_data_5:
+	.long 0x00000010
+	.long 0x00020000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x80408141
+DMAWRITE_data_6:
+	.long 0x00000180
+	.long 0x00020000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x81418040
+DMAWRITE_data_7:
+	.long 0x00000180
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x80008101
+DMAWRITE_data_8:
+	.long 0x00000180
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x80000000
+	.long 0x00000000
+	.long 0x00000000
+	.long 0x02043000
+	.long 0x00000000

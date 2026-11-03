@@ -372,18 +372,22 @@ class annotation_type
   std::string m_id;
   std::string m_name;
   std::string m_description;
+  bool        m_is_variable = false; // true → DW_TAG_variable; false → DW_TAG_label
 
   public:
   annotation_type(std::string id, std::string name, std::string description)
-    : m_id(std::move(id)), m_name(std::move(name)), m_description(std::move(description)) { /*std::cout << m_id << " " << m_name << " " << m_description << "|\n";*/ }
+    : m_id(std::move(id)), m_name(std::move(name)), m_description(std::move(description)) {}
 
-  annotation_type(const annotation_type& rhs) = default;
-  annotation_type& operator=(const annotation_type& rhs) = default;
-  annotation_type(annotation_type &&s) = default;
+  annotation_type(const annotation_type&) = default;
+  annotation_type& operator=(const annotation_type&) = default;
+  annotation_type(annotation_type&&) = default;
+  annotation_type& operator=(annotation_type&&) = default;
 
-  std::string get_id() const { return m_id; }
-  std::string get_name() const { return m_name; }
-  std::string get_description() const { return m_description; }
+  const std::string& get_id()          const { return m_id; }
+  const std::string& get_name()        const { return m_name; }
+  const std::string& get_description() const { return m_description; }
+  bool               is_variable()     const { return m_is_variable; }
+  void               set_is_variable(bool v) { m_is_variable = v; }
 };
 
 class col_data

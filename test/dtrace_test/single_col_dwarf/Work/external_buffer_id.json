@@ -1,0 +1,22 @@
+{
+    "external_buffers": {
+        "buffer0": {
+            "xrt_id": 0,
+            "logical_id": 0,
+            "size_in_bytes": 2560,
+            "name": "compute_graph.ifm_ddr"
+        },
+        "buffer1": {
+            "xrt_id": 1,
+            "logical_id": 1,
+            "size_in_bytes": 1536,
+            "name": "compute_graph.ofm_ddr"
+        },
+        "buffer2": {
+            "xrt_id": 2,
+            "logical_id": 2,
+            "size_in_bytes": 64,
+            "name": "compute_graph.wts_ddr"
+        }
+    }
+}

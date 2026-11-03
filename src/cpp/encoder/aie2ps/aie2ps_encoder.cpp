@@ -7,7 +7,6 @@
 #include "aiebu/aiebu_error.h"
 #include "logger.h"
 
-#include <cassert>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -121,22 +120,25 @@ process(std::shared_ptr<preprocessed_output> input)
     file.close();
   }
 
-  // Optional binary dump if debug flag is not disabled.
-  // Stream JSON directly into the section vector via a thin streambuf shim.
-  if (m_dump_flag != asm_dump_flag::disable) {
+  // Debug section emission.
+  // For merged-format (config) ELFs: DWARF v5 sections are built once for all
+  // instances by asm_config_encoder after all per-instance process() calls
+  // complete.  Nothing to emit here — m_debug is taken by take_debug().
+  // For legacy per-page ELFs: emit the JSON .dump section as before.
+  if (m_dump_flag != asm_dump_flag::disable && !use_merged_ctrltext_sections()) {
     auto dumpwriter = std::make_shared<section_writer>(".dump", code_section::data);
     std::vector<uint8_t> dump_data;
     {
       struct vec_streambuf : std::streambuf {
-        std::vector<uint8_t>& buf;
-        explicit vec_streambuf(std::vector<uint8_t>& b) : buf(b) {}
+        std::vector<uint8_t>* buf;
+        explicit vec_streambuf(std::vector<uint8_t>& b) : buf(&b) {}
         std::streamsize xsputn(const char* s, std::streamsize n) override {
-          buf.insert(buf.end(), reinterpret_cast<const uint8_t*>(s),
-                     reinterpret_cast<const uint8_t*>(s) + n);
+          buf->insert(buf->end(), reinterpret_cast<const uint8_t*>(s),
+                      reinterpret_cast<const uint8_t*>(s) + n);
           return n;
         }
         int overflow(int c) override {
-          if (c != EOF) buf.push_back(static_cast<uint8_t>(c));
+          if (c != EOF) buf->push_back(static_cast<uint8_t>(c));
           return c;
         }
       } vsb(dump_data);
@@ -212,10 +214,14 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
 
   textwriter->write_bytes(page_header);
 
-  // text_base is the position of the first text instruction in textwriter (= 16)
+  // text_base is the byte offset of the first text instruction within the merged
+  // page buffer (= 16, after the page header).  Used to convert a label's
+  // pre-scanned position (header-excluded) to the correct DWARF address:
+  //   data_dwarf_addr = pagenum * PAGE_SIZE + text_base + label_pos
   offset_type text_base = textwriter->tell();
   std::vector<symbol> tsym;
   std::string fid;
+
   for (const auto& text : lpage.m_text)
   {
     const std::string& name = text->get_operation().get_name();
@@ -230,7 +236,34 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
         fid = m_debug.add_function(text->get_file_idx(), name + "_" + page_state->gen_job_name(false, text, 0), pc_high, pc_low, colnum, pagenum);
       }
       pc_high = pc_low + (*m_isa)[name]->serializer(args)->size(*page_state) - 1;
-      m_debug.add_textline(fid, text->get_linenumber(), pc_high, pc_low, text->get_line(), text->get_annotation_index());
+      // Resolve the data operand address for annotated data-referencing instructions.
+      // The ISA definition declares which runtime arg (PAD-stripped) holds the
+      // data-section label via get_data_label_arg_index().  -1 means the opcode
+      // is not data-referencing and should be emitted as DW_TAG_label.
+      // create_assembler_state() pre-scans text+data in one pass so all label
+      // positions are in m_labelmap before this loop runs — no deferred fixup needed.
+      // get_label_pos() consults only m_labelmap (not scratchpad) so it returns
+      // the correct page-relative byte position, not a hardware address.
+      // data_dwarf_addr = pagenum*PAGE_SIZE + text_base + label_pos
+      //   text_base accounts for the 16-byte page header.
+      const int ann_idx = text->get_annotation_index();
+      offset_type data_addr = 0;
+      std::string label_name;
+      if (ann_idx != -1) {
+        const int data_label_arg = (*m_isa)[name]->get_data_label_arg_index();
+        if (data_label_arg >= 0 && data_label_arg < static_cast<int>(args.size())) {
+          const std::string& raw_arg = args[static_cast<size_t>(data_label_arg)];
+          label_name = raw_arg.substr(1); // strip leading '@', e.g. "UCBD_label_uc0"
+          uint32_t label_pos = 0;
+          if (page_state->get_label_pos(label_name, label_pos)) {
+            data_addr = static_cast<offset_type>(pagenum) * PAGE_SIZE + text_base + label_pos;
+            m_debug.mark_annotation_variable(ann_idx);
+          } else {
+            label_name.clear(); // not a data-section label; emit as DW_TAG_label with no BD name
+          }
+        }
+      }
+      m_debug.add_textline(fid, text->get_linenumber(), pc_range{pc_high, pc_low}, text->get_line(), ann_idx, data_addr, std::move(label_name));
     }
 
     if (text->isOpcode())
@@ -261,7 +294,7 @@ page_writer(page& lpage, std::map<std::string, std::shared_ptr<scratchpad_info>>
       if (m_dump_flag == asm_dump_flag::full) {
         offset_type pc_low = pagenum * PAGE_SIZE + textwriter->tell() + datawriter->tell();
         offset_type pc_high = pc_low + (*m_isa)[name]->serializer(args)->size(*page_state) - 1;
-        m_debug.add_dataline(fid, data->get_linenumber(), pc_high, pc_low, data->get_line(), data->get_annotation_index());
+        m_debug.add_dataline(fid, data->get_linenumber(), pc_range{pc_high, pc_low}, data->get_line(), data->get_annotation_index());
       }
       std::vector<uint8_t> ret = (*m_isa)[name]->serializer(args)
                                                ->serialize(page_state, dsym, colnum, pagenum);

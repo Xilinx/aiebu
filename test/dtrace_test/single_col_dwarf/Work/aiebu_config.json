@@ -1,0 +1,31 @@
+{
+    "xrt-kernels": [
+        {
+            "name": "DPU",
+            "arguments": [
+                {
+                    "name": "arg0",
+                    "type": "char *",
+                    "offset": "0x0"
+                },
+                {
+                    "name": "arg1",
+                    "type": "char *",
+                    "offset": "0x8"
+                },
+                {
+                    "name": "arg2",
+                    "type": "char *",
+                    "offset": "0x10"
+                }
+            ],
+            "instance": [
+                {
+                    "id": "dpu",
+                    "ctrl_code_file": "./ml_asm/merged_control.asm",
+                    "patch_info_file": "./external_buffer_id.json"
+                }
+            ]
+        }
+    ]
+}

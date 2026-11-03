@@ -86,6 +86,7 @@ cxxopts::ParseResult main_helper(int argc, const char* const *argv,
       ("pc", "Program counter for opcode-info", cxxopts::value<std::string>()->default_value("unspecified"))
       ("page-index", "Page index for opcode-info", cxxopts::value<std::string>()->default_value("unspecified"))
       ("uc-index", "uC (column) index for opcode-info", cxxopts::value<std::string>()->default_value("unspecified"))
+      ("kernel-instance", "Kernel instance filter for trace-probe and opcode-info on group ELFs (e.g. DPU:dpu or DPU:subgraph_0)", cxxopts::value<std::string>()->default_value("DPU:dpu"))
       ("filename", "Input file name", cxxopts::value<std::string>())
       ("v,version", "show version and exit", cxxopts::value<bool>()->default_value("false"));
     global_options.parse_positional({"filename"});
@@ -219,7 +220,8 @@ int main(int argc, char* argv[])
         type != aiebu::aiebu_assembler::buffer_type::elf_aie4z_config)
       throw aiebu::error(aiebu::error::error_code::invalid_buffer_type, "Invalid ELF buffer for debug tools");
 
-    aiebu::debug_tools debug_tools(type, buffer);
+    const std::string kernel_instance = result["kernel-instance"].as<std::string>();
+    aiebu::debug_tools debug_tools(type, buffer, kernel_instance);
 
     if (private_opt == "trace-probe") {
       // trace-probe option

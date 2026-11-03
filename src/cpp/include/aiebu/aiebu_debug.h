@@ -81,10 +81,34 @@ public:
                                              uint32_t page_idx,
                                              uint32_t offset) const;
 
+  /**
+   * resolve_group_name_id() - Resolve a "kernel:instance" identifier to its
+   * COMDAT group index N (the numeric suffix of the ".group.N" ELF section).
+   *
+   * Returned value is intended to be passed to format_operation() for
+   * efficient batch decoding without repeated symbol-table scans.
+   * Returns UINT32_MAX if the instance is not found or the ELF has no groups.
+   */
+  uint32_t resolve_group_name_id(const std::string& kernel_name) const;
+
+  /**
+   * format_operation() - Decode the instruction at (uc_idx, page_idx, offset)
+   * and return a formatted "opcode_name args" string suitable for probe output.
+   *
+   * name_id must come from resolve_group_name_id().  Returns an empty string
+   * when the instruction cannot be decoded (section not found, bad offset, etc.).
+   * Opcode name and args are both lowercased to match the .dump path format.
+   *
+   * Use this in combination with resolve_group_name_id() when decoding many
+   * addresses for the same instance — avoids repeating the symbol-table scan.
+   */
+  // NOLINTNEXTLINE(bugprone-easily-swappable-parameters) — name_id/uc_idx/page_idx/offset are semantically distinct
+  std::string format_operation(uint32_t name_id, uint32_t uc_idx,
+                                uint32_t page_idx, uint32_t offset) const;
+
 private:
   const ELFIO::elfio& m_elf; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-  uint32_t resolve_group_name_id(const std::string& kernel_name) const;
   std::string get_dump_json_from_elf(uint32_t name_id) const;
   opcode_information decode_opcode(uint32_t uc_idx, uint32_t page_idx,
                                     uint32_t offset, uint32_t name_id) const;

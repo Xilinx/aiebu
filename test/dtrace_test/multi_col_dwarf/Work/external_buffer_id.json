@@ -1,0 +1,112 @@
+{
+    "external_buffers": {
+        "buffer0": {
+            "xrt_id": 0,
+            "logical_id": 0,
+            "size_in_bytes": 212992,
+            "name": "G.g.ifm_ddr"
+        },
+        "buffer1": {
+            "xrt_id": 1,
+            "logical_id": 1,
+            "size_in_bytes": 114688,
+            "name": "G.g.ofm_ddr"
+        },
+        "buffer2": {
+            "xrt_id": 2,
+            "logical_id": 2,
+            "size_in_bytes": 78848,
+            "name": "G.g.wts_ddr"
+        },
+        "buffer3": {
+            "xrt_id": 3,
+            "logical_id": 3,
+            "size_in_bytes": 212992,
+            "name": "G.g_1.ifm_ddr"
+        },
+        "buffer4": {
+            "xrt_id": 4,
+            "logical_id": 4,
+            "size_in_bytes": 114688,
+            "name": "G.g_1.ofm_ddr"
+        },
+        "buffer5": {
+            "xrt_id": 5,
+            "logical_id": 5,
+            "size_in_bytes": 78848,
+            "name": "G.g_1.wts_ddr"
+        },
+        "buffer6": {
+            "xrt_id": 6,
+            "logical_id": 6,
+            "size_in_bytes": 212992,
+            "name": "G.g_2.ifm_ddr"
+        },
+        "buffer7": {
+            "xrt_id": 7,
+            "logical_id": 7,
+            "size_in_bytes": 114688,
+            "name": "G.g_2.ofm_ddr"
+        },
+        "buffer8": {
+            "xrt_id": 8,
+            "logical_id": 8,
+            "size_in_bytes": 78848,
+            "name": "G.g_2.wts_ddr"
+        },
+        "buffer9": {
+            "xrt_id": 9,
+            "logical_id": 9,
+            "size_in_bytes": 212992,
+            "name": "G.g_3.ifm_ddr"
+        },
+        "buffer10": {
+            "xrt_id": 10,
+            "logical_id": 10,
+            "size_in_bytes": 114688,
+            "name": "G.g_3.ofm_ddr"
+        },
+        "buffer11": {
+            "xrt_id": 11,
+            "logical_id": 11,
+            "size_in_bytes": 78848,
+            "name": "G.g_3.wts_ddr"
+        },
+        "buffer12": {
+            "xrt_id": 12,
+            "logical_id": 12,
+            "size_in_bytes": 212992,
+            "name": "G.g_4.ifm_ddr"
+        },
+        "buffer13": {
+            "xrt_id": 13,
+            "logical_id": 13,
+            "size_in_bytes": 114688,
+            "name": "G.g_4.ofm_ddr"
+        },
+        "buffer14": {
+            "xrt_id": 14,
+            "logical_id": 14,
+            "size_in_bytes": 78848,
+            "name": "G.g_4.wts_ddr"
+        },
+        "buffer15": {
+            "xrt_id": 15,
+            "logical_id": 15,
+            "size_in_bytes": 212992,
+            "name": "G.g_5.ifm_ddr"
+        },
+        "buffer16": {
+            "xrt_id": 16,
+            "logical_id": 16,
+            "size_in_bytes": 114688,
+            "name": "G.g_5.ofm_ddr"
+        },
+        "buffer17": {
+            "xrt_id": 17,
+            "logical_id": 17,
+            "size_in_bytes": 78848,
+            "name": "G.g_5.wts_ddr"
+        }
+    }
+}

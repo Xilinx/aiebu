@@ -95,7 +95,7 @@ static std::size_t print_results(const aiebu::aiebu_assembler::op_tbl& tbl,
 static int test_config(const std::string& dir)
 {
   std::vector<char> config_json;
-  read_file(dir + "/config.json", config_json);
+  read_file(dir + "/config_target.json", config_json);
 
   // No "disabledump" flag → .dump section is included in the ELF, allowing
   // get_save_timestamps() to read timestamp locations from it.

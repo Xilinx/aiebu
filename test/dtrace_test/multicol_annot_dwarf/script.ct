@@ -1,0 +1,32 @@
+begin
+{
+    print("\ntracing started\n")
+}
+jprobe:uc0.asm:uc0:line7
+{
+    print("uc0 op: {}".format(operation))
+}
+jprobe:uc0.asm:uc0:annotation0
+{
+    print("uc0 annot0: {}".format(operation))
+}
+jprobe:uc0.asm:uc0:annotation1
+{
+    print("uc0 annot1: {}".format(operation))
+}
+jprobe:uc2.asm:uc2:line7
+{
+    print("uc2 op: {}".format(operation))
+}
+jprobe:uc2.asm:uc2:annotation0
+{
+    print("uc2 annot0: {}".format(operation))
+}
+jprobe:uc2.asm:uc2:annotation1
+{
+    print("uc2 annot1: {}".format(operation))
+}
+end
+{
+    print("\ntracing ended\n")
+}

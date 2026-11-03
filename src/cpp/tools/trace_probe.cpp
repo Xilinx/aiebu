@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.
-// CERT trace probe listing from .dump (elf_map_reader.py).
+// CERT trace probe listing — DWARF v5 .debug_* path and legacy .dump path.
 
 #include "tools/debug_tools.h"
+#include "aiebu/aiebu_debug.h"
 #include "aiebu/aiebu_error.h"
 
 #include <boost/property_tree/json_parser.hpp>
@@ -11,8 +12,10 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <map>
 #include <sstream>
 #include <string>
+#include <utility>
 
 namespace aiebu {
 
@@ -30,10 +33,136 @@ namespace aiebu {
   * additional lines are written for each annotation in the format 
   * "jprobe:<file_name/file_path>:uc<column_number>:annotation<annotation_id> ( on <operation> )".
   */  
+// ─── DWARF path ─────────────────────────────────────────────────────────────
+
+static void
+write_trace_probes_from_dwarf(std::ostream& stream, const dwarf_reader& dr,
+                              const std::string& kernel_instance,
+                              const ELFIO::elfio& elf)
+{
+  // Extract the instance portion from "kernel:instance" for filtering.
+  std::string filter_instance;
+  const auto colon = kernel_instance.find(':');
+  if (colon != std::string::npos)
+    filter_instance = kernel_instance.substr(colon + 1);
+
+  // Build the filtered view: pointers into dr's row vector (no copy).
+  // If the filter matches nothing (e.g. wrong default for this ELF), fall back
+  // to all rows so the tool remains useful rather than silently producing empty output.
+  std::vector<const dwarf_debug_row*> all_rows;
+  for (const auto& row : dr.get_all_rows()) {
+    if (!filter_instance.empty()) {
+      const std::string& cu = dr.cu_name_of(row);
+      const auto cu_colon = cu.find(':');
+      if (cu_colon == std::string::npos ||
+          cu.compare(cu_colon + 1, std::string::npos, filter_instance) != 0)
+        continue;
+    }
+    all_rows.push_back(&row);
+  }
+  if (all_rows.empty() && !filter_instance.empty()) {
+    // Filter matched nothing — emit all instances so output is not silently empty.
+    for (const auto& row : dr.get_all_rows())
+      all_rows.push_back(&row);
+  }
+
+  // Resolve the group name_id once for the whole batch.  format_operation()
+  // uses this to locate the correct .ctrltext section without repeating the
+  // symbol-table scan for every row.
+  const AIEDebug aie_debug(elf);
+  const uint32_t name_id = aie_debug.resolve_group_name_id(kernel_instance);
+  // Conflict-detection tracking: keyed by "basename:ucN".
+  struct probe_tracking {
+    bool        conflict  = false;
+    std::string file_path; // full path for the first occurrence
+  };
+  std::map<std::string, probe_tracking> tracking_map;
+
+  // Pass 1: detect filename conflicts across line rows (line > 0).
+  for (const auto* row : all_rows) {
+    if (row->line == 0)
+      continue; // annotation rows carry no file/line
+    const std::string file_name = std::filesystem::path(row->file).filename().string();
+    const std::string key = file_name + ":uc" + std::to_string(row->column);
+    auto it = tracking_map.find(key);
+    if (it == tracking_map.end())
+      tracking_map[key] = {false, row->file};
+    else if (it->second.file_path != row->file)
+      it->second.conflict = true;
+  }
+
+  // Build {column, address} → {display_file, operation} maps in one pass over
+  // line rows. Column is part of the key because DWARF addresses are only unique
+  // within a single control column. Annotation rows (Pass 3) share the same
+  // (column, address) as their enclosing line row, so caching avoids a redundant
+  // ISA binary walk per annotation probe.
+  using col_addr = std::pair<uint32_t, uint32_t>; // {column, address}
+  std::map<col_addr, std::string> addr_to_display;
+  std::map<col_addr, std::string> addr_to_op;
+  for (const auto* row : all_rows) {
+    if (row->line == 0)
+      continue;
+    const col_addr ca{row->column, row->address};
+    const std::string file_name = std::filesystem::path(row->file).filename().string();
+    const std::string key = file_name + ":uc" + std::to_string(row->column);
+    const bool has_conflict = tracking_map.at(key).conflict;
+    addr_to_display.emplace(ca, has_conflict ? row->file : file_name);
+    if (addr_to_op.find(ca) == addr_to_op.end())
+      addr_to_op.emplace(ca,
+                         aie_debug.format_operation(name_id, row->column,
+                                                    row->page_index, row->page_offset));
+  }
+
+  // Pass 2: emit line probes.
+  for (const auto* row : all_rows) {
+    if (row->line == 0)
+      continue;
+    const col_addr ca{row->column, row->address};
+    const std::string& display_file = addr_to_display.at(ca);
+    const std::string& op           = addr_to_op.at(ca);
+
+    stream << "jprobe:" << display_file
+           << ":uc"     << row->column
+           << ":line"   << row->line
+           << " ( on " << (op.empty() ? "UNKNOWN" : op) << " )\n";
+  }
+
+  // Pass 3: emit annotation probes from DW_TAG_label rows (line == 0).
+  // Resolve display_file and operation from the maps built above; both are
+  // keyed by {column, address} and annotation rows always share both with their
+  // enclosing line row.
+  for (const auto* row : all_rows) {
+    if (row->annotation_id.empty())
+      continue; // only annotation rows have this set
+
+    const col_addr ca{row->column, row->address};
+    const auto disp_it = addr_to_display.find(ca);
+    const std::string display_file =
+        (disp_it != addr_to_display.end()) ? disp_it->second : std::to_string(row->address);
+
+    const auto op_it = addr_to_op.find(ca);
+    const std::string op = (op_it != addr_to_op.end()) ? op_it->second : std::string{};
+
+    stream << "jprobe:" << display_file
+           << ":uc"     << row->column
+           << ":annotation" << row->annotation_id
+           << " ( on " << (op.empty() ? "UNKNOWN" : op) << " )\n";
+  }
+}
+
+// ─── Main entry point ────────────────────────────────────────────────────────
+
 void
 debug_tools::
 write_trace_probes(std::ostream& stream) const
 {
+  // DWARF path: no .dump present
+  if (has_dwarf()) {
+    write_trace_probes_from_dwarf(stream, *m_dwarf, m_kernel_instance,
+                                  m_transform_manager.get_elfio());
+    return;
+  }
+
   // Extract .dump section from ELF buffer
   const auto& debug_data = get_dump_data();
   if (debug_data.empty())
