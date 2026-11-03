@@ -80,23 +80,23 @@ void dwarf_writer::append_u8(std::vector<uint8_t>& buf, uint8_t v)
 void dwarf_writer::append_u16(std::vector<uint8_t>& buf, uint16_t v)
 {
   buf.push_back(static_cast<uint8_t>(v));
-  buf.push_back(static_cast<uint8_t>(v >> 8U));
+  buf.push_back(static_cast<uint8_t>(v >> BITS_PER_BYTE));
 }
 
 void dwarf_writer::append_u32(std::vector<uint8_t>& buf, uint32_t v)
 {
   buf.push_back(static_cast<uint8_t>(v));
-  buf.push_back(static_cast<uint8_t>(v >> 8U));
-  buf.push_back(static_cast<uint8_t>(v >> 16U));
-  buf.push_back(static_cast<uint8_t>(v >> 24U));
+  buf.push_back(static_cast<uint8_t>(v >> BITS_PER_BYTE));
+  buf.push_back(static_cast<uint8_t>(v >> (2U * BITS_PER_BYTE)));
+  buf.push_back(static_cast<uint8_t>(v >> (3U * BITS_PER_BYTE)));
 }
 
 void dwarf_writer::patch_u32(std::vector<uint8_t>& buf, size_t offset, uint32_t v)
 {
   buf[offset]     = static_cast<uint8_t>(v);
-  buf[offset + 1] = static_cast<uint8_t>(v >> 8U);
-  buf[offset + 2] = static_cast<uint8_t>(v >> 16U);
-  buf[offset + 3] = static_cast<uint8_t>(v >> 24U);
+  buf[offset + 1] = static_cast<uint8_t>(v >> BITS_PER_BYTE);
+  buf[offset + 2] = static_cast<uint8_t>(v >> (2U * BITS_PER_BYTE));
+  buf[offset + 3] = static_cast<uint8_t>(v >> (3U * BITS_PER_BYTE));
 }
 
 void dwarf_writer::append_uleb128(std::vector<uint8_t>& buf, uint64_t v)
