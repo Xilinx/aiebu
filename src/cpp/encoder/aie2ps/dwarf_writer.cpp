@@ -34,7 +34,6 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <boost/endian/conversion.hpp>
 
 namespace aiebu {
 
@@ -80,21 +79,24 @@ void dwarf_writer::append_u8(std::vector<uint8_t>& buf, uint8_t v)
 
 void dwarf_writer::append_u16(std::vector<uint8_t>& buf, uint16_t v)
 {
-  const size_t off = buf.size();
-  buf.resize(off + 2);
-  boost::endian::store_little_u16(buf.data() + off, v);
+  buf.push_back(static_cast<uint8_t>(v));
+  buf.push_back(static_cast<uint8_t>(v >> 8U));
 }
 
 void dwarf_writer::append_u32(std::vector<uint8_t>& buf, uint32_t v)
 {
-  const size_t off = buf.size();
-  buf.resize(off + 4);
-  boost::endian::store_little_u32(buf.data() + off, v);
+  buf.push_back(static_cast<uint8_t>(v));
+  buf.push_back(static_cast<uint8_t>(v >> 8U));
+  buf.push_back(static_cast<uint8_t>(v >> 16U));
+  buf.push_back(static_cast<uint8_t>(v >> 24U));
 }
 
 void dwarf_writer::patch_u32(std::vector<uint8_t>& buf, size_t offset, uint32_t v)
 {
-  boost::endian::store_little_u32(buf.data() + offset, v);
+  buf[offset]     = static_cast<uint8_t>(v);
+  buf[offset + 1] = static_cast<uint8_t>(v >> 8U);
+  buf[offset + 2] = static_cast<uint8_t>(v >> 16U);
+  buf[offset + 3] = static_cast<uint8_t>(v >> 24U);
 }
 
 void dwarf_writer::append_uleb128(std::vector<uint8_t>& buf, uint64_t v)

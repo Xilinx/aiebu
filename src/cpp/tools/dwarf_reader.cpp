@@ -16,7 +16,6 @@
 
 #include <cstring>
 #include <string_view>
-#include <boost/endian/conversion.hpp>
 #include <elfio/elfio.hpp>
 
 namespace aiebu {
@@ -44,13 +43,16 @@ const uint8_t* dwarf_reader::read_u8(const uint8_t* p, uint8_t& v)
 
 const uint8_t* dwarf_reader::read_u16(const uint8_t* p, uint16_t& v)
 {
-  v = boost::endian::load_little_u16(p);
+  v = static_cast<uint16_t>(p[0]) | (static_cast<uint16_t>(p[1]) << 8U);
   return p + 2;
 }
 
 const uint8_t* dwarf_reader::read_u32(const uint8_t* p, uint32_t& v)
 {
-  v = boost::endian::load_little_u32(p);
+  v = static_cast<uint32_t>(p[0])        |
+      (static_cast<uint32_t>(p[1]) << 8U)  |
+      (static_cast<uint32_t>(p[2]) << 16U) |
+      (static_cast<uint32_t>(p[3]) << 24U);
   return p + 4;
 }
 
