@@ -6,12 +6,8 @@
 # Shared prebuilt asm: test/aie4-ctrlcode/real_models/prebuilt (via DMA_compiler/prebuilt).
 # If missing, link from build/real_test/prebuilt (see copy_models.sh).
 
-set(_aie4_prebuilt_dir "${CMAKE_CURRENT_SOURCE_DIR}/prebuilt")
-
 set(_aie4_dma_prebuilt "${CMAKE_CURRENT_SOURCE_DIR}/DMA_compiler/prebuilt")
-if(EXISTS "${_aie4_prebuilt_dir}" AND NOT EXISTS "${_aie4_dma_prebuilt}")
-  file(CREATE_LINK "../prebuilt" "${_aie4_dma_prebuilt}" SYMBOLIC)
-endif()
+
 
 set(_aie4_real_models
   DMA_compiler/test_1
