@@ -7,11 +7,6 @@
 # If missing, link from build/real_test/prebuilt (see copy_models.sh).
 
 set(_aie4_prebuilt_dir "${CMAKE_CURRENT_SOURCE_DIR}/prebuilt")
-set(_aie4_prebuilt_fallback "${AIEBU_SOURCE_DIR}/build/real_test/prebuilt")
-if(NOT EXISTS "${_aie4_prebuilt_dir}" AND EXISTS "${_aie4_prebuilt_fallback}")
-  file(CREATE_LINK "${_aie4_prebuilt_fallback}" "${_aie4_prebuilt_dir}" SYMBOLIC)
-  message(STATUS "aie4 real_models: linked prebuilt -> ${_aie4_prebuilt_fallback}")
-endif()
 
 set(_aie4_dma_prebuilt "${CMAKE_CURRENT_SOURCE_DIR}/DMA_compiler/prebuilt")
 if(EXISTS "${_aie4_prebuilt_dir}" AND NOT EXISTS "${_aie4_dma_prebuilt}")
@@ -27,7 +22,8 @@ set(_aie4_skip_elftolegacy
   X3/test_10
 )
 
-macro(add_aie4_real_model_test MODEL)
+# Use a function (not a macro): return() only exits this function, not the foreach caller.
+function(add_aie4_real_model_test MODEL SKIP_ELFTOLEGACY_VAR)
   set(_model_dir "${CMAKE_CURRENT_SOURCE_DIR}/${MODEL}")
   set(_config "${_model_dir}/config.json")
   set(_asm_work_dir "${_model_dir}")
@@ -63,7 +59,8 @@ macro(add_aie4_real_model_test MODEL)
   set_tests_properties("${_test_prefix}_asm" PROPERTIES LABELS "benchmark")
 
   if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    list(FIND _aie4_skip_elftolegacy "${MODEL}" _aie4_skip_elftolegacy_idx)
+    set(_skip_elftolegacy "${${SKIP_ELFTOLEGACY_VAR}}")
+    list(FIND _skip_elftolegacy "${MODEL}" _aie4_skip_elftolegacy_idx)
     if(_aie4_skip_elftolegacy_idx EQUAL -1)
       add_test(NAME "${_test_prefix}_elftolegacy"
         COMMAND "${AIEBU_SOURCE_DIR}/src/python/aiebu/elf_to_legacy.py"
@@ -95,8 +92,8 @@ macro(add_aie4_real_model_test MODEL)
     set_tests_properties("${_test_prefix}_readelf" PROPERTIES DEPENDS "${_test_prefix}_asm")
     set_tests_properties("${_test_prefix}_readelf_compare" PROPERTIES DEPENDS "${_test_prefix}_readelf")
   endif()
-endmacro()
+endfunction()
 
 foreach(_model IN LISTS _aie4_real_models)
-  add_aie4_real_model_test("${_model}")
+  add_aie4_real_model_test("${_model}" _aie4_skip_elftolegacy)
 endforeach()
