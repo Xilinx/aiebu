@@ -104,6 +104,7 @@ target_sources(aiebu_library_objects
   encoder/aie2ps/aie2ps_encoder.cpp
   encoder/aie2ps/report.cpp
   preprocessor/aie2ps/aie2ps_preprocessor_input.cpp
+  preprocessor/aie4/aie4_preprocessor_input.cpp
   preprocessor/asm/pager.cpp
   disassembler/disassembler.cpp
   disassembler/disassembler_merged.cpp
@@ -111,6 +112,7 @@ target_sources(aiebu_library_objects
 target_include_directories(aiebu_library_objects
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie2ps
+  ${CMAKE_CURRENT_SOURCE_DIR}/preprocessor/aie4
   ${CMAKE_CURRENT_SOURCE_DIR}/encoder/aie2ps
   ${CMAKE_CURRENT_SOURCE_DIR}/elf/aie2ps
   ${CMAKE_CURRENT_SOURCE_DIR}/disassembler

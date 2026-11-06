@@ -174,7 +174,7 @@ add_preemption_code(uint32_t col)
 
   void
   aie2_blob_preprocessor_input::
-  validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const {
+  validate_json(uint64_t offset, uint64_t size, uint32_t arg_index, offset_type type) const {
     // Control packet offsets must be >= 8 (the header correction) to prevent underflow on subtraction.
     constexpr uint32_t ctrl_pkt_correction = 8;
     if (type == offset_type::CONTROL_PACKET && offset < ctrl_pkt_correction) {
@@ -216,14 +216,14 @@ add_preemption_code(uint32_t col)
   extract_coalesed_buffers(const std::string& name,
                            const boost::property_tree::ptree& pt)
   {
-    uint32_t buffer_size = get_32_bit_property(pt, "size_in_bytes");
+    const uint64_t buffer_size = get_64_bit_property(pt, "size_in_bytes");
     const auto coalesed_buffers_pt = pt.get_child_optional("coalesed_buffers");
     if (!coalesed_buffers_pt)
       return;
 
     const auto coalesed_buffers = coalesed_buffers_pt.get();
     for (auto coalesed_buffer : coalesed_buffers) {
-      uint32_t buffer_offset = get_32_bit_property(coalesed_buffer.second, "offset_in_bytes");
+      const uint64_t buffer_offset = get_64_bit_property(coalesed_buffer.second, "offset_in_bytes");
       uint32_t arg_index = get_32_bit_property(pt, "xrt_id");
       // Check if the buffer offset is within the buffer size
       validate_json(buffer_offset, buffer_size, arg_index, offset_type::COALESED_BUFFER);
@@ -364,24 +364,6 @@ add_preemption_code(uint32_t col)
     }
   }
 
-
-  uint32_t
-  aie2_blob_preprocessor_input::
-  get_32_bit_property(const boost::property_tree::ptree& pt, const std::string& property, bool defaultvalue) const
-  {
-    uint64_t value = 0;
-    if (defaultvalue)
-      value = pt.get<uint64_t>(property, 0);
-    else
-      value = pt.get<uint64_t>(property);
-    // we dont support property greater then 32 bit
-    if (value > RANGE_32BIT)
-    {
-      auto error_msg = boost::format("Invalid %s (0x%x) > 32bit found") % property % value;
-      throw error(error::error_code::invalid_asm, error_msg.str());
-    }
-    return static_cast<uint32_t>(value);
-  }
 
   // 20 Lower bits
   #define GET_REG(reg) (reg & 0xFFFFF)
