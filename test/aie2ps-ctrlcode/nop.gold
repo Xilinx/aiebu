@@ -10,11 +10,11 @@ ELF Header:
   Version:                           1 (current)
   Entry point address:               0
   Start of program headers:          52 (bytes into file)
-  Start of section headers:          9792 (bytes into file)
+  Start of section headers:          9760 (bytes into file)
   Flags:                             
   Size of this header:               52 (bytes)
   Size of program header entries:    32 (bytes)
-  Number of program headers entries: 4
+  Number of program headers entries: 3
   Size of section header entries:    40 (bytes)
   Number of section headers entries: 6
   Section header string table index: 1
@@ -22,26 +22,24 @@ ELF Header:
 Section Headers:
 [Nr] Name                 Type         Addr     Off    Size   ES Flags Lk Inf Al
 [ 0]                      NULL         00000000 000000 000000  0        0   0  0
-[ 1] .shstrtab            STRTAB       00000000 0025d6 00003b  0        0   0  1
-[ 2] .ctrltext.0.0        PROGBITS     00000000 0000c0 000044  0 AX     0   0 16
-[ 3] .ctrldata.0.0        PROGBITS     00000050 000110 001fbc  0 WA     0   0 16
-[ 4] .dump                PROGBITS     00002010 0020d0 000506  0 WA     0   0 16
-[ 5] .note.xrt.UID        NOTE         00000000 002611 000020  0        0   0  1
+[ 1] .shstrtab            STRTAB       00000000 0025b6 00003b  0        0   0  1
+[ 2] .ctrltext.0.0        PROGBITS     00000000 0000a0 000044  0 AX     0   0 16
+[ 3] .ctrldata.0.0        PROGBITS     00000050 0000f0 001fbc  0 WA     0   0 16
+[ 4] .dump                PROGBITS     00002010 0020b0 000506  0 WA     0   0 16
+[ 5] .note.xrt.UID        NOTE         00000000 0025f1 000020  0        0   0  1
 
 Program Headers:
   Type           Offset   VirtAddr   PhysAddr   FileSiz  MemSiz   Flg Align
-  PHDR           0x000034 0x00000000 0x00000000 0x000080 0x000080 R   0x0
-  LOAD           0x0000c0 0x00000000 0x00000000 0x000044 0x000044 R E 0x10
-  LOAD           0x000110 0x00000050 0x00000000 0x001fbc 0x001fbc RW  0x10
-  LOAD           0x0020d0 0x00002010 0x00000000 0x000506 0x000506 RW  0x10
+  LOAD           0x0000a0 0x00000000 0x00000000 0x000044 0x000044 R E 0x10
+  LOAD           0x0000f0 0x00000050 0x00000000 0x001fbc 0x001fbc RW  0x10
+  LOAD           0x0020b0 0x00002010 0x00000000 0x000506 0x000506 RW  0x10
 
  Section to Segment mapping:
   Segment Sections...
    00      [RO: .ctrltext.0.0]
-   01      [RO: .ctrltext.0.0]
-   02      .ctrldata.0.0
-   03      .dump
+   01      .ctrldata.0.0
+   02      .dump
 
-Note section [ 5] '.note.xrt.UID' of 32 bytes at offset 0x2611:
+Note section [ 5] '.note.xrt.UID' of 32 bytes at offset 0x25f1:
   Owner          Data size  Type
   XRT                   16  <unknown>: 4
