@@ -381,6 +381,15 @@ add_group(const std::string& name, const std::vector<uint32_t>& member, ELFIO::E
 
   const ELFIO::section* lsec = lookup_section(".symtab");
   sec->set_link(lsec->get_index());
+
+  // ELF spec requires every section belonging to a group to have SHF_GROUP set
+  // in its sh_flags.  member[0] is the group flags word (GRP_COMDAT = 1), not a
+  // section index — start from member[1].
+  for (size_t i = 1; i < member.size(); ++i) {
+    ELFIO::section* msec = m_elfio.sections[static_cast<ELFIO::Elf_Half>(member[i])];
+    if (msec)
+      msec->set_flags(msec->get_flags() | ELFIO::SHF_GROUP);
+  }
 }
 
 // align address to 16 bytes.

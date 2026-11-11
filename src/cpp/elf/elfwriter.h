@@ -137,17 +137,7 @@ public:
     m_elfio.set_type( ELFIO::ET_EXEC );
     m_elfio.set_machine( em_aiectrlcode );
     m_elfio.set_flags(0x0);
-
-
-    ELFIO::segment* seg = m_elfio.segments.add();
-    seg->set_type( ELFIO::PT_PHDR );
-    //seg->set_type( ELFIO::PT_LOAD );
-    seg->set_virtual_address( 0x0 );
-    seg->set_physical_address( 0x0 );
-    seg->set_flags( ELFIO::PF_R );
-    //seg->set_flags( ELFIO::PF_R | ELFIO::PF_X);
-    seg->set_file_size(0x0);
-    seg->set_memory_size(0x0);
+    // No PT_PHDR segment — AIE ELFs are not OS-loaded executables.
 
     resync_section_name_map();
   }
