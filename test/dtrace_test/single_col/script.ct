@@ -66,18 +66,18 @@ jprobe:aie_runtime_control.asm:uc0:line18
     v = read_reg(0x100000)
     print(f"read from memtile 0_1 offset 0: {hex(v)}")
 }
-jprobe:default:uc0:line2
+jprobe:merged_control.asm:uc0:line3
 {
     ts_start_job = timestamp32()
     axi_mm_offset = read_reg(0xc0020)
     print(f"start job ts: {ts_start_job:d} axi_mm_offset: 0x{axi_mm_offset:x}")
 }
-jprobe:default:uc0:line3
+jprobe:merged_control.asm:uc0:line4
 {
     cnt = count()
     print("opcode: {} count: {}".format(operation, cnt))
 }
-jprobe:default:uc0:line4
+jprobe:merged_control.asm:uc0:line5
 {
     ts_end_job = timestamp()
     print("end job ts: {ts_end_job:d}")

@@ -35,39 +35,6 @@ struct dtrace_command_handle {
 };
 
 dtrace_handle_t
-create_dtrace_handle(const std::string& script_file, const std::string& map_data, uint32_t log_level,
-    uint32_t output_fmt)
-{
-    try
-    {
-        // Validate script file path
-        if (script_file.empty())
-        {
-            std::cerr << "[DTRACE] [ERROR] : Invalid dtrace config script data";
-            return nullptr;
-        }
-
-        // Create new dtrace handle
-        auto handle = std::make_unique<dtrace_command_handle>();
-
-        dtrace::set_log_level(log_level);
-        dtrace::set_output_format(output_fmt);
-
-        // Initialize the memory host address map and dtrace compiler control object
-        handle->g_control = std::make_unique<dtrace::control>(script_file, map_data);
-
-        // Returns an opaque raw handle.
-        // Transfer ownership to caller; caller must call destroy_dtrace_handle().
-        return static_cast<dtrace_handle_t>(handle.release());
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << e.what();
-        return nullptr; // Failure
-    }
-}
-
-dtrace_handle_t
 create_dtrace_handle_elf(const std::string& script_file, const ELFIO::elfio& elf,
     const std::string& kernel_instance, uint32_t log_level, uint32_t output_fmt)
 {
@@ -98,9 +65,6 @@ create_dtrace_handle_elf(const std::string& script_file, const ELFIO::elfio& elf
             }
             map_data = debug_map.get_debug_section_json();
         }
-
-        // Handle setup mirrors create_dtrace_handle(); it will be removed once all callers
-        // have migrated to create_dtrace_handle_elf().
 
         // Create new dtrace handle
         auto handle = std::make_unique<dtrace_command_handle>();
