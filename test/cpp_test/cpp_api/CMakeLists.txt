@@ -207,16 +207,16 @@ if (NOT WIN32)
   target_link_libraries(${ELF_READER_TESTNAME} PRIVATE pthread)
 endif()
 
-# Checked-in ELFs — always available, no assembler dependency
+# ELFs decoded from base64 by the dtrace dump tests. No assembler dependency.
 add_test(NAME "elf_reader_aie2ps_legacy"
   COMMAND ${ELF_READER_TESTNAME}
-    "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col/multi_uc_6.elf"
+    "${CMAKE_BINARY_DIR}/test/dtrace_test/multi_col_dump/multi_uc_6.elf"
     aie2ps_legacy
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "elf_reader_aie2ps"
   COMMAND ${ELF_READER_TESTNAME}
-    "${AIEBU_SOURCE_DIR}/test/dtrace_test/single_col/simple_int8_orig.elf"
+    "${CMAKE_BINARY_DIR}/test/dtrace_test/single_col_dump/simple_int8_orig.elf"
     aie2ps
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
