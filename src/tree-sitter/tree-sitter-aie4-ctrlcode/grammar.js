@@ -31,7 +31,9 @@ module.exports = grammar({
       $.endl_directive,
       $.align_directive,
       $.long_directive,
-      $.section_directive
+      $.section_directive,
+      $.target_directive,
+      $.aie_row_topology_directive
     ),
 
     section_directive: $ => seq(
@@ -39,7 +41,7 @@ module.exports = grammar({
       $.section_name
     ),
 
-    section_name: $ => token(seq(/\./, /[a-zA-Z_][a-zA-Z0-9_]*/)),
+    section_name: $ => /\.?[a-zA-Z_][a-zA-Z0-9_]*/,
 
     partition_directive: $ => seq(
       '.partition',
@@ -60,7 +62,7 @@ module.exports = grammar({
       $.include_path
     ),
 
-    include_path: $ => /[A-Za-z0-9_.]+\.asm/,
+    include_path: $ => /[\.\/_\-a-zA-Z0-9]+\.asm/,
 
     endl_directive: $ => seq(
       '.endl',
@@ -77,29 +79,66 @@ module.exports = grammar({
       $.hexint
     ),
 
+    target_directive: $ => seq(
+      '.target',
+      $.identifier
+    ),
+
+    aie_row_topology_directive: $ => seq(
+      '.aie_row_topology',
+      token(/\d+(?:-\d+)*/)
+    ),
+
     _statement: $ => choice(
       $.start_job_statement,
       $.end_job_statement,
+      $.start_cond_job_preempt_statement,
+      $.start_job_deferred_statement,
+      $.launch_job_statement,
       $.uc_dma_write_des_sync_statement,
       $.mask_write_32_statement,
       $.mask_poll_32_statement,
       $.uc_dma_mask_poll_ext_statement,
       $.apply_offset_statement,
+      $.apply_offset_sram_statement,
       $.uc_dma_bd_statement,
       $.load_pdi_statement,
+      $.load_cores_statement,
+      $.load_cores_cp_statement,
       $.write_32_statement,
+      $.write_32_d_statement,
+      $.read_32_statement,
+      $.read_32_d_statement,
       $.wait_tcts_statement,
       $.local_barrier_statement,
+      $.remote_barrier_statement,
       $.uc_dma_write_des_statement,
       $.wait_uc_dma_statement,
       $.save_timestamps_statement,
+      $.save_register_statement,
       $.preempt_statement,
+      $.annotation_metadata,
       $.nop_statement,
       $.eof_marker
     ),
 
     start_job_statement: $ => seq(
       token(choice('START_JOB', 'start_job')),
+      $.decint
+    ),
+
+    start_cond_job_preempt_statement: $ => seq(
+      'START_COND_JOB_PREEMPT',
+      $.decint
+    ),
+
+    start_job_deferred_statement: $ => seq(
+      'START_JOB_DEFERRED',
+      $.decint
+    ),
+
+    launch_job_statement: $ => seq(
+      'LAUNCH_JOB',
       $.decint
     ),
 
@@ -148,6 +187,15 @@ module.exports = grammar({
       $.decint
     ),
 
+    apply_offset_sram_statement: $ => seq(
+      'APPLY_OFFSET_SRAM',
+      $.address,
+      ',',
+      $.decint,
+      ',',
+      $.hexint
+    ),
+
     uc_dma_bd_statement: $ => seq(
       'UC_DMA_BD',
       choice($.decint, $.hexint),
@@ -164,10 +212,22 @@ module.exports = grammar({
     ),
 
     load_pdi_statement: $ => seq(
-      'LOAD_PDI',
+      token(choice('LOAD_PDI', 'load_pdi')),
+      choice($.decint, $.hexint),
+      ',',
+      $.address
+    ),
+
+    load_cores_statement: $ => seq(
+      'LOAD_CORES',
       $.decint,
       ',',
       $.address
+    ),
+
+    load_cores_cp_statement: $ => seq(
+      'LOAD_CORES_CP',
+      choice($.decint, $.hexint)
     ),
 
     write_32_statement: $ => seq(
@@ -175,6 +235,29 @@ module.exports = grammar({
       $.hexint,
       ',',
       $.hexint
+    ),
+
+    write_32_d_statement: $ => seq(
+      token(choice('WRITE_32_D', 'write_32_d')),
+      $.decint,
+      ',',
+      $.hexint,
+      ',',
+      $.decint
+    ),
+
+    read_32_statement: $ => seq(
+      token(choice('READ_32', 'read_32')),
+      $.register_ref,
+      ',',
+      $.hexint
+    ),
+
+    read_32_d_statement: $ => seq(
+      token(choice('READ_32_D', 'read_32_d')),
+      $.register_ref,
+      ',',
+      $.register_ref
     ),
 
     wait_tcts_statement: $ => seq(
@@ -190,6 +273,7 @@ module.exports = grammar({
 
     channel_spec: $ => token(choice(
       seq('SHIM_MM2S_', /\d+/),
+      seq('SHIM_S2MM_', /\d+/),
       seq('MEM_S2MM_', /\d+/),
       seq('MEM_MM2S_', /\d+/),
       seq('TILE_S2MM_', /\d+/)
@@ -203,6 +287,15 @@ module.exports = grammar({
     ),
 
     local_barrier_reg: $ => token(seq(/\$lb/, /\d+/)),
+
+    remote_barrier_statement: $ => seq(
+      'REMOTE_BARRIER',
+      $.remote_barrier_reg,
+      ',',
+      $.hexint
+    ),
+
+    remote_barrier_reg: $ => token(seq(/\$rb/, /\d+/)),
 
     uc_dma_write_des_statement: $ => seq(
       token(choice('uC_DMA_WRITE_DES', 'uc_dma_write_des')),
@@ -223,18 +316,39 @@ module.exports = grammar({
       $.decint
     ),
 
-    preempt_statement: $ => seq(
-      'PREEMPT',
+    save_register_statement: $ => seq(
+      'SAVE_REGISTER',
       $.hexint,
+      ',',
+      $.decint
+    ),
+
+    preempt_statement: $ => seq(
+      token(choice('PREEMPT', 'preempt')),
+      choice($.decint, $.hexint),
       ',',
       $.address,
       ',',
-      $.address
+      $.address,
+      optional(seq(',', $.address))
     ),
 
     nop_statement: $ => token(choice('NOP', 'nop')),
 
     eof_marker: $ => token(choice('EOF', 'eof')),
+
+    annotation_metadata: $ => choice(
+      seq(
+        choice('id', 'name'),
+        ':',
+        choice($.decint, $.hexint, $.identifier)
+      ),
+      prec.right(seq(
+        'description',
+        ':',
+        repeat1($.identifier)
+      ))
+    ),
 
     label_definition: $ => seq(
       $.identifier,
