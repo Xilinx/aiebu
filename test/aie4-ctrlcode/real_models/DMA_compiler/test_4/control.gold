@@ -10,11 +10,11 @@ ELF Header:
   Version:                           1 (current)
   Entry point address:               0
   Start of program headers:          52 (bytes into file)
-  Start of section headers:          1120208 (bytes into file)
+  Start of section headers:          1120176 (bytes into file)
   Flags:                             
   Size of this header:               52 (bytes)
   Size of program header entries:    32 (bytes)
-  Number of program headers entries: 7
+  Number of program headers entries: 6
   Size of section header entries:    40 (bytes)
   Number of section headers entries: 18
   Section header string table index: 1
@@ -22,43 +22,41 @@ ELF Header:
 Section Headers:
 [Nr] Name                 Type         Addr     Off    Size   ES Flags Lk Inf Al
 [ 0]                      NULL         00000000 000000 000000  0        0   0  0
-[ 1] .shstrtab            STRTAB       00000000 110120 0000ca  0        0   0  1
-[ 2] .strtab              STRTAB       00000000 1101ea 00008c  0        0   0  0
-[ 3] .symtab              SYMTAB       00000000 110278 000040 16        2   1  4
-[ 4] .ctrltext.0.0        PROGBITS     00000000 000120 048000  0 AX     0   0 16
-[ 5] .ctrltext.2.0        PROGBITS     00048000 048120 048000  0 AX     0   0 16
-[ 6] .ctrltext.4.0        PROGBITS     00090000 090120 048000  0 AX     0   0 16
-[ 7] .dynstr              STRTAB       00000000 1102b8 00003d  0        0   0  0
-[ 8] .dynsym              DYNSYM       00000000 1102f8 0001f0 16        7   1  8
-[ 9] .rela.dyn            RELA         00000000 1104e8 001278 12        8   0  8
-[10] .dynamic             DYNAMIC      00000000 111760 000010  8        7   0  8
-[11] .group.0             GROUP        00000000 111770 000010  4        3   2 16
-[12] .ctrltext.0.1        PROGBITS     000d8000 0d8120 014000  0 AX     0   0 16
-[13] .ctrltext.2.1        PROGBITS     000ec000 0ec120 012000  0 AX     0   0 16
-[14] .ctrltext.4.1        PROGBITS     000fe000 0fe120 012000  0 AX     0   0 16
-[15] .group.1             GROUP        00000000 111780 000010  4        3   3 16
-[16] .note.xrt.configuration NOTE         00000000 111790 000014  0        0   0  1
-[17] .note.xrt.UID        NOTE         00000000 1117a4 000020  0        0   0  1
+[ 1] .shstrtab            STRTAB       00000000 110100 0000ca  0        0   0  1
+[ 2] .strtab              STRTAB       00000000 1101ca 00008c  0        0   0  0
+[ 3] .symtab              SYMTAB       00000000 110258 000040 16        2   1  4
+[ 4] .ctrltext.0.0        PROGBITS     00000000 000100 048000  0 AXG    0   0 16
+[ 5] .ctrltext.2.0        PROGBITS     00048000 048100 048000  0 AXG    0   0 16
+[ 6] .ctrltext.4.0        PROGBITS     00090000 090100 048000  0 AXG    0   0 16
+[ 7] .dynstr              STRTAB       00000000 110298 00003d  0        0   0  0
+[ 8] .dynsym              DYNSYM       00000000 1102d8 0001f0 16        7   1  8
+[ 9] .rela.dyn            RELA         00000000 1104c8 001278 12        8   0  8
+[10] .dynamic             DYNAMIC      00000000 111740 000010  8        7   0  8
+[11] .group.0             GROUP        00000000 111750 000010  4        3   2 16
+[12] .ctrltext.0.1        PROGBITS     000d8000 0d8100 014000  0 AXG    0   0 16
+[13] .ctrltext.2.1        PROGBITS     000ec000 0ec100 012000  0 AXG    0   0 16
+[14] .ctrltext.4.1        PROGBITS     000fe000 0fe100 012000  0 AXG    0   0 16
+[15] .group.1             GROUP        00000000 111760 000010  4        3   3 16
+[16] .note.xrt.configuration NOTE         00000000 111770 000014  0        0   0  1
+[17] .note.xrt.UID        NOTE         00000000 111784 000020  0        0   0  1
 
 Program Headers:
   Type           Offset   VirtAddr   PhysAddr   FileSiz  MemSiz   Flg Align
-  PHDR           0x000034 0x00000000 0x00000000 0x0000e0 0x0000e0 R   0x0
-  LOAD           0x000120 0x00000000 0x00000000 0x048000 0x048000 R E 0x10
-  LOAD           0x048120 0x00048000 0x00000000 0x048000 0x048000 R E 0x10
-  LOAD           0x090120 0x00090000 0x00000000 0x048000 0x048000 R E 0x10
-  LOAD           0x0d8120 0x000d8000 0x00000000 0x014000 0x014000 R E 0x10
-  LOAD           0x0ec120 0x000ec000 0x00000000 0x012000 0x012000 R E 0x10
-  LOAD           0x0fe120 0x000fe000 0x00000000 0x012000 0x012000 R E 0x10
+  LOAD           0x000100 0x00000000 0x00000000 0x048000 0x048000 R E 0x10
+  LOAD           0x048100 0x00048000 0x00000000 0x048000 0x048000 R E 0x10
+  LOAD           0x090100 0x00090000 0x00000000 0x048000 0x048000 R E 0x10
+  LOAD           0x0d8100 0x000d8000 0x00000000 0x014000 0x014000 R E 0x10
+  LOAD           0x0ec100 0x000ec000 0x00000000 0x012000 0x012000 R E 0x10
+  LOAD           0x0fe100 0x000fe000 0x00000000 0x012000 0x012000 R E 0x10
 
  Section to Segment mapping:
   Segment Sections...
-   00     
-   01      [RO: .ctrltext.0.0]
-   02      [RO: .ctrltext.2.0]
-   03      [RO: .ctrltext.4.0]
-   04      [RO: .ctrltext.0.1]
-   05      [RO: .ctrltext.2.1]
-   06      [RO: .ctrltext.4.1]
+   00      [RO: .ctrltext.0.0]
+   01      [RO: .ctrltext.2.0]
+   02      [RO: .ctrltext.4.0]
+   03      [RO: .ctrltext.0.1]
+   04      [RO: .ctrltext.2.1]
+   05      [RO: .ctrltext.4.1]
 
 COMDAT section group [11] '.group.0' with signature '653dbc6215cb9335e09080af0f37ea00_subgraph_0' contains 3 entries:
   [ 4] .ctrltext.0.0
@@ -70,7 +68,7 @@ COMDAT section group [15] '.group.1' with signature '653dbc6215cb9335e09080af0f3
   [13] .ctrltext.2.1
   [14] .ctrltext.4.1
 
-Relocation section [ 9] '.rela.dyn' at offset 0x1104e8 contains 394 entries:
+Relocation section [ 9] '.rela.dyn' at offset 0x1104c8 contains 394 entries:
   Offset      Type            Value       Addend Name
   0x00002330  <INVALID RELOC> 0000000000      +0 4
   0x00004060  <INVALID RELOC> 0000000000      +0 3
@@ -510,13 +508,13 @@ Symbol table [ 3] '.symtab' contains 4 entries:
     2: 00000000      0 OBJECT  WEAK   DEFAULT        1 653dbc6215cb9335e09080af0f37ea00_subgraph_0
     3: 00000000      0 OBJECT  WEAK   DEFAULT        1 653dbc6215cb9335e09080af0f37ea00_subgraph_1
 
-String section [2] '.strtab' contains 140 bytes at offset 0x1101ea:
+String section [2] '.strtab' contains 140 bytes at offset 0x1101ca:
   [     0]  
   [     1]  _Z36DPU_653dbc6215cb9335e09080af0f37ea00PcPcPcPcPc
   [    34]  653dbc6215cb9335e09080af0f37ea00_subgraph_0
   [    60]  653dbc6215cb9335e09080af0f37ea00_subgraph_1
 
-String section [7] '.dynstr' contains 61 bytes at offset 0x1102b8:
+String section [7] '.dynstr' contains 61 bytes at offset 0x110298:
   [     0]  
   [     1]  4
   [     3]  3
@@ -549,10 +547,10 @@ String section [7] '.dynstr' contains 61 bytes at offset 0x1102b8:
   [    39]  1
   [    3b]  0
 
-Note section [16] '.note.xrt.configuration' of 20 bytes at offset 0x111790:
+Note section [16] '.note.xrt.configuration' of 20 bytes at offset 0x111770:
   Owner          Data size  Type
   XRT                    4  <unknown>: 6
 
-Note section [17] '.note.xrt.UID' of 32 bytes at offset 0x1117a4:
+Note section [17] '.note.xrt.UID' of 32 bytes at offset 0x111784:
   Owner          Data size  Type
   XRT                   16  <unknown>: 4
