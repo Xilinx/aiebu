@@ -9,6 +9,10 @@
 set(aie4_real_models
   DMA_compiler/test_1
   X3/test_6
+  X3/test_7
+  X3/test_8
+  X3/test_9
+  X3/test_10
 )
 
 # No elf_to_legacy / control.txt gold (output too large for CI).
