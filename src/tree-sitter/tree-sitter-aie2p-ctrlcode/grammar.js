@@ -8,7 +8,7 @@
 // @ts-check
 
 module.exports = grammar({
-  name: 'aie2p-ctrlcode',
+  name: 'aie2p_ctrlcode',
 
   rules: {
       source_file: $ => repeat(
