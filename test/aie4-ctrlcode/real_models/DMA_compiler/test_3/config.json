@@ -1,0 +1,40 @@
+{
+    "xrt-kernels": [
+        {
+            "arguments": [
+                {
+                    "name": "arg0",
+                    "offset": "0x00",
+                    "type": "char *"
+                },
+                {
+                    "name": "arg1",
+                    "offset": "0x08",
+                    "type": "char *"
+                },
+                {
+                    "name": "arg2",
+                    "offset": "0x10",
+                    "type": "char *"
+                },
+                {
+                    "name": "arg3",
+                    "offset": "0x18",
+                    "type": "char *"
+                },
+                {
+                    "name": "arg4",
+                    "offset": "0x20",
+                    "type": "char *"
+                }
+            ],
+            "instance": [
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_0/subgraph_0_control.asm",
+                    "id": "8b39b82c671f00ea4c4e1f4620e5c63c_subgraph_0"
+                }
+            ],
+            "name": "DPU_8b39b82c671f00ea4c4e1f4620e5c63c"
+        }
+    ]
+}
