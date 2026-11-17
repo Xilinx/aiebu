@@ -20,6 +20,8 @@ set(aie4_skip_elftolegacy
   X3/test_10
 )
 
+set(aie4_real_ctrlpkt_bins "")
+
 # Use a function (not a macro): return() only exits this function, not the foreach caller.
 function(add_aie4_real_model_test model skip_elftolegacy_var)
   set(model_dir "${CMAKE_CURRENT_SOURCE_DIR}/${model}")
@@ -43,6 +45,20 @@ function(add_aie4_real_model_test model skip_elftolegacy_var)
   set(test_prefix "aie4_real_${model_id}")
   set(elf_name "control.elf")
   set(elf_path "${test_bin}/${elf_name}")
+
+  set(ctrl_pkt_b64 "${model_dir}/Work/ps/ctrl_pkt/ctrl_pkt0.b64")
+  set(ctrl_pkt_bin "${model_dir}/Work/ps/ctrl_pkt/ctrl_pkt0.bin")
+  if(EXISTS "${ctrl_pkt_b64}")
+    add_custom_command(
+      OUTPUT "${ctrl_pkt_bin}"
+      COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake"
+              -d "${ctrl_pkt_b64}" "${ctrl_pkt_bin}"
+      DEPENDS "${ctrl_pkt_b64}"
+      COMMENT "Decoding ctrl_pkt0.b64 for ${model}"
+      VERBATIM)
+    list(APPEND aie4_real_ctrlpkt_bins "${ctrl_pkt_bin}")
+    set(aie4_real_ctrlpkt_bins "${aie4_real_ctrlpkt_bins}" PARENT_SCOPE)
+  endif()
 
   add_test(NAME "${test_prefix}_asm"
     COMMAND aiebu-asm -t aie4_config -j "${config_path}" -o "${elf_path}" -f disabledump
@@ -95,3 +111,7 @@ endfunction()
 foreach(model IN LISTS aie4_real_models)
   add_aie4_real_model_test("${model}" "aie4_skip_elftolegacy")
 endforeach()
+
+if(aie4_real_ctrlpkt_bins)
+  add_custom_target(aie4_real_x3_ctrlpkts ALL DEPENDS ${aie4_real_ctrlpkt_bins})
+endif()
