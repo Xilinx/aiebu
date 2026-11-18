@@ -11,6 +11,7 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 include(cmake/settings.cmake)
 include(cmake/components.cmake)
 include(cmake/version.cmake)
+include(cmake/tree-sitter.cmake)
 
 # ---------------------------------------------------------------------------
 # zstd — external dependency managed as a git submodule (src/cpp/zstd).
@@ -67,6 +68,10 @@ add_subdirectory(specification)
 
 if (AIEBU_CTRLCODE_CODEGEN)
   add_subdirectory(lib)
+endif()
+
+if (TREE_SITTER)
+  add_subdirectory(src/tree-sitter)
 endif()
 
 option(AIEBU_BUILD_TESTS "Build aiebu's own test suite" ON)
