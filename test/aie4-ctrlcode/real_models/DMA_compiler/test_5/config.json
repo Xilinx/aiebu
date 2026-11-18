@@ -1,0 +1,168 @@
+{
+    "xrt-kernels": [
+        {
+            "arguments": [
+                {
+                    "name": "arg0",
+                    "offset": "0x00",
+                    "type": "char *"
+                },
+                {
+                    "name": "arg1",
+                    "offset": "0x08",
+                    "type": "char *"
+                },
+                {
+                    "name": "arg2",
+                    "offset": "0x10",
+                    "type": "char *"
+                },
+                {
+                    "name": "arg3",
+                    "offset": "0x18",
+                    "type": "char *"
+                },
+                {
+                    "name": "arg4",
+                    "offset": "0x20",
+                    "type": "char *"
+                }
+            ],
+            "instance": [
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_0/subgraph_0_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_0"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_1/subgraph_1_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_1"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_2/subgraph_2_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_2"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_3/subgraph_3_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_3"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_4/subgraph_4_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_4"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_5/subgraph_5_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_5"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_6/subgraph_6_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_6"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_7/subgraph_7_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_7"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_8/subgraph_8_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_8"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_9/subgraph_9_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_9"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_10/subgraph_10_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_10"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_11/subgraph_11_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_11"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_12/subgraph_12_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_12"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_13/subgraph_13_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_13"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_14/subgraph_14_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_14"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_15/subgraph_15_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_15"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_16/subgraph_16_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_16"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_17/subgraph_17_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_17"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_18/subgraph_18_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_18"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_19/subgraph_19_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_19"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_20/subgraph_20_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_20"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_21/subgraph_21_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_21"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_22/subgraph_22_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_22"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_23/subgraph_23_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_23"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_24/subgraph_24_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_24"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_25/subgraph_25_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_25"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_26/subgraph_26_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_26"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_27/subgraph_27_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_27"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_28/subgraph_28_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_28"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_29/subgraph_29_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_29"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_30/subgraph_30_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_30"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_31/subgraph_31_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_31"
+                },
+                {
+                    "ctrl_code_file": "fused_hw_package_subgraph_32/subgraph_32_control.asm",
+                    "id": "8116f8493690b7fe5a3465369d1efff7_subgraph_32"
+                }
+            ],
+            "name": "DPU_8116f8493690b7fe5a3465369d1efff7"
+        }
+    ]
+}
