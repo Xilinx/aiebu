@@ -1,0 +1,474 @@
+{
+    "external_buffers": {
+        "buffer0": {
+            "xrt_id": 2,
+            "size_in_bytes": 38827072,
+            "extra_padding_before": 15392,
+            "extra_padding_after": 30752,
+            "name": "coalesed_spills",
+            "coalesed_buffers": [
+                {
+                    "logical_id": 3,
+                    "offset_in_bytes": 15392,
+                    "name": "model.layers[1].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 4,
+                    "offset_in_bytes": 15392,
+                    "name": "model.layers[2].l3[0][0][0]"
+                },
+                {
+                    "logical_id": 6,
+                    "offset_in_bytes": 4193312,
+                    "name": "model.layers[2].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 7,
+                    "offset_in_bytes": 4185616,
+                    "name": "model.layers[3].l3[0][0][0]"
+                },
+                {
+                    "logical_id": 9,
+                    "offset_in_bytes": 15392,
+                    "name": "model.layers[3].l3[0][2][0]"
+                },
+                {
+                    "logical_id": 10,
+                    "offset_in_bytes": 6405152,
+                    "name": "model.layers[3].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 11,
+                    "offset_in_bytes": 6405152,
+                    "name": "model.layers[4].l3[0][0][0]"
+                },
+                {
+                    "logical_id": 13,
+                    "offset_in_bytes": 15392,
+                    "name": "model.layers[4].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 69,
+                    "offset_in_bytes": 6405152,
+                    "name": "model.layers[55].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 70,
+                    "offset_in_bytes": 6405152,
+                    "name": "model.layers[56].l3[0][0][0]"
+                },
+                {
+                    "logical_id": 72,
+                    "offset_in_bytes": 2227232,
+                    "name": "model.layers[56].l3[0][2][0]"
+                },
+                {
+                    "logical_id": 73,
+                    "offset_in_bytes": 10927136,
+                    "name": "model.layers[56].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 74,
+                    "offset_in_bytes": 10911744,
+                    "name": "model.layers[57].l3[0][0][0]"
+                },
+                {
+                    "logical_id": 76,
+                    "offset_in_bytes": 15392,
+                    "name": "model.layers[57].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 77,
+                    "offset_in_bytes": 0,
+                    "name": "model.layers[58].l3[0][0][0]"
+                },
+                {
+                    "logical_id": 79,
+                    "offset_in_bytes": 4193312,
+                    "name": "model.layers[58].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 80,
+                    "offset_in_bytes": 4193312,
+                    "name": "model.layers[59].l3[0][0][0]"
+                },
+                {
+                    "logical_id": 82,
+                    "offset_in_bytes": 22084640,
+                    "name": "model.layers[59].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 14,
+                    "offset_in_bytes": 7696,
+                    "name": "model.layers[5].l3[0][0][0]"
+                },
+                {
+                    "logical_id": 16,
+                    "offset_in_bytes": 6405152,
+                    "name": "model.layers[5].l3[0][2][0]"
+                },
+                {
+                    "logical_id": 17,
+                    "offset_in_bytes": 2227232,
+                    "name": "model.layers[5].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 83,
+                    "offset_in_bytes": 22053888,
+                    "name": "model.layers[60].l3[0][0][0]"
+                },
+                {
+                    "logical_id": 85,
+                    "offset_in_bytes": 15392,
+                    "name": "model.layers[60].l3[1][0][0]"
+                },
+                {
+                    "logical_id": 86,
+                    "offset_in_bytes": 15392,
+                    "name": "model.layers[61].l3[0][0][0]"
+                },
+                {
+                    "logical_id": 18,
+                    "offset_in_bytes": 2211840,
+                    "name": "model.layers[6].l3[0][0][0]"
+                }
+            ]
+        },
+        "buffer1": {
+            "xrt_id": 1,
+            "size_in_bytes": 3187200,
+            "name": "coalesed_weights",
+            "coalesed_buffers": [
+                {
+                    "logical_id": 1,
+                    "offset_in_bytes": 0,
+                    "name": "model.layers[0].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 23,
+                    "offset_in_bytes": 124032,
+                    "name": "model.layers[10].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 24,
+                    "offset_in_bytes": 132864,
+                    "name": "model.layers[11].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 25,
+                    "offset_in_bytes": 158080,
+                    "name": "model.layers[12].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 26,
+                    "offset_in_bytes": 158208,
+                    "name": "model.layers[13].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 27,
+                    "offset_in_bytes": 167040,
+                    "name": "model.layers[14].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 28,
+                    "offset_in_bytes": 192256,
+                    "name": "model.layers[15].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 29,
+                    "offset_in_bytes": 192384,
+                    "name": "model.layers[16].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 30,
+                    "offset_in_bytes": 201216,
+                    "name": "model.layers[17].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 31,
+                    "offset_in_bytes": 226432,
+                    "name": "model.layers[18].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 32,
+                    "offset_in_bytes": 226560,
+                    "name": "model.layers[19].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 2,
+                    "offset_in_bytes": 8192,
+                    "name": "model.layers[1].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 33,
+                    "offset_in_bytes": 301440,
+                    "name": "model.layers[20].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 34,
+                    "offset_in_bytes": 310272,
+                    "name": "model.layers[21].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 35,
+                    "offset_in_bytes": 385152,
+                    "name": "model.layers[22].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 36,
+                    "offset_in_bytes": 385280,
+                    "name": "model.layers[23].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 37,
+                    "offset_in_bytes": 394112,
+                    "name": "model.layers[24].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 38,
+                    "offset_in_bytes": 468992,
+                    "name": "model.layers[25].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 39,
+                    "offset_in_bytes": 469120,
+                    "name": "model.layers[26].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 40,
+                    "offset_in_bytes": 477952,
+                    "name": "model.layers[27].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 41,
+                    "offset_in_bytes": 552832,
+                    "name": "model.layers[28].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 42,
+                    "offset_in_bytes": 552960,
+                    "name": "model.layers[29].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 5,
+                    "offset_in_bytes": 21120,
+                    "name": "model.layers[2].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 43,
+                    "offset_in_bytes": 561792,
+                    "name": "model.layers[30].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 44,
+                    "offset_in_bytes": 636672,
+                    "name": "model.layers[31].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 45,
+                    "offset_in_bytes": 636800,
+                    "name": "model.layers[32].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 46,
+                    "offset_in_bytes": 934016,
+                    "name": "model.layers[33].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 47,
+                    "offset_in_bytes": 967936,
+                    "name": "model.layers[34].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 48,
+                    "offset_in_bytes": 1265152,
+                    "name": "model.layers[35].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 49,
+                    "offset_in_bytes": 1265280,
+                    "name": "model.layers[36].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 50,
+                    "offset_in_bytes": 1299200,
+                    "name": "model.layers[37].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 51,
+                    "offset_in_bytes": 1596416,
+                    "name": "model.layers[38].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 52,
+                    "offset_in_bytes": 1596544,
+                    "name": "model.layers[39].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 8,
+                    "offset_in_bytes": 29952,
+                    "name": "model.layers[3].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 53,
+                    "offset_in_bytes": 1630464,
+                    "name": "model.layers[40].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 54,
+                    "offset_in_bytes": 1927680,
+                    "name": "model.layers[41].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 55,
+                    "offset_in_bytes": 1927808,
+                    "name": "model.layers[42].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 56,
+                    "offset_in_bytes": 1961728,
+                    "name": "model.layers[43].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 57,
+                    "offset_in_bytes": 2258944,
+                    "name": "model.layers[44].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 58,
+                    "offset_in_bytes": 2259072,
+                    "name": "model.layers[45].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 59,
+                    "offset_in_bytes": 2787968,
+                    "name": "model.layers[46].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 60,
+                    "offset_in_bytes": 2788096,
+                    "name": "model.layers[47].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 61,
+                    "offset_in_bytes": 2796928,
+                    "name": "model.layers[48].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 62,
+                    "offset_in_bytes": 2871808,
+                    "name": "model.layers[49].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 12,
+                    "offset_in_bytes": 42880,
+                    "name": "model.layers[4].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 63,
+                    "offset_in_bytes": 2871936,
+                    "name": "model.layers[50].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 64,
+                    "offset_in_bytes": 3005312,
+                    "name": "model.layers[51].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 65,
+                    "offset_in_bytes": 3005440,
+                    "name": "model.layers[52].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 66,
+                    "offset_in_bytes": 3014272,
+                    "name": "model.layers[53].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 67,
+                    "offset_in_bytes": 3039488,
+                    "name": "model.layers[54].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 68,
+                    "offset_in_bytes": 3039616,
+                    "name": "model.layers[55].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 71,
+                    "offset_in_bytes": 3073536,
+                    "name": "model.layers[56].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 75,
+                    "offset_in_bytes": 3073664,
+                    "name": "model.layers[57].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 78,
+                    "offset_in_bytes": 3098880,
+                    "name": "model.layers[58].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 81,
+                    "offset_in_bytes": 3116416,
+                    "name": "model.layers[59].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 15,
+                    "offset_in_bytes": 51712,
+                    "name": "model.layers[5].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 84,
+                    "offset_in_bytes": 3141632,
+                    "name": "model.layers[60].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 87,
+                    "offset_in_bytes": 3179008,
+                    "name": "model.layers[61].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 19,
+                    "offset_in_bytes": 64640,
+                    "name": "model.layers[6].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 20,
+                    "offset_in_bytes": 89856,
+                    "name": "model.layers[7].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 21,
+                    "offset_in_bytes": 98688,
+                    "name": "model.layers[8].l3[0][1][0]"
+                },
+                {
+                    "logical_id": 22,
+                    "offset_in_bytes": 123904,
+                    "name": "model.layers[9].l3[0][1][0]"
+                }
+            ]
+        },
+        "runtime_control_packet": {
+            "xrt_id": 4,
+            "logical_id": 2147483647,
+            "size_in_bytes": 123840,
+            "ctrl_pkt_buffer": true,
+            "path": "../ctrl_pkt/ctrl_pkt0.bin"
+        },
+        "buffer3": {
+            "xrt_id": 0,
+            "logical_id": 0,
+            "size_in_bytes": 1566720,
+            "name": "model.layers[0].l3[0][0][0]"
+        },
+        "buffer4": {
+            "xrt_id": 3,
+            "logical_id": 88,
+            "size_in_bytes": 6266880,
+            "name": "model.layers[61].l3[1][0][0]"
+        }
+    }
+}

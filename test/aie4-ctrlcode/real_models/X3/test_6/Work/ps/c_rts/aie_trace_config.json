@@ -1,0 +1,1585 @@
+{
+    "schema_version": {
+        "major": "3",
+        "minor": "1",
+        "patch": "0"
+    },
+    "aie_metadata": {
+        "driver_config": {
+            "hw_gen": 42,
+            "base_address": 2199023255552,
+            "npi_address": 4144627712,
+            "column_shift": 25,
+            "row_shift": 20,
+            "num_rows": 6,
+            "num_columns": 3,
+            "shim_row": 0,
+            "mem_tile_row_start": 1,
+            "mem_tile_num_rows": 1,
+            "aie_tile_row_start": 2,
+            "aie_tile_num_rows": 4,
+            "partition_num_cols": 3,
+            "partition_overlay_start_cols": [
+                0
+            ]
+        },
+        "aiecompiler_options": {
+            "broadcast_enable_core": false,
+            "graph_iterator_event": false,
+            "event_trace": "runtime",
+            "enable_multi_layer": true
+        },
+        "TileMapping": {
+            "AIEKernelToTileMapping": [
+                {
+                    "graph": "compute_graph.graph2 compute_graph.graph1",
+                    "tile": "aie",
+                    "column": 0,
+                    "row": 0,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in0_out1_stream_in2_out0.k[0][0] super_kernel_buffer_in2_out1_stream_in0_out0.k[0][0]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[0][0].in[0]",
+                            "column": 0,
+                            "row": 0,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[0][0].in[1]",
+                            "column": 0,
+                            "row": 0,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[0][0].out[0] compute_graph.graph1.k[0][0].out[0]",
+                            "column": 0,
+                            "row": 0,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph2 compute_graph.graph1",
+                    "tile": "aie",
+                    "column": 0,
+                    "row": 1,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in0_out1_stream_in2_out0.k[0][1] super_kernel_buffer_in2_out1_stream_in0_out0.k[0][1]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[0][1].in[0]",
+                            "column": 0,
+                            "row": 1,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[0][1].in[1]",
+                            "column": 0,
+                            "row": 1,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[0][1].out[0] compute_graph.graph1.k[0][1].out[0]",
+                            "column": 0,
+                            "row": 1,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph2 compute_graph.graph1",
+                    "tile": "aie",
+                    "column": 0,
+                    "row": 2,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in0_out1_stream_in2_out0.k[0][2] super_kernel_buffer_in2_out1_stream_in0_out0.k[0][2]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[0][2].in[0]",
+                            "column": 0,
+                            "row": 2,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[0][2].in[1]",
+                            "column": 0,
+                            "row": 2,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[0][2].out[0] compute_graph.graph1.k[0][2].out[0]",
+                            "column": 0,
+                            "row": 2,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph2 compute_graph.graph1",
+                    "tile": "aie",
+                    "column": 0,
+                    "row": 3,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in0_out1_stream_in2_out0.k[0][3] super_kernel_buffer_in2_out1_stream_in0_out0.k[0][3]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[0][3].in[0]",
+                            "column": 0,
+                            "row": 3,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[0][3].in[1]",
+                            "column": 0,
+                            "row": 3,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[0][3].out[0] compute_graph.graph1.k[0][3].out[0]",
+                            "column": 0,
+                            "row": 3,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph2 compute_graph.graph1",
+                    "tile": "aie",
+                    "column": 1,
+                    "row": 0,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in0_out1_stream_in2_out0.k[1][0] super_kernel_buffer_in2_out1_stream_in0_out0.k[1][0]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[1][0].in[0]",
+                            "column": 1,
+                            "row": 0,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[1][0].in[1]",
+                            "column": 1,
+                            "row": 0,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[1][0].out[0] compute_graph.graph1.k[1][0].out[0]",
+                            "column": 1,
+                            "row": 0,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph1 compute_graph.graph2",
+                    "tile": "aie",
+                    "column": 1,
+                    "row": 1,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in2_out1_stream_in0_out0.k[1][1] super_kernel_buffer_in0_out1_stream_in2_out0.k[1][1]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[1][1].in[0]",
+                            "column": 1,
+                            "row": 1,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[1][1].in[1]",
+                            "column": 1,
+                            "row": 1,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[1][1].out[0] compute_graph.graph1.k[1][1].out[0]",
+                            "column": 1,
+                            "row": 1,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph1 compute_graph.graph2",
+                    "tile": "aie",
+                    "column": 1,
+                    "row": 2,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in2_out1_stream_in0_out0.k[1][2] super_kernel_buffer_in0_out1_stream_in2_out0.k[1][2]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[1][2].in[0]",
+                            "column": 1,
+                            "row": 2,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[1][2].in[1]",
+                            "column": 1,
+                            "row": 2,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[1][2].out[0] compute_graph.graph1.k[1][2].out[0]",
+                            "column": 1,
+                            "row": 2,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph1 compute_graph.graph2",
+                    "tile": "aie",
+                    "column": 1,
+                    "row": 3,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in2_out1_stream_in0_out0.k[1][3] super_kernel_buffer_in0_out1_stream_in2_out0.k[1][3]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[1][3].in[0]",
+                            "column": 1,
+                            "row": 3,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[1][3].in[1]",
+                            "column": 1,
+                            "row": 3,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[1][3].out[0] compute_graph.graph1.k[1][3].out[0]",
+                            "column": 1,
+                            "row": 3,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph1 compute_graph.graph2",
+                    "tile": "aie",
+                    "column": 2,
+                    "row": 0,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in2_out1_stream_in0_out0.k[2][0] super_kernel_buffer_in0_out1_stream_in2_out0.k[2][0]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[2][0].in[0]",
+                            "column": 2,
+                            "row": 0,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[2][0].in[1]",
+                            "column": 2,
+                            "row": 0,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[2][0].out[0] compute_graph.graph1.k[2][0].out[0]",
+                            "column": 2,
+                            "row": 0,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph1 compute_graph.graph2",
+                    "tile": "aie",
+                    "column": 2,
+                    "row": 1,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in2_out1_stream_in0_out0.k[2][1] super_kernel_buffer_in0_out1_stream_in2_out0.k[2][1]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[2][1].in[0]",
+                            "column": 2,
+                            "row": 1,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[2][1].in[1]",
+                            "column": 2,
+                            "row": 1,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[2][1].out[0] compute_graph.graph1.k[2][1].out[0]",
+                            "column": 2,
+                            "row": 1,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph1 compute_graph.graph2",
+                    "tile": "aie",
+                    "column": 2,
+                    "row": 2,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in2_out1_stream_in0_out0.k[2][2] super_kernel_buffer_in0_out1_stream_in2_out0.k[2][2]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[2][2].in[0]",
+                            "column": 2,
+                            "row": 2,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[2][2].in[1]",
+                            "column": 2,
+                            "row": 2,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[2][2].out[0] compute_graph.graph1.k[2][2].out[0]",
+                            "column": 2,
+                            "row": 2,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph1 compute_graph.graph2",
+                    "tile": "aie",
+                    "column": 2,
+                    "row": 3,
+                    "schedule": 0,
+                    "function": "super_kernel_buffer_in2_out1_stream_in0_out0.k[2][3] super_kernel_buffer_in0_out1_stream_in2_out0.k[2][3]",
+                    "dmaChannels": [
+                        {
+                            "portName": "compute_graph.graph1.k[2][3].in[0]",
+                            "column": 2,
+                            "row": 3,
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph1.k[2][3].in[1]",
+                            "column": 2,
+                            "row": 3,
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "portName": "compute_graph.graph2.k[2][3].out[0] compute_graph.graph1.k[2][3].out[0]",
+                            "column": 2,
+                            "row": 3,
+                            "channel": 0,
+                            "direction": "mm2s"
+                        }
+                    ]
+                }
+            ],
+            "SharedBufferToTileMapping": [
+                {
+                    "graph": "compute_graph.graph1 compute_graph.graph1 compute_graph.graph1 compute_graph.graph2 compute_graph.graph2 compute_graph.graph2",
+                    "tile": "memory",
+                    "bufferName": "compute_graph.graph1.ifm[0] compute_graph.graph1.wts[0] compute_graph.graph1.ofm[0] compute_graph.graph2.ifm[0] compute_graph.graph2.wts[0] compute_graph.graph2.ofm[0]",
+                    "column": 0,
+                    "row": 0,
+                    "dmaChannels": [
+                        {
+                            "name": "compute_graph.graph2.ifm[0].in[0] compute_graph.graph1.ifm[0].in[0]",
+                            "channel": 2,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ifm[0].in[1] compute_graph.graph1.ifm[0].in[1]",
+                            "channel": 3,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ifm[0].out[0] compute_graph.graph1.ifm[0].out[0]",
+                            "channel": 0,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ifm[0].out[1] compute_graph.graph1.ifm[0].out[1]",
+                            "channel": 2,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ifm[0].out[2] compute_graph.graph1.ifm[0].out[2]",
+                            "channel": 5,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ifm[0].out[3] compute_graph.graph1.ifm[0].out[3]",
+                            "channel": 7,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.wts[0].in[0] compute_graph.graph1.wts[0].in[0]",
+                            "channel": 6,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.wts[0].in[1] compute_graph.graph1.wts[0].in[1]",
+                            "channel": 7,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.wts[0].out[0] compute_graph.graph1.wts[0].out[0]",
+                            "channel": 1,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.wts[0].out[1] compute_graph.graph1.wts[0].out[1]",
+                            "channel": 3,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ofm[0].in[0] compute_graph.graph1.ofm[0].in[0]",
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ofm[0].in[1] compute_graph.graph1.ofm[0].in[1]",
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ofm[0].in[2] compute_graph.graph1.ofm[0].in[2]",
+                            "channel": 4,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ofm[0].in[3] compute_graph.graph1.ofm[0].in[3]",
+                            "channel": 5,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ofm[0].out[0] compute_graph.graph1.ofm[0].out[0]",
+                            "channel": 4,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ofm[0].out[1] compute_graph.graph1.ofm[0].out[1]",
+                            "channel": 8,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph1 compute_graph.graph1 compute_graph.graph1 compute_graph.graph2 compute_graph.graph2 compute_graph.graph2",
+                    "tile": "memory",
+                    "bufferName": "compute_graph.graph1.ifm[1] compute_graph.graph1.wts[1] compute_graph.graph1.ofm[1] compute_graph.graph2.ifm[1] compute_graph.graph2.wts[1] compute_graph.graph2.ofm[1]",
+                    "column": 1,
+                    "row": 0,
+                    "dmaChannels": [
+                        {
+                            "name": "compute_graph.graph2.ifm[1].in[0] compute_graph.graph1.ifm[1].in[0]",
+                            "channel": 2,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ifm[1].in[1] compute_graph.graph1.ifm[1].in[1]",
+                            "channel": 3,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ifm[1].out[0] compute_graph.graph1.ifm[1].out[0]",
+                            "channel": 0,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ifm[1].out[1] compute_graph.graph1.ifm[1].out[1]",
+                            "channel": 2,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ifm[1].out[2] compute_graph.graph1.ifm[1].out[2]",
+                            "channel": 5,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.ifm[1].out[3] compute_graph.graph1.ifm[1].out[3]",
+                            "channel": 7,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph2.wts[1].in[0] compute_graph.graph1.wts[1].in[0]",
+                            "channel": 6,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.wts[1].in[1] compute_graph.graph1.wts[1].in[1]",
+                            "channel": 7,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph2.wts[1].out[0] compute_graph.graph1.wts[1].out[0]",
+                            "channel": 6,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph1.wts[1].out[1] compute_graph.graph2.wts[1].out[1]",
+                            "channel": 8,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[1].in[0] compute_graph.graph2.ofm[1].in[0]",
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[1].in[1] compute_graph.graph2.ofm[1].in[1]",
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[1].in[2] compute_graph.graph2.ofm[1].in[2]",
+                            "channel": 4,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[1].in[3] compute_graph.graph2.ofm[1].in[3]",
+                            "channel": 5,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[1].out[0] compute_graph.graph2.ofm[1].out[0]",
+                            "channel": 4,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[1].out[1] compute_graph.graph2.ofm[1].out[1]",
+                            "channel": 9,
+                            "direction": "mm2s"
+                        }
+                    ]
+                },
+                {
+                    "graph": "compute_graph.graph1 compute_graph.graph1 compute_graph.graph1 compute_graph.graph2 compute_graph.graph2 compute_graph.graph2",
+                    "tile": "memory",
+                    "bufferName": "compute_graph.graph1.ifm[2] compute_graph.graph1.wts[2] compute_graph.graph1.ofm[2] compute_graph.graph2.ifm[2] compute_graph.graph2.wts[2] compute_graph.graph2.ofm[2]",
+                    "column": 2,
+                    "row": 0,
+                    "dmaChannels": [
+                        {
+                            "name": "compute_graph.graph1.ifm[2].in[0] compute_graph.graph2.ifm[2].in[0]",
+                            "channel": 2,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ifm[2].in[1] compute_graph.graph2.ifm[2].in[1]",
+                            "channel": 3,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ifm[2].out[0] compute_graph.graph2.ifm[2].out[0]",
+                            "channel": 0,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ifm[2].out[1] compute_graph.graph2.ifm[2].out[1]",
+                            "channel": 2,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ifm[2].out[2] compute_graph.graph2.ifm[2].out[2]",
+                            "channel": 5,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ifm[2].out[3] compute_graph.graph2.ifm[2].out[3]",
+                            "channel": 7,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph1.wts[2].in[0] compute_graph.graph2.wts[2].in[0]",
+                            "channel": 6,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.wts[2].in[1] compute_graph.graph2.wts[2].in[1]",
+                            "channel": 7,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.wts[2].out[0] compute_graph.graph2.wts[2].out[0]",
+                            "channel": 1,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph1.wts[2].out[1] compute_graph.graph2.wts[2].out[1]",
+                            "channel": 3,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[2].in[0] compute_graph.graph2.ofm[2].in[0]",
+                            "channel": 0,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[2].in[1] compute_graph.graph2.ofm[2].in[1]",
+                            "channel": 1,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[2].in[2] compute_graph.graph2.ofm[2].in[2]",
+                            "channel": 4,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[2].in[3] compute_graph.graph2.ofm[2].in[3]",
+                            "channel": 5,
+                            "direction": "s2mm"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[2].out[0] compute_graph.graph2.ofm[2].out[0]",
+                            "channel": 4,
+                            "direction": "mm2s"
+                        },
+                        {
+                            "name": "compute_graph.graph1.ofm[2].out[1] compute_graph.graph2.ofm[2].out[1]",
+                            "channel": 8,
+                            "direction": "mm2s"
+                        }
+                    ]
+                }
+            ]
+        },
+        "RTPs": {},
+        "ExternalBuffer": [
+            {
+                "portName": "ofm_ddr_0.out[0] ifm_ddr_0.out[0]",
+                "direction": "mm2s",
+                "shim_column": 0,
+                "channel_number": 0,
+                "stream_id": 0
+            },
+            {
+                "portName": "ofm_ddr_0.out[1] ifm_ddr_0.out[1]",
+                "direction": "mm2s",
+                "shim_column": 0,
+                "channel_number": 1,
+                "stream_id": 1
+            },
+            {
+                "portName": "ofm_ddr_0.out[2] ifm_ddr_0.out[2]",
+                "direction": "mm2s",
+                "shim_column": 1,
+                "channel_number": 0,
+                "stream_id": 0
+            },
+            {
+                "portName": "ofm_ddr_0.out[3] ifm_ddr_0.out[3]",
+                "direction": "mm2s",
+                "shim_column": 1,
+                "channel_number": 1,
+                "stream_id": 1
+            },
+            {
+                "portName": "ofm_ddr_0.out[4] ifm_ddr_0.out[4]",
+                "direction": "mm2s",
+                "shim_column": 2,
+                "channel_number": 0,
+                "stream_id": 0
+            },
+            {
+                "portName": "ofm_ddr_0.out[5] ifm_ddr_0.out[5]",
+                "direction": "mm2s",
+                "shim_column": 2,
+                "channel_number": 1,
+                "stream_id": 1
+            },
+            {
+                "portName": "wts_ddr_1.out[0] wts_ddr_0.out[0]",
+                "direction": "mm2s",
+                "shim_column": 0,
+                "channel_number": 2,
+                "stream_id": 2
+            },
+            {
+                "portName": "wts_ddr_1.out[1] wts_ddr_0.out[1]",
+                "direction": "mm2s",
+                "shim_column": 0,
+                "channel_number": 3,
+                "stream_id": 3
+            },
+            {
+                "portName": "wts_ddr_1.out[2] wts_ddr_0.out[2]",
+                "direction": "mm2s",
+                "shim_column": 1,
+                "channel_number": 2,
+                "stream_id": 2
+            },
+            {
+                "portName": "wts_ddr_1.out[3] wts_ddr_0.out[3]",
+                "direction": "mm2s",
+                "shim_column": 1,
+                "channel_number": 3,
+                "stream_id": 3
+            },
+            {
+                "portName": "wts_ddr_1.out[4] wts_ddr_0.out[4]",
+                "direction": "mm2s",
+                "shim_column": 2,
+                "channel_number": 2,
+                "stream_id": 2
+            },
+            {
+                "portName": "wts_ddr_0.out[5] wts_ddr_1.out[5]",
+                "direction": "mm2s",
+                "shim_column": 2,
+                "channel_number": 3,
+                "stream_id": 3
+            },
+            {
+                "portName": "ofm_ddr_0.in[0] ofm_ddr_1.in[0]",
+                "direction": "s2mm",
+                "shim_column": 0,
+                "channel_number": 0,
+                "stream_id": 0
+            },
+            {
+                "portName": "ofm_ddr_0.in[1] ofm_ddr_1.in[1]",
+                "direction": "s2mm",
+                "shim_column": 0,
+                "channel_number": 1,
+                "stream_id": 1
+            },
+            {
+                "portName": "ofm_ddr_0.in[2] ofm_ddr_1.in[2]",
+                "direction": "s2mm",
+                "shim_column": 1,
+                "channel_number": 0,
+                "stream_id": 0
+            },
+            {
+                "portName": "ofm_ddr_0.in[3] ofm_ddr_1.in[3]",
+                "direction": "s2mm",
+                "shim_column": 1,
+                "channel_number": 1,
+                "stream_id": 1
+            },
+            {
+                "portName": "ofm_ddr_0.in[4] ofm_ddr_1.in[4]",
+                "direction": "s2mm",
+                "shim_column": 2,
+                "channel_number": 0,
+                "stream_id": 0
+            },
+            {
+                "portName": "ofm_ddr_0.in[5] ofm_ddr_1.in[5]",
+                "direction": "s2mm",
+                "shim_column": 2,
+                "channel_number": 1,
+                "stream_id": 1
+            },
+            {
+                "portName": "",
+                "direction": "mm2s_control",
+                "shim_column": 0,
+                "channel_number": 0,
+                "stream_id": 0
+            },
+            {
+                "portName": "",
+                "direction": "mm2s_control",
+                "shim_column": 1,
+                "channel_number": 0,
+                "stream_id": 0
+            },
+            {
+                "portName": "",
+                "direction": "mm2s_control",
+                "shim_column": 2,
+                "channel_number": 0,
+                "stream_id": 0
+            }
+        ],
+        "GMIOs": {},
+        "PLIOs": {},
+        "DeviceData": {
+            "AIEBaseAddress": "0x20000000000",
+            "AIEFrequency": 1000
+        },
+        "TraceGMIOs": {
+            "gmio0": {
+                "id": 0,
+                "name": "traceGraph.event_trace0",
+                "logical_name": "event_trace0",
+                "type": 3,
+                "shim_column": 0,
+                "channel_number": 0,
+                "stream_id": 0,
+                "burst_length_in_16byte": 1
+            },
+            "gmio1": {
+                "id": 1,
+                "name": "traceGraph.event_trace1",
+                "logical_name": "event_trace1",
+                "type": 3,
+                "shim_column": 1,
+                "channel_number": 0,
+                "stream_id": 0,
+                "burst_length_in_16byte": 1
+            },
+            "gmio2": {
+                "id": 2,
+                "name": "traceGraph.event_trace2",
+                "logical_name": "event_trace2",
+                "type": 3,
+                "shim_column": 2,
+                "channel_number": 0,
+                "stream_id": 0,
+                "burst_length_in_16byte": 1
+            }
+        }
+    },
+    "elfs_metadata": [
+        {
+            "column": 0,
+            "row": 0,
+            "static_elfs": {
+                "0_0": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 0,
+            "row": 1,
+            "static_elfs": {
+                "0_1": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 0,
+            "row": 2,
+            "static_elfs": {
+                "0_2": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 0,
+            "row": 3,
+            "static_elfs": {
+                "0_3": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 1,
+            "row": 0,
+            "static_elfs": {
+                "1_0": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 1,
+            "row": 1,
+            "static_elfs": {
+                "1_1": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 1,
+            "row": 2,
+            "static_elfs": {
+                "1_2": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 1,
+            "row": 3,
+            "static_elfs": {
+                "1_3": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 2,
+            "row": 0,
+            "static_elfs": {
+                "2_0": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 2,
+            "row": 1,
+            "static_elfs": {
+                "2_1": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 2,
+            "row": 2,
+            "static_elfs": {
+                "2_2": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        },
+        {
+            "column": 2,
+            "row": 3,
+            "static_elfs": {
+                "2_3": 0
+            },
+            "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+            "reloadable_elfs": {},
+            "reloadable_elfs_sequence": []
+        }
+    ],
+    "Microcontrollers": [
+        {
+            "index": 0,
+            "shim_column": 0
+        },
+        {
+            "index": 0,
+            "shim_column": 1
+        },
+        {
+            "index": 0,
+            "shim_column": 2
+        }
+    ],
+    "mladf_metadata": {
+        "elfs_metadata": [
+            {
+                "column": 0,
+                "row": 0,
+                "static_elfs": {
+                    "0_0": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "0_0_reloadable0": 8
+                    },
+                    {
+                        "0_0_reloadable1": 17
+                    },
+                    {
+                        "0_0_reloadable2": 7
+                    },
+                    {
+                        "0_0_reloadable3": 16
+                    },
+                    {
+                        "0_0_reloadable4": 15
+                    },
+                    {
+                        "0_0_reloadable5": 11
+                    },
+                    {
+                        "0_0_reloadable6": 10
+                    },
+                    {
+                        "0_0_reloadable7": 17
+                    },
+                    {
+                        "0_0_reloadable8": 6
+                    },
+                    {
+                        "0_0_reloadable9": 9
+                    },
+                    {
+                        "0_0_reloadable10": 5
+                    },
+                    {
+                        "0_0_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 0,
+                "row": 1,
+                "static_elfs": {
+                    "0_1": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "0_1_reloadable0": 8
+                    },
+                    {
+                        "0_1_reloadable1": 17
+                    },
+                    {
+                        "0_1_reloadable2": 7
+                    },
+                    {
+                        "0_1_reloadable3": 16
+                    },
+                    {
+                        "0_1_reloadable4": 15
+                    },
+                    {
+                        "0_1_reloadable5": 11
+                    },
+                    {
+                        "0_1_reloadable6": 10
+                    },
+                    {
+                        "0_1_reloadable7": 17
+                    },
+                    {
+                        "0_1_reloadable8": 6
+                    },
+                    {
+                        "0_1_reloadable9": 9
+                    },
+                    {
+                        "0_1_reloadable10": 5
+                    },
+                    {
+                        "0_1_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 0,
+                "row": 2,
+                "static_elfs": {
+                    "0_2": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "0_2_reloadable0": 8
+                    },
+                    {
+                        "0_2_reloadable1": 17
+                    },
+                    {
+                        "0_2_reloadable2": 7
+                    },
+                    {
+                        "0_2_reloadable3": 16
+                    },
+                    {
+                        "0_2_reloadable4": 15
+                    },
+                    {
+                        "0_2_reloadable5": 11
+                    },
+                    {
+                        "0_2_reloadable6": 10
+                    },
+                    {
+                        "0_2_reloadable7": 17
+                    },
+                    {
+                        "0_2_reloadable8": 6
+                    },
+                    {
+                        "0_2_reloadable9": 9
+                    },
+                    {
+                        "0_2_reloadable10": 5
+                    },
+                    {
+                        "0_2_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 0,
+                "row": 3,
+                "static_elfs": {
+                    "0_3": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "0_3_reloadable0": 8
+                    },
+                    {
+                        "0_3_reloadable1": 17
+                    },
+                    {
+                        "0_3_reloadable2": 7
+                    },
+                    {
+                        "0_3_reloadable3": 16
+                    },
+                    {
+                        "0_3_reloadable4": 15
+                    },
+                    {
+                        "0_3_reloadable5": 11
+                    },
+                    {
+                        "0_3_reloadable6": 10
+                    },
+                    {
+                        "0_3_reloadable7": 17
+                    },
+                    {
+                        "0_3_reloadable8": 6
+                    },
+                    {
+                        "0_3_reloadable9": 9
+                    },
+                    {
+                        "0_3_reloadable10": 5
+                    },
+                    {
+                        "0_3_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 1,
+                "row": 0,
+                "static_elfs": {
+                    "1_0": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "1_0_reloadable0": 8
+                    },
+                    {
+                        "1_0_reloadable1": 17
+                    },
+                    {
+                        "1_0_reloadable2": 7
+                    },
+                    {
+                        "1_0_reloadable3": 16
+                    },
+                    {
+                        "1_0_reloadable4": 15
+                    },
+                    {
+                        "1_0_reloadable5": 11
+                    },
+                    {
+                        "1_0_reloadable6": 10
+                    },
+                    {
+                        "1_0_reloadable7": 17
+                    },
+                    {
+                        "1_0_reloadable8": 6
+                    },
+                    {
+                        "1_0_reloadable9": 9
+                    },
+                    {
+                        "1_0_reloadable10": 5
+                    },
+                    {
+                        "1_0_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 1,
+                "row": 1,
+                "static_elfs": {
+                    "1_1": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "1_1_reloadable0": 8
+                    },
+                    {
+                        "1_1_reloadable1": 17
+                    },
+                    {
+                        "1_1_reloadable2": 7
+                    },
+                    {
+                        "1_1_reloadable3": 16
+                    },
+                    {
+                        "1_1_reloadable4": 15
+                    },
+                    {
+                        "1_1_reloadable5": 11
+                    },
+                    {
+                        "1_1_reloadable6": 10
+                    },
+                    {
+                        "1_1_reloadable7": 17
+                    },
+                    {
+                        "1_1_reloadable8": 6
+                    },
+                    {
+                        "1_1_reloadable9": 9
+                    },
+                    {
+                        "1_1_reloadable10": 5
+                    },
+                    {
+                        "1_1_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 1,
+                "row": 2,
+                "static_elfs": {
+                    "1_2": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "1_2_reloadable0": 8
+                    },
+                    {
+                        "1_2_reloadable1": 17
+                    },
+                    {
+                        "1_2_reloadable2": 7
+                    },
+                    {
+                        "1_2_reloadable3": 16
+                    },
+                    {
+                        "1_2_reloadable4": 15
+                    },
+                    {
+                        "1_2_reloadable5": 11
+                    },
+                    {
+                        "1_2_reloadable6": 10
+                    },
+                    {
+                        "1_2_reloadable7": 17
+                    },
+                    {
+                        "1_2_reloadable8": 6
+                    },
+                    {
+                        "1_2_reloadable9": 9
+                    },
+                    {
+                        "1_2_reloadable10": 5
+                    },
+                    {
+                        "1_2_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 1,
+                "row": 3,
+                "static_elfs": {
+                    "1_3": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "1_3_reloadable0": 8
+                    },
+                    {
+                        "1_3_reloadable1": 17
+                    },
+                    {
+                        "1_3_reloadable2": 7
+                    },
+                    {
+                        "1_3_reloadable3": 16
+                    },
+                    {
+                        "1_3_reloadable4": 15
+                    },
+                    {
+                        "1_3_reloadable5": 11
+                    },
+                    {
+                        "1_3_reloadable6": 10
+                    },
+                    {
+                        "1_3_reloadable7": 17
+                    },
+                    {
+                        "1_3_reloadable8": 6
+                    },
+                    {
+                        "1_3_reloadable9": 9
+                    },
+                    {
+                        "1_3_reloadable10": 5
+                    },
+                    {
+                        "1_3_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 2,
+                "row": 0,
+                "static_elfs": {
+                    "2_0": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "2_0_reloadable0": 8
+                    },
+                    {
+                        "2_0_reloadable1": 17
+                    },
+                    {
+                        "2_0_reloadable2": 7
+                    },
+                    {
+                        "2_0_reloadable3": 16
+                    },
+                    {
+                        "2_0_reloadable4": 15
+                    },
+                    {
+                        "2_0_reloadable5": 11
+                    },
+                    {
+                        "2_0_reloadable6": 10
+                    },
+                    {
+                        "2_0_reloadable7": 17
+                    },
+                    {
+                        "2_0_reloadable8": 6
+                    },
+                    {
+                        "2_0_reloadable9": 9
+                    },
+                    {
+                        "2_0_reloadable10": 5
+                    },
+                    {
+                        "2_0_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 2,
+                "row": 1,
+                "static_elfs": {
+                    "2_1": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "2_1_reloadable0": 8
+                    },
+                    {
+                        "2_1_reloadable1": 17
+                    },
+                    {
+                        "2_1_reloadable2": 7
+                    },
+                    {
+                        "2_1_reloadable3": 16
+                    },
+                    {
+                        "2_1_reloadable4": 15
+                    },
+                    {
+                        "2_1_reloadable5": 11
+                    },
+                    {
+                        "2_1_reloadable6": 10
+                    },
+                    {
+                        "2_1_reloadable7": 17
+                    },
+                    {
+                        "2_1_reloadable8": 6
+                    },
+                    {
+                        "2_1_reloadable9": 9
+                    },
+                    {
+                        "2_1_reloadable10": 5
+                    },
+                    {
+                        "2_1_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 2,
+                "row": 2,
+                "static_elfs": {
+                    "2_2": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "2_2_reloadable0": 8
+                    },
+                    {
+                        "2_2_reloadable1": 17
+                    },
+                    {
+                        "2_2_reloadable2": 7
+                    },
+                    {
+                        "2_2_reloadable3": 16
+                    },
+                    {
+                        "2_2_reloadable4": 15
+                    },
+                    {
+                        "2_2_reloadable5": 11
+                    },
+                    {
+                        "2_2_reloadable6": 10
+                    },
+                    {
+                        "2_2_reloadable7": 17
+                    },
+                    {
+                        "2_2_reloadable8": 6
+                    },
+                    {
+                        "2_2_reloadable9": 9
+                    },
+                    {
+                        "2_2_reloadable10": 5
+                    },
+                    {
+                        "2_2_reloadable11": 11
+                    }
+                ]
+            },
+            {
+                "column": 2,
+                "row": 3,
+                "static_elfs": {
+                    "2_3": 0
+                },
+                "reloadable_elf_entry_symbol": "_Z21reloadable_code_blockPjRj",
+                "reloadable_elfs": {},
+                "reloadable_elfs_sequence": [
+                    {
+                        "2_3_reloadable0": 8
+                    },
+                    {
+                        "2_3_reloadable1": 17
+                    },
+                    {
+                        "2_3_reloadable2": 7
+                    },
+                    {
+                        "2_3_reloadable3": 16
+                    },
+                    {
+                        "2_3_reloadable4": 15
+                    },
+                    {
+                        "2_3_reloadable5": 11
+                    },
+                    {
+                        "2_3_reloadable6": 10
+                    },
+                    {
+                        "2_3_reloadable7": 17
+                    },
+                    {
+                        "2_3_reloadable8": 6
+                    },
+                    {
+                        "2_3_reloadable9": 9
+                    },
+                    {
+                        "2_3_reloadable10": 5
+                    },
+                    {
+                        "2_3_reloadable11": 11
+                    }
+                ]
+            }
+        ],
+        "TraceShimDMAs": {},
+        "Microcontrollers": [
+            {
+                "index": 0,
+                "shim_column": 0
+            },
+            {
+                "index": 0,
+                "shim_column": 1
+            },
+            {
+                "index": 0,
+                "shim_column": 2
+            }
+        ]
+    }
+}
