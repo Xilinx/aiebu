@@ -24,25 +24,19 @@ dtrace_output_format g_current_output_format = dtrace_output_format::python; // 
 // variable to store current log level
 dtrace_log_level g_current_log_level = dtrace_log_level::dtrace_error;  // NOLINT
 
-//-------------------------control::control-------------------------//
+//-------------------------control::setup-------------------------//
 /**
- * control() - Constructor with script file and map data
+ * setup() - Shared constructor body: reads the script file and builds control buffers.
  *
  * @param script_file
  *  Script file containing the probe and action details.
- * @param map_data
- *  Map data containing details of control code.
  *
- * This constructor initializes the control object by reading and parsing a script
- * file, and setting up control and memory buffers based on the parsed data.
+ * Called by both constructors after m_parser has been initialised.
+ * Reads and parses the script, creates per-uC control and memory buffers
  */
+void
 control::
-control(const std::string& script_file, const std::string& map_data)
-    : m_pager(true)
-    , m_parser(map_data)
-    , m_output_format(dtrace::get_output_format())
-    , m_num_uCs(0)
-    , m_mem_action_present(false)
+setup(const std::string& script_file)
 {
     DTRACE_INFO("DTRACE LOG LEVEL " << static_cast<int>(dtrace::get_current_log_level()));
     DTRACE_INFO("DTRACE OUTPUT FORMAT " << static_cast<int>(m_output_format));
@@ -94,19 +88,19 @@ control(const std::string& script_file, const std::string& map_data)
 
         // Initialize control buffer
         m_control_buffers.at(uC).push_back(
-            (dtrace::probe::probe_ctrl::link_end << dtrace::dtrace_ctrl::second_byte_shift) | 
+            (dtrace::probe::probe_ctrl::link_end << dtrace::dtrace_ctrl::second_byte_shift) |
             (dtrace::probe::probe_type::begin << dtrace::dtrace_ctrl::first_byte_shift)
         );
         m_control_buffers.at(uC).push_back(
-            (dtrace::probe::probe_ctrl::link_end << dtrace::dtrace_ctrl::second_byte_shift) | 
+            (dtrace::probe::probe_ctrl::link_end << dtrace::dtrace_ctrl::second_byte_shift) |
             (dtrace::probe::probe_type::end << dtrace::dtrace_ctrl::first_byte_shift)
         );
         m_control_buffers.at(uC).push_back(
-            (dtrace::probe::probe_ctrl::link_end << dtrace::dtrace_ctrl::second_byte_shift) | 
+            (dtrace::probe::probe_ctrl::link_end << dtrace::dtrace_ctrl::second_byte_shift) |
             (dtrace::probe::probe_type::jprobe << dtrace::dtrace_ctrl::first_byte_shift)
         );
         m_control_buffers.at(uC).push_back(
-            (dtrace::probe::probe_ctrl::link_end << dtrace::dtrace_ctrl::second_byte_shift) | 
+            (dtrace::probe::probe_ctrl::link_end << dtrace::dtrace_ctrl::second_byte_shift) |
             (dtrace::probe::probe_type::tracepoint << dtrace::dtrace_ctrl::first_byte_shift)
         );
 
@@ -115,9 +109,9 @@ control(const std::string& script_file, const std::string& map_data)
         {
             const auto& probe = m_parser.m_probes.at(uC).at(key);
             // Enable the probe and get the mem action locations
-            try 
+            try
             {
-                const auto mem_action_locations = 
+                const auto mem_action_locations =
                     probe->enable(m_control_buffers, m_mem_buffers, uC);
 
                 // Add the mem action locations for probe to control member locations variable
@@ -127,22 +121,22 @@ control(const std::string& script_file, const std::string& map_data)
                     mem_action_locations.end()
                 );
                 DTRACE_INFO("Enabled probe " << probe->create_string() << " for uC index " << uC);
-            } 
-            catch (const std::exception& e) 
+            }
+            catch (const std::exception& e)
             {
-                DTRACE_ERROR("DTRACE_PROBE_ENABLE_FAILED", "Failed to enable probe " 
+                DTRACE_ERROR("DTRACE_PROBE_ENABLE_FAILED", "Failed to enable probe "
                     << probe->create_string() << " for uC index " << uC << ".Exception: " << e.what());
             }
         }
 
-        DTRACE_INFO("DTRACE CONTROL BUFFER CREATED for uC index " << uC << " with size " 
+        DTRACE_INFO("DTRACE CONTROL BUFFER CREATED for uC index " << uC << " with size "
             << m_control_buffers.at(uC).size() * sizeof(uint32_t) << " bytes");
 
         DTRACE_INFO("DTRACE MEMORY BUFFER CREATED for uC index " << uC << " with size "
             << m_mem_buffers.at(uC).size() * sizeof(uint32_t) << " bytes");
 
         // Memory buffer present flag
-        if (m_mem_buffers.at(uC).size() > 0)
+        if (!m_mem_buffers.at(uC).empty())
             m_mem_action_present = true;
 
         // Trace control block paging
@@ -154,6 +148,31 @@ control(const std::string& script_file, const std::string& map_data)
 
     // Populate result actions in execution order across probes
     control::populate_result_actions();
+
+    // m_maps was needed during setup. After setup it is fully consumed, so clear it
+    m_parser.clear_maps();
+}
+
+control::
+control(const std::string& script_file, const std::string& map_data)
+    : m_pager(true)
+    , m_parser(map_data)
+    , m_output_format(dtrace::get_output_format())
+    , m_num_uCs(0)
+    , m_mem_action_present(false)
+{
+    setup(script_file);
+}
+
+control::
+control(const std::string& script_file, const dtrace::debug_map_t& debug_map)
+    : m_pager(true)
+    , m_parser(debug_map)
+    , m_output_format(dtrace::get_output_format())
+    , m_num_uCs(0)
+    , m_mem_action_present(false)
+{
+    setup(script_file);
 }
 
 //-------------------------control::create_control_buffer-------------------------//
