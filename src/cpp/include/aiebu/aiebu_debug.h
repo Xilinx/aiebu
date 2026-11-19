@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <elfio/elfio.hpp>
+#include <memory>
 #include <string>
 
 /**
@@ -15,6 +16,9 @@
  */
 
 namespace aiebu {
+
+// Forward declaration — consumers of this header do not need dwarf_reader.h
+class dwarf_reader;
 
 /**
  * @struct opcode_information
@@ -57,6 +61,17 @@ public:
    * The ELFIO object must outlive this AIEDebug instance.
    */
   explicit AIEDebug(const ELFIO::elfio& elf);
+
+  /**
+   * Internal constructor — not part of the external API.
+   * Borrows an already-parsed dwarf_reader, avoiding a second ELF scan.
+   * shared_dwarf may be null (treated as no DWARF available); when non-null
+   * the caller must ensure it outlives this AIEDebug instance.
+   * Used by dtrace utilities (build_debug_map) and trace_probe.
+   */
+  AIEDebug(const ELFIO::elfio& elf, const dwarf_reader* shared_dwarf);
+
+  ~AIEDebug();  // defined in .cpp where decode_cache is complete
 
   /**
    * get_opcode_information() - Decode the opcode at a firmware-reported location.
@@ -107,11 +122,34 @@ public:
                                 uint32_t page_idx, uint32_t offset) const;
 
 private:
-  const ELFIO::elfio& m_elf; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+  const ELFIO::elfio& m_elf;              // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+  std::unique_ptr<dwarf_reader> m_dwarf;  // Non-null when this instance owns the DWARF reader.
+  const dwarf_reader* m_dwarf_ref = nullptr; // Non-owning borrow; set by shared_dwarf constructor.
+                                             // Caller must ensure the reader outlives this instance.
+
+  /// Return whichever DWARF reader is available — owned or borrowed.
+  const dwarf_reader* get_dwarf() const noexcept
+  {
+    return m_dwarf ? m_dwarf.get() : m_dwarf_ref;
+  }
+
+  // Opaque cache for ISA map pointer and disassembler state.
+  // mutable: state is reset and reused across const decode_opcode() calls.
+  struct decode_cache;
+  mutable std::unique_ptr<decode_cache> m_cache; // NOLINT(cppcoreguidelines-avoid-mutable-member-variables)
 
   std::string get_dump_json_from_elf(uint32_t name_id) const;
+
+  // Decode the instruction at (uc_idx, page_idx, offset).
+  // Always populates result.found, opcode_name, args_str, opcode_size.
+  // Also populates result.source_file and result.line via find_row(kernel_name)
+  // when kernel_name is provided — required by get_opcode_information() for health
+  // reporting.
+  // format_operation() omits kernel_name (uses the default) because
+  // it only needs the opcode string; skipping find_row avoids a redundant O(N) scan
   opcode_information decode_opcode(uint32_t uc_idx, uint32_t page_idx,
-                                    uint32_t offset, uint32_t name_id) const;
+                                    uint32_t offset, uint32_t name_id,
+                                    const std::string& kernel_name = {}) const;
 };
 
 } // namespace aiebu

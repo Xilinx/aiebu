@@ -12,6 +12,16 @@ target_include_directories(${DTRACE_TESTNAME} PRIVATE
   ${AIEBU_SOURCE_DIR}/src/cpp
   ${AIEBU_ELFIO_SRC_DIR})
 
+# Profiling harness: times each stage of the dtrace workflow separately.
+# Not registered as a ctest — run manually with any ELF:
+#   ./dtrace_profile <elf> <script.ct> <kernel:instance> [iterations]
+add_executable(dtrace_profile dtrace_profile.cpp)
+add_dependencies(dtrace_profile cert_dtrace_static aiebu_static)
+target_link_libraries(dtrace_profile PRIVATE cert_dtrace_static aiebu_static)
+target_include_directories(dtrace_profile PRIVATE
+  ${AIEBU_SOURCE_DIR}/src/cpp
+  ${AIEBU_ELFIO_SRC_DIR})
+
 # Test single uc script
 add_test(NAME "dtrace_single_column"
   COMMAND ${DTRACE_TESTNAME} "${AIEBU_SOURCE_DIR}/test/dtrace_test/single_col"
