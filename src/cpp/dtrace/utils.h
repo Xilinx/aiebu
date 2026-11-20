@@ -14,14 +14,43 @@
 
 #include <cstdint>
 #include <iostream>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
+
+namespace aiebu { struct dwarf_debug_row; class dwarf_reader; }
 
 namespace dtrace
 {
+
+/**
+ * @struct debug_entry
+ * @brief One decoded instruction entry from the ELF debug section.
+ *
+ * Populated from either a .dump JSON section or DWARF v5 .debug_* sections.
+ * Mirrors one item in the "debug" array of the .dump JSON format.
+ * page_offset is the absolute byte offset within the .ctrltext section
+ * (page_index * PAGE_SIZE + relative_offset), matching the .dump convention.
+ */
+struct debug_entry {
+    std::string file;              // source file path
+    std::string operation;         // lowercased instruction mnemonic + args
+    uint32_t    page_index  = 0;   // page index
+    uint32_t    page_offset = 0;   // absolute offset: page_index*PAGE_SIZE + relative
+    uint32_t    column      = 0;   // AIE column / uC index
+    uint32_t    line        = 0;   // source line number (always > 0 in a debug_map_t)
+    std::string annotation_id;     // annotation id string; empty when not an annotation site
+};
+
+// Structured debug map — the structured alternative to the JSON string
+// passed to parser/control. Eliminates the JSON serialise→parse round-trip
+// for DWARF ELFs, and reduces it to a single parse for .dump ELFs.
+using debug_map_t = std::vector<debug_entry>;
+
 //-------------------------Output Result Format-------------------------//
 // Output result format Enum
 enum class dtrace_output_format {
@@ -131,14 +160,43 @@ public:
   // Full ELF: .dump section for kernel:instance (group-filtered), or DWARF v5 fallback.
   std::string get_debug_section_json(const std::string& kernel_instance) const;
 
+  // Partial ELF: build debug_map_t from .dump section (parses JSON once).
+  // Returns empty map when no .dump section is present.
+  debug_map_t get_debug_map() const;
+
+  // Full ELF: build debug_map_t from .dump (group-filtered) or DWARF v5 rows directly.
+  // No JSON serialisation round-trip for DWARF ELFs.
+  // Returns empty map when no debug information is found.
+  debug_map_t get_debug_map(const std::string& kernel_instance) const;
+
 private:
   const ELFIO::elfio& m_elf; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
   static std::string extract_kernel_name_from_mangled(const std::string& symbol_name);
 
+  // Split "kernel:instance" or "kernel" into separate parts.
+  // When no ':' is present, kernel receives the full string and instance is empty
+  // (single-instance callers may omit the instance suffix).
+  static void parse_kernel_instance(const std::string& filter,
+                                     std::string& kernel,
+                                     std::string& instance);
+
   std::set<ELFIO::Elf_Half>
   get_filtered_section_indices(const std::string& filter_kernel,
                                const std::string& filter_instance) const;
+
+  // Return the first .dump-prefixed PROGBITS section whose index is in
+  // section_indices, or nullptr when none is found.
+  const ELFIO::section* find_dump_section(
+      const std::set<ELFIO::Elf_Half>& section_indices) const;
+
+  // Return all DWARF rows matching filter_kernel(:filter_instance) together with
+  // the constructed dwarf_reader, so callers can pass the reader to AIEDebug
+  // (via the shared_dwarf constructor) and avoid a second ELF scan.
+  // Returns {empty, null} when DWARF is absent or no CU matches.
+  std::pair<std::vector<aiebu::dwarf_debug_row>, std::unique_ptr<aiebu::dwarf_reader>>
+  get_filtered_dwarf_rows(const std::string& filter_kernel,
+                          const std::string& filter_instance) const;
 };
 
 //-------------------------Token helpers-------------------------//

@@ -146,6 +146,7 @@ uint32_t dwarf_reader::intern_cu_name(const std::string& name)
 
 const std::string& dwarf_reader::cu_name_of(const dwarf_debug_row& row) const
 {
+  assert(!m_rows_released && "cu_name_of() called after release_rows()");
   static const std::string s_empty;
   if (row.cu_name_idx == UINT32_MAX || row.cu_name_idx >= m_cu_names.size())
     return s_empty;
@@ -680,6 +681,19 @@ dwarf_reader::dwarf_reader(const ELFIO::elfio& elf)
   }
 
   m_has_dwarf = !m_rows.empty();
+  if (m_has_dwarf)
+    build_row_set();
+}
+
+// ─── Row set ─────────────────────────────────────────────────────────────────
+
+void dwarf_reader::build_row_set()
+{
+  m_line_row_set.reserve(m_rows.size());
+  for (const auto& row : m_rows) {
+    if (row.line > 0)
+      m_line_row_set.insert(make_key(row.column, row.page_index, row.page_offset));
+  }
 }
 
 // ─── Lookup ──────────────────────────────────────────────────────────────────
@@ -688,14 +702,12 @@ dwarf_debug_row
 dwarf_reader::find_row(uint32_t col, uint32_t page_idx, uint32_t offset,
                        const std::string& kernel_name) const
 {
+  assert(!m_rows_released && "find_row() called after release_rows()");
   // If kernel_name contains an instance (e.g. "DPU:subgraph_0"), filter by the
   // instance portion so that multi-instance ELFs return the correct CU's row.
-  std::string filter_instance;
-  if (!kernel_name.empty()) {
-    const auto colon = kernel_name.find(':');
-    if (colon != std::string::npos)
-      filter_instance = kernel_name.substr(colon + 1);
-  }
+  const auto colon = kernel_name.find(':');
+  const std::string filter_instance = (colon != std::string::npos)
+      ? kernel_name.substr(colon + 1) : std::string{};
 
   // Scan all rows keeping the best match. Line rows (line > 0) carry file/line
   // info and are preferred over annotation DIE rows (line == 0) at the same
@@ -708,9 +720,9 @@ dwarf_reader::find_row(uint32_t col, uint32_t page_idx, uint32_t offset,
     if (!filter_instance.empty()) {
       // cu_name format: "KernelName:instance" — match instance suffix
       const std::string& cu = cu_name_of(row);
-      const auto colon = cu.find(':');
-      if (colon == std::string::npos ||
-          cu.compare(colon + 1, std::string::npos, filter_instance) != 0)
+      const auto cu_colon = cu.find(':');
+      if (cu_colon == std::string::npos ||
+          cu.compare(cu_colon + 1, std::string::npos, filter_instance) != 0)
         continue;
     }
     best = row;

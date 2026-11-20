@@ -230,7 +230,49 @@ decode_from_dump(const std::string& dump_json,
 
 // ─── AIEDebug implementation ────────────────────────────────────────────────
 
-AIEDebug::AIEDebug(const ELFIO::elfio& elf) : m_elf(elf) {}
+// decode_cache: holds the ISA map pointer (points to a static singleton, so no
+// ownership) and a reusable disassembler_state (reset before each decode_opcode
+// call to avoid a heap allocation per instruction).  Defined in the .cpp to
+// keep isa.h and disassembler_state.h out of aiebu_debug.h (XRT-facing header).
+struct AIEDebug::decode_cache {
+  isa_disassembler                        isa;      ///< Kept alive so isa_map pointer remains valid.
+  const std::map<uint8_t, isa_op_disasm>* isa_map;  ///< Points into isa — valid for lifetime of cache.
+  std::shared_ptr<disassembler_state>     state;
+
+  explicit decode_cache(bool is_aie4)
+    : isa_map(isa.get_isa_map())
+    , state(is_aie4
+        ? std::static_pointer_cast<disassembler_state>(std::make_shared<disassembler_state_aie4>())
+        : std::static_pointer_cast<disassembler_state>(std::make_shared<disassembler_state_aie2ps>()))
+  {}
+
+  /// Reset address and label state before each use so stale values don't bleed through.
+  void reset() { state->reset(); }
+};
+
+AIEDebug::AIEDebug(const ELFIO::elfio& elf) : m_elf(elf)
+{
+  // Parse DWARF sections once; cached for all subsequent decode_opcode() calls.
+  auto dr = std::make_unique<dwarf_reader>(elf);
+  if (dr->has_dwarf())
+    m_dwarf = std::move(dr);
+
+  // Build ISA map + disassembler state cache once, reused across all calls.
+  const uint8_t os_abi = elf.get_os_abi();
+  const bool is_aie4 = (os_abi == osabi_aie4 || os_abi == osabi_aie4a || os_abi == osabi_aie4z);
+  m_cache = std::make_unique<decode_cache>(is_aie4);
+}
+
+AIEDebug::AIEDebug(const ELFIO::elfio& elf, const dwarf_reader* shared_dwarf)
+  : m_elf(elf), m_dwarf_ref(shared_dwarf)
+{
+  // m_dwarf_ref borrows the caller's already-parsed reader — no second ELF scan.
+  const uint8_t os_abi = elf.get_os_abi();
+  const bool is_aie4 = (os_abi == osabi_aie4 || os_abi == osabi_aie4a || os_abi == osabi_aie4z);
+  m_cache = std::make_unique<decode_cache>(is_aie4);
+}
+
+AIEDebug::~AIEDebug() = default;  // defined here where decode_cache is complete
 
 // Returns the group index N for the given "kernel:instance" by walking the ELF symtab
 // and finding the SHT_GROUP section that belongs to this instance.
@@ -364,23 +406,40 @@ static void str_to_lower(std::string& s)
                  [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 }
 
-// Decodes the opcode at (uc_idx, page_idx, offset) via ISA binary walk.
-// Used as fallback when no .dump section is present.
-// If name_id != UINT32_MAX, the ctrltext section name has a ".<name_id>" suffix
-// (group ELF); otherwise matches by prefix alone (single-instance ELF).
+// Decodes the instruction at (uc_idx, page_idx, offset).
+//
+// Two code paths based on whether DWARF sections are present (get_dwarf() non-null):
+//
+//   get_dwarf() non-null (owned via AIEDebug(elf) or borrowed via AIEDebug(elf, reader*)):
+//     Falls through to the ISA walk when no DWARF row exists at the offset
+//     (hardware PC captured mid-instruction during a timeout / health report).
+//
+//   get_dwarf() null:
+//     ISA walk from the start of the instruction region to find the instruction
+//     whose byte range spans the reported offset.
+//
+// Source info (kernel_name non-empty):
+//     Populated via find_row(kernel_name) on the DWARF fast path, and via
+//     fetch_source() after the ISA walk using the spanning instruction's offset.
+// Source info (kernel_name empty): 
+//    format_operation() omits kernel_name (uses the default empty string)
+//     because it only needs the opcode string — it is called once per unique
+//     instruction address when building the debug map. has_line_row() O(1) confirms 
+//     the offset is a valid instruction boundary so skipping find_row avoids N O(N) scans.
+//
+// name_id != UINT32_MAX: ctrltext section has ".<name_id>" suffix (group ELF).
+// name_id == UINT32_MAX: single-instance ELF, section matched by prefix.
 opcode_information
 AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
-                        uint32_t offset, uint32_t name_id) const
+                        uint32_t offset, uint32_t name_id,
+                        const std::string& kernel_name) const
 {
   opcode_information result{};
   const uint8_t os_abi      = m_elf.get_os_abi();
   const uint8_t abi_version = m_elf.get_abi_version();
 
-  // Determine ELF layout from os_abi + abi_version:
-  //   os_abi=0x46 (aie2ps_group), abi_version>=0x03  → per-page config ELF:
-  //     one .ctrltext.<col>.<page>.<N> section per page.
-  //   os_abi in {0x40,0x4B,0x56,0x69}, abi_version>=0x21 → merged-section config ELF:
-  //     one .ctrltext.<col>.<N> section holds all pages concatenated.
+  // os_abi=0x46 (aie2ps_group), abi_version>=0x03  → per-page config ELF:
+  // os_abi in {0x40,0x4B,0x56,0x69}, abi_version>=0x21 → merged-section config ELF:
   const bool is_merged = (os_abi != osabi_aie2ps_group) && (abi_version >= elf_version_config);
 
   // Build the expected section name.
@@ -479,26 +538,115 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
   if (instr_offset >= instr_size)
     return result;
 
-  // Walk instructions from the start of the page region to find the one spanning instr_offset
   const char* instr_data = section_data + instr_start;
 
-  isa_disassembler isa;
-  const std::map<uint8_t, isa_op_disasm>* isa_map = isa.get_isa_map();
+  // Use cached ISA map and disassembler state — no per-call heap allocation.
+  const auto* isa_map = m_cache->isa_map;
+  const auto& state   = m_cache->state;
+  m_cache->reset();  // clear position/labels from any previous call
 
-  const bool is_aie4 = (os_abi == osabi_aie4 || os_abi == osabi_aie4a || os_abi == osabi_aie4z);
-  auto state = is_aie4
-      ? std::static_pointer_cast<disassembler_state>(std::make_shared<disassembler_state_aie4>())
-      : std::static_pointer_cast<disassembler_state>(std::make_shared<disassembler_state_aie2ps>());
+  // Populate source info for the instruction at `instr_pos` (offset within the
+  // instruction region).  Used by the ISA walk path to attribute a mid-instruction
+  // hardware PC to the correct source line of the spanning instruction.
+  // Converts back to the page-relative offset DWARF records, then calls find_row.
+  auto fetch_source = [&](size_t instr_pos) {
+    if (get_dwarf() && !kernel_name.empty()) {
+      const auto spanning_offset =
+          static_cast<uint32_t>(k_binary_page_header_size + instr_pos);
+      const dwarf_debug_row row =
+          get_dwarf()->find_row(uc_idx, page_idx, spanning_offset, kernel_name);
+      result.source_file = row.file;
+      result.line        = row.line;
+    }
+  };
 
+  // Helper: deserialize one instruction at instr_data+pos into result.
+  // Populates result.found, opcode_name, opcode_size, args_str, diag_info.
+  auto decode_at = [&](size_t pos, size_t op_size,
+                        const std::map<uint8_t, isa_op_disasm>::const_iterator& it) {
+    auto deserializer = it->second.create_deserializer();
+    std::ostringstream oss;
+    asm_writer writer(oss);
+    try {
+      deserializer->deserialize(writer, state, instr_data + pos);
+    } catch (const std::exception& e) {
+      result.diag_info += std::string(" deserialize error: ") + e.what();
+      return;
+    }
+    result.found       = true;
+    result.opcode_name = it->second.get_code_name();
+    result.opcode_size = op_size;
+    const std::string decoded = oss.str();
+    const auto tab = decoded.find('\t');
+    if (tab != std::string::npos) {
+      std::string args = decoded.substr(tab + 1);
+      if (!args.empty() && args.back() == '\n')
+        args.pop_back();
+      str_to_lower(args);
+      result.args_str = args;
+    }
+  };
+
+  // ── DWARF-accelerated fast path ───────────────────────────────────────────
+  // The DWARF writer emits a row for every instruction (except eof) with
+  // address = page_index*PAGE_SIZE + textwriter->tell(), where
+  // textwriter->tell() equals `offset` exactly (byte offset of the instruction
+  // start, including the 16-byte page header).
+  //
+  // On any ELF with DWARF, every valid instruction has a row; find_row() on a
+  // valid instruction offset always succeeds.  If find_row() returns nothing
+  // (line==0 and no annotation) the offset is invalid or points to eof — the
+  // ISA walk cannot give a better answer, so return as-is.
+  //
+  // The O(N) ISA walk is only needed for non-DWARF ELFs (disabledump flag)
+  // or where the hardware PC may be mid-instruction).
+  if (get_dwarf()) {
+    // Determine whether offset is a valid instruction boundary for this instance.
+    // format_operation path (kernel_name empty): O(1) has_line_row
+    // context health-reporting path (kernel_name set): O(N) find_row(kernel_name)
+    // verifies the boundary belongs to this specific instance.  
+    bool boundary_confirmed = false;
+    dwarf_debug_row source_row{};
+    if (kernel_name.empty()) {
+      boundary_confirmed = get_dwarf()->has_line_row(uc_idx, page_idx, offset);
+    } else {
+      source_row = get_dwarf()->find_row(uc_idx, page_idx, offset, kernel_name);
+      boundary_confirmed = (source_row.line > 0);
+    }
+
+    if (boundary_confirmed) {
+      const auto opbyte = static_cast<uint8_t>(instr_data[instr_offset]);
+      const auto it = isa_map->find(opbyte);
+      if (it != isa_map->end()) {
+        size_t op_size = 2;
+        for (const auto& arg : it->second.get_args())
+          op_size += arg.get_width() / byte_to_bits;
+        decode_at(instr_offset, op_size, it);
+      }
+      result.source_file = source_row.file;  // empty for format_operation path
+      result.line        = source_row.line;  // 0    for format_operation path
+      return result;
+    }
+    // Not a valid boundary for this instance — fall through to ISA walk.
+  }
+
+  // ── O(N) ISA walk ─────────────────────────────────────────────────────────
+  // Reached when:
+  //   • No DWARF sections (disabledump), OR
+  //   • DWARF present but offset has no row (eof, or PC captured between
+  //     instruction boundaries during a timeout / health report).
+  // Finds the instruction whose byte range spans instr_offset, returning the
+  // best-effort opcode even for mid-instruction hardware PCs.
   size_t pos = 0;
   while (pos < instr_size) {
-    auto opbyte = static_cast<uint8_t>(instr_data[pos]);
+    const auto opbyte = static_cast<uint8_t>(instr_data[pos]);
 
     if (opbyte == k_align_opcode) {
       if (pos == instr_offset) {
         result.found       = true;
         result.opcode_name = "align";
         result.opcode_size = 1;
+        fetch_source(pos);
         return result;
       }
       state->increment_address(1);
@@ -512,50 +660,23 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
       return result;
     }
 
-    // Compute instruction size directly from arg list — no heap allocation needed
-    // for non-target instructions.
+    // Compute instruction size from arg list without deserializing.
     size_t op_size = 2; // 1 opcode byte + 1 pad byte
     for (const auto& arg : it->second.get_args())
       op_size += arg.get_width() / byte_to_bits;
 
     if (pos + op_size > instr_offset) {
-      // Found the target instruction — deserialize it now (only here) to get symbolic arg names.
+      // Found the instruction spanning instr_offset — deserialize for symbolic args.
       if (pos + op_size > instr_size) {
         result.diag_info += " truncated instruction at offset=" + std::to_string(pos);
         return result;
       }
-
-      auto deserializer = it->second.create_deserializer();
-      std::ostringstream oss;
-      asm_writer writer(oss);
-      try {
-        deserializer->deserialize(writer, state, instr_data + pos);
-      } catch (const std::exception& e) {
-        result.diag_info += std::string(" deserialize error: ") + e.what();
-        return result;
-      }
-
-      result.found       = true;
-      result.opcode_name = it->second.get_code_name();
-      result.opcode_size = op_size;
-
-      // write_operation writes "    name\targ1, arg2\n" (current_label == label == "",
-      // so no per-arg leading space; args separated by ", ").
-      // Find the tab and take everything after it, then strip the trailing newline.
-      const std::string line = oss.str();
-      const auto tab = line.find('\t');
-      if (tab != std::string::npos) {
-        std::string args = line.substr(tab + 1);
-        if (!args.empty() && args.back() == '\n')
-          args.pop_back();
-        // lowercase to match dump path format (dump stores lowercased source text)
-        str_to_lower(args);
-        result.args_str = args;
-      }
+      decode_at(pos, op_size, it);
+      fetch_source(pos);
       return result;
     }
 
-    // Not the target — advance past this instruction without deserializing.
+    // Not the target — advance without deserializing.
     state->increment_address(static_cast<uint32_t>(op_size));
     pos += op_size;
   }
@@ -566,10 +687,6 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
  * AIEDebug::format_operation() - Decode one instruction and return a
  * formatted "opcode_name args" string for trace probe output.
  *
- * Uses a pre-resolved name_id (from resolve_group_name_id()) to avoid
- * repeating the symbol-table scan when decoding many rows for the same
- * instance.  Both opcode name and args are lowercased to match the output
- * produced by the legacy .dump path (which stores lowercased source text).
  * Returns empty string when the instruction cannot be decoded.
  */
 std::string
@@ -605,33 +722,26 @@ AIEDebug::get_opcode_information(const std::string& kernel_name,
   if (name_id == UINT32_MAX)  // kernel/instance not found in this group ELF
     return {};
 
-  // 1. Legacy .dump path
+  // 1. .dump path: has opcode + source info in one lookup — preferred when present.
   const std::string dump_json = get_dump_json_from_elf(name_id);
   if (!dump_json.empty()) {
     const opcode_information result = decode_from_dump(dump_json, uc_idx, page_idx, offset);
     if (result.found)
       return result;
-    // Dump present but entry not found — fall through to ISA walk and carry
-    // the dump's diag_info forward so it isn't silently dropped.
-    opcode_information isa_result = decode_opcode(uc_idx, page_idx, offset, name_id);
+    // .dump present but no entry at this offset — fall through to ISA walk.
+    // Pass kernel_name so DWARF source info is populated if DWARF sections exist
+    // alongside the .dump (unusual but handled correctly: m_dwarf null for .dump-only ELFs).
+    // Carry dump's diag_info forward.
+    opcode_information isa_result = decode_opcode(uc_idx, page_idx, offset, name_id, kernel_name);
     if (!result.diag_info.empty())
       isa_result.diag_info = result.diag_info + "; " + isa_result.diag_info;
     return isa_result;
   }
 
-  // 2. ISA binary walk for opcode name/args; supplement with DWARF for source info.
-  opcode_information result = decode_opcode(uc_idx, page_idx, offset, name_id);
-  if (result.found) {
-    dwarf_reader dr(m_elf);
-    if (dr.has_dwarf()) {
-      const dwarf_debug_row row = dr.find_row(uc_idx, page_idx, offset, kernel_name);
-      if (!row.file.empty() && row.line != 0) {
-        result.source_file = row.file;
-        result.line        = row.line;
-      }
-    }
-  }
-  return result;
+  // 2. No .dump — opcode decode and source info unified in decode_opcode.
+  //    decode_opcode handles: DWARF fast path (O(1) boundary check + find_row for
+  //    source info), and ISA walk fallback for mid-instruction PCs and legacy ELFs.
+  return decode_opcode(uc_idx, page_idx, offset, name_id, kernel_name);
 }
 
 } // namespace aiebu

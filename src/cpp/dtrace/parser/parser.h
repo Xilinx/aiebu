@@ -90,12 +90,17 @@ private:
         const std::string& probe_name, uint32_t uC_index);
 
 public:
-    parser(const std::string& map_data);
+    explicit parser(const std::string& map_data);
+    explicit parser(const dtrace::debug_map_t& debug_map);
     std::unordered_map<uint32_t, std::map<std::string, std::shared_ptr<dtrace::probe::probe>>> m_probes;
     std::unordered_map<uint32_t, std::vector<std::string>> m_probe_order;
     std::set<uint32_t> m_uC_indices;
     void parse_line(const std::string& parse_line);
-    std::unordered_map<uint32_t, uint64_t> m_mem_host_addr_map; 
+    std::unordered_map<uint32_t, uint64_t> m_mem_host_addr_map;
+
+    // Call this after setup to release m_maps. m_maps is O(ELF rows) and 
+    // is fully consumed once all probes and actions have been constructed.
+    void clear_maps() { m_maps = {}; }
 };
 
 } // namespace dtrace::parser

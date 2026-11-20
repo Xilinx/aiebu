@@ -143,6 +143,108 @@ parser(const std::string& map_data)
     }
 }
 
+//-------------------------Parser Constructor (debug_map_t)-------------------------//
+/**
+ * parser() - Constructor for the parser class (structured debug map).
+ *
+ * @param debug_map
+ *  Structured debug map built from .dump JSON or DWARF v5 sections.
+ *
+ * Populates m_maps from the structured entries directly — no JSON parsing.
+ * Logic mirrors parser(string) but reads from debug_entry fields.
+ */
+parser::
+parser(const dtrace::debug_map_t& debug_map)
+    : m_state(state_type::probe)
+    , m_open(false)
+    , m_open_buffer(false)
+    , m_probe_type(0)
+    , m_uC_index(0)
+    , m_position(0)
+{
+    if (debug_map.empty()) {
+        DTRACE_INFO("DTRACE_PARSER_ELF_DUMP_MAP_DATA_EMPTY");
+        return;
+    }
+
+    struct probe_tracking {
+        bool conflict = false;
+        std::string file_path;
+        std::vector<std::string> m_maps_keys;
+    };
+    std::map<std::string, probe_tracking> tracking_map;
+
+    for (const auto& e : debug_map)
+    {
+        // debug_map_t entries always have line > 0, but guard defensively
+        if (e.line == 0)
+            continue;
+
+        // Skip pseudo-operations that cannot be jprobe targets
+        std::string operation = e.operation;
+        std::transform(operation.begin(), operation.end(), operation.begin(),
+                      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (operation == "eof" || operation.find(".align") != std::string::npos ||
+            operation.find(".long") != std::string::npos)
+            continue;
+
+        const std::string& file_path = e.file;
+        const std::string file_name = std::filesystem::path(file_path).filename().string();
+        const std::string column = std::to_string(e.column);
+        const std::string line   = std::to_string(e.line);
+
+        dtrace::action::probe_information probe_information;
+        probe_information.operation   = e.operation;
+        probe_information.page_index  = std::to_string(e.page_index);
+        probe_information.page_offset = std::to_string(e.page_offset);
+
+        const std::string tracking_key = file_name + ":uc" + column;
+        std::string m_maps_key = "jprobe:" + file_name + ":uc" + column + ":line" + line;
+
+        bool has_conflict = false;
+        if (tracking_map.find(tracking_key) == tracking_map.end()) {
+            tracking_map[tracking_key] = probe_tracking();
+            tracking_map[tracking_key].file_path = file_path;
+            tracking_map[tracking_key].m_maps_keys.push_back(m_maps_key);
+        } else {
+            auto& tracking = tracking_map[tracking_key];
+            if (tracking.conflict) {
+                has_conflict = true;
+            } else if (tracking.file_path != file_path) {
+                has_conflict = true;
+                tracking.conflict = true;
+                for (const auto& tracked_key : tracking.m_maps_keys) {
+                    auto value = m_maps.at(tracked_key);
+                    m_maps.erase(tracked_key);
+                    const std::string m_maps_updated_key =
+                        "jprobe:" + tracking.file_path + tracked_key.substr(tracked_key.find(":uc"));
+                    m_maps[m_maps_updated_key] = value;
+                }
+                tracking.m_maps_keys.clear();
+            } else {
+                tracking.m_maps_keys.push_back(m_maps_key);
+            }
+        }
+
+        if (has_conflict)
+            m_maps_key = "jprobe:" + file_path + ":uc" + column + ":line" + line;
+
+        m_maps[m_maps_key] = probe_information;
+
+        if (!e.annotation_id.empty()) {
+            const std::string m_maps_annotation_key =
+                "jprobe:" + (has_conflict ? file_path : file_name) +
+                ":uc" + column + ":annotation" + e.annotation_id;
+            m_maps[m_maps_annotation_key] = probe_information;
+
+            if (!has_conflict) {
+                auto& tracking = tracking_map[tracking_key];
+                tracking.m_maps_keys.push_back(m_maps_annotation_key);
+            }
+        }
+    }
+}
+
 //-------------------------jprobe::lookup_control_code_location-------------------------//
 /**
  * lookup_control_code_location() -
