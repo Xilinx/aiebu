@@ -8,6 +8,8 @@
 #include "common/build_info.h"
 #include "metrics.h"
 
+#include <boost/format.hpp>
+
 namespace aiebu {
 
 static const std::map<fragment, std::string> fragment_table = { // NOLINT
@@ -108,4 +110,30 @@ extract_kernel_name_from_mangled(const std::string& symbol_name)
 
   return symbol_name.substr(name_start, name_length);
 }
+
+uint64_t
+get_64_bit_property(const boost::property_tree::ptree& pt,
+                    const std::string& property,
+                    bool defaultvalue)
+{
+  if (defaultvalue)
+    return pt.get<uint64_t>(property, 0);
+  return pt.get<uint64_t>(property);
+}
+
+uint32_t
+get_32_bit_property(const boost::property_tree::ptree& pt,
+                    const std::string& property,
+                    bool defaultvalue)
+{
+  const uint64_t value = get_64_bit_property(pt, property, defaultvalue);
+  if (value > range_32bit)
+  {
+    auto error_msg = boost::format("Invalid %s (0x%llx) > 32bit found")
+      % property % static_cast<unsigned long long>(value);
+    throw error(error::error_code::invalid_asm, error_msg.str());
+  }
+  return static_cast<uint32_t>(value);
+}
+
 }

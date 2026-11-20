@@ -3,12 +3,14 @@
 
 #include "aie2ps_preprocessor_input.h"
 
+#include <cstdint>
+
 namespace aiebu {
 
   //TODO: this these functions are custom copy from aie2_preprocessor_input.cpp, todo we mode both in common place
   void
   asm_preprocessor_input::
-  validate_json(uint32_t offset, uint32_t size, uint32_t arg_index, offset_type type) const {
+  validate_json(uint64_t offset, uint64_t size, uint32_t arg_index, offset_type type) const {
     std::string errorMessage;
     if (type == offset_type::CONTROL_PACKET && offset < m_control_packet_offset_correction) {
       errorMessage = std::string("INVALID JSON: Offset(")
@@ -48,14 +50,14 @@ namespace aiebu {
   extract_coalesed_buffers(const std::string& name,
                            const boost::property_tree::ptree& pt)
   {
-    uint32_t buffer_size = get_32_bit_property(pt, "size_in_bytes");
+    const uint64_t buffer_size = get_64_bit_property(pt, "size_in_bytes");
     const auto coalesed_buffers_pt = pt.get_child_optional("coalesed_buffers");
     if (!coalesed_buffers_pt)
       return;
 
     const auto coalesed_buffers = coalesed_buffers_pt.get();
     for (auto coalesed_buffer : coalesed_buffers) {
-      uint32_t buffer_offset = get_32_bit_property(coalesed_buffer.second, "offset_in_bytes");
+      const uint64_t buffer_offset = get_64_bit_property(coalesed_buffer.second, "offset_in_bytes");
       uint32_t arg_index = get_32_bit_property(pt, "xrt_id");
       // Check if the buffer offset is within the buffer size
       validate_json(buffer_offset, buffer_size, arg_index, offset_type::COALESED_BUFFER);
@@ -66,11 +68,35 @@ namespace aiebu {
 
   void
   asm_preprocessor_input::
+  patch_ctrl57_addend(std::vector<char>& buf, uint32_t offset, uint64_t addend) const
+  {
+    auto* bd = reinterpret_cast<uint32_t*>(buf.data() + offset);
+    const uint64_t bd1 = bd[2]; // NOLINT
+    const uint64_t bd2 = bd[3]; // NOLINT
+    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+    uint64_t arg = ((bd2 & 0xFFFF) << 32) + (bd1 & 0xFFFFFFFF);
+    arg += addend;
+    bd[2] = static_cast<uint32_t>(arg & 0xFFFFFFFF);
+    bd[3] = static_cast<uint32_t>(((arg >> 32) & 0xFFFF) | (bd2 & 0xFFFF0000));
+    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+  }
+
+  void
+  asm_preprocessor_input::
+  patch_ctrlpkt_addend(std::vector<char>& buf, uint32_t offset, uint64_t addend) const
+  {
+    patch_ctrl57_addend(buf, offset, addend);
+  }
+
+  void
+  asm_preprocessor_input::
   extract_control_packet_patch(const std::string& name,
                                const uint32_t arg_index,
                                const boost::property_tree::ptree& pt)
   {
-    const uint32_t addend = get_32_bit_property(pt, "offset_in_bytes", true);
+    const uint64_t addend_64 = get_64_bit_property(pt, "offset_in_bytes", true);
+    const bool large_addend = addend_64 > RANGE_32BIT;
+    const uint32_t addend = large_addend ? 0 : static_cast<uint32_t>(addend_64);
     const auto control_packet_patch_pt = pt.get_child_optional("control_packet_patch_locations");
     if (!control_packet_patch_pt)
       return;
@@ -87,6 +113,13 @@ namespace aiebu {
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       // move 8 bytes(header) up for unifying the patching scheme between DPU sequence and transaction-buffer
       uint32_t offset = control_packet_offset - m_control_packet_offset_correction;
+      if (large_addend)
+      {
+        log_info() << boost::format(
+          "Warning: offset_in_bytes (0x%x) > 32bit for %s, baking into BD and patching with addend=0\n")
+          % addend_64 % control_packet_patch_schema_name();
+        patch_ctrlpkt_addend(m_controlpkt[ctrpkt_buf], offset, addend_64);
+      }
       add_symbol({name, offset, 0, 0, addend, 0, ctrpkt_buf, control_packet_patching});
     }
   }
@@ -104,7 +137,6 @@ namespace aiebu {
     {
       // added ARG_OFFSET to argidx to match with kernel argument index in xclbin
       auto arg = get_32_bit_property(external_buffer.second, "xrt_id");
-      std::string name = std::to_string(arg + ARG_OFFSET);
       if (external_buffer.second.get<bool>("ctrl_pkt_buffer", false)) {
         m_control_packet_index = arg;
         std::string path = external_buffer.second.get<std::string>("path", "default_path");
@@ -160,7 +192,17 @@ namespace aiebu {
       // check if the offset is less than the size of the control packet
       validate_json(control_packet_offset, control_packet_size, arg_index, offset_type::CONTROL_PACKET);
       uint32_t offset = control_packet_offset - m_control_packet_offset_correction;
-      const uint32_t addend = get_32_bit_property(patch, "bo_offset");
+      const uint64_t addend_64 = get_64_bit_property(patch, "bo_offset", true);
+      const bool large_addend = addend_64 > RANGE_32BIT;
+      const uint32_t addend = large_addend ? 0 : static_cast<uint32_t>(addend_64);
+      if (large_addend)
+      {
+        log_info() << boost::format(
+          "Warning: bo_offset (0x%x) > 32bit for %s, baking into BD and patching with addend=0\n")
+          % addend_64 % control_packet_patch_schema_name();
+        if (m_data.find(".ctrldata") != m_data.end())
+          patch_ctrlpkt_addend(m_data[".ctrldata"], offset, addend_64);
+      }
 
       // TODO added symbols name hardcoded to ".pad.0" and col 0
       // this will change once compiler decide on how to generate multi col control packet design
@@ -189,25 +231,6 @@ namespace aiebu {
       dmacompiler_json_parser(pt);
       return;
     }
-  }
-
-
-  uint32_t
-  asm_preprocessor_input::
-  get_32_bit_property(const boost::property_tree::ptree& pt, const std::string& property, bool defaultvalue) const
-  {
-    uint64_t value = 0;
-    if (defaultvalue)
-      value = pt.get<uint64_t>(property, 0);
-    else
-      value = pt.get<uint64_t>(property);
-    // we dont support property greater then 32 bit
-    if (value > RANGE_32BIT)
-    {
-      auto error_msg = boost::format("Invalid %s (0x%x) > 32bit found") % property % value;
-      throw error(error::error_code::invalid_asm, error_msg.str());
-    }
-    return static_cast<uint32_t>(value);
   }
 
 }
