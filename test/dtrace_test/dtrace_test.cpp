@@ -9,17 +9,14 @@
 #include <memory>
 #include <string>
 #include <fstream>
-#include <vector>
 
 static const uint64_t TRACE_CTRL_CODE_BASE = 0x200000;
 static const uint32_t word_byte_shift = 32;
 
 int
-run_dtrace_test(const std::string& script_file,
-    const std::string& map_data, const std::string& output_file,
+run_dtrace_test(const std::string& script_file, const std::string& output_file,
     const std::string& result_file, uint32_t output_fmt,
-    const ELFIO::elfio* elf = nullptr,
-    const std::string& kernel_instance = {})
+    const ELFIO::elfio& elf, const std::string& kernel_instance)
 {
     if (!std::filesystem::exists(script_file)) {
         std::cerr << "ERROR: test files not found: " << script_file;
@@ -30,9 +27,7 @@ run_dtrace_test(const std::string& script_file,
     uint32_t buffers_length = 0;
     uint32_t log_level = 0U;  // dtrace_error
 
-    void* dtrace_handle = elf
-        ? create_dtrace_handle_elf(script_file, *elf, kernel_instance, log_level, output_fmt)
-        : create_dtrace_handle(script_file, map_data, log_level, output_fmt);
+    void* dtrace_handle = create_dtrace_handle_elf(script_file, elf, kernel_instance, log_level, output_fmt);
     if (!dtrace_handle) {
         std::cerr << "[ERROR]: dtrace compiler failed";
         return 1;
@@ -93,9 +88,9 @@ run_dtrace_test(const std::string& script_file,
 int main(int argc, char** argv)
 {
     try {
-        if (argc != 4 && argc != 7) {
-            std::cerr << "Usage: " << argv[0] << " <testcase_path> <output_file> <python|json>\n"
-                      << "       " << argv[0] << " <testcase_path> <output_file> <python|json> elf <elf_file> <kernel|none>";
+        if (argc != 7) {
+            std::cerr << "Usage: " << argv[0]
+                      << " <testcase_path> <output_file> <python|json> elf <elf_file> <kernel|none>";
             return 1;
         }
 
@@ -114,33 +109,19 @@ int main(int argc, char** argv)
             result_file = output_path.stem().string() + ".json";
         }
 
-        if (argc == 7) {
-            std::string kernel_instance = argv[6];
-            if (kernel_instance == "none")
-                kernel_instance.clear();
+        std::string kernel_instance = argv[6];
+        if (kernel_instance == "none")
+            kernel_instance.clear();
 
-            std::string elf_file = argv[5];
-            std::ifstream elf_stream(elf_file, std::ios::binary);
-            ELFIO::elfio elf;
-            if (!elf.load(elf_stream)) {
-                std::cerr << "[ERROR]: failed to load " << elf_file;
-                return 1;
-            }
-            return run_dtrace_test(script_file, {}, output_file, result_file, output_fmt,
-                &elf, kernel_instance);
+        std::string elf_file = argv[5];
+        std::ifstream elf_stream(elf_file, std::ios::binary);
+        ELFIO::elfio elf;
+        if (!elf.load(elf_stream)) {
+            std::cerr << "[ERROR]: failed to load " << elf_file;
+            return 1;
         }
-
-        std::string map_file = std::string(argv[1]) + "/map.json";
-        std::string map_data;
-        if (std::filesystem::exists(map_file)) {
-            std::ifstream map_file_stream(map_file, std::ios::binary);
-            std::vector<uint8_t> map_buffer((std::istreambuf_iterator<char>(map_file_stream)),
-                std::istreambuf_iterator<char>());
-            map_file_stream.close();
-            map_data = std::string(map_buffer.begin(), map_buffer.end());
-        }
-
-        return run_dtrace_test(script_file, map_data, output_file, result_file, output_fmt);
+        return run_dtrace_test(script_file, output_file, result_file, output_fmt,
+            elf, kernel_instance);
     } catch (const std::exception& e) {
         std::cerr << "[ERROR]: Exception: " << e.what();
         return 1;
