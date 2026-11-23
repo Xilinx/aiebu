@@ -115,7 +115,9 @@ public:
   const std::string& cu_name_of(const dwarf_debug_row& row) const;
 
 private:
-  static constexpr uint32_t PAGE_SIZE = 0x2000; ///< 8 KiB per page
+  static constexpr uint32_t PAGE_SIZE        = 0x2000; ///< 8 KiB per page
+  static constexpr uint32_t k_col_shift      = 48;     ///< col occupies bits [63:48]
+  static constexpr uint32_t k_page_idx_shift = 16;     ///< page_idx occupies bits [47:16]
 
   bool m_has_dwarf = false;
   bool m_rows_released = false;        ///< Set by release_rows(); guards against misuse.
@@ -135,8 +137,8 @@ private:
   // Defined inline so has_line_row() — a hot path — compiles to a single hash lookup.
   static uint64_t make_key(uint32_t col, uint32_t page_idx, uint32_t offset) noexcept
   {
-    return (static_cast<uint64_t>(col)      << 48)
-         | (static_cast<uint64_t>(page_idx) << 16)
+    return (static_cast<uint64_t>(col)      << k_col_shift)
+         | (static_cast<uint64_t>(page_idx) << k_page_idx_shift)
          | static_cast<uint64_t>(offset);
   }
 
