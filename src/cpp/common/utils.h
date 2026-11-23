@@ -219,8 +219,8 @@ inline std::string get_pagelabel(const std::string& label)
 {
   if (label.empty())
     return "";
-  auto val = splitoption(label.c_str(), ':');
-  return val[val.size() -1];
+  // Return the substring after the last ':' (the whole string if no ':').
+  return label.substr(label.rfind(':') + 1);
 }
 
 // Custom stream buffer that reads from a vector<char>

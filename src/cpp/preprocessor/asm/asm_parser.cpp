@@ -164,8 +164,9 @@ insert_col_asmdata(std::shared_ptr<asm_data> data)
   else
     label_data[m_current_label].text.emplace_back(data);
 
-  auto pagelabel = get_pagelabel(m_current_label);
-  m_col[m_current_col].set_labelpageindex(pagelabel, 0);
+  // Use the cached pagelabel (updated only when m_current_label changes)
+  // instead of recomputing it for every inserted line (perf: R2).
+  cdata.set_labelpageindex(m_current_pagelabel, 0);
 }
 
 void
@@ -453,6 +454,7 @@ parse_lines(const std::vector<char>& data, const std::string& file)
     {
       if (!get_data_state()) {
         m_current_label = m_current_label + ":" + sm[1].str();
+        m_current_pagelabel = sm[1].str();
         set_data_state(false);
       } else
         insert_col_asmdata(std::make_shared<asm_data>(operation(sm[1].str(), ""), operation_type::label,
