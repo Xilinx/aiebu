@@ -154,17 +154,6 @@ setup(const std::string& script_file)
 }
 
 control::
-control(const std::string& script_file, const std::string& map_data)
-    : m_pager(true)
-    , m_parser(map_data)
-    , m_output_format(dtrace::get_output_format())
-    , m_num_uCs(0)
-    , m_mem_action_present(false)
-{
-    setup(script_file);
-}
-
-control::
 control(const std::string& script_file, const dtrace::debug_map_t& debug_map)
     : m_pager(true)
     , m_parser(debug_map)

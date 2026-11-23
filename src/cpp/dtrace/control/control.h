@@ -64,8 +64,7 @@ private:
     void setup(const std::string& script_file); ///< shared constructor body
 
 public:
-    control(const std::string& script_file, const std::string& map_data);
-    control(const std::string& script_file, const dtrace::debug_map_t& debug_map);
+    explicit control(const std::string& script_file, const dtrace::debug_map_t& debug_map);
     uint32_t m_num_uCs;
     std::set<uint32_t> m_control_uC_indices;
     bool m_mem_action_present;

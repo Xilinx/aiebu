@@ -66,7 +66,7 @@ is_group_elf(const ELFIO::elfio& elf)
  *
  * @param:  Mangled symbol name.
  *
- * @return: Demangled kernel name or empty string if the kenel name is not valid.
+ * @return: Demangled kernel name or empty string if the kernel name is not valid.
  */
 std::string
 elf_debug_map::
@@ -296,10 +296,16 @@ static debug_map_t parse_debug_json(const std::string& json_str)
     e.file      = item.value("file",      std::string{});
     e.operation = item.value("operation", std::string{});
 
+    // All .dump numeric fields are bounded by the 32-bit AIE ELF layout
+    // Guard against malformed sections where a value exceeds uint32_t range.
     auto to_u32 = [](const nlohmann::json& v) -> uint32_t {
-      return static_cast<uint32_t>(std::stoul(
-        v.is_string() ? v.get<std::string>() : v.dump()));
+      const std::string s = v.is_string() ? v.get<std::string>() : v.dump();
+      const auto n = std::stoull(s);
+      if (n > std::numeric_limits<uint32_t>::max())
+        throw std::out_of_range("debug map field exceeds uint32_t range: " + s);
+      return static_cast<uint32_t>(n);
     };
+
     e.page_index  = to_u32(item.at("page_index"));
     e.page_offset = to_u32(item.at("page_offset"));
     e.column      = to_u32(item.at("column"));
