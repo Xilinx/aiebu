@@ -850,12 +850,11 @@ public:
   {
     size_t pos = m_current_label.rfind(':');
     if (pos != std::string::npos) {
-        m_current_label =  m_current_label.substr(0, pos);
-        m_current_pagelabel = get_pagelabel(m_current_label);
+      set_current_label(m_current_label.substr(0, pos));
     }
   }
 
-  void set_current_label(std::string& label)
+  void set_current_label(const std::string& label)
   {
     m_current_label = label;
     m_current_pagelabel = get_pagelabel(m_current_label);

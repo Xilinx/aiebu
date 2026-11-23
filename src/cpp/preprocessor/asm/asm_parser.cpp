@@ -453,8 +453,7 @@ parse_lines(const std::vector<char>& data, const std::string& file)
     if (line.back() == ':' && regex_match(line, sm, LABEL_REGEX))
     {
       if (!get_data_state()) {
-        m_current_label = m_current_label + ":" + sm[1].str();
-        m_current_pagelabel = sm[1].str();
+        set_current_label(m_current_label + ":" + sm[1].str());
         set_data_state(false);
       } else
         insert_col_asmdata(std::make_shared<asm_data>(operation(sm[1].str(), ""), operation_type::label,
