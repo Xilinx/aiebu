@@ -621,7 +621,11 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
         size_t op_size = 2;
         for (const auto& arg : it->second.get_args())
           op_size += arg.get_width() / byte_to_bits;
-        decode_at(instr_offset, op_size, it);
+        if (instr_offset + op_size > instr_size) {
+          result.diag_info += " truncated instruction at offset=" + std::to_string(instr_offset);
+        } else {
+          decode_at(instr_offset, op_size, it);
+        }
       }
       result.source_file = source_row.file;  // empty for format_operation path
       result.line        = source_row.line;  // 0    for format_operation path

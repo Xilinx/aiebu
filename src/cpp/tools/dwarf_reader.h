@@ -131,12 +131,12 @@ private:
   std::unordered_set<uint64_t> m_line_row_set;
 
   // Pack (col, page_idx, offset) into a 64-bit key.
-  // col uses bits [63:48], page_idx bits [47:32], offset bits [31:0].
+  // col uses bits [63:48], page_idx bits [47:16], offset bits [15:0].
   // Defined inline so has_line_row() — a hot path — compiles to a single hash lookup.
   static uint64_t make_key(uint32_t col, uint32_t page_idx, uint32_t offset) noexcept
   {
     return (static_cast<uint64_t>(col)      << 48)
-         | (static_cast<uint64_t>(page_idx) << 32)
+         | (static_cast<uint64_t>(page_idx) << 16)
          | static_cast<uint64_t>(offset);
   }
 
