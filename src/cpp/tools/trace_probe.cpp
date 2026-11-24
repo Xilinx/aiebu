@@ -69,7 +69,7 @@ write_trace_probes_from_dwarf(std::ostream& stream, const dwarf_reader& dr,
   // Resolve the group name_id once for the whole batch.  format_operation()
   // uses this to locate the correct .ctrltext section without repeating the
   // symbol-table scan for every row.
-  const AIEDebug aie_debug(elf);
+  const AIEDebug aie_debug(elf, &dr);  // borrow dr — no second DWARF parse
   const uint32_t name_id = aie_debug.resolve_group_name_id(kernel_instance);
   // Conflict-detection tracking: keyed by "basename:ucN".
   struct probe_tracking {

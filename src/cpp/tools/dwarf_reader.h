@@ -4,8 +4,10 @@
 #ifndef AIEBU_TOOLS_DWARF_READER_H_
 #define AIEBU_TOOLS_DWARF_READER_H_
 
+#include <cassert>
 #include <cstdint>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 // Forward declaration — consumers that include this header do not need elfio.hpp
@@ -61,8 +63,22 @@ public:
    */
   explicit dwarf_reader(const ELFIO::elfio& elf);
 
-  /// True if DWARF .debug_info was found and parsed successfully.
+  // True if DWARF .debug_info was found and parsed successfully.
   bool has_dwarf() const { return m_has_dwarf; }
+
+  // Release m_rows and m_cu_names to reduce memory when only has_line_row() is needed.
+  // Must be called only after all get_all_rows() / find_row() / cu_name_of() uses are
+  // complete.  has_line_row() (m_line_row_set) remains valid after this call.
+  // Calling find_row(), get_all_rows(), or cu_name_of() after release_rows() is a
+  // programming error and is caught by assertion in debug builds.
+  void release_rows()
+  {
+    m_rows.clear();
+    m_rows.shrink_to_fit();
+    m_cu_names.clear();
+    m_cu_names.shrink_to_fit();
+    m_rows_released = true;
+  }
 
   /**
    * Find the row matching (column, page_index, page_offset).
@@ -75,22 +91,59 @@ public:
   dwarf_debug_row find_row(uint32_t col, uint32_t page_idx, uint32_t offset,
                            const std::string& kernel_name = {}) const;
 
-  /// All decoded rows, in statement-list order.
-  const std::vector<dwarf_debug_row>& get_all_rows() const { return m_rows; }
+  // All decoded rows, in statement-list order.
+  // Must not be called after release_rows().
+  const std::vector<dwarf_debug_row>& get_all_rows() const
+  {
+    assert(!m_rows_released && "get_all_rows() called after release_rows()");
+    return m_rows;
+  }
+
+  // True if a line row (line > 0) exists at exactly (col, page_idx, offset).
+  // O(1) — used by decode_opcode as an instruction-boundary check.
+  bool has_line_row(uint32_t col, uint32_t page_idx, uint32_t offset) const noexcept
+  {
+    return m_line_row_set.count(make_key(col, page_idx, offset)) != 0;
+  }
 
   /**
    * Resolve the CU name for a row returned by get_all_rows() or find_row().
    * Returns a stable reference into the intern table — valid for the lifetime
    * of this dwarf_reader.  Returns an empty string if cu_name_idx is UINT32_MAX.
+   * Must not be called after release_rows().
    */
   const std::string& cu_name_of(const dwarf_debug_row& row) const;
 
 private:
-  static constexpr uint32_t PAGE_SIZE = 0x2000; ///< 8 KiB per page
+  static constexpr uint32_t PAGE_SIZE        = 0x2000; ///< 8 KiB per page
+  static constexpr uint32_t k_col_shift      = 48;     ///< col occupies bits [63:48]
+  static constexpr uint32_t k_page_idx_shift = 16;     ///< page_idx occupies bits [47:16]
 
   bool m_has_dwarf = false;
+  bool m_rows_released = false;        ///< Set by release_rows(); guards against misuse.
   std::vector<dwarf_debug_row> m_rows;
   std::vector<std::string> m_cu_names; ///< Intern table: unique CU names (small set — one per subgraph)
+
+  // Set of make_key(col, page_idx, offset) for all line rows (line > 0), across all CUs.
+  // Built once at construction; supports O(1) has_line_row() used by decode_opcode.
+  // Only used by the format_operation path (kernel_name empty) where the caller
+  // already holds addresses from filtered rows of a single instance — no cross-instance
+  // ambiguity.  The health-reporting path (kernel_name set) bypasses this set and uses
+  // find_row(kernel_name) instead, which filters to the specific instance.
+  std::unordered_set<uint64_t> m_line_row_set;
+
+  // Pack (col, page_idx, offset) into a 64-bit key.
+  // col uses bits [63:48], page_idx bits [47:16], offset bits [15:0].
+  // Defined inline so has_line_row() — a hot path — compiles to a single hash lookup.
+  static uint64_t make_key(uint32_t col, uint32_t page_idx, uint32_t offset) noexcept
+  {
+    return (static_cast<uint64_t>(col)      << k_col_shift)
+         | (static_cast<uint64_t>(page_idx) << k_page_idx_shift)
+         | static_cast<uint64_t>(offset);
+  }
+
+  /// Populate m_line_row_set from m_rows. Called once at end of construction.
+  void build_row_set();
 
   // Intern a CU name string, returning a stable index into m_cu_names.
   // Idempotent: same string always returns the same index.
