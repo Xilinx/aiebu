@@ -98,6 +98,10 @@ paging(const std::unordered_map<uint32_t, std::vector<uint32_t>>& buffers,
             // Update the page header of the primary buffer with the number of probes in the page, 
             // page length and page index.
             update_page_header(m_primary_buffer);
+            // Align the primary buffer to the page size.
+            if (m_primary_buffer.size() < static_cast<size_t>(m_page_index + 1) * m_page_size)
+                m_primary_buffer.resize(static_cast<size_t>(m_page_index + 1) * m_page_size, 0);
+
             return m_primary_buffer;
         }
 
@@ -112,6 +116,10 @@ paging(const std::unordered_map<uint32_t, std::vector<uint32_t>>& buffers,
         // Update the page header of the primary buffer with the number of probes 
         // in the page, page length and page index.
         update_page_header(m_primary_buffer);
+        // Align the primary buffer to the page size.
+        if (m_primary_buffer.size() < static_cast<size_t>(m_page_index + 1) * m_page_size)
+            m_primary_buffer.resize(static_cast<size_t>(m_page_index + 1) * m_page_size, 0);
+
         return m_primary_buffer;
     }
     catch (const std::exception& e)

@@ -7,6 +7,7 @@
     "boost-interprocess",
     "boost-algorithm",
     "boost-property-tree",
-    "boost-headers"
+    "boost-headers",
+    "tree-sitter-cli"
   ]
 }

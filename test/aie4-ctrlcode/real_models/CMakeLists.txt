@@ -8,6 +8,10 @@
 
 set(aie4_real_models
   DMA_compiler/test_1
+  DMA_compiler/test_2
+  DMA_compiler/test_3
+  DMA_compiler/test_4
+  DMA_compiler/test_5
   X3/test_6
   X3/test_7
   X3/test_8

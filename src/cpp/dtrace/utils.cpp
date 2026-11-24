@@ -133,6 +133,7 @@ get_filtered_section_indices(const std::string& filter_kernel,
       break;
     }
   }
+
   if (kernel_symbol_index == 0)
     return {};
 
@@ -150,6 +151,7 @@ get_filtered_section_indices(const std::string& filter_kernel,
     const char* sym_name = strtab->get_data() + sym->st_name;
     if (sym->st_shndx != kernel_symbol_index)
       continue;
+
     if (!filter_instance.empty()) {
       if (std::string(sym_name) == filter_instance) {
         instance_symbol_index = static_cast<ELFIO::Elf_Word>(i);
@@ -157,6 +159,7 @@ get_filtered_section_indices(const std::string& filter_kernel,
       }
       continue;
     }
+
     // filter_instance is empty: accept first matching instance, error on second distinct one
     if (instance_symbol_index == 0)
       instance_symbol_index = static_cast<ELFIO::Elf_Word>(i);
@@ -173,6 +176,7 @@ get_filtered_section_indices(const std::string& filter_kernel,
     const ELFIO::section* section = section_ptr.get();
     if (section->get_type() != ELFIO::SHT_GROUP)
       continue;
+
     if (section->get_info() != instance_symbol_index)
       continue;
 
@@ -187,51 +191,68 @@ get_filtered_section_indices(const std::string& filter_kernel,
   return section_indices;
 }
 
-// ── DWARF-to-JSON helper ─────────────────────────────────────────────────────
-// Synthesizes the same JSON structure that the legacy .dump section contained,
-// from the rows decoded by dwarf_reader.  The parser expects:
-//
-//   { "debug": [
-//       { "file": "path", "operation": "start_job 0", "page_index": "N", "page_offset": "N",
-//         "column": "N", "line": "N" },          ← line rows (line > 0)
-//       { ..., "annotation": { "id": "X" } },    ← annotation rows (annotation_id set)
-//       ...
-//   ]}
-//
-// "operation" is decoded via ISA binary walk (format_operation) so that the
-// dtrace `operation` built-in variable is populated with the real mnemonic.
-// "page_offset" is the absolute byte offset from the start of the .ctrltext section
-// (page_index * PAGE_SIZE + relative_offset), matching the .dump convention.
-// The dtrace parser subtracts page_index * page_size to recover the relative offset.
-static std::string dwarf_rows_to_json(const std::vector<aiebu::dwarf_debug_row>& rows,
-                                      const ELFIO::elfio& elf,
-                                      const std::string& kernel_instance)
+//-------------------------dwarf_rows_to_json-------------------------//
+/**
+ * dwarf_rows_to_json() - Synthesizes the same JSON structure that the legacy .dump section contained,
+ * from the rows decoded by dwarf_reader.
+ *
+ * @param rows
+ *  Rows decoded by dwarf_reader.
+ * @param elf
+ *  ELFIO elfio object.
+ * @param kernel_instance
+ *  Kernel instance.
+ *
+ * @return
+ *  JSON string.
+ *
+ * The parser expects:
+ *
+ * { "debug": [
+ *   { "file": "path", "operation": "start_job 0", "page_index": "N", "page_offset": "N",
+ *     "column": "N", "line": "N" },          ← line rows (line > 0)
+ *   { ..., "annotation": { "id": "X" } },    ← annotation rows (annotation_id set)
+ *   ...
+ * ]}
+ *
+ * "operation" is decoded via ISA binary walk (format_operation) so that the
+ * dtrace `operation` built-in variable is populated with the real mnemonic.
+ * "page_offset" is the absolute byte offset from the start of the .ctrltext section
+ * (page_index * PAGE_SIZE + relative_offset), matching the .dump convention.
+ * The dtrace parser subtracts page_index * page_size to recover the relative offset.
+ */
+std::string 
+dwarf_rows_to_json(const std::vector<aiebu::dwarf_debug_row>& rows,
+                   const ELFIO::elfio& elf, const std::string& kernel_instance)
 {
   if (rows.empty())
     return {};
 
   // Decode operations once per unique (column, address) pair to avoid redundant
-  // ISA walks. Column is part of the key because DWARF addresses (page*PAGE_SIZE
-  // + offset) are only unique within a single control column.
+  // ISA walks. Column is part of the key because DWARF addresses 
+  // (page*PAGE_SIZE + offset) are only unique within a single control column.
   // resolve_group_name_id() is called once; format_operation() once per pair.
   const aiebu::AIEDebug aie_debug(elf);
   const uint32_t name_id = aie_debug.resolve_group_name_id(kernel_instance);
-  std::map<std::pair<uint32_t, uint32_t>, std::string> addr_to_op; // {col, addr} → op
+
   // Annotation rows (line == 0) share their address with a co-located line row.
   // Build a lookup so the annotation id can be merged into the line row's JSON
   // entry — matching the .dump convention that the dtrace parser expects.
   std::map<std::pair<uint32_t, uint32_t>, std::string> addr_to_ann; // {col, addr} → id
+  std::map<std::pair<uint32_t, uint32_t>, std::string> addr_to_op; // {col, addr} → op
   for (const auto& row : rows) {
     if (row.line == 0) {
       if (!row.annotation_id.empty())
         addr_to_ann.emplace(std::make_pair(row.column, row.address), row.annotation_id);
+
       continue; // annotation rows share address with their enclosing line row
     }
+
     const auto cache_key = std::make_pair(row.column, row.address);
     if (addr_to_op.find(cache_key) == addr_to_op.end())
-      addr_to_op.emplace(cache_key,
-                         aie_debug.format_operation(name_id, row.column,
-                                                    row.page_index, row.page_offset));
+      addr_to_op.emplace(
+        cache_key, aie_debug.format_operation(name_id, row.column, row.page_index, row.page_offset)
+      );
   }
 
   // Build JSON manually to avoid pulling in nlohmann or boost::json here.
@@ -246,8 +267,8 @@ static std::string dwarf_rows_to_json(const std::vector<aiebu::dwarf_debug_row>&
 
     if (!first)
       out << ',';
-    first = false;
 
+    first = false;
     const auto op_it = addr_to_op.find({row.column, row.address});
     const std::string op = (op_it != addr_to_op.end()) ? op_it->second : std::string{};
 
@@ -338,6 +359,7 @@ get_debug_section_json(const std::string& kernel_instance_filter) const
       const ELFIO::section* sec = section_ptr.get();
       if (sec->get_type() != ELFIO::SHT_PROGBITS)
         continue;
+
       if (section_indices.find(sec->get_index()) == section_indices.end())
         continue;
 
@@ -370,19 +392,25 @@ get_debug_section_json(const std::string& kernel_instance_filter) const
     if (row.cu_name_idx == UINT32_MAX) continue;
     if (!seen_cu_indices.insert(row.cu_name_idx).second)
       continue; // already evaluated this CU index
+
     const std::string& cu_name = reader.cu_name_of(row);
     const size_t cu_delim = cu_name.find(':');
-    if (cu_delim == std::string::npos) continue;
+    if (cu_delim == std::string::npos) 
+      continue;
+
     const std::string cu_kernel   = cu_name.substr(0, cu_delim);
     const std::string cu_instance = cu_name.substr(cu_delim + 1);
     const std::string demangled   = extract_kernel_name_from_mangled(cu_kernel);
     if (demangled != filter_kernel && cu_kernel != filter_kernel)
       continue;
+
     if (!filter_instance.empty()) {
       if (cu_instance == filter_instance)
         matching_cu_indices.insert(row.cu_name_idx);
+
       continue;
     }
+
     // No instance specified: accept first matching instance, error on second distinct
     if (first_instance.empty()) {
       first_instance = cu_instance;

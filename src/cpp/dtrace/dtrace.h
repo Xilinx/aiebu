@@ -19,23 +19,6 @@ class elfio;
 using dtrace_handle_t = void*;  // NOLINT
 
 /*!
- * create_dtrace_handle() - Creates a handle to the dynamic tracing context.
- *
- * @script_file:    Path to script file containing probe and action details.
- * @map_data:       Optional debug information JSON from the ELF. Required when
- *                  the control script uses jprobe or profile; may be empty for
- *                  begin, end, and tracepoint probes.
- * @log_level:      Log level for debugging.
- * @output_fmt:     Output format for result file.
- *
- * @return Opaque raw handle to the dynamic tracing context owned by the caller, or NULL on failure.
- * @note The caller must release this handle by calling destroy_dtrace_handle().
- */
-dtrace_handle_t
-create_dtrace_handle(const std::string& script_file, const std::string& map_data, uint32_t log_level,
-    uint32_t output_fmt);
-
-/*!
  * create_dtrace_handle_elf() - Creates a handle to the dynamic tracing from an ELF.
  *
  * @script_file:       Path to script file containing probe and action details.

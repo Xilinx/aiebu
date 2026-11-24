@@ -9,6 +9,11 @@ namespace aiebu {
 
 class aie4_preprocessor_input : public asm_preprocessor_input
 {
+protected:
+  void patch_ctrl57_aie4_addend(std::vector<char>& buf, uint32_t offset, uint64_t addend) const;
+  void patch_ctrlpkt_addend(std::vector<char>& buf, uint32_t offset, uint64_t addend) const override;
+  const char* control_packet_patch_schema_name() const override { return "control_packet_57_aie4"; }
+
 public:
   aie4_preprocessor_input() {
     control_packet_patching = symbol::patch_schema::control_packet_57_aie4;
