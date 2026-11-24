@@ -37,7 +37,10 @@ process(bool makeunique)
   code_section csection = code_section::text;
   uint32_t index = 0;
   uint32_t eopnum = 0;
+  // clabelname and clabel must be updated together. They are cached here
+  // to reduce look up in every iteration as we walk through the operations.
   std::string clabelname;
+  std::shared_ptr<label> clabel;
   jobid_type cjob_id = "";
   std::map<std::string, uint32_t> apply_label_map;
   for (const auto& data : m_data)
@@ -51,13 +54,15 @@ process(bool makeunique)
       auto lb_it = m_labelmap.lower_bound(clabelname);
       if (lb_it != m_labelmap.end() && lb_it->first == clabelname)
         throw error(error::error_code::invalid_asm, "Label " + clabelname + " present multiple time in asm\n");
-      m_labelmap.emplace_hint(lb_it, clabelname, std::make_shared<label>(clabelname, m_pos, index));
+      auto ins_it = m_labelmap.emplace_hint(lb_it, clabelname, std::make_shared<label>(clabelname, m_pos, index));
+      clabel = ins_it->second;
       m_labellist.emplace_back(clabelname);
     } else if (data->isOpcode()){
       const std::string& name = data->get_operation().get_name();
       if (!name.compare("start_job") || !name.compare("start_job_deferred") || !name.compare("start_cond_job_preempt"))
       {
         clabelname.clear();
+        clabel.reset();
         cjob_id = gen_job_name(makeunique, data, eopnum);
         auto j_it = m_jobmap.lower_bound(cjob_id);
         if (j_it != m_jobmap.end() && j_it->first == cjob_id)
@@ -126,13 +131,13 @@ process(bool makeunique)
       throw error(error::error_code::internal_error, "Unknown type found!!!");
     }
 
-    if (!clabelname.empty())
+    if (clabel)
     {
       const std::string& opnm = data->get_operation().get_name();
       if (opnm != ".align" && opnm != ".eop" && opnm != "eof")
       {
-        m_labelmap[clabelname]->increment_count(1);
-        m_labelmap[clabelname]->increment_size(data->get_size());
+        clabel->increment_count(1);
+        clabel->increment_size(data->get_size());
       }
     }
     ++index;

@@ -508,6 +508,9 @@ class asm_parser: public std::enable_shared_from_this<asm_parser>
   std::array<std::shared_ptr<directive>, asm_directive_count> directive_list{};
   std::stack<bool> isdatastack;
   std::string m_current_label = "default";
+  // Cached get_pagelabel(m_current_label); updated only when m_current_label
+  // changes instead of being recomputed for every parsed line (perf: R2).
+  std::string m_current_pagelabel = "default";
   int m_current_col = -1;
   uint32_t m_current_parse_file_idx = static_cast<uint32_t>(-1);
   const std::vector<std::string>& m_include_list;
@@ -838,21 +841,24 @@ public:
 
   std::string top_label() const
   {
-    std::vector<std::string> labels = splitoption(m_current_label.c_str(), ':');
-    if (labels.size() == 0)
+    if (m_current_label.empty())
       throw error(error::error_code::internal_error, "invalid current label:" + m_current_label);
-    return labels[labels.size() - 1];
+    return m_current_label.substr(m_current_label.rfind(':') + 1);
   }
 
   void pop_label()
   {
     size_t pos = m_current_label.rfind(':');
     if (pos != std::string::npos) {
-        m_current_label =  m_current_label.substr(0, pos);
+      set_current_label(m_current_label.substr(0, pos));
     }
   }
 
-  void set_current_label(std::string& label) { m_current_label = label; }
+  void set_current_label(const std::string& label)
+  {
+    m_current_label = label;
+    m_current_pagelabel = get_pagelabel(m_current_label);
+  }
 
   void insert_col_asmdata(std::shared_ptr<asm_data> data);
 
