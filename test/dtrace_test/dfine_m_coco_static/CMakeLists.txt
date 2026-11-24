@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2026 Advanced Micro Devices, Inc. All rights reserved.
+
+# Test dfine m coco static script
+add_custom_command(OUTPUT dfine_m_coco_static.elf
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake" -d "${CMAKE_CURRENT_SOURCE_DIR}/dfine_m_coco_static.b64" dfine_m_coco_static.elf
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/dfine_m_coco_static.b64"
+  COMMENT "Decoding base64 ELF to binary in ${CMAKE_CURRENT_BINARY_DIR}"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  VERBATIM
+  )
+
+add_custom_target(dtrace_dfine_m_coco_static_elf ALL
+  DEPENDS dfine_m_coco_static.elf
+  )
+
+add_test(NAME "dtrace_dfine_m_coco_static"
+  COMMAND ${DTRACE_TESTNAME}
+    "${AIEBU_SOURCE_DIR}/test/dtrace_test/dfine_m_coco_static"
+    "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_dfine_m_coco_static.dat"
+    "json"
+    "elf" "${CMAKE_CURRENT_BINARY_DIR}/dfine_m_coco_static.elf" "DPU:test"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+add_test(NAME "dtrace_dfine_m_coco_static_md5sum"
+  COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_dfine_m_coco_static.dat"
+  "${AIEBU_SOURCE_DIR}/test/dtrace_test/dfine_m_coco_static/gold.md5"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_dfine_m_coco_static_md5sum" PROPERTIES DEPENDS "dtrace_dfine_m_coco_static")
+
+add_test(NAME "dtrace_dfine_m_coco_static_result_md5sum"
+  COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
+  "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_dfine_m_coco_static.json"
+  "${CMAKE_CURRENT_SOURCE_DIR}/gold_result.json"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+set_tests_properties("dtrace_dfine_m_coco_static_result_md5sum" PROPERTIES DEPENDS "dtrace_dfine_m_coco_static")
