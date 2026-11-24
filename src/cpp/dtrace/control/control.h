@@ -61,7 +61,6 @@ private:
     std::vector<std::vector<std::pair<std::shared_ptr<dtrace::action::action>, uint32_t>>> m_result_actions;
     dtrace::dtrace_output_format m_output_format;
     void populate_result_actions();
-    void setup(const std::string& script_file); ///< shared constructor body
 
 public:
     explicit control(const std::string& script_file, const dtrace::debug_map_t& debug_map);

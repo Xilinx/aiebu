@@ -24,19 +24,25 @@ dtrace_output_format g_current_output_format = dtrace_output_format::python; // 
 // variable to store current log level
 dtrace_log_level g_current_log_level = dtrace_log_level::dtrace_error;  // NOLINT
 
-//-------------------------control::setup-------------------------//
+//-------------------------control::control-------------------------//
 /**
- * setup() - Shared constructor body: reads the script file and builds control buffers.
+ * control() - Constructor with script file and map data
  *
  * @param script_file
  *  Script file containing the probe and action details.
+ * @param debug_map
+ *  Debug map data containing details of control code.
  *
- * Called by both constructors after m_parser has been initialised.
- * Reads and parses the script, creates per-uC control and memory buffers
+ * This constructor initializes the control object by reading and parsing a script
+ * file, and setting up control and memory buffers based on the parsed data.
  */
-void
 control::
-setup(const std::string& script_file)
+control(const std::string& script_file, const dtrace::debug_map_t& debug_map)
+    : m_pager(true)
+    , m_parser(debug_map)
+    , m_output_format(dtrace::get_output_format())
+    , m_num_uCs(0)
+    , m_mem_action_present(false)
 {
     DTRACE_INFO("DTRACE LOG LEVEL " << static_cast<int>(dtrace::get_current_log_level()));
     DTRACE_INFO("DTRACE OUTPUT FORMAT " << static_cast<int>(m_output_format));
@@ -149,19 +155,8 @@ setup(const std::string& script_file)
     // Populate result actions in execution order across probes
     control::populate_result_actions();
 
-    // m_maps was needed during setup. After setup it is fully consumed, so clear it
+    // Clear parser maps
     m_parser.clear_maps();
-}
-
-control::
-control(const std::string& script_file, const dtrace::debug_map_t& debug_map)
-    : m_pager(true)
-    , m_parser(debug_map)
-    , m_output_format(dtrace::get_output_format())
-    , m_num_uCs(0)
-    , m_mem_action_present(false)
-{
-    setup(script_file);
 }
 
 //-------------------------control::create_control_buffer-------------------------//

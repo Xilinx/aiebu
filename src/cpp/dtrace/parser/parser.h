@@ -96,9 +96,7 @@ public:
     std::unordered_map<uint32_t, std::vector<std::string>> m_probe_order;
     std::set<uint32_t> m_uC_indices;
     void parse_line(const std::string& parse_line);
-
-    // Call this after setup to release m_maps. m_maps is O(ELF rows) and 
-    // is fully consumed once all probes and actions have been constructed.
+    // Clear parser maps
     void clear_maps() { m_maps = {}; }
 };
 
