@@ -2,16 +2,26 @@
 # Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 # Test mem action across multiple lines and columns.
-# Uses the DWARF ELF from dtrace_multi_col_generate_elf (DPU kernel, instance dpu).
+add_custom_command(OUTPUT multi_col.elf
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake" -d "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col/multi_col.b64" multi_col.elf
+  DEPENDS "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col/multi_col.b64"
+  COMMENT "Decoding base64 ELF to binary in ${CMAKE_CURRENT_BINARY_DIR}"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  VERBATIM
+  )
+
+add_custom_target(dtrace_multi_col_mem_action_elf ALL
+  DEPENDS multi_col.elf
+  )
+
 add_test(NAME "dtrace_multi_col_mem_action"
   COMMAND ${DTRACE_TESTNAME}
     "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col_mem_action"
     "${CMAKE_CURRENT_BINARY_DIR}/control_buffer_multi_col_mem_action.dat"
     "python"
-    "elf" "${CMAKE_BINARY_DIR}/test/dtrace_test/multi_col/multi_col.elf" "DPU:dpu"
+    "elf" "${CMAKE_CURRENT_BINARY_DIR}/multi_col.elf" "DPU:dpu"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
-set_tests_properties("dtrace_multi_col_mem_action" PROPERTIES DEPENDS "dtrace_multi_col_generate_elf")
 
 add_test(NAME "dtrace_multi_col_mem_action_md5sum"
   COMMAND cmake -P "${AIEBU_SOURCE_DIR}/cmake/md5sum-compare.cmake"

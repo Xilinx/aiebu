@@ -207,16 +207,33 @@ if (NOT WIN32)
   target_link_libraries(${ELF_READER_TESTNAME} PRIVATE pthread)
 endif()
 
-# ELFs decoded from base64 by the dtrace dump tests. No assembler dependency.
+# ELFs decoded from the checked-in base64 files. No assembler dependency.
+add_custom_command(OUTPUT multi_uc_6.elf
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake" -d "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col_dump/multi_uc_6.b64" multi_uc_6.elf
+  DEPENDS "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col_dump/multi_uc_6.b64"
+  COMMENT "Decoding base64 ELF to binary in ${CMAKE_CURRENT_BINARY_DIR}"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  VERBATIM)
+
+add_custom_command(OUTPUT simple_int8_orig.elf
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake" -d "${AIEBU_SOURCE_DIR}/test/dtrace_test/single_col_dump/simple_int8_orig.b64" simple_int8_orig.elf
+  DEPENDS "${AIEBU_SOURCE_DIR}/test/dtrace_test/single_col_dump/simple_int8_orig.b64"
+  COMMENT "Decoding base64 ELF to binary in ${CMAKE_CURRENT_BINARY_DIR}"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  VERBATIM)
+
+add_custom_target(elf_reader_input_elfs ALL
+  DEPENDS multi_uc_6.elf simple_int8_orig.elf)
+
 add_test(NAME "elf_reader_aie2ps_legacy"
   COMMAND ${ELF_READER_TESTNAME}
-    "${CMAKE_BINARY_DIR}/test/dtrace_test/multi_col_dump/multi_uc_6.elf"
+    "${CMAKE_CURRENT_BINARY_DIR}/multi_uc_6.elf"
     aie2ps_legacy
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME "elf_reader_aie2ps"
   COMMAND ${ELF_READER_TESTNAME}
-    "${CMAKE_BINARY_DIR}/test/dtrace_test/single_col_dump/simple_int8_orig.elf"
+    "${CMAKE_CURRENT_BINARY_DIR}/simple_int8_orig.elf"
     aie2ps
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
