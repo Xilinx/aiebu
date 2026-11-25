@@ -247,7 +247,11 @@ struct AIEDebug::decode_cache {
   {}
 
   /// Reset address and label state before each use so stale values don't bleed through.
-  void reset() { state->reset(); }
+  void reset()
+  {
+    state->reset();
+    state->reset_column_state();
+  }
 };
 
 AIEDebug::AIEDebug(const ELFIO::elfio& elf) : m_elf(elf)
@@ -618,7 +622,7 @@ AIEDebug::decode_opcode(uint32_t uc_idx, uint32_t page_idx,
       const auto opbyte = static_cast<uint8_t>(instr_data[instr_offset]);
       const auto it = isa_map->find(opbyte);
       if (it != isa_map->end()) {
-        size_t op_size = 2;
+        size_t op_size = (opbyte == k_align_opcode) ? 1 : 2;
         for (const auto& arg : it->second.get_args())
           op_size += arg.get_width() / byte_to_bits;
         if (instr_offset + op_size > instr_size) {

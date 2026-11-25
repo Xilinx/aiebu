@@ -60,8 +60,8 @@ create_dtrace_handle_elf(const std::string& script_file, const ELFIO::elfio& elf
         }
 
         const dtrace::debug_map_t debug_map = group_elf
-            ? elf_map.get_debug_map(kernel_instance)
-            : elf_map.get_debug_map();
+            ? elf_map.get_debug_map(kernel_instance) // Full ELF: kernel instance is required 
+            : elf_map.get_debug_map();               // Partial ELF: kernel instance is not required and should be empty
 
         // Create new dtrace handle
         auto handle = std::make_unique<dtrace_command_handle>();
@@ -69,6 +69,7 @@ create_dtrace_handle_elf(const std::string& script_file, const ELFIO::elfio& elf
         dtrace::set_log_level(log_level);
         dtrace::set_output_format(output_fmt);
 
+        // Initialize the memory host address map and dtrace compiler control object
         handle->g_control = std::make_unique<dtrace::control>(script_file, debug_map);
 
         // Returns an opaque raw handle.

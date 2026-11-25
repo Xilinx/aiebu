@@ -19,13 +19,14 @@ namespace dtrace::parser
 
 //-------------------------Parser Constructor-------------------------//
 /**
- * parser() - Constructor for the parser class (structured debug map).
+ * parser() - Constructor for the parser class.
  *
  * @param debug_map
- *  Structured debug map built from .dump JSON or DWARF v5 sections.
+ *  Debug map data with details of control code.
  *
- * Populates m_maps from the structured entries directly — no JSON parsing.
- * Logic mirrors parser(string) but reads from debug_entry fields.
+ * Initializes the parser object with the provided map data and memory host address map.
+ * It sets the initial state to `probe` and initializes parser member variables.
+ * Debug map data is parsed and stored in the `m_maps` member variable.
  */
 parser::
 parser(const dtrace::debug_map_t& debug_map)
@@ -41,52 +42,61 @@ parser(const dtrace::debug_map_t& debug_map)
         return;
     }
 
+    // Track probe keys to detect filename conflicts retroactively during single-pass processing
     struct probe_tracking {
-        bool conflict = false;
-        std::string file_path;
-        std::vector<std::string> m_maps_keys;
+        bool conflict = false;                // conflict detected for the tracking key
+        std::string file_path;                // file path associated with the probe keys
+        std::vector<std::string> m_maps_keys; // populated m_maps keys populated
     };
     std::map<std::string, probe_tracking> tracking_map;
 
-    for (const auto& e : debug_map)
+    // Process line-based entries
+    for (const auto& item : debug_map)
     {
-        // debug_map_t entries always have line > 0, but guard defensively
-        if (e.line == 0)
+        // Extract file name and path from the map data
+        const std::string& file_path = item.file;
+        const std::string file_name = std::filesystem::path(file_path).filename().string();
+        
+        // Skip entries with line 0, guard defensively
+        if (item.line == 0)
             continue;
 
-        // Skip pseudo-operations that cannot be jprobe targets
-        std::string operation = e.operation;
+        // Skip invalid operations for jprobes
+        std::string operation = item.operation;
         std::transform(operation.begin(), operation.end(), operation.begin(),
                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (operation == "eof" || operation.find(".align") != std::string::npos ||
             operation.find(".long") != std::string::npos)
             continue;
 
-        const std::string& file_path = e.file;
-        const std::string file_name = std::filesystem::path(file_path).filename().string();
-        const std::string column = std::to_string(e.column);
-        const std::string line   = std::to_string(e.line);
-
         dtrace::action::probe_information probe_information;
-        probe_information.operation   = e.operation;
-        probe_information.page_index  = std::to_string(e.page_index);
-        probe_information.page_offset = std::to_string(e.page_offset);
+        probe_information.operation   = item.operation;
+        probe_information.page_index  = std::to_string(item.page_index);
+        probe_information.page_offset = std::to_string(item.page_offset);
 
+        // Process line-based entries
+        const std::string column = std::to_string(item.column);
+        const std::string line   = std::to_string(item.line);
         const std::string tracking_key = file_name + ":uc" + column;
         std::string m_maps_key = "jprobe:" + file_name + ":uc" + column + ":line" + line;
 
         bool has_conflict = false;
+        // check if tracking key exists in tracking map
         if (tracking_map.find(tracking_key) == tracking_map.end()) {
             tracking_map[tracking_key] = probe_tracking();
             tracking_map[tracking_key].file_path = file_path;
             tracking_map[tracking_key].m_maps_keys.push_back(m_maps_key);
         } else {
+            // If tracking key already exists, check conflict and file path
             auto& tracking = tracking_map[tracking_key];
             if (tracking.conflict) {
+                // If conflict already detected, mark new key as conflict
                 has_conflict = true;
             } else if (tracking.file_path != file_path) {
                 has_conflict = true;
                 tracking.conflict = true;
+
+                // Update existing keys to use full path
                 for (const auto& tracked_key : tracking.m_maps_keys) {
                     auto value = m_maps.at(tracked_key);
                     m_maps.erase(tracked_key);
@@ -96,21 +106,25 @@ parser(const dtrace::debug_map_t& debug_map)
                 }
                 tracking.m_maps_keys.clear();
             } else {
+                // No conflict, just add the new key to tracking
                 tracking.m_maps_keys.push_back(m_maps_key);
             }
         }
 
+        // Store line key in m_maps based on conflict
         if (has_conflict)
             m_maps_key = "jprobe:" + file_path + ":uc" + column + ":line" + line;
 
         m_maps[m_maps_key] = probe_information;
 
-        if (!e.annotation_id.empty()) {
+        // Store annotation key if exists, based on conflict
+        if (!item.annotation_id.empty()) {
             const std::string m_maps_annotation_key =
                 "jprobe:" + (has_conflict ? file_path : file_name) +
-                ":uc" + column + ":annotation" + e.annotation_id;
+                ":uc" + column + ":annotation" + item.annotation_id;
             m_maps[m_maps_annotation_key] = probe_information;
 
+            // Store annotation key in tracking if no conflict
             if (!has_conflict) {
                 auto& tracking = tracking_map[tracking_key];
                 tracking.m_maps_keys.push_back(m_maps_annotation_key);

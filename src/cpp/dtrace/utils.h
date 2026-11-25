@@ -143,9 +143,9 @@ public:
  * @brief Builds a structured debug map from ELF binaries for dtrace.
  *
  * @details
- * Extracts debug information from ELF binaries and returns it as a debug_map_t
- * (structured vector of debug_entry), avoiding JSON serialisation for DWARF ELFs
- * and reducing JSON parsing to a single pass for .dump ELFs.
+ * The elf_debug_map class provides methods to extract the debug section from ELF binaries, 
+ * allowing retrieval of the debug section. The class uses the ELFIO library to parse
+ * the ELF files and extract the relevant sections based on the provided kernel instance filter
  */
 class elf_debug_map {
 public:
@@ -154,13 +154,10 @@ public:
  // True for full ELF; false for partial ELF.
   static bool is_group_elf(const ELFIO::elfio& elf);
 
-  // Partial ELF: build debug_map_t from .dump section (parses JSON once).
-  // Returns empty map when no .dump section is present.
+  // Partial ELF: returns .dump section JSON, or empty if no .dump section found.
   debug_map_t get_debug_map() const;
 
-  // Full ELF: build debug_map_t from .dump (group-filtered) or DWARF v5 rows directly.
-  // No JSON serialisation round-trip for DWARF ELFs.
-  // Returns empty map when no debug information is found.
+  // Full ELF: .dump section for kernel:instance (group-filtered), or DWARF v5 rows
   debug_map_t get_debug_map(const std::string& kernel_instance) const;
 
 private:
@@ -169,25 +166,20 @@ private:
   static std::string extract_kernel_name_from_mangled(const std::string& symbol_name);
 
   // Split "kernel:instance" or "kernel" into separate parts.
-  // When no ':' is present, kernel receives the full string and instance is empty
-  // (single-instance callers may omit the instance suffix).
-  static void parse_kernel_instance(const std::string& filter,
-                                     std::string& kernel,
-                                     std::string& instance);
+  static void parse_kernel_instance(const std::string& filter, std::string& kernel,
+                                    std::string& instance);
 
+  // Return the section indices matching filter_kernel(:filter_instance).
   std::set<ELFIO::Elf_Half>
   get_filtered_section_indices(const std::string& filter_kernel,
                                const std::string& filter_instance) const;
 
   // Return the first .dump-prefixed PROGBITS section whose index is in
   // section_indices, or nullptr when none is found.
-  const ELFIO::section* find_dump_section(
-      const std::set<ELFIO::Elf_Half>& section_indices) const;
+  const ELFIO::section* find_dump_section(const std::set<ELFIO::Elf_Half>& section_indices) const;
 
   // Return all DWARF rows matching filter_kernel(:filter_instance) together with
-  // the constructed dwarf_reader, so callers can pass the reader to AIEDebug
-  // (via the shared_dwarf constructor) and avoid a second ELF scan.
-  // Returns {empty, null} when DWARF is absent or no CU matches.
+  // the constructed dwarf_reader or {empty, null} when DWARF is absent or no CU matches.
   std::pair<std::vector<aiebu::dwarf_debug_row>, std::unique_ptr<aiebu::dwarf_reader>>
   get_filtered_dwarf_rows(const std::string& filter_kernel,
                           const std::string& filter_instance) const;

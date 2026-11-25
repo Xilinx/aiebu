@@ -30,3 +30,7 @@ add_subdirectory(profile)
 # benchmark test
 add_subdirectory(wayve_vit_encoder)
 add_subdirectory(anduril_yolox)
+add_subdirectory(bevformer_dtrace_data)
+add_subdirectory(dfine_m_coco_static)
+add_subdirectory(sparsebev_r50_nuimg_encoder)
+add_subdirectory(camo_facedetection)
