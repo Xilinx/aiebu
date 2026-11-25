@@ -2,7 +2,8 @@
 # Copyright (C) 2026 Advanced Micro Devices, Inc.
 
 # DMA_compiler: <model>/config.json (asm cwd = model dir).
-# X3: <model>/Work/ps/elf/aiebu_config.json (asm cwd = Work/ps/elf).
+# X3: <model>/Work/ps is staged into the build dir (Work/ps/elf/aiebu_config.json,
+#     asm cwd = build-dir Work/ps/elf); ctrl_pkt0.bin is decoded into the build dir too.
 # Shared prebuilt asm: test/aie4-ctrlcode/real_models/DMA_compiler/prebuilt.
 # If missing, link from build/real_test/prebuilt (see copy_models.sh).
 
@@ -32,37 +33,44 @@ function(add_aie4_real_model_test model skip_elftolegacy_var)
   set(config_path "${model_dir}/config.json")
   set(asm_work_dir "${model_dir}")
 
-  if(NOT EXISTS "${config_path}")
-    set(config_path "${model_dir}/Work/ps/elf/aiebu_config.json")
-    set(asm_work_dir "${model_dir}/Work/ps/elf")
-  endif()
-
-  if(NOT EXISTS "${config_path}")
-    message(STATUS "aie4 real_models: skipping ${model} (no config.json or Work/ps/elf/aiebu_config.json)")
-    return()
-  endif()
-
   string(REPLACE "/" "_" model_id "${model}")
   set(test_bin "${CMAKE_CURRENT_BINARY_DIR}/${model_id}")
   file(MAKE_DIRECTORY "${test_bin}")
 
-  set(test_prefix "aie4_real_${model_id}")
-  set(elf_name "control.elf")
-  set(elf_path "${test_bin}/${elf_name}")
+  set(ctrl_pkt_bin "")
 
-  set(ctrl_pkt_b64 "${model_dir}/Work/ps/ctrl_pkt/ctrl_pkt0.b64")
-  set(ctrl_pkt_bin "${model_dir}/Work/ps/ctrl_pkt/ctrl_pkt0.bin")
-  if(EXISTS "${ctrl_pkt_b64}")
+  if(NOT EXISTS "${config_path}")
+    # X3 layout: stage Work/ps into the build dir and decode ctrl_pkt0.bin there,
+    # like move_ddr_to_memtile_ctrlpkt does. The source tree stays untouched, and
+    # the relative paths in external_buffer_id.json resolve to the build-dir copy.
+    set(ps_src "${model_dir}/Work/ps")
+    set(ps_bin "${test_bin}/Work/ps")
+    set(config_path "${ps_bin}/elf/aiebu_config.json")
+    set(asm_work_dir "${ps_bin}/elf")
+
+    if(NOT EXISTS "${ps_src}/elf/aiebu_config.json")
+      message(STATUS "aie4 real_models: skipping ${model} (no config.json or Work/ps/elf/aiebu_config.json)")
+      return()
+    endif()
+
+    set(ctrl_pkt_b64 "${ps_src}/ctrl_pkt/ctrl_pkt0.b64")
+    set(ctrl_pkt_bin "${ps_bin}/ctrl_pkt/ctrl_pkt0.bin")
+    file(GLOB_RECURSE ps_files "${ps_src}/*")
     add_custom_command(
-      OUTPUT "${ctrl_pkt_bin}"
+      OUTPUT "${ctrl_pkt_bin}" "${config_path}"
+      COMMAND ${CMAKE_COMMAND} -E copy_directory "${ps_src}" "${ps_bin}"
       COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake"
               -d "${ctrl_pkt_b64}" "${ctrl_pkt_bin}"
-      DEPENDS "${ctrl_pkt_b64}"
-      COMMENT "Decoding ctrl_pkt0.b64 for ${model}"
+      DEPENDS ${ps_files}
+      COMMENT "Staging Work/ps and decoding ctrl_pkt0.bin for ${model} in build dir"
       VERBATIM)
     list(APPEND aie4_real_ctrlpkt_bins "${ctrl_pkt_bin}")
     set(aie4_real_ctrlpkt_bins "${aie4_real_ctrlpkt_bins}" PARENT_SCOPE)
   endif()
+
+  set(test_prefix "aie4_real_${model_id}")
+  set(elf_name "control.elf")
+  set(elf_path "${test_bin}/${elf_name}")
 
   add_test(NAME "${test_prefix}_asm"
     COMMAND aiebu-asm -t aie4_config -j "${config_path}" -o "${elf_path}" -f disabledump
