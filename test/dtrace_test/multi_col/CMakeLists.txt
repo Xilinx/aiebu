@@ -2,13 +2,16 @@
 # Copyright (C) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
 
 # Test multi uc script with debug format dwarf
-# generate elf file
-add_test(NAME "dtrace_multi_col_generate_elf"
-  COMMAND aiebu-asm
-    -t aie2ps_config
-    -j "${AIEBU_SOURCE_DIR}/test/dtrace_test/multi_col/Work/aiebu_config.json"
-    -o "${CMAKE_CURRENT_BINARY_DIR}/multi_col.elf"
+add_custom_command(OUTPUT multi_col.elf
+  COMMAND ${CMAKE_COMMAND} -P "${AIEBU_SOURCE_DIR}/cmake/b64.cmake" -d "${CMAKE_CURRENT_SOURCE_DIR}/multi_col.b64" multi_col.elf
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/multi_col.b64"
+  COMMENT "Decoding base64 ELF to binary in ${CMAKE_CURRENT_BINARY_DIR}"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  VERBATIM
+  )
+
+add_custom_target(dtrace_multi_col_elf ALL
+  DEPENDS multi_col.elf
   )
 
 add_test(NAME "dtrace_multi_col"
@@ -19,8 +22,6 @@ add_test(NAME "dtrace_multi_col"
     "elf" "${CMAKE_CURRENT_BINARY_DIR}/multi_col.elf" "DPU:dpu"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
-set_tests_properties("dtrace_multi_col" PROPERTIES
-  DEPENDS "dtrace_multi_col_generate_elf")
 
 # control buffer md5sum
 add_test(NAME "dtrace_multi_col_md5sum"
@@ -48,6 +49,4 @@ if (LLVM_DWARFDUMP)
   add_test(NAME "dwarf_verify_multi_col"
     COMMAND ${LLVM_DWARFDUMP} --verify "${CMAKE_CURRENT_BINARY_DIR}/multi_col.elf"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-  set_tests_properties("dwarf_verify_multi_col" PROPERTIES
-    DEPENDS "dtrace_multi_col_generate_elf")
 endif()
